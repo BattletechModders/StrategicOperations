@@ -38,7 +38,14 @@ namespace StrategicOperations
     }
     class Settings
     {
-        public bool enableLogging = false;
-
+        public bool enableLogging = true;
+        public bool strafeTargetsFriendlies = true;
+        public bool strafeEndsActivation = true;
+        public bool spawnTurretEndsActivation = true;
+        public float strafeVelocityDefault = 150f;
+        public float strafeAltitudeMin = 75f;
+        public float strafeAltitudeMax = 250f;
+        public float strafePreDistanceMult = 6f;
+        public float timeBetweenAttacks = 0.35f;
     }
 }

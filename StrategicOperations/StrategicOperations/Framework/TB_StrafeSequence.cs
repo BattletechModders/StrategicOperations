@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading.Tasks;
 using BattleTech;
@@ -13,28 +14,30 @@ namespace StrategicOperations.Framework
 {
     public class TB_StrafeSequence : MultiSequence
     {
-        public List<AbstractActor> AllTargets { get; set; }
-        public AbstractActor Attacker { get; set; }
-        public Vector3 EndPos { get; set; }
-        public float HeightOffset { get; set; }
+        private Team PlayerTeam;
+        private List<AbstractActor> AllTargets { get; set; }
+        private AbstractActor Attacker { get; set; }
+        private Vector3 EndPos { get; set; }
+        private float HeightOffset { get; set; }
         public override bool IsCancelable => false;
         public override bool IsComplete => this.state == TB_StrafeSequence.SequenceState.Finished;
         public override bool IsParallelInterruptable => false;
         public bool IsValidMultisequenceChild => false;
-        public float MaxWeaponRange { get; set; }
-        public float Radius { get; set; }
-        public Vector3 StartPos { get; set; }
-        public List<Weapon> StrafeWeapons { get; set; }
-        public Vector3 Velocity { get; set; }
+        private float MaxWeaponRange { get; set; }
+        private float Radius { get; set; }
+        private Vector3 StartPos { get; set; }
+        private float StrafeLength { get; set; }
+        private List<Weapon> StrafeWeapons { get; set; }
+        private Vector3 Velocity { get; set; }
         private const float horizMultiplier = 4f;
-        private const float speed = 150f;
-        public TB_StrafeSequence.SequenceState state;
+//        private float speed = 150f;
+        private TB_StrafeSequence.SequenceState state;
         private const float timeBetweenAttacks = 0.35f;
         private const float timeIncoming = 6f;
-        public float timeInCurrentState;
-        public float timeSinceLastAttack;
-        public Vector3 zeroEndPos;
-        public Vector3 zeroStartPos;
+        private float timeInCurrentState;
+        private float timeSinceLastAttack;
+        private Vector3 zeroEndPos;
+        private Vector3 zeroStartPos;
 
         public enum SequenceState
         {
@@ -45,42 +48,56 @@ namespace StrategicOperations.Framework
         }
 
         public TB_StrafeSequence(AbstractActor attacker, Vector3 positionA, Vector3 positionB,
-            float radius) : base(attacker.Combat)
+            float radius, Team team) : base(attacker.Combat)
         {
             this.Attacker = attacker;
             this.StartPos = positionA;
             this.EndPos = positionB;
+            this.StrafeLength = Mathf.Max(1f, Vector3.Distance(positionA, positionB)); 
             this.Radius = radius;
+            this.PlayerTeam = team;
             this.state = TB_StrafeSequence.SequenceState.None;
         }
 
         private void AttackNextTarget()
         {
             this.timeSinceLastAttack += Time.deltaTime;
-            if (this.timeSinceLastAttack > 0.35f && !base.Combat.AttackDirector.IsAnyAttackSequenceActive)
+            if (this.timeSinceLastAttack > ModInit.modSettings.timeBetweenAttacks && !base.Combat.AttackDirector.IsAnyAttackSequenceActive)
             {
-                while (this.AllTargets.Count > 0 && Vector3.Distance(this.Attacker.CurrentPosition, this.AllTargets[0].CurrentPosition) <= this.MaxWeaponRange * 0.95f)
+                var targetDist = Vector3.Distance(this.Attacker.CurrentPosition, this.AllTargets[0].CurrentPosition);
+                while (this.AllTargets.Count > 0 && targetDist <= this.MaxWeaponRange * 0.95f && this.Attacker.HasLOFToTargetUnit(this.AllTargets[0], this.StrafeWeapons[0]))
                 {
+                    ModInit.modLog.LogMessage($"We have {this.AllTargets.Count} targets remaining before attack.");
                     if (this.Attacker.HasLOFToTargetUnit(this.AllTargets[0], this.StrafeWeapons[0]))
                     {
+                        var filteredWeapons = new List<Weapon>(this.StrafeWeapons.Where(x => x.MaxRange >= targetDist));
+                        foreach (var weapon in filteredWeapons)
+                        {
+                            weapon.ResetWeapon();
+                        }
                         ModInit.modLog.LogMessage($"Strafing unit {Attacker.DisplayName} attacking target {AllTargets[0].DisplayName}");
                         AttackDirector attackDirector = base.Combat.AttackDirector;
-                        AttackDirector.AttackSequence attackSequence = attackDirector.CreateAttackSequence(base.SequenceGUID, this.Attacker, this.AllTargets[0], this.Attacker.CurrentPosition, this.Attacker.CurrentRotation, this.AllTargets.Count, this.StrafeWeapons, MeleeAttackType.NotSet, 0, false);
-                        attackSequence.ResetWeapons();
+                        AttackDirector.AttackSequence attackSequence = attackDirector.CreateAttackSequence(base.SequenceGUID, this.Attacker, this.AllTargets[0], this.Attacker.CurrentPosition, this.Attacker.CurrentRotation, this.AllTargets.Count, filteredWeapons, MeleeAttackType.NotSet, 0, false);
                         attackDirector.PerformAttack(attackSequence);
+                        attackSequence.ResetWeapons();
                         this.AllTargets.RemoveAt(0);
                         this.timeSinceLastAttack = 0f;
                         return;
                     }
+                    ModInit.modLog.LogMessage($"No valid LOS from attacker {Attacker.DisplayName} to target {AllTargets[0].DisplayName}");
                     this.AllTargets.RemoveAt(0);
                 }
+                ModInit.modLog.LogMessage($"We have {this.AllTargets.Count} targets remaining, none that we can attack.");
             }
+//            ModInit.modLog.LogMessage($"timeSinceAttack was {this.timeSinceLastAttack} (needs to be > {timeBetweenAttacks}) and IsAnyAttackSequenceActive?: {base.Combat.AttackDirector.IsAnyAttackSequenceActive} should be false");
         }
         private Vector3 CalcStartPos()
         {
-            Vector3 result = this.StartPos - this.Velocity * 6f;
+
+
+            Vector3 result = this.StartPos - this.Velocity * ModInit.modSettings.strafeVelocityDefault;
             this.MaxWeaponRange = this.StrafeWeapons[0].MaxRange;
-            this.HeightOffset = this.MaxWeaponRange / 4f;
+            this.HeightOffset = Mathf.Min(this.MaxWeaponRange / 4f, 200f);
             result.y += this.HeightOffset;
             return result;
         }
@@ -88,7 +105,13 @@ namespace StrategicOperations.Framework
         private void CalcTargets()
         {
             this.AllTargets = new List<AbstractActor>();
-            List<AbstractActor> allActors = base.Combat.AllActors;
+            var allActors = base.Combat.AllActors;
+            allActors.RemoveAll(x => x.GUID == this.Attacker.GUID);
+            if (!ModInit.modSettings.strafeTargetsFriendlies)
+            {
+                allActors = new List<AbstractActor>(base.Combat.AllActors.Where(x=>x.team.IsEnemy(this.PlayerTeam)));
+            }
+
             for (int i = 0; i < allActors.Count; i++)
             {
                 if (this.IsTarget(allActors[i]))
@@ -108,13 +131,21 @@ namespace StrategicOperations.Framework
                 return;
             }
             this.StrafeWeapons.Sort((Weapon x, Weapon y) => y.MaxRange.CompareTo(x.MaxRange));
+            ModInit.modLog.LogMessage($"First strafe weapon will be {StrafeWeapons[0].Name} with range {StrafeWeapons[0].MaxRange}");
         }
         private bool IsTarget(AbstractActor actor)
         {
             Vector3 currentPosition = actor.CurrentPosition;
             Vector3 vector = NvMath.NearestPointStrict(this.StartPos, this.EndPos, currentPosition);
             vector.y = base.Combat.MapMetaData.GetLerpedHeightAt(vector, false);
-            return Vector3.Distance(vector, currentPosition) < this.Radius;
+            var dist = Vector3.Distance(vector, currentPosition);
+            if (dist < this.Radius)
+            {
+                ModInit.modLog.LogMessage($"Target {actor.DisplayName} is within weapons range. Distance: {dist}, Range: {this.Radius}");
+                return true;
+            }
+            ModInit.modLog.LogMessage($"Target {actor.DisplayName} not within weapons range. Distance: {dist}, Range: {this.Radius}");
+            return false;
         }
         public override void Load(SerializationStream stream)
         {
@@ -125,6 +156,7 @@ namespace StrategicOperations.Framework
         public override void OnAdded()
         {
             base.OnAdded();
+
             this.SetState(TB_StrafeSequence.SequenceState.Incoming);
         }
         public override void OnUpdate()
@@ -161,12 +193,17 @@ namespace StrategicOperations.Framework
                     this.GetWeaponsForStrafe();
                     Vector3 vector = this.zeroEndPos - this.zeroStartPos;
                     vector.Normalize();
-                    this.Velocity = vector * 150f;
+                    var speed = ModInit.modSettings.strafeVelocityDefault;;
+                    if (Attacker.MaxSpeed > 0)
+                    {
+                        speed = Attacker.MaxSpeed;
+                    }
+                    this.Velocity = vector * speed;
                     Vector3 position = this.CalcStartPos();
                     Quaternion rotation = Quaternion.LookRotation(vector);
                     Quaternion rotation2 = Quaternion.LookRotation(Vector3.forward * 5f + Vector3.down * 1f);
                     this.SetPosition(position, rotation);
-                    base.SetCamera(CameraControl.Instance.ShowActorCam(this.Attacker, rotation2, 30f), base.MessageIndex);
+                    base.SetCamera(CameraControl.Instance.ShowActorCam(this.Attacker, rotation2, 300f), base.MessageIndex);
                     return;
                 }
                 case TB_StrafeSequence.SequenceState.Strafing:
@@ -204,23 +241,41 @@ namespace StrategicOperations.Framework
                 case TB_StrafeSequence.SequenceState.Incoming:
                     if (Vector3.Distance(this.Attacker.CurrentPosition, this.StartPos) < this.MaxWeaponRange)
                     {
+                        ModInit.modLog.LogMessage($"Setting Strafe SequenceState to Strafing!");
                         this.SetState(TB_StrafeSequence.SequenceState.Strafing);
                     }
                     break;
                 case TB_StrafeSequence.SequenceState.Strafing:
-                    if (Vector3.Distance(this.Attacker.CurrentPosition, this.EndPos) < this.MaxWeaponRange)
+                    //var endpoint = this.StartPos + (this.EndPos - this.StartPos).normalized * Vector3.Distance(this.StartPos, this.EndPos);
+                    var curPos_2D = this.Attacker.CurrentPosition;
+                    curPos_2D.y = 0f;
+                    var endPos_2D = this.EndPos;
+                    endPos_2D.y = 0f;
+                    var startPos_2D = this.StartPos;
+                    startPos_2D.y = 0f;
+                    var fromEnd = Vector3.Distance(curPos_2D, endPos_2D);
+                    var fromStart = Vector3.Distance(curPos_2D, startPos_2D);
+                    
+                    ModInit.modLog.LogMessage($"Strafing unit {fromEnd}m in 2D space from endpoint!");
+                    if (fromEnd < 10f)// this.MaxWeaponRange)
                     {
+                        ModInit.modLog.LogMessage($"Setting Strafe SequenceState to Finished!");
                         this.SetState(TB_StrafeSequence.SequenceState.Finished);
                     }
                     break;
             }
             switch (this.state)
             {
+                    
                 case TB_StrafeSequence.SequenceState.Incoming:
-                    this.SetPosition(this.Attacker.CurrentPosition + this.Velocity * Time.deltaTime, this.Attacker.CurrentRotation);
+                    var pos2 = this.Attacker.CurrentPosition + this.Velocity * Time.deltaTime;
+                    pos2.y = this.Combat.MapMetaData.GetLerpedHeightAt(pos2, false);
+                    this.SetPosition(pos2, this.Attacker.CurrentRotation);
                     return;
                 case TB_StrafeSequence.SequenceState.Strafing:
-                    this.SetPosition(this.Attacker.CurrentPosition + this.Velocity * Time.deltaTime, this.Attacker.CurrentRotation);
+                    var pos3 = this.Attacker.CurrentPosition + this.Velocity * Time.deltaTime;
+                    pos3.y = this.Combat.MapMetaData.GetLerpedHeightAt(pos3, false);
+                    this.SetPosition(pos3, this.Attacker.CurrentRotation);
                     this.AttackNextTarget();
                     break;
                 case TB_StrafeSequence.SequenceState.Finished:

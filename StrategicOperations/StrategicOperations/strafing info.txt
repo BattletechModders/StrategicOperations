@@ -1,0 +1,38 @@
+So below we have a working AbilityDef for a strafe. ActivationCooldown and ActivationETA do exactly what you'd expect; ETA is number of rounds you wait for the strafe to actually happen. I'll address the rest as I go.
+
+```
+{
+	"Description" : {
+		"Id" : "AbilityDefCMD_Strafe",
+		"Name" : "STRAFE",
+		"Details" : "CALLS IN A STRAFING RUN BY YOUR AEROSPACE SUPPORT UNIT.",
+		"Icon" : "uixSvgIcon_genericDiamond"
+	},
+	"ActivationTime" : "CommandAbility",
+	"Resource" : "CommandAbility",
+	"ActivationCooldown" : 1,
+	"ActivationETA" : 1,
+	"specialRules" : "Strafe",
+	"Targeting" : "CommandTargetTwoPoints",
+	"FloatParam1" : 100.0,
+	"FloatParam2" : 250.0,
+	"ActorResource" : "vehicledef_SCHREK",
+    "StringParam1" : "vfxPrfPrtl_fireTerrain_smLoop",
+    "IntParam1" : 5,
+    "IntParam2" : 500
+}
+```
+Currently, you define a strafing "area" of X by Y meters by selecting 2 points A and B on the map. X is the "width" of the target area; in other words the buffer or radius around (and between) the two points in which an enemy is a valid target for the strafe. That radius is controlled in the AbilityDef by `FloatParam1`. Y is the base "length" of the strafing run, and is defined when you activate the ability, but is subject to a maximum value also set in the AbilityDef by `FloatParam2`. So above, a strafing run could be anywhere from 100 to 450 meters long (100 if Point A and Point B are in the same spot, and 450 maximum due to the endpoint radii of 100 being added). `IntParam1` simply determines the number of "flares" that are generated when you confirm the strafe order (so you know where its headed). `IntParam2` defines the maximum range from the initiating unit (the unit with the ability) from which you can designate a strafing run.
+ 
+When the strafe sequence gets initialized, one of the things it does is sorts all the weapons on the attacker by MaxRange, and uses that to determine attacker elevation at the start position. For whatever reason, HBS used MaxWeaponRange/4, but I added a clamp to keep it between a min and max value, both available in settings. When the strafe itself actually begins, the attacking unit gets teleported to the start position (including the elevation previously calculated), which is some distance along the axis defined by A-B, and then moves along that axis at a velocity defined by the attackers TopSpeed (if > 0) or otherwise by a default value from settings. As the attacker moves, it continually checks whether there is an enemy in range. If there is, an attackSequence is initialized using **every weapon** within range of the target. Alphas all the way baby! As far as I can tell, there isn't anything special about these attack sequences; shots can miss, stray shots can hit friendly units, etc. *However*, because of the angle of the shots and the elevation bonus to hit, these shots rarely miss and even more rarely register as a stray shot on any nearby units.
+ 
+As for the frequency of attacks, that's a little tougher to answer definitively. Each target in the strafe area can only be attacked once, and each attackSequence has to have some minimum amount of time passed between them (default was 0.35 seconds, but I could change that). Attacks begin as soon as both Point A and a target are within MaxRange of any weapon, and end once the attacker is some minimum distance from the end point. I could expose that minimum end distance as a setting or calculate it somehow based on the length of the A-B line if desired, but currently I just have it set to essentially be directly overhead from Point B. Units that move faster therefore get fewer opportunities to attack targets.
+ 
+So in the below image, any unit within the two circles or between the parallel dotted lines would be a valid target.
+
+
+There are a lot of things I could do to expand on this system, so I'm open to suggestions. In particular I'm not sure how much I like alphas for every target in the strafing area, but at the same time I can't think of a great way to group weapons into firing at different targets.
+
+
+
+

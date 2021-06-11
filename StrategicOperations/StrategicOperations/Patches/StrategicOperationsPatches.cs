@@ -1,10 +1,13 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection;
+using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading.Tasks;
 using BattleTech;
 using BattleTech.Data;
+using BattleTech.UI;
 using Harmony;
 using HBS.Logging;
 using StrategicOperations.Framework;
@@ -96,7 +99,7 @@ namespace StrategicOperations.Patches
                 {
                     case AbilityDef.TargetingType.CommandInstant:
                         ability.Activate(__instance, null);
-                        goto IL_12E;
+                        goto publishAbilityConfirmed;
                     case AbilityDef.TargetingType.CommandTargetSingleEnemy:
                     {
                         ICombatant combatant = __instance.Combat.FindCombatantByGUID(msg.affectedObjectGuid, false);
@@ -107,21 +110,21 @@ namespace StrategicOperations.Patches
                             return false;
                         }
                         ability.Activate(__instance, combatant);
-                        goto IL_12E;
+                        goto publishAbilityConfirmed;
                     }
                     case AbilityDef.TargetingType.CommandTargetSinglePoint:
                         ability.Activate(__instance, msg.positionA);
-                        goto IL_12E;
+                        goto publishAbilityConfirmed;
                     case AbilityDef.TargetingType.CommandTargetTwoPoints:
                     case AbilityDef.TargetingType.CommandSpawnPosition:
                         ability.Activate(__instance, msg.positionA, msg.positionB);
-                        goto IL_12E;
+                        goto publishAbilityConfirmed;
                 }
                 ModInit.modLog.LogMessage(
                     $"Team.ActivateAbility needs to add handling for targetingtype {ability.Def.Targeting}");
                 return false;
-                IL_12E:
-//                CooldownAllCMDAbilities(); // this seems stupid?
+                publishAbilityConfirmed:
+           //     Utils.CooldownAllCMDAbilities(); // this initiates a cooldown for ALL cmd abilities when one is used. dumb.
                 __instance.Combat.MessageCenter.PublishMessage(new AbilityConfirmedMessage(msg.actingObjectGuid, msg.affectedObjectGuid, msg.abilityID, msg.positionA, msg.positionB));
                 return false;
             }
@@ -139,7 +142,7 @@ namespace StrategicOperations.Patches
                         $"Couldn't find actor {__instance.Def.ActorResource} for ability {__instance.Def.Description.Name} - aborting");
                     return false;
                 }
-                TB_StrafeSequence eventSequence = new TB_StrafeSequence(abstractActor, positionA, positionB, radius);
+                TB_StrafeSequence eventSequence = new TB_StrafeSequence(abstractActor, positionA, positionB, radius, team);
                 TurnEvent tEvent = new TurnEvent(Guid.NewGuid().ToString(), __instance.Combat, __instance.Def.ActivationETA, null, eventSequence, __instance.Def, false);
                 __instance.Combat.TurnDirector.AddTurnEvent(tEvent);
                 if (__instance.Def.IntParam1 > 0)
@@ -152,13 +155,134 @@ namespace StrategicOperations.Patches
             }
         }
 
-        [HarmonyPatch(typeof(CombatGameState), "OnCombatGameDestroyed")]
-        internal static class CombatGameState_OnCombatGameDestroyed
+        [HarmonyPatch(typeof(Ability), "ActivateSpawnTurret")]
+        public static class Ability_ActivateSpawnTurret
         {
-            // Token: 0x06000013 RID: 19 RVA: 0x00003A0C File Offset: 0x00001C0C
+            public static bool Prefix(Ability __instance, Team team, Vector3 positionA, Vector3 positionB)
+            {
+                if (ModState.deferredInvokeSpawn == null)
+                {
+                    ModInit.modLog.LogMessage($"Deferred Spawner = null, creating delegate and returning false.");
+                    ModState.deferredInvokeSpawn = () =>
+                        Utils._activateSpawnTurretMethod.Invoke(__instance,
+                            new object[] {team, positionA, positionB});
+                    var flares = Traverse.Create(__instance).Method("SpawnFlares",new object[] { positionA, positionA, __instance.Def.StringParam1, 1, 1});
+                    flares.GetValue();
+                    return false;
+                }
+
+                var combat = UnityGameInstance.BattleTechGame.Combat;
+
+                var cmdLance = Utils.CreateCMDLance(team.SupportTeam);
+
+                Quaternion quaternion = Quaternion.LookRotation(positionB - positionA);
+                var spawnTurretMethod = Traverse.Create(__instance).Method("SpawnTurret", new object[]{team.SupportTeam, __instance.Def.ActorResource, positionA, quaternion});
+                var turretActor = spawnTurretMethod.GetValue<AbstractActor>();
+
+                team.SupportTeam.AddUnit(turretActor);
+                turretActor.AddToTeam(team.SupportTeam);
+
+                turretActor.AddToLance(cmdLance);
+                turretActor.BehaviorTree = BehaviorTreeFactory.MakeBehaviorTree(__instance.Combat.BattleTechGame, turretActor, BehaviorTreeIDEnum.CoreAITree);
+                
+                turretActor.OnPositionUpdate(positionA, quaternion, -1, true, null, false);
+                turretActor.DynamicUnitRole = UnitRole.Turret;
+                
+                UnitSpawnedMessage message = new UnitSpawnedMessage("FROM_ABILITY", turretActor.GUID);
+
+                __instance.Combat.MessageCenter.PublishMessage(message);
+                turretActor.OnPlayerVisibilityChanged(VisibilityLevel.LOSFull);
+               
+                var stackID = combat.StackManager.NextStackUID;
+
+                var component =
+                    UnitDropPodSpawner.UnitDropPodSpawnerInstance.GetComponentInParent<EncounterLayerParent>();
+                if (component.dropPodLandedPrefab != null)
+                {
+                    UnitDropPodSpawner.UnitDropPodSpawnerInstance.LoadDropPodPrefabs(component.DropPodVfxPrefab, component.dropPodLandedPrefab);
+                }
+
+                var dropPodAnimationSequence = new GenericAnimationSequence(combat);
+                EncounterLayerParent.EnqueueLoadAwareMessage(new AddSequenceToStackMessage(dropPodAnimationSequence));
+
+                UnitDropPodSpawner.UnitDropPodSpawnerInstance.StartDropPodAnimation(0.75f, null, stackID, stackID); // maybe dont need this? probably should test in urban environment.
+
+                ModState.ResetDeferredSpawner();
+                return false;
+            }
+        }
+
+        [HarmonyPatch(typeof(Ability), "SpawnFlares")]
+        public static class Ability_SpawnFlares
+        {
+            private static bool Prefix(Ability __instance, Vector3 positionA, Vector3 positionB, string prefabName, int numFlares, int numPhases)
+            {
+                Vector3 b = (positionB - positionA) / (float)(numFlares - 1);
+
+                Vector3 line = positionB - positionA;
+                Vector3 left = Vector3.Cross(line, Vector3.up).normalized;
+                Vector3 right = -left;
+
+                var startLeft = positionA + (left * __instance.Def.FloatParam1);
+                var startRight = positionA + (right * __instance.Def.FloatParam1);
+
+                Vector3 vector = positionA;
+
+                vector.y = __instance.Combat.MapMetaData.GetLerpedHeightAt(vector, false);
+                List<ObjectSpawnData> list = new List<ObjectSpawnData>();
+                for (int i = 0; i < numFlares; i++)
+                {
+                    ObjectSpawnData item = new ObjectSpawnData(prefabName, vector, Quaternion.identity, true, false);
+                    list.Add(item);
+                    vector += b;
+                    vector.y = __instance.Combat.MapMetaData.GetLerpedHeightAt(vector, false);
+                }
+
+                for (int i = 0; i < numFlares; i++)
+                {
+                    ObjectSpawnData item = new ObjectSpawnData(prefabName, startLeft, Quaternion.identity, true, false);
+                    list.Add(item);
+                    startLeft += b;
+                    startLeft.y = __instance.Combat.MapMetaData.GetLerpedHeightAt(startLeft, false);
+                }
+                
+                for (int i = 0; i < numFlares; i++)
+                {
+                    ObjectSpawnData item = new ObjectSpawnData(prefabName, startRight, Quaternion.identity, true, false);
+                    list.Add(item);
+                    startRight += b;
+                    startRight.y = __instance.Combat.MapMetaData.GetLerpedHeightAt(startRight, false);
+                }
+
+                SpawnObjectSequence spawnObjectSequence = new SpawnObjectSequence(__instance.Combat, list);
+                __instance.Combat.MessageCenter.PublishMessage(new AddSequenceToStackMessage(spawnObjectSequence));
+                List<ObjectSpawnData> spawnedObjects = spawnObjectSequence.spawnedObjects;
+                CleanupObjectSequence eventSequence = new CleanupObjectSequence(__instance.Combat, spawnedObjects);
+                TurnEvent tEvent = new TurnEvent(Guid.NewGuid().ToString(), __instance.Combat, numPhases, null, eventSequence, __instance.Def, false);
+                __instance.Combat.TurnDirector.AddTurnEvent(tEvent);
+                return false;
+            }
+        }
+
+
+        [HarmonyPatch(typeof(CombatGameState), "OnCombatGameDestroyed")]
+        public static class CombatGameState_OnCombatGameDestroyed
+        {
             private static void Postfix(CombatGameState __instance)
             {
-                ModState.Reset();
+                ModState.ResetAll();
+            }
+        }
+
+        [HarmonyPatch(typeof(TurnActor), "OnRoundBegin")]
+        public static class TurnActor_OnRoundBegin
+        {
+            public static void Postfix(TurnDirector __instance)
+            {
+                for (int i = 0; i < ModState.CommandAbilities.Count; i++)
+                {
+                    ModState.CommandAbilities[i].OnNewRound();
+                }
             }
         }
 
@@ -167,14 +291,17 @@ namespace StrategicOperations.Patches
         {
             public static void Postfix(TurnDirector __instance)
             {
-                //load resources like CJ does in DataLoadHelper
 
                 var team = __instance.Combat.Teams.First(x => x.IsLocalPlayer);
                 var dm = team.Combat.DataManager;
 
-                foreach (var abilityDefKVP in dm.AbilityDefs.Where(x=>x.Key.StartsWith("AbilityDefCMD_")))
+                foreach (var abilityDefKVP in dm.AbilityDefs.Where(x=>x.Value.specialRules == AbilityDef.SpecialRules.SpawnTurret || x.Value.specialRules == AbilityDef.SpecialRules.Strafe))
                 {
-                    var ability = new Ability(abilityDefKVP.Value);
+
+                    if (team.units.Any(x => x.GetPilot().Abilities.Any(y => y.Def == abilityDefKVP.Value)))
+                    {
+                        //only do things for abilities that pilots have? move things here. also move AbstractActor initialization to ability start to minimize neutralTeam think time, etc. and then despawn?
+                        var ability = new Ability(abilityDefKVP.Value);
                     ability.Init(team.Combat);
                     if (ModState.CommandAbilities.All(x => x != ability))
                     {
@@ -183,17 +310,20 @@ namespace StrategicOperations.Patches
 
                     ModInit.modLog.LogMessage($"Added {ability?.Def?.Id} to CommandAbilities");
 
-
                     //need to create SpawnPointGameLogic? for magic safety teleporter ???s or disable SafetyTeleport logic for certain units?
 
                     dm.PilotDefs.TryGet("pilot_sim_starter_dekker", out var supportPilotDef);
-//                    var supportPilot = new Pilot(supportPilotDef, "", false);
 
-
+                    if (__instance.Combat.Teams.All(x => x.GUID != "61612bb3-abf9-4586-952a-0559fa9dcd75"))
+                    {
+                        Utils.CreateOrUpdateNeutralTeam();
+                    }
                     var neutralTeam =
-                        __instance.Combat.Teams.First(x => x.GUID == "61612bb3-abf9-4586-952a-0559fa9dcd75");
-                    var cmdLance = Utils.CreateCMDLance(neutralTeam);
+                        __instance.Combat.Teams.FirstOrDefault(x => x.GUID == "61612bb3-abf9-4586-952a-0559fa9dcd75");
                     
+                    ModInit.modLog.LogMessage($"Team neturalTeam = {neutralTeam?.DisplayName}");
+                    var cmdLance = Utils.CreateCMDLance(neutralTeam);
+
 
                     if (!string.IsNullOrEmpty(ability.Def?.ActorResource))
                     {
@@ -222,31 +352,146 @@ namespace StrategicOperations.Patches
                             continue;
                         }
                     }
-
-                    if (string.IsNullOrEmpty(ability.Def?.WeaponResource)) continue;
-                    dm.MechDefs.TryGet("mechdef_hunchback_HBK-4G", out var supportWeaponMechDef);
-                    supportWeaponMechDef.Refresh();
-                    var supportWeaponMech = ActorFactory.CreateMech(supportWeaponMechDef, supportPilotDef, neutralTeam.EncounterTags, neutralTeam.Combat,
-                        neutralTeam.GetNextSupportUnitGuid(), "", null);
-                    supportWeaponMech.Init(neutralTeam.OffScreenPosition,0f,false);
-                    supportWeaponMech.InitGameRep(null);
-                    neutralTeam.AddUnit(supportWeaponMech);
-                    supportWeaponMech.AddToTeam(neutralTeam);
-                    supportWeaponMech.AddToLance(cmdLance);
-                    supportWeaponMech.BehaviorTree = BehaviorTreeFactory.MakeBehaviorTree(__instance.Combat.BattleTechGame, supportWeaponMech, BehaviorTreeIDEnum.CoreAITree);
-                    dm.WeaponDefs.TryGet(ability.Def.WeaponResource, out var weaponDef);
-                    supportWeaponMech.GameRep.gameObject.SetActive(true);
-                    var mcRef = new MechComponentRef(weaponDef?.Description?.Id, "", ComponentType.Weapon,
-                        ChassisLocations.RightTorso, -1, ComponentDamageLevel.Functional, false) {DataManager = dm};
-                    
-                    mcRef.RefreshComponentDef();
-                    var weapon = new Weapon(supportWeaponMech, neutralTeam.Combat, mcRef, "0"); // need to be on a unit of some kind ->creating supportWeaponMech. maybe can add to player mech but "hide" it?
-                    //probably need to init Ammoboxes. potentially implement selector for different ammo types, but would require CAC.
-                    
-                    team.SupportWeapons.Add(weapon);
-                    ModInit.modLog.LogMessage($"Added {weapon?.weaponDef?.Description?.Id} to SupportWeapons");
-
+                    }
                 }
+            }
+        }
+
+        [HarmonyPatch(typeof(TurnDirector), "IncrementActiveTurnActor")]
+        public static class TurnDirector_IncrementActiveTurnActor
+        {
+            public static void Prefix(TurnDirector __instance)
+            {
+                if (ModState.deferredInvokeSpawn != null && __instance.ActiveTurnActor is Team activeTeam && activeTeam.IsLocalPlayer)
+                {
+                    ModInit.modLog.LogMessage($"Found deferred spawner, invoking.");
+                    ModState.deferredInvokeSpawn();
+                    ModState.ResetDeferredSpawner();
+                }
+            }
+        }
+
+        [HarmonyPatch(typeof(CombatHUDActionButton), "ActivateCommandAbility", new Type[]{typeof(string), typeof(Vector3), typeof(Vector3)})]
+        public static class CombatHUDActionButton_ActivateCommandAbility
+        {
+            public static bool Prefix(CombatHUDActionButton __instance, string teamGUID, Vector3 positionA, Vector3 positionB, out bool __state)
+            {
+                var combat = UnityGameInstance.BattleTechGame.Combat;
+
+                var HUD = Traverse.Create(__instance).Property("HUD").GetValue<CombatHUD>();
+                var theActor = HUD.SelectedActor;
+                var distanceToA = Mathf.RoundToInt(Vector3.Distance(theActor.CurrentPosition, positionA));
+                var distanceToB = Mathf.RoundToInt(Vector3.Distance(theActor.CurrentPosition, positionB));
+
+                var maxRange = Mathf.RoundToInt(__instance.Ability.Def.IntParam2);
+
+                if (__instance.Ability.Def.specialRules == AbilityDef.SpecialRules.Strafe && distanceToA > maxRange)
+                {
+                    var popup = GenericPopupBuilder.Create(GenericPopupType.Info, $"INVALID GRID COORDINATES\n\nDistance to target marker A: {distanceToA}\nDistance to target marker B: {distanceToB}\n\nMaximum Deployment Range: {maxRange}");
+                    popup.AddButton("Acknowledged");
+                    popup.IsNestedPopupWithBuiltInFader().CancelOnEscape().Render();
+
+                    ModInit.modLog.LogMessage($"Cannot activate strafe with coordinates farther than __instance.Ability.Def.IntParam2: {__instance.Ability.Def.IntParam2}");
+                    __state = false;
+                    return false;
+                }
+                
+                if (__instance.Ability.Def.specialRules == AbilityDef.SpecialRules.SpawnTurret && distanceToA > maxRange)
+                {
+                    var popup = GenericPopupBuilder.Create(GenericPopupType.Info, $"INVALID DEPLOYMENT COORDINATES\n\nDistance to Deployment: {distanceToA}\n\nMaximum Deployment Range: {maxRange}");
+                    popup.AddButton("Acknowledged");
+                    popup.IsNestedPopupWithBuiltInFader().CancelOnEscape().Render();
+
+                    ModInit.modLog.LogMessage($"Cannot spawn turret with coordinates farther than __instance.Ability.Def.IntParam2: {__instance.Ability.Def.IntParam2}");
+                    __state = false;
+                    return false;
+                }
+                __state = true;
+                return true;
+            }
+
+            public static void Postfix(CombatHUDActionButton __instance, string teamGUID, Vector3 positionA,
+                Vector3 positionB, bool __state)
+            {
+                if (!__state) return;
+                var HUD = Traverse.Create(__instance).Property("HUD").GetValue<CombatHUD>();
+                var theActor = HUD.SelectedActor;
+                if (__instance.Ability.Def.specialRules == AbilityDef.SpecialRules.Strafe &&
+                    ModInit.modSettings.strafeEndsActivation)
+                {
+                    theActor.OnActivationEnd(theActor.GUID, __instance.GetInstanceID());
+                }
+                if (__instance.Ability.Def.specialRules == AbilityDef.SpecialRules.SpawnTurret &&
+                    ModInit.modSettings.spawnTurretEndsActivation)
+                {
+                    theActor.OnActivationEnd(theActor.GUID, __instance.GetInstanceID());
+                }
+            }
+        }
+
+        [HarmonyPatch(typeof(SelectionStateCommandSpawnTarget), "ProcessMousePos")]
+        public static class SelectionStateCommandSpawnTarget_ProcessMousePos
+        {
+            public static bool Prefix(SelectionStateCommandSpawnTarget __instance, Vector3 worldPos, int ___numPositionsLocked)
+            {
+                CombatSpawningReticle.Instance.ShowReticle();
+                var HUD = Traverse.Create(__instance).Property("HUD").GetValue<CombatHUD>();
+                var theActor = HUD.SelectedActor;
+                var distance = Mathf.RoundToInt(Vector3.Distance(theActor.CurrentPosition, worldPos));
+                var maxRange = Mathf.RoundToInt(__instance.FromButton.Ability.Def.IntParam2);
+                if (__instance.FromButton.Ability.Def.specialRules == AbilityDef.SpecialRules.SpawnTurret && distance > maxRange && ___numPositionsLocked == 0)
+                {
+                    CombatSpawningReticle.Instance.HideReticle();
+//                    ModInit.modLog.LogMessage($"Cannot spawn turret with coordinates farther than __instance.Ability.Def.IntParam2: {__instance.FromButton.Ability.Def.IntParam2}");
+                    return false;
+                }
+                return true;
+            }
+        }
+
+        [HarmonyPatch(typeof(SelectionStateCommandTargetTwoPoints), "ProcessMousePos")]
+        public static class SelectionStateCommandTargetTwoPoints_ProcessMousePos
+        {
+            public static bool Prefix(SelectionStateCommandTargetTwoPoints __instance, Vector3 worldPos, int ___numPositionsLocked)
+            {
+                CombatTargetingReticle.Instance.ShowReticle();
+                var HUD = Traverse.Create(__instance).Property("HUD").GetValue<CombatHUD>();
+                var positionA = Traverse.Create(__instance).Property("positionA").GetValue<Vector3>();
+                var positionB = Traverse.Create(__instance).Property("positionB").GetValue<Vector3>();
+
+                var theActor = HUD.SelectedActor;
+                var distance = Mathf.RoundToInt(Vector3.Distance(theActor.CurrentPosition, worldPos));
+                var distanceToA = Mathf.RoundToInt(Vector3.Distance(theActor.CurrentPosition, positionA));
+                var distanceToB = Mathf.RoundToInt(Vector3.Distance(theActor.CurrentPosition, positionB));
+
+                var maxRange = Mathf.RoundToInt(__instance.FromButton.Ability.Def.IntParam2);
+                var radius = __instance.FromButton.Ability.Def.FloatParam1;
+                CombatTargetingReticle.Instance.UpdateReticle(positionA,positionB, radius, false);
+                if (__instance.FromButton.Ability.Def.specialRules == AbilityDef.SpecialRules.Strafe && (distance > maxRange && ___numPositionsLocked == 0) || (distanceToA > maxRange && ___numPositionsLocked == 1))
+                {
+                    CombatTargetingReticle.Instance.HideReticle();
+//                    ModInit.modLog.LogMessage($"Cannot strafe with coordinates farther than __instance.Ability.Def.IntParam2: {__instance.FromButton.Ability.Def.IntParam2}");
+                    return false;
+                }
+                return true;
+            }
+        }
+
+        [HarmonyPatch(typeof(SelectionStateCommandTargetTwoPoints), "ProcessLeftClick")]
+        public static class SelectionStateCommandTargetTwoPoints_ProcessLeftClick
+        {
+            public static bool Prefix(SelectionStateCommandTargetTwoPoints __instance, Vector3 worldPos, int ___numPositionsLocked, ref bool __result)
+            {
+                var HUD = Traverse.Create(__instance).Property("HUD").GetValue<CombatHUD>();
+                var theActor = HUD.SelectedActor;
+                var distance = Mathf.RoundToInt(Vector3.Distance(theActor.CurrentPosition, worldPos));
+                var maxRange = Mathf.RoundToInt(__instance.FromButton.Ability.Def.IntParam2);
+                __result = true;
+                if ((__instance.FromButton.Ability.Def.specialRules == AbilityDef.SpecialRules.Strafe || (__instance.FromButton.Ability.Def.specialRules == AbilityDef.SpecialRules.SpawnTurret)) && distance > maxRange)
+                {
+                    return false;
+                }
+                return true;
             }
         }
     }
