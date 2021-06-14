@@ -11,17 +11,17 @@ namespace StrategicOperations.Framework
     {
         public static List<Ability> CommandAbilities = new List<Ability>();
 
-        public static Action deferredInvokeSpawn;
+        public static List<Action> deferredInvokeSpawns = new List<Action>();
 
         public static void ResetAll()
         {
             CommandAbilities.Clear();
-            deferredInvokeSpawn = null;
+            deferredInvokeSpawns = new List<Action>();
         }
 
-        public static void ResetDeferredSpawner()
+        public static void ResetDeferredSpawners()
         {
-            deferredInvokeSpawn = null;
+            deferredInvokeSpawns = new List<Action>();
         }
     }
 

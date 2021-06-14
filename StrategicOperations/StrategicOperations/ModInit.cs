@@ -47,5 +47,6 @@ namespace StrategicOperations
         public float strafeAltitudeMax = 250f;
         public float strafePreDistanceMult = 6f;
         public float timeBetweenAttacks = 0.35f;
+        public float strafeMinDistanceToEnd = 10f;
     }
 }

@@ -134,23 +134,66 @@ namespace StrategicOperations.Patches
         {
             public static bool Prefix(Ability __instance, Team team, Vector3 positionA, Vector3 positionB, float radius)
             {
-                ModInit.modLog.LogMessage($"Initializing Strafing Run!");
-                AbstractActor abstractActor = team.FindSupportActor(__instance.Def.ActorResource);
-                if (abstractActor == null)
+                var dm = __instance.Combat.DataManager;
+                dm.PilotDefs.TryGet("pilot_sim_starter_dekker", out var supportPilotDef);
+
+                if (__instance.Combat.Teams.All(x => x.GUID != "61612bb3-abf9-4586-952a-0559fa9dcd75"))
                 {
-                    ModInit.modLog.LogMessage(
-                        $"Couldn't find actor {__instance.Def.ActorResource} for ability {__instance.Def.Description.Name} - aborting");
-                    return false;
+                    Utils.CreateOrUpdateNeutralTeam();
                 }
-                TB_StrafeSequence eventSequence = new TB_StrafeSequence(abstractActor, positionA, positionB, radius, team);
-                TurnEvent tEvent = new TurnEvent(Guid.NewGuid().ToString(), __instance.Combat, __instance.Def.ActivationETA, null, eventSequence, __instance.Def, false);
-                __instance.Combat.TurnDirector.AddTurnEvent(tEvent);
-                if (__instance.Def.IntParam1 > 0)
+
+                var neutralTeam =
+                    __instance.Combat.Teams.FirstOrDefault(
+                        x => x.GUID == "61612bb3-abf9-4586-952a-0559fa9dcd75");
+
+                ModInit.modLog.LogMessage($"Team neturalTeam = {neutralTeam?.DisplayName}");
+                var cmdLance = Utils.CreateCMDLance(neutralTeam);
+
+
+                if (!string.IsNullOrEmpty(__instance.Def?.ActorResource))
                 {
-                    var flares = Traverse.Create(__instance).Method("SpawnFlares",new object[] { positionA, positionB, __instance.Def.StringParam1,
-                        __instance.Def.IntParam1, __instance.Def.ActivationETA});
-                    flares.GetValue();
+
+                    if (__instance.Def.ActorResource.StartsWith("vehicledef_"))
+                    {
+                        dm.VehicleDefs.TryGet(__instance.Def.ActorResource, out var supportActorVehicleDef);
+                        supportActorVehicleDef.Refresh();
+                        var supportActorVehicle = ActorFactory.CreateVehicle(supportActorVehicleDef,
+                            supportPilotDef, neutralTeam.EncounterTags, neutralTeam.Combat,
+                            neutralTeam.GetNextSupportUnitGuid(), "", null);
+                        supportActorVehicle.Init(neutralTeam.OffScreenPosition, 0f, false);
+                        supportActorVehicle.InitGameRep(null);
+                        neutralTeam.AddUnit(supportActorVehicle);
+                        supportActorVehicle.AddToTeam(neutralTeam);
+                        supportActorVehicle.AddToLance(cmdLance);
+                        supportActorVehicle.GameRep.gameObject.SetActive(true);
+                        supportActorVehicle.BehaviorTree = BehaviorTreeFactory.MakeBehaviorTree(
+                            __instance.Combat.BattleTechGame, supportActorVehicle,
+                            BehaviorTreeIDEnum.DoNothingTree);
+
+
+                        ModInit.modLog.LogMessage($"Initializing Strafing Run!");
+
+                        TB_StrafeSequence eventSequence = new TB_StrafeSequence(supportActorVehicle, positionA, positionB, radius, team);
+                        TurnEvent tEvent = new TurnEvent(Guid.NewGuid().ToString(), __instance.Combat, __instance.Def.ActivationETA, null, eventSequence, __instance.Def, false);
+                        __instance.Combat.TurnDirector.AddTurnEvent(tEvent);
+                        if (__instance.Def.IntParam1 > 0)
+                        {
+                            var flares = Traverse.Create(__instance).Method("SpawnFlares",new object[] { positionA, positionB, __instance.Def.StringParam1,
+                                __instance.Def.IntParam1, __instance.Def.ActivationETA});
+                            flares.GetValue();
+                        }
+                        return false;
+
+                    }
+
+                    else
+                    {
+                        ModInit.modLog.LogMessage(
+                            $"Something wrong with CMD Ability {__instance.Def.Id}, invalid ActorResource");
+                        return false;
+                    }
                 }
+
                 return false;
             }
         }
@@ -160,55 +203,85 @@ namespace StrategicOperations.Patches
         {
             public static bool Prefix(Ability __instance, Team team, Vector3 positionA, Vector3 positionB)
             {
-                if (ModState.deferredInvokeSpawn == null)
+                if (ModState.deferredInvokeSpawns.All(x => x.Target.GetHashCode() != __instance.GetHashCode()))
                 {
                     ModInit.modLog.LogMessage($"Deferred Spawner = null, creating delegate and returning false.");
-                    ModState.deferredInvokeSpawn = () =>
-                        Utils._activateSpawnTurretMethod.Invoke(__instance,
-                            new object[] {team, positionA, positionB});
+                    void DeferredInvokeSpawn() => Utils._activateSpawnTurretMethod.Invoke(__instance, new object[] {team, positionA, positionB});
+                    ModState.deferredInvokeSpawns.Add(DeferredInvokeSpawn);
                     var flares = Traverse.Create(__instance).Method("SpawnFlares",new object[] { positionA, positionA, __instance.Def.StringParam1, 1, 1});
                     flares.GetValue();
                     return false;
                 }
 
                 var combat = UnityGameInstance.BattleTechGame.Combat;
-
+                var dm = combat.DataManager;
+                dm.PilotDefs.TryGet("pilot_sim_starter_dekker", out var supportPilotDef);
                 var cmdLance = Utils.CreateCMDLance(team.SupportTeam);
 
                 Quaternion quaternion = Quaternion.LookRotation(positionB - positionA);
-                var spawnTurretMethod = Traverse.Create(__instance).Method("SpawnTurret", new object[]{team.SupportTeam, __instance.Def.ActorResource, positionA, quaternion});
-                var turretActor = spawnTurretMethod.GetValue<AbstractActor>();
 
-                team.SupportTeam.AddUnit(turretActor);
-                turretActor.AddToTeam(team.SupportTeam);
+                    if (__instance.Def.ActorResource.StartsWith("vehicledef_"))
+                    {
+                        dm.VehicleDefs.TryGet(__instance.Def.ActorResource, out var supportActorVehicleDef);
+                        supportActorVehicleDef.Refresh();
+                        var supportActorVehicle = ActorFactory.CreateVehicle(supportActorVehicleDef, supportPilotDef, team.SupportTeam.EncounterTags, team.SupportTeam.Combat,
+                            team.SupportTeam.GetNextSupportUnitGuid(), "", null);
+                        supportActorVehicle.Init(positionA, quaternion.eulerAngles.y,false);
+                        supportActorVehicle.InitGameRep(null);
+                        team.SupportTeam.AddUnit(supportActorVehicle);
+                        supportActorVehicle.AddToTeam(team.SupportTeam);
+                        supportActorVehicle.AddToLance(cmdLance);
+                        team.SupportUnits.Add(supportActorVehicle);
+                        supportActorVehicle.GameRep.gameObject.SetActive(true);
+                        supportActorVehicle.BehaviorTree = BehaviorTreeFactory.MakeBehaviorTree(__instance.Combat.BattleTechGame, supportActorVehicle, BehaviorTreeIDEnum.CoreAITree);
+                        ModInit.modLog.LogMessage($"Added {supportActorVehicle?.VehicleDef?.Description?.Id} to SupportUnits");
+                    }
 
-                turretActor.AddToLance(cmdLance);
-                turretActor.BehaviorTree = BehaviorTreeFactory.MakeBehaviorTree(__instance.Combat.BattleTechGame, turretActor, BehaviorTreeIDEnum.CoreAITree);
+                    if (__instance.Def.ActorResource.StartsWith("mechdef_"))
+                    {
+                        dm.MechDefs.TryGet(__instance.Def.ActorResource, out var supportActorMechDef);
+                        supportActorMechDef.Refresh();
+                        var supportActorMech = ActorFactory.CreateMech(supportActorMechDef, supportPilotDef, team.SupportTeam.EncounterTags, team.SupportTeam.Combat,
+                            team.SupportTeam.GetNextSupportUnitGuid(), "", null);
+                        supportActorMech.Init(positionA,quaternion.eulerAngles.y,false);
+                        supportActorMech.InitGameRep(null);
+                        team.SupportTeam.AddUnit(supportActorMech);
+                        supportActorMech.AddToTeam(team.SupportTeam);
+                        supportActorMech.AddToLance(cmdLance);
+                        team.SupportUnits.Add(supportActorMech);
+                        supportActorMech.GameRep.gameObject.SetActive(true);
+                        supportActorMech.BehaviorTree = BehaviorTreeFactory.MakeBehaviorTree(__instance.Combat.BattleTechGame, supportActorMech, BehaviorTreeIDEnum.CoreAITree);
+                        ModInit.modLog.LogMessage($"Added {supportActorMech?.MechDef?.Description?.Id} to SupportUnits");
+                    }
+                    else
+                    {
+                        var spawnTurretMethod = Traverse.Create(__instance).Method("SpawnTurret", new object[]{team.SupportTeam, __instance.Def.ActorResource, positionA, quaternion});
+                        var turretActor = spawnTurretMethod.GetValue<AbstractActor>();
+
+                        team.SupportTeam.AddUnit(turretActor);
+                        turretActor.AddToTeam(team.SupportTeam);
+
+                        turretActor.AddToLance(cmdLance);
+                        turretActor.BehaviorTree = BehaviorTreeFactory.MakeBehaviorTree(__instance.Combat.BattleTechGame, turretActor, BehaviorTreeIDEnum.CoreAITree);
                 
-                turretActor.OnPositionUpdate(positionA, quaternion, -1, true, null, false);
-                turretActor.DynamicUnitRole = UnitRole.Turret;
+                        turretActor.OnPositionUpdate(positionA, quaternion, -1, true, null, false);
+                        turretActor.DynamicUnitRole = UnitRole.Turret;
                 
-                UnitSpawnedMessage message = new UnitSpawnedMessage("FROM_ABILITY", turretActor.GUID);
+                        UnitSpawnedMessage message = new UnitSpawnedMessage("FROM_ABILITY", turretActor.GUID);
 
-                __instance.Combat.MessageCenter.PublishMessage(message);
-                turretActor.OnPlayerVisibilityChanged(VisibilityLevel.LOSFull);
+                        __instance.Combat.MessageCenter.PublishMessage(message);
+                        turretActor.OnPlayerVisibilityChanged(VisibilityLevel.LOSFull);
                
-                var stackID = combat.StackManager.NextStackUID;
+//                var stackID = combat.StackManager.NextStackUID;
+//                var component = UnitDropPodSpawner.UnitDropPodSpawnerInstance.GetComponentInParent<EncounterLayerParent>(); // this is returning null and  breaking shit
+//                if (component.dropPodLandedPrefab != null)
+//                {                    UnitDropPodSpawner.UnitDropPodSpawnerInstance.LoadDropPodPrefabs(component.DropPodVfxPrefab, component.dropPodLandedPrefab);}
+//                var dropPodAnimationSequence = new GenericAnimationSequence(combat);
+//                EncounterLayerParent.EnqueueLoadAwareMessage(new AddSequenceToStackMessage(dropPodAnimationSequence));
+//                UnitDropPodSpawner.UnitDropPodSpawnerInstance.StartDropPodAnimation(0.75f, null, stackID, stackID);
 
-                var component =
-                    UnitDropPodSpawner.UnitDropPodSpawnerInstance.GetComponentInParent<EncounterLayerParent>();
-                if (component.dropPodLandedPrefab != null)
-                {
-                    UnitDropPodSpawner.UnitDropPodSpawnerInstance.LoadDropPodPrefabs(component.DropPodVfxPrefab, component.dropPodLandedPrefab);
-                }
-
-                var dropPodAnimationSequence = new GenericAnimationSequence(combat);
-                EncounterLayerParent.EnqueueLoadAwareMessage(new AddSequenceToStackMessage(dropPodAnimationSequence));
-
-                UnitDropPodSpawner.UnitDropPodSpawnerInstance.StartDropPodAnimation(0.75f, null, stackID, stackID); // maybe dont need this? probably should test in urban environment.
-
-                ModState.ResetDeferredSpawner();
-                return false;
+                    }
+                    return false;
             }
         }
 
@@ -229,6 +302,8 @@ namespace StrategicOperations.Patches
                 Vector3 vector = positionA;
 
                 vector.y = __instance.Combat.MapMetaData.GetLerpedHeightAt(vector, false);
+                startLeft.y = __instance.Combat.MapMetaData.GetLerpedHeightAt(startLeft, false);
+                startRight.y = __instance.Combat.MapMetaData.GetLerpedHeightAt(startRight, false);
                 List<ObjectSpawnData> list = new List<ObjectSpawnData>();
                 for (int i = 0; i < numFlares; i++)
                 {
@@ -302,56 +377,15 @@ namespace StrategicOperations.Patches
                     {
                         //only do things for abilities that pilots have? move things here. also move AbstractActor initialization to ability start to minimize neutralTeam think time, etc. and then despawn?
                         var ability = new Ability(abilityDefKVP.Value);
-                    ability.Init(team.Combat);
-                    if (ModState.CommandAbilities.All(x => x != ability))
-                    {
-                        ModState.CommandAbilities.Add(ability);
-                    }
-
-                    ModInit.modLog.LogMessage($"Added {ability?.Def?.Id} to CommandAbilities");
-
-                    //need to create SpawnPointGameLogic? for magic safety teleporter ???s or disable SafetyTeleport logic for certain units?
-
-                    dm.PilotDefs.TryGet("pilot_sim_starter_dekker", out var supportPilotDef);
-
-                    if (__instance.Combat.Teams.All(x => x.GUID != "61612bb3-abf9-4586-952a-0559fa9dcd75"))
-                    {
-                        Utils.CreateOrUpdateNeutralTeam();
-                    }
-                    var neutralTeam =
-                        __instance.Combat.Teams.FirstOrDefault(x => x.GUID == "61612bb3-abf9-4586-952a-0559fa9dcd75");
-                    
-                    ModInit.modLog.LogMessage($"Team neturalTeam = {neutralTeam?.DisplayName}");
-                    var cmdLance = Utils.CreateCMDLance(neutralTeam);
-
-
-                    if (!string.IsNullOrEmpty(ability.Def?.ActorResource))
-                    {
-                        if (ability.Def.specialRules == AbilityDef.SpecialRules.SpawnTurret) continue;
-
-                        if (ability.Def.ActorResource.StartsWith("vehicledef_"))
+                        ability.Init(team.Combat);
+                        if (ModState.CommandAbilities.All(x => x != ability))
                         {
-                            dm.VehicleDefs.TryGet(ability.Def.ActorResource, out var supportActorVehicleDef);
-                            supportActorVehicleDef.Refresh();
-                            var supportActorVehicle = ActorFactory.CreateVehicle(supportActorVehicleDef, supportPilotDef, neutralTeam.EncounterTags, neutralTeam.Combat,
-                                neutralTeam.GetNextSupportUnitGuid(), "", null);
-                            supportActorVehicle.Init(neutralTeam.OffScreenPosition,0f,false);
-                            supportActorVehicle.InitGameRep(null);
-                            neutralTeam.AddUnit(supportActorVehicle);
-                            supportActorVehicle.AddToTeam(neutralTeam);
-                            supportActorVehicle.AddToLance(cmdLance);
-                            team.SupportUnits.Add(supportActorVehicle);
-                            supportActorVehicle.GameRep.gameObject.SetActive(true);
-                            supportActorVehicle.BehaviorTree = BehaviorTreeFactory.MakeBehaviorTree(__instance.Combat.BattleTechGame, supportActorVehicle, BehaviorTreeIDEnum.DoNothingTree);
-                            ModInit.modLog.LogMessage($"Added {supportActorVehicle?.VehicleDef?.Description?.Id} to SupportUnits");
+                            ModState.CommandAbilities.Add(ability);
                         }
 
-                        else
-                        {
-                            ModInit.modLog.LogMessage($"Something wrong with CMD Ability {ability.Def.Id}, invalid ActorResource");
-                            continue;
-                        }
-                    }
+                        ModInit.modLog.LogMessage($"Added {ability?.Def?.Id} to CommandAbilities");
+
+                        //need to create SpawnPointGameLogic? for magic safety teleporter ???s or disable SafetyTeleport logic for certain units?
                     }
                 }
             }
@@ -362,11 +396,14 @@ namespace StrategicOperations.Patches
         {
             public static void Prefix(TurnDirector __instance)
             {
-                if (ModState.deferredInvokeSpawn != null && __instance.ActiveTurnActor is Team activeTeam && activeTeam.IsLocalPlayer)
+                if (ModState.deferredInvokeSpawns.Count > 0 && __instance.ActiveTurnActor is Team activeTeam && activeTeam.IsLocalPlayer)
                 {
-                    ModInit.modLog.LogMessage($"Found deferred spawner, invoking.");
-                    ModState.deferredInvokeSpawn();
-                    ModState.ResetDeferredSpawner();
+                    foreach (var spawn in ModState.deferredInvokeSpawns)
+                    {
+                        ModInit.modLog.LogMessage($"Found deferred spawner, invoking.");
+                        spawn();
+                    }
+                    ModState.ResetDeferredSpawners();
                 }
             }
         }
@@ -420,9 +457,10 @@ namespace StrategicOperations.Patches
                     ModInit.modSettings.strafeEndsActivation)
                 {
                     theActor.OnActivationEnd(theActor.GUID, __instance.GetInstanceID());
-                }
+                    return;
+                } 
                 if (__instance.Ability.Def.specialRules == AbilityDef.SpecialRules.SpawnTurret &&
-                    ModInit.modSettings.spawnTurretEndsActivation)
+                      ModInit.modSettings.spawnTurretEndsActivation)
                 {
                     theActor.OnActivationEnd(theActor.GUID, __instance.GetInstanceID());
                 }
@@ -494,5 +532,18 @@ namespace StrategicOperations.Patches
                 return true;
             }
         }
+
+        [HarmonyPatch(typeof(CameraControl), "ShowActorCam")]
+        public static class CameraControl_ShowActorCam
+        {
+            public static bool Prefix(CameraControl __instance, AbstractActor actor, Quaternion rotation, float duration, ref AttachToActorCameraSequence __result)
+            {
+                var combat = UnityGameInstance.BattleTechGame.Combat;
+                Vector3 offset = new Vector3(0f, 50f, -50f);
+                __result = new AttachToActorCameraSequence(combat, actor.GameRep.transform, offset, rotation, duration, true, false);
+                return false;
+            }
+        }
+
     }
 }
