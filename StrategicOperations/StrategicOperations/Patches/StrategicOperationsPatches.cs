@@ -8,8 +8,11 @@ using System.Threading.Tasks;
 using BattleTech;
 using BattleTech.Data;
 using BattleTech.UI;
+using BattleTech.UI.Tooltips;
 using Harmony;
+using HBS;
 using HBS.Logging;
+using InControl;
 using StrategicOperations.Framework;
 using UnityEngine;
 
@@ -62,6 +65,31 @@ namespace StrategicOperations.Patches
                         loadRequest.AddBlindLoadRequest(BattleTechResourceType.TurretDef, ability.Def.ActorResource);
                     }
                 }
+
+                foreach (var beacon in Utils.GetOwnedDeploymentBeacons())
+                {
+                    var id = beacon.Def.ComponentTags.FirstOrDefault(x =>
+                        x.StartsWith("mechdef_") || x.StartsWith("vehicledef_") ||
+                        x.StartsWith("turretdef_"));
+                    if (string.IsNullOrEmpty(id)) continue;
+
+                    if (id.StartsWith("mechdef_"))
+                    {
+                        ModInit.modLog.LogMessage($"Added loadrequest for MechDef: {id}");
+                        loadRequest.AddBlindLoadRequest(BattleTechResourceType.MechDef, id);
+                    }
+                    else if (id.StartsWith("vehicledef_"))
+                    {
+                        ModInit.modLog.LogMessage($"Added loadrequest for VehicleDef: {id}");
+                        loadRequest.AddBlindLoadRequest(BattleTechResourceType.VehicleDef, id);
+                    }
+                    else if (id.StartsWith("turretdef_"))
+                    {
+                        ModInit.modLog.LogMessage($"Added loadrequest for TurretDef: {id}");
+                        loadRequest.AddBlindLoadRequest(BattleTechResourceType.TurretDef, id);
+                    }
+
+                }
                 loadRequest.ProcessRequests(1000u);
             }
         }
@@ -71,6 +99,7 @@ namespace StrategicOperations.Patches
             public static bool Prefix(GameRepresentation __instance, AbstractActor ____parentActor)
             {
                 var combat = UnityGameInstance.BattleTechGame.Combat;
+                if (combat == null) return true;
                 var registry = combat.ItemRegistry;
 
                 if (____parentActor == null || ____parentActor?.spawnerGUID == null)
@@ -92,7 +121,7 @@ namespace StrategicOperations.Patches
                 if (ability == null)
                 {
                     ModInit.modLog.LogMessage(
-                        $"Team doesn't have CommandAbility {ability.Def.Description.Name}");
+                        $"Tried to use a CommandAbility the team doesnt have?");
                     return false;
                 }
                 switch (ability.Def.Targeting)
@@ -148,14 +177,18 @@ namespace StrategicOperations.Patches
 
                 ModInit.modLog.LogMessage($"Team neturalTeam = {neutralTeam?.DisplayName}");
                 var cmdLance = Utils.CreateCMDLance(neutralTeam);
-
-
+                var actorResource = __instance.Def.ActorResource;
                 if (!string.IsNullOrEmpty(__instance.Def?.ActorResource))
                 {
-
-                    if (__instance.Def.ActorResource.StartsWith("vehicledef_"))
+                    if (!string.IsNullOrEmpty(ModState.popupActorResource))
                     {
-                        dm.VehicleDefs.TryGet(__instance.Def.ActorResource, out var supportActorVehicleDef);
+                        actorResource = ModState.popupActorResource;
+                        ModState.popupActorResource = "";
+                    }
+
+                    if (actorResource.StartsWith("vehicledef_"))
+                    {
+                        dm.VehicleDefs.TryGet(actorResource, out var supportActorVehicleDef);
                         supportActorVehicleDef.Refresh();
                         var supportActorVehicle = ActorFactory.CreateVehicle(supportActorVehicleDef,
                             supportPilotDef, neutralTeam.EncounterTags, neutralTeam.Combat,
@@ -182,6 +215,58 @@ namespace StrategicOperations.Patches
                                 __instance.Def.IntParam1, __instance.Def.ActivationETA});
                             flares.GetValue();
                         }
+
+                        if (ModInit.modSettings.commandUseCostsMulti > 0)
+                        {
+                            var unitName = "";
+                            var unitCost = 0;
+                            var unitID = "";
+                            if (__instance.Def.ActorResource.StartsWith("mechdef_"))
+                            {
+                                dm.MechDefs.TryGet(__instance.Def.ActorResource, out var mechDef);
+                                mechDef.Refresh();
+                                unitName = mechDef.Description.UIName;
+                                unitID = mechDef.Description.Id;
+                                unitCost = mechDef.BattleValue;
+                            }
+                            else if (__instance.Def.ActorResource.StartsWith("vehicledef_"))
+                            {
+                                dm.VehicleDefs.TryGet(__instance.Def.ActorResource, out var vehicleDef);
+                                vehicleDef.Refresh();
+                                unitName = vehicleDef.Description.UIName;
+                                unitID = vehicleDef.Description.Id;
+                                unitCost = vehicleDef.BattleValue;
+                            }
+                            else
+                            {
+                                dm.TurretDefs.TryGet(__instance.Def.ActorResource, out var turretDef);
+                                turretDef.Refresh();
+                                unitName = turretDef.Description.UIName;
+                                unitID = turretDef.Description.Id;
+                                unitCost = turretDef.BattleValue;
+                            }
+
+                            if (ModState.CommandUses.All(x => x.UnitID != __instance.Def.ActorResource))
+                            {
+                            
+                                var commandUse = new Utils.CmdUseInfo(unitID, __instance.Def.Description.Name, unitName, unitCost);
+
+                                ModState.CommandUses.Add(commandUse);
+                            }
+                            else
+                            {
+                                var cmdUse = ModState.CommandUses.FirstOrDefault(x => x.UnitID == __instance.Def.ActorResource);
+                                if (cmdUse == null)
+                                {
+                                    ModInit.modLog.LogMessage($"ERROR: cmdUseInfo was null");
+                                }
+                                else
+                                {
+                                    cmdUse.UseCount += 1;
+                                }
+                            }
+                        }
+
                         return false;
 
                     }
@@ -203,59 +288,106 @@ namespace StrategicOperations.Patches
         {
             public static bool Prefix(Ability __instance, Team team, Vector3 positionA, Vector3 positionB)
             {
-                if (ModState.deferredInvokeSpawns.All(x => x.Target.GetHashCode() != __instance.GetHashCode()))
+                var combat = UnityGameInstance.BattleTechGame.Combat;
+                var dm = combat.DataManager;
+
+                var actorResource = __instance.Def.ActorResource;
+
+                if (!string.IsNullOrEmpty(ModState.popupActorResource))
                 {
-                    ModInit.modLog.LogMessage($"Deferred Spawner = null, creating delegate and returning false.");
+                    actorResource = ModState.popupActorResource;
+                    ModState.popupActorResource = "";
+                }
+
+                if (ModState.deploymentAssetsDict.ContainsKey(actorResource))
+                {
+                    ModState.deploymentAssetsDict[actorResource] -= 1;
+                    ModInit.modLog.LogMessage($"Decrementing count of {actorResource} in deploymentAssetsDict");
+                }
+
+                var instanceGUID = $"{__instance.Def.Id}_{team.Name}_{actorResource}_{positionA}_{positionB}@{actorResource}";
+
+                if (ModState.deferredInvokeSpawns.All(x => x.Key != instanceGUID) && !ModState.FromDelegate)
+                {
+                    ModInit.modLog.LogMessage($"Deferred Spawner = null, creating delegate and returning false. Delegate should spawn {actorResource}");
                     void DeferredInvokeSpawn() => Utils._activateSpawnTurretMethod.Invoke(__instance, new object[] {team, positionA, positionB});
-                    ModState.deferredInvokeSpawns.Add(DeferredInvokeSpawn);
+                    var kvp = new KeyValuePair<string, Action>(instanceGUID, DeferredInvokeSpawn);
+                    ModState.deferredInvokeSpawns.Add(kvp);
                     var flares = Traverse.Create(__instance).Method("SpawnFlares",new object[] { positionA, positionA, __instance.Def.StringParam1, 1, 1});
                     flares.GetValue();
                     return false;
                 }
 
-                var combat = UnityGameInstance.BattleTechGame.Combat;
-                var dm = combat.DataManager;
+                if (!string.IsNullOrEmpty(ModState.deferredActorResource))
+                {
+                    actorResource = ModState.deferredActorResource;
+                    ModInit.modLog.LogMessage($"{actorResource} restored from deferredActorResource");
+                }
+
                 dm.PilotDefs.TryGet("pilot_sim_starter_dekker", out var supportPilotDef);
                 var cmdLance = Utils.CreateCMDLance(team.SupportTeam);
 
                 Quaternion quaternion = Quaternion.LookRotation(positionB - positionA);
 
-                    if (__instance.Def.ActorResource.StartsWith("vehicledef_"))
+                    if (actorResource.StartsWith("mechdef_"))
                     {
-                        dm.VehicleDefs.TryGet(__instance.Def.ActorResource, out var supportActorVehicleDef);
-                        supportActorVehicleDef.Refresh();
-                        var supportActorVehicle = ActorFactory.CreateVehicle(supportActorVehicleDef, supportPilotDef, team.SupportTeam.EncounterTags, team.SupportTeam.Combat,
-                            team.SupportTeam.GetNextSupportUnitGuid(), "", null);
-                        supportActorVehicle.Init(positionA, quaternion.eulerAngles.y,false);
-                        supportActorVehicle.InitGameRep(null);
-                        team.SupportTeam.AddUnit(supportActorVehicle);
-                        supportActorVehicle.AddToTeam(team.SupportTeam);
-                        supportActorVehicle.AddToLance(cmdLance);
-                        team.SupportUnits.Add(supportActorVehicle);
-                        supportActorVehicle.GameRep.gameObject.SetActive(true);
-                        supportActorVehicle.BehaviorTree = BehaviorTreeFactory.MakeBehaviorTree(__instance.Combat.BattleTechGame, supportActorVehicle, BehaviorTreeIDEnum.CoreAITree);
-                        ModInit.modLog.LogMessage($"Added {supportActorVehicle?.VehicleDef?.Description?.Id} to SupportUnits");
-                    }
-
-                    if (__instance.Def.ActorResource.StartsWith("mechdef_"))
-                    {
-                        dm.MechDefs.TryGet(__instance.Def.ActorResource, out var supportActorMechDef);
+                        ModInit.modLog.LogMessage($"Attempting to spawn {actorResource} as mech.");
+                        dm.MechDefs.TryGet(actorResource, out var supportActorMechDef);
                         supportActorMechDef.Refresh();
                         var supportActorMech = ActorFactory.CreateMech(supportActorMechDef, supportPilotDef, team.SupportTeam.EncounterTags, team.SupportTeam.Combat,
                             team.SupportTeam.GetNextSupportUnitGuid(), "", null);
                         supportActorMech.Init(positionA,quaternion.eulerAngles.y,false);
                         supportActorMech.InitGameRep(null);
+
                         team.SupportTeam.AddUnit(supportActorMech);
                         supportActorMech.AddToTeam(team.SupportTeam);
+
                         supportActorMech.AddToLance(cmdLance);
-                        team.SupportUnits.Add(supportActorMech);
-                        supportActorMech.GameRep.gameObject.SetActive(true);
                         supportActorMech.BehaviorTree = BehaviorTreeFactory.MakeBehaviorTree(__instance.Combat.BattleTechGame, supportActorMech, BehaviorTreeIDEnum.CoreAITree);
+                        //supportActorMech.GameRep.gameObject.SetActive(true);
+                        
+                        supportActorMech.OnPositionUpdate(positionA, quaternion, -1, true, null, false);
+                        supportActorMech.DynamicUnitRole = UnitRole.Brawler;
+                
+                        UnitSpawnedMessage message = new UnitSpawnedMessage("FROM_ABILITY", supportActorMech.GUID);
+
+                        __instance.Combat.MessageCenter.PublishMessage(message);
+                        supportActorMech.OnPlayerVisibilityChanged(VisibilityLevel.LOSFull);
+
                         ModInit.modLog.LogMessage($"Added {supportActorMech?.MechDef?.Description?.Id} to SupportUnits");
                     }
+                    else if (actorResource.StartsWith("vehicledef_"))
+                    {
+                        ModInit.modLog.LogMessage($"Attempting to spawn {actorResource} as vehicle.");
+                        dm.VehicleDefs.TryGet(actorResource, out var supportActorVehicleDef);
+                        supportActorVehicleDef.Refresh();
+                        var supportActorVehicle = ActorFactory.CreateVehicle(supportActorVehicleDef, supportPilotDef, team.SupportTeam.EncounterTags, team.SupportTeam.Combat,
+                            team.SupportTeam.GetNextSupportUnitGuid(), "", null);
+                        supportActorVehicle.Init(positionA, quaternion.eulerAngles.y,false);
+                        supportActorVehicle.InitGameRep(null);
+
+                        team.SupportTeam.AddUnit(supportActorVehicle);
+                        supportActorVehicle.AddToTeam(team.SupportTeam);
+
+                        supportActorVehicle.AddToLance(cmdLance);
+                        supportActorVehicle.BehaviorTree = BehaviorTreeFactory.MakeBehaviorTree(__instance.Combat.BattleTechGame, supportActorVehicle, BehaviorTreeIDEnum.CoreAITree);
+                        //supportActorVehicle.GameRep.gameObject.SetActive(true);
+                        
+                        supportActorVehicle.OnPositionUpdate(positionA, quaternion, -1, true, null, false);
+                        supportActorVehicle.DynamicUnitRole = UnitRole.Vehicle;
+                
+                        UnitSpawnedMessage message = new UnitSpawnedMessage("FROM_ABILITY", supportActorVehicle.GUID);
+
+                        __instance.Combat.MessageCenter.PublishMessage(message);
+                        supportActorVehicle.OnPlayerVisibilityChanged(VisibilityLevel.LOSFull);
+
+                        ModInit.modLog.LogMessage($"Added {supportActorVehicle?.VehicleDef?.Description?.Id} to SupportUnits");
+                    }
+
                     else
                     {
-                        var spawnTurretMethod = Traverse.Create(__instance).Method("SpawnTurret", new object[]{team.SupportTeam, __instance.Def.ActorResource, positionA, quaternion});
+                        ModInit.modLog.LogMessage($"Attempting to spawn {actorResource} as turret.");
+                        var spawnTurretMethod = Traverse.Create(__instance).Method("SpawnTurret", new object[]{team.SupportTeam, actorResource, positionA, quaternion});
                         var turretActor = spawnTurretMethod.GetValue<AbstractActor>();
 
                         team.SupportTeam.AddUnit(turretActor);
@@ -281,6 +413,58 @@ namespace StrategicOperations.Patches
 //                UnitDropPodSpawner.UnitDropPodSpawnerInstance.StartDropPodAnimation(0.75f, null, stackID, stackID);
 
                     }
+
+                    if (ModInit.modSettings.commandUseCostsMulti > 0)
+                    {
+                        var unitName = "";
+                        var unitCost = 0;
+                        var unitID = "";
+                        if (actorResource.StartsWith("mechdef_"))
+                        {
+                            dm.MechDefs.TryGet(actorResource, out var mechDef);
+                            mechDef.Refresh();
+                            unitName = mechDef.Description.UIName;
+                            unitID = mechDef.Description.Id;
+                            unitCost = mechDef.BattleValue;
+                        }
+                        else if (actorResource.StartsWith("vehicledef_"))
+                        {
+                            dm.VehicleDefs.TryGet(actorResource, out var vehicleDef);
+                            vehicleDef.Refresh();
+                            unitName = vehicleDef.Description.UIName;
+                            unitID = vehicleDef.Description.Id;
+                            unitCost = vehicleDef.BattleValue;
+                        }
+                        else
+                        {
+                            dm.TurretDefs.TryGet(actorResource, out var turretDef);
+                            turretDef.Refresh();
+                            unitName = turretDef.Description.UIName;
+                            unitID = turretDef.Description.Id;
+                            unitCost = turretDef.BattleValue;
+                        }
+
+                        if (ModState.CommandUses.All(x => x.UnitID != actorResource))
+                        {
+                            
+                            var commandUse = new Utils.CmdUseInfo(unitID, __instance.Def.Description.Name, unitName, unitCost);
+
+                            ModState.CommandUses.Add(commandUse);
+                        }
+                        else
+                        {
+                            var cmdUse = ModState.CommandUses.FirstOrDefault(x => x.UnitID == actorResource);
+                            if (cmdUse == null)
+                            {
+                                ModInit.modLog.LogMessage($"ERROR: cmdUseInfo was null");
+                            }
+                            else
+                            {
+                                cmdUse.UseCount += 1;
+                            }
+                        }
+                    }
+
                     return false;
             }
         }
@@ -373,7 +557,7 @@ namespace StrategicOperations.Patches
                 foreach (var abilityDefKVP in dm.AbilityDefs.Where(x=>x.Value.specialRules == AbilityDef.SpecialRules.SpawnTurret || x.Value.specialRules == AbilityDef.SpecialRules.Strafe))
                 {
 
-                    if (team.units.Any(x => x.GetPilot().Abilities.Any(y => y.Def == abilityDefKVP.Value)))
+                    if (team.units.Any(x => x.GetPilot().Abilities.Any(y => y.Def == abilityDefKVP.Value)) || team.units.Any(x=>x.ComponentAbilities.Any(z=>z.Def == abilityDefKVP.Value)))
                     {
                         //only do things for abilities that pilots have? move things here. also move AbstractActor initialization to ability start to minimize neutralTeam think time, etc. and then despawn?
                         var ability = new Ability(abilityDefKVP.Value);
@@ -398,11 +582,17 @@ namespace StrategicOperations.Patches
             {
                 if (ModState.deferredInvokeSpawns.Count > 0 && __instance.ActiveTurnActor is Team activeTeam && activeTeam.IsLocalPlayer)
                 {
-                    foreach (var spawn in ModState.deferredInvokeSpawns)
+                    for (var index = 0; index < ModState.deferredInvokeSpawns.Count; index++)
                     {
-                        ModInit.modLog.LogMessage($"Found deferred spawner, invoking.");
+                        var spawn = ModState.deferredInvokeSpawns[index].Value;
+                        var resource = ModState.deferredInvokeSpawns[index].Key.Split('@');
+                        ModState.deferredActorResource = resource[1];
+                        ModInit.modLog.LogMessage($"Found deferred spawner at index {index} of {ModState.deferredInvokeSpawns.Count-1}, invoking and trying to spawn {ModState.deferredActorResource}.");
+                        ModState.FromDelegate = true;
                         spawn();
+                        ModState.ResetDelegateInfos();
                     }
+
                     ModState.ResetDeferredSpawners();
                 }
             }
@@ -451,21 +641,27 @@ namespace StrategicOperations.Patches
                 Vector3 positionB, bool __state)
             {
                 if (!__state) return;
+                var def = __instance.Ability.Def;
+
                 var HUD = Traverse.Create(__instance).Property("HUD").GetValue<CombatHUD>();
                 var theActor = HUD.SelectedActor;
-                if (__instance.Ability.Def.specialRules == AbilityDef.SpecialRules.Strafe &&
+                if (def.specialRules == AbilityDef.SpecialRules.Strafe &&
                     ModInit.modSettings.strafeEndsActivation)
                 {
                     theActor.OnActivationEnd(theActor.GUID, __instance.GetInstanceID());
                     return;
                 } 
-                if (__instance.Ability.Def.specialRules == AbilityDef.SpecialRules.SpawnTurret &&
+                if (def.specialRules == AbilityDef.SpecialRules.SpawnTurret &&
                       ModInit.modSettings.spawnTurretEndsActivation)
                 {
                     theActor.OnActivationEnd(theActor.GUID, __instance.GetInstanceID());
                 }
+                //need to make sure proccing from equipment button also ends turn?
             }
         }
+
+
+
 
         [HarmonyPatch(typeof(SelectionStateCommandSpawnTarget), "ProcessMousePos")]
         public static class SelectionStateCommandSpawnTarget_ProcessMousePos
@@ -520,12 +716,226 @@ namespace StrategicOperations.Patches
         {
             public static bool Prefix(SelectionStateCommandTargetTwoPoints __instance, Vector3 worldPos, int ___numPositionsLocked, ref bool __result)
             {
+                var dm = __instance.FromButton.Ability.Combat.DataManager;
+                var hk = Input.GetKey(KeyCode.LeftShift) || Input.GetKey(KeyCode.RightShift);
+                var actorResource = __instance.FromButton.Ability.Def.ActorResource;
+                ModState.popupActorResource = actorResource;
+
+                if (hk && string.IsNullOrEmpty(ModState.deferredActorResource) && __instance.FromButton.Ability.Def.specialRules == AbilityDef.SpecialRules.Strafe)
+                {
+                    var beaconDescs = "";
+                    var type = "";
+                    if (actorResource.StartsWith("mechdef_"))
+                    {
+                        dm.MechDefs.TryGet(actorResource, out var unit);
+                        beaconDescs = $"1: DEFAULT: {unit?.Description?.UIName ?? unit?.Description?.Name}\n\n";
+                        type = "mechdef_";
+                    }
+                    
+                    else if (actorResource.StartsWith("vehicledef_"))
+                    {
+                        dm.VehicleDefs.TryGet(actorResource, out var unit);
+                        beaconDescs = $"1: DEFAULT: {unit?.Description?.UIName ?? unit?.Description?.Name}\n\n";
+                        type = "vehicledef_";
+                    }
+                    else
+                    {
+                        dm.TurretDefs.TryGet(actorResource, out var unit);
+                        beaconDescs = $"1: DEFAULT: {unit?.Description?.UIName ?? unit?.Description?.Name}\n\n";
+                        type = "turretdef_";
+                    }
+                    var beacons = Utils.GetOwnedDeploymentBeaconsOfByTypeAndTag(type, "CanStrafe");
+
+                    for (var index = 0; index < beacons.Count; index++)
+                    {
+                        var beacon = beacons[index];
+                        var id = beacon.Def.ComponentTags.FirstOrDefault(x =>
+                            x.StartsWith("mechdef_") || x.StartsWith("vehicledef_") ||
+                            x.StartsWith("turretdef_"));
+                        if (id.StartsWith("mechdef_"))
+                        {
+                            dm.MechDefs.TryGet(id, out var beaconunit);
+                            beaconDescs +=
+                                $"{index+2}: {beaconunit?.Description?.UIName ?? beaconunit?.Description?.Name} - You have {ModState.deploymentAssetsDict[id]} remaining.\n\n";
+                        }
+                        else if (id.StartsWith("vehicledef_"))
+                        {
+                            dm.VehicleDefs.TryGet(id, out var beaconunit);
+                            beaconDescs +=
+                                $"{index+2}: {beaconunit?.Description?.UIName ?? beaconunit?.Description?.Name} - You have {ModState.deploymentAssetsDict[id]} remaining.\n\n";
+                        }
+                        else
+                        {
+                            dm.TurretDefs.TryGet(id, out var beaconunit);
+                            beaconDescs +=
+                                $"{index+2}: {beaconunit?.Description?.UIName ?? beaconunit?.Description?.Name} - You have {ModState.deploymentAssetsDict[id]} remaining.\n\n";
+                        }
+                    }
+
+                    var popup = GenericPopupBuilder
+                        .Create("Select a unit to deploy",
+                            beaconDescs)
+                        .AddFader(new UIColorRef?(LazySingletonBehavior<UIManager>.Instance.UILookAndColorConstants.PopupBackfill));
+                    popup.AlwaysOnTop = true;
+                    popup.AddButton("1.",()=> { });
+                    for (var index = 0; index < beacons.Count; index++)
+                    {
+                        var beacon = beacons[index];
+                        var id = beacon.Def.ComponentTags.FirstOrDefault(x =>
+                            x.StartsWith("mechdef_") || x.StartsWith("vehicledef_") ||
+                            x.StartsWith("turretdef_"));
+                        var buttonName = "";
+                        if (string.IsNullOrEmpty(id)) continue;
+                        if (id.StartsWith("mechdef_"))
+                        {
+                            dm.MechDefs.TryGet(id, out var beaconunit);
+                            buttonName += $"{index + 2}.";
+                            //buttonName += $"{beaconunit?.Description?.UIName ?? beaconunit?.Description?.Name}";
+                        }
+                        else if (id.StartsWith("vehicledef_"))
+                        {
+                            dm.VehicleDefs.TryGet(id, out var beaconunit);
+                            buttonName += $"{index + 2}.";
+                            //buttonName += $"{beaconunit?.Description?.UIName ?? beaconunit?.Description?.Name}";
+                        }
+                        else
+                        {
+                            dm.TurretDefs.TryGet(id, out var beaconunit);
+                            buttonName += $"{index + 2}.";
+                            //buttonName += $"{beaconunit?.Description?.UIName ?? beaconunit?.Description?.Name}";
+                        }
+
+                        if (!ModState.deploymentAssetsDict.ContainsKey(id) || ModState.deploymentAssetsDict[id] < 1)
+                        {
+                            ModInit.modLog.LogMessage(
+                                $"Player has no available {id} to deploy, not creating button");
+                        }
+                        else
+                        {
+                            popup.AddButton(buttonName,
+                                (Action) (() =>
+                                {
+                                    ModState.popupActorResource = id;
+                                    ModInit.modLog.LogMessage(
+                                        $"Player pressed {id}. Now {ModState.popupActorResource} should be the same.");
+                                }));
+                        }
+                    }
+
+                    popup.Render();
+                }
+
+
+                if (hk && string.IsNullOrEmpty(ModState.deferredActorResource) && __instance.FromButton.Ability.Def.specialRules == AbilityDef.SpecialRules.SpawnTurret)
+                {
+                    var beaconDescs = "";
+                    var type = "";
+                    if (actorResource.StartsWith("mechdef_"))
+                    {
+                        dm.MechDefs.TryGet(actorResource, out var unit);
+                        beaconDescs = $"1: DEFAULT: {unit?.Description?.UIName ?? unit?.Description?.Name}\n\n";
+                        type = "mechdef_";
+                    }
+                    
+                    else if (actorResource.StartsWith("vehicledef_"))
+                    {
+                        dm.VehicleDefs.TryGet(actorResource, out var unit);
+                        beaconDescs = $"1: DEFAULT: {unit?.Description?.UIName ?? unit?.Description?.Name}\n\n";
+                        type = "vehicledef_";
+                    }
+                    else
+                    {
+                        dm.TurretDefs.TryGet(actorResource, out var unit);
+                        beaconDescs = $"1: DEFAULT: {unit?.Description?.UIName ?? unit?.Description?.Name}\n\n";
+                        type = "turretdef_";
+                    }
+                    var beacons = Utils.GetOwnedDeploymentBeaconsOfByTypeAndTag(type, "CanSpawnTurret");
+
+                    for (var index = 0; index < beacons.Count; index++)
+                    {
+                        var beacon = beacons[index];
+                        var id = beacon.Def.ComponentTags.FirstOrDefault(x =>
+                            x.StartsWith("mechdef_") || x.StartsWith("vehicledef_") ||
+                            x.StartsWith("turretdef_"));
+                        if (id.StartsWith("mechdef_"))
+                        {
+                            dm.MechDefs.TryGet(id, out var beaconunit);
+                            beaconDescs +=
+                                $"{index + 2}: {beaconunit?.Description?.UIName ?? beaconunit?.Description?.Name} - You have {ModState.deploymentAssetsDict[id]} remaining.\n\n";
+                        }
+                        else if (id.StartsWith("vehicledef_"))
+                        {
+                            dm.VehicleDefs.TryGet(id, out var beaconunit);
+                            beaconDescs +=
+                                $"{index+2}: {beaconunit?.Description?.UIName ?? beaconunit?.Description?.Name} - You have {ModState.deploymentAssetsDict[id]} remaining.\n\n";
+                        }
+                        else
+                        {
+                            dm.TurretDefs.TryGet(id, out var beaconunit);
+                            beaconDescs +=
+                                $"{index+2}: {beaconunit?.Description?.UIName ?? beaconunit?.Description?.Name} - You have {ModState.deploymentAssetsDict[id]} remaining.\n\n";
+                        }
+                    }
+
+                    var popup = GenericPopupBuilder
+                        .Create("Select a unit to deploy",
+                            beaconDescs)
+                        .AddFader(new UIColorRef?(LazySingletonBehavior<UIManager>.Instance.UILookAndColorConstants.PopupBackfill));
+                    popup.AlwaysOnTop = true;
+                    popup.AddButton("DEFAULT",()=> { });
+                    for (var index = 0; index < beacons.Count; index++)
+                    {
+                        var beacon = beacons[index];
+                        var id = beacon.Def.ComponentTags.FirstOrDefault(x =>
+                            x.StartsWith("mechdef_") || x.StartsWith("vehicledef_") ||
+                            x.StartsWith("turretdef_"));
+                        var buttonName = "";
+                        if (string.IsNullOrEmpty(id)) continue;
+                        if (id.StartsWith("mechdef_"))
+                        {
+                            dm.MechDefs.TryGet(id, out var beaconunit);
+                            buttonName += $"{index + 2}.";
+                            //buttonName += $"{beaconunit?.Description?.UIName ?? beaconunit?.Description?.Name}";
+                        }
+                        else if (id.StartsWith("vehicledef_"))
+                        {
+                            dm.VehicleDefs.TryGet(id, out var beaconunit);
+                            buttonName += $"{index + 2}.";
+                            //buttonName += $"{beaconunit?.Description?.UIName ?? beaconunit?.Description?.Name}";
+                        }
+                        else
+                        {
+                            dm.TurretDefs.TryGet(id, out var beaconunit);
+                            buttonName += $"{index + 2}.";
+                            //buttonName += $"{beaconunit?.Description?.UIName ?? beaconunit?.Description?.Name}";
+                        }
+
+                        if (!ModState.deploymentAssetsDict.ContainsKey(id) || ModState.deploymentAssetsDict[id] < 1)
+                        {
+                            ModInit.modLog.LogMessage(
+                                $"Player has no available {id} to deploy, not creating button");
+                        }
+                        else
+                        {
+                            popup.AddButton(buttonName,
+                                (Action) (() =>
+                                {
+                                    ModState.popupActorResource = id;
+                                    ModInit.modLog.LogMessage(
+                                        $"Player pressed {id}. Now {ModState.popupActorResource} should be the same.");
+                                }));
+                        }
+                    }
+
+                    popup.Render();
+                }
+
                 var HUD = Traverse.Create(__instance).Property("HUD").GetValue<CombatHUD>();
                 var theActor = HUD.SelectedActor;
                 var distance = Mathf.RoundToInt(Vector3.Distance(theActor.CurrentPosition, worldPos));
                 var maxRange = Mathf.RoundToInt(__instance.FromButton.Ability.Def.IntParam2);
                 __result = true;
-                if ((__instance.FromButton.Ability.Def.specialRules == AbilityDef.SpecialRules.Strafe || (__instance.FromButton.Ability.Def.specialRules == AbilityDef.SpecialRules.SpawnTurret)) && distance > maxRange)
+                if ((__instance.FromButton.Ability.Def.specialRules == AbilityDef.SpecialRules.Strafe && distance > maxRange) || (__instance.FromButton.Ability.Def.specialRules == AbilityDef.SpecialRules.SpawnTurret && distance > maxRange && ___numPositionsLocked < 1))
                 {
                     return false;
                 }
@@ -539,7 +949,7 @@ namespace StrategicOperations.Patches
             public static bool Prefix(CameraControl __instance, AbstractActor actor, Quaternion rotation, float duration, ref AttachToActorCameraSequence __result)
             {
                 var combat = UnityGameInstance.BattleTechGame.Combat;
-                Vector3 offset = new Vector3(0f, 50f, -50f);
+                Vector3 offset = new Vector3(0f, 50f, 50f);
                 __result = new AttachToActorCameraSequence(combat, actor.GameRep.transform, offset, rotation, duration, true, false);
                 return false;
             }

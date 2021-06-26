@@ -9,12 +9,32 @@ using BattleTech;
 using BattleTech.Framework;
 using BattleTech.UI;
 using Harmony;
+using Newtonsoft.Json.Linq;
 using UnityEngine;
 
 namespace StrategicOperations.Framework
 {
     public static class Utils
     {
+        public class CmdUseInfo
+        {
+            public string UnitID;
+            public string CommandName;
+            public string UnitName;
+            public int UseCost;
+            public float UseCostAdjusted => UseCost * ModInit.modSettings.commandUseCostsMulti;
+            public int UseCount;
+            public int TotalCost => Mathf.RoundToInt(UseCount * UseCostAdjusted);
+
+            public CmdUseInfo(string unitID, string CommandName, string UnitName, int UseCost)
+            {
+                this.UnitID = unitID;
+                this.CommandName = CommandName;
+                this.UnitName = UnitName;
+                this.UseCost = UseCost;
+                this.UseCount = 0;
+            }
+        }
         public static Lance CreateCMDLance(Team team)
         {
             Lance lance = new Lance(team, new LanceSpawnerRef[0]);
@@ -50,8 +70,93 @@ namespace StrategicOperations.Framework
             combat.ItemRegistry.AddItem(aiteam);
         }
 
-//        public static Action action;
-        
+        public static List<MechComponentRef> GetOwnedDeploymentBeacons()
+        {
+            var sgs = UnityGameInstance.BattleTechGame.Simulation;
+            var beacons = new List<MechComponentRef>();
+            foreach (var stat in ModInit.modSettings.deploymentBeaconEquipment)
+            {
+                if (sgs.CompanyStats.GetValue<int>(stat) > 0)
+                {
+                    string[] array = stat.Split(new char[]
+                    {
+                        '.'
+                    });
+                    if (string.Compare(array[1], "MECHPART") != 0)
+                    {
+                        BattleTechResourceType battleTechResourceType = (BattleTechResourceType)Enum.Parse(typeof(BattleTechResourceType), array[1]);
+                        if (battleTechResourceType != BattleTechResourceType.MechDef && sgs.DataManager.Exists(battleTechResourceType, array[2]))
+                        {
+                            bool flag = array.Length > 3 && array[3].CompareTo("DAMAGED") == 0;
+                            MechComponentDef componentDef = sgs.GetComponentDef(battleTechResourceType, array[2]);
+                            MechComponentRef mechComponentRef = new MechComponentRef(componentDef.Description.Id, sgs.GenerateSimGameUID(), componentDef.ComponentType, ChassisLocations.None, -1, flag ? ComponentDamageLevel.NonFunctional : ComponentDamageLevel.Functional, false);
+                            mechComponentRef.SetComponentDef(componentDef);
+
+                            if (mechComponentRef.Def.ComponentTags.All(x => x != "CanSpawnTurret")) continue;
+                            var id = mechComponentRef.Def.ComponentTags.FirstOrDefault(x =>
+                                x.StartsWith("mechdef_") || x.StartsWith("vehicledef_") ||
+                                x.StartsWith("turretdef_"));
+
+                            if (!ModState.deploymentAssetsDict.ContainsKey(id))
+                            {
+                                var value = sgs.CompanyStats.GetValue<int>(stat);
+                                ModState.deploymentAssetsDict.Add(id, value);
+                                ModInit.modLog.LogMessage($"Added {id} to deploymentAssetsDict with value {value}.");
+                            }
+                            beacons.Add(mechComponentRef);
+                        }
+                    }
+                }
+            }
+            return beacons;
+        }
+
+        public static List<MechComponentRef> GetOwnedDeploymentBeaconsOfByTypeAndTag(string type, string tag)
+        {
+            var sgs = UnityGameInstance.BattleTechGame.Simulation;
+            var beacons = new List<MechComponentRef>();
+            foreach (var stat in ModInit.modSettings.deploymentBeaconEquipment)
+            {
+                if (sgs.CompanyStats.GetValue<int>(stat) > 0)
+                {
+                    string[] array = stat.Split(new char[]
+                    {
+                        '.'
+                    });
+                    if (string.Compare(array[1], "MECHPART") != 0)
+                    {
+                        BattleTechResourceType battleTechResourceType = (BattleTechResourceType)Enum.Parse(typeof(BattleTechResourceType), array[1]);
+                        if (battleTechResourceType != BattleTechResourceType.MechDef && sgs.DataManager.Exists(battleTechResourceType, array[2]))
+                        {
+                            bool flag = array.Length > 3 && array[3].CompareTo("DAMAGED") == 0;
+                            MechComponentDef componentDef = sgs.GetComponentDef(battleTechResourceType, array[2]);
+                            MechComponentRef mechComponentRef = new MechComponentRef(componentDef.Description.Id, sgs.GenerateSimGameUID(), componentDef.ComponentType, ChassisLocations.None, -1, flag ? ComponentDamageLevel.NonFunctional : ComponentDamageLevel.Functional, false);
+                            mechComponentRef.SetComponentDef(componentDef);
+
+                            if ((tag == "CanSpawnTurret" && mechComponentRef.Def.ComponentTags.All(x => x != "CanSpawnTurret")) || (tag == "CanStrafe" && mechComponentRef.Def.ComponentTags.All(x => x != "CanStrafe"))) continue;
+                            var id = mechComponentRef.Def.ComponentTags.FirstOrDefault(x =>
+                                x.StartsWith("mechdef_") || x.StartsWith("vehicledef_") ||
+                                x.StartsWith("turretdef_"));
+                            if (!id.StartsWith(type))
+                            {
+//                                ModInit.modLog.LogMessage($"{id} != {type}, ignoring.");
+                                continue;
+                            }
+
+                            if (!ModState.deploymentAssetsDict.ContainsKey(id))
+                            {
+                                var value = sgs.CompanyStats.GetValue<int>(stat);
+                                ModState.deploymentAssetsDict.Add(id, value);
+                                ModInit.modLog.LogMessage($"Added {id} to deploymentAssetsDict with value {value}.");
+                            }
+                            beacons.Add(mechComponentRef);
+                        }
+                    }
+                }
+            }
+            return beacons;
+        }
+
         public static void DP_AnimationComplete(string encounterObjectGUID)
         {
             EncounterLayerParent.EnqueueLoadAwareMessage(new DropshipAnimationCompleteMessage(LanceSpawnerGameLogic.GetDropshipGuid(encounterObjectGUID)));
