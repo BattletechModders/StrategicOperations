@@ -603,8 +603,67 @@ namespace StrategicOperations.Patches
         {
             public static bool Prefix(CombatHUDActionButton __instance, string teamGUID, Vector3 positionA, Vector3 positionB, out bool __state)
             {
-                var combat = UnityGameInstance.BattleTechGame.Combat;
 
+                var HUD = Traverse.Create(__instance).Property("HUD").GetValue<CombatHUD>();
+                var theActor = HUD.SelectedActor;
+                var distanceToA = Mathf.RoundToInt(Vector3.Distance(theActor.CurrentPosition, positionA));
+                var distanceToB = Mathf.RoundToInt(Vector3.Distance(theActor.CurrentPosition, positionB));
+
+                var maxRange = Mathf.RoundToInt(__instance.Ability.Def.IntParam2);
+
+                if (__instance.Ability.Def.specialRules == AbilityDef.SpecialRules.Strafe && distanceToA > maxRange)
+                {
+                    var popup = GenericPopupBuilder.Create(GenericPopupType.Info, $"INVALID GRID COORDINATES\n\nDistance to target marker A: {distanceToA}\nDistance to target marker B: {distanceToB}\n\nMaximum Deployment Range: {maxRange}");
+                    popup.AddButton("Acknowledged");
+                    popup.IsNestedPopupWithBuiltInFader().CancelOnEscape().Render();
+
+                    ModInit.modLog.LogMessage($"Cannot activate strafe with coordinates farther than __instance.Ability.Def.IntParam2: {__instance.Ability.Def.IntParam2}");
+                    __state = false;
+                    return false;
+                }
+                
+                if (__instance.Ability.Def.specialRules == AbilityDef.SpecialRules.SpawnTurret && distanceToA > maxRange)
+                {
+                    var popup = GenericPopupBuilder.Create(GenericPopupType.Info, $"INVALID DEPLOYMENT COORDINATES\n\nDistance to Deployment: {distanceToA}\n\nMaximum Deployment Range: {maxRange}");
+                    popup.AddButton("Acknowledged");
+                    popup.IsNestedPopupWithBuiltInFader().CancelOnEscape().Render();
+
+                    ModInit.modLog.LogMessage($"Cannot spawn turret with coordinates farther than __instance.Ability.Def.IntParam2: {__instance.Ability.Def.IntParam2}");
+                    __state = false;
+                    return false;
+                }
+                __state = true;
+                return true;
+            }
+
+            public static void Postfix(CombatHUDActionButton __instance, string teamGUID, Vector3 positionA,
+                Vector3 positionB, bool __state)
+            {
+                if (!__state) return;
+                var def = __instance.Ability.Def;
+
+                var HUD = Traverse.Create(__instance).Property("HUD").GetValue<CombatHUD>();
+                var theActor = HUD.SelectedActor;
+                if (def.specialRules == AbilityDef.SpecialRules.Strafe &&
+                    ModInit.modSettings.strafeEndsActivation)
+                {
+                    theActor.OnActivationEnd(theActor.GUID, __instance.GetInstanceID());
+                    return;
+                } 
+                if (def.specialRules == AbilityDef.SpecialRules.SpawnTurret &&
+                      ModInit.modSettings.spawnTurretEndsActivation)
+                {
+                    theActor.OnActivationEnd(theActor.GUID, __instance.GetInstanceID());
+                }
+                //need to make sure proccing from equipment button also ends turn?
+            }
+        }
+
+        [HarmonyPatch(typeof(CombatHUDEquipmentSlot), "ActivateCommandAbility", new Type[]{typeof(string), typeof(Vector3), typeof(Vector3)})]
+        public static class CombatHUDEquipmentSlot_ActivateCommandAbility
+        {
+            public static bool Prefix(CombatHUDEquipmentSlot __instance, string teamGUID, Vector3 positionA, Vector3 positionB, out bool __state)
+            {
                 var HUD = Traverse.Create(__instance).Property("HUD").GetValue<CombatHUD>();
                 var theActor = HUD.SelectedActor;
                 var distanceToA = Mathf.RoundToInt(Vector3.Distance(theActor.CurrentPosition, positionA));
