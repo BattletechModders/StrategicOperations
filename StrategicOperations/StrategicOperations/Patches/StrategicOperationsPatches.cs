@@ -601,45 +601,9 @@ namespace StrategicOperations.Patches
         [HarmonyPatch(typeof(CombatHUDActionButton), "ActivateCommandAbility", new Type[]{typeof(string), typeof(Vector3), typeof(Vector3)})]
         public static class CombatHUDActionButton_ActivateCommandAbility
         {
-            public static bool Prefix(CombatHUDActionButton __instance, string teamGUID, Vector3 positionA, Vector3 positionB, out bool __state)
-            {
-
-                var HUD = Traverse.Create(__instance).Property("HUD").GetValue<CombatHUD>();
-                var theActor = HUD.SelectedActor;
-                var distanceToA = Mathf.RoundToInt(Vector3.Distance(theActor.CurrentPosition, positionA));
-                var distanceToB = Mathf.RoundToInt(Vector3.Distance(theActor.CurrentPosition, positionB));
-
-                var maxRange = Mathf.RoundToInt(__instance.Ability.Def.IntParam2);
-
-                if (__instance.Ability.Def.specialRules == AbilityDef.SpecialRules.Strafe && distanceToA > maxRange)
-                {
-                    var popup = GenericPopupBuilder.Create(GenericPopupType.Info, $"INVALID GRID COORDINATES\n\nDistance to target marker A: {distanceToA}\nDistance to target marker B: {distanceToB}\n\nMaximum Deployment Range: {maxRange}");
-                    popup.AddButton("Acknowledged");
-                    popup.IsNestedPopupWithBuiltInFader().CancelOnEscape().Render();
-
-                    ModInit.modLog.LogMessage($"Cannot activate strafe with coordinates farther than __instance.Ability.Def.IntParam2: {__instance.Ability.Def.IntParam2}");
-                    __state = false;
-                    return false;
-                }
-                
-                if (__instance.Ability.Def.specialRules == AbilityDef.SpecialRules.SpawnTurret && distanceToA > maxRange)
-                {
-                    var popup = GenericPopupBuilder.Create(GenericPopupType.Info, $"INVALID DEPLOYMENT COORDINATES\n\nDistance to Deployment: {distanceToA}\n\nMaximum Deployment Range: {maxRange}");
-                    popup.AddButton("Acknowledged");
-                    popup.IsNestedPopupWithBuiltInFader().CancelOnEscape().Render();
-
-                    ModInit.modLog.LogMessage($"Cannot spawn turret with coordinates farther than __instance.Ability.Def.IntParam2: {__instance.Ability.Def.IntParam2}");
-                    __state = false;
-                    return false;
-                }
-                __state = true;
-                return true;
-            }
-
             public static void Postfix(CombatHUDActionButton __instance, string teamGUID, Vector3 positionA,
-                Vector3 positionB, bool __state)
+                Vector3 positionB)
             {
-                if (!__state) return;
                 var def = __instance.Ability.Def;
 
                 var HUD = Traverse.Create(__instance).Property("HUD").GetValue<CombatHUD>();
@@ -662,44 +626,10 @@ namespace StrategicOperations.Patches
         [HarmonyPatch(typeof(CombatHUDEquipmentSlot), "ActivateCommandAbility", new Type[]{typeof(string), typeof(Vector3), typeof(Vector3)})]
         public static class CombatHUDEquipmentSlot_ActivateCommandAbility
         {
-            public static bool Prefix(CombatHUDEquipmentSlot __instance, string teamGUID, Vector3 positionA, Vector3 positionB, out bool __state)
-            {
-                var HUD = Traverse.Create(__instance).Property("HUD").GetValue<CombatHUD>();
-                var theActor = HUD.SelectedActor;
-                var distanceToA = Mathf.RoundToInt(Vector3.Distance(theActor.CurrentPosition, positionA));
-                var distanceToB = Mathf.RoundToInt(Vector3.Distance(theActor.CurrentPosition, positionB));
-
-                var maxRange = Mathf.RoundToInt(__instance.Ability.Def.IntParam2);
-
-                if (__instance.Ability.Def.specialRules == AbilityDef.SpecialRules.Strafe && distanceToA > maxRange)
-                {
-                    var popup = GenericPopupBuilder.Create(GenericPopupType.Info, $"INVALID GRID COORDINATES\n\nDistance to target marker A: {distanceToA}\nDistance to target marker B: {distanceToB}\n\nMaximum Deployment Range: {maxRange}");
-                    popup.AddButton("Acknowledged");
-                    popup.IsNestedPopupWithBuiltInFader().CancelOnEscape().Render();
-
-                    ModInit.modLog.LogMessage($"Cannot activate strafe with coordinates farther than __instance.Ability.Def.IntParam2: {__instance.Ability.Def.IntParam2}");
-                    __state = false;
-                    return false;
-                }
-                
-                if (__instance.Ability.Def.specialRules == AbilityDef.SpecialRules.SpawnTurret && distanceToA > maxRange)
-                {
-                    var popup = GenericPopupBuilder.Create(GenericPopupType.Info, $"INVALID DEPLOYMENT COORDINATES\n\nDistance to Deployment: {distanceToA}\n\nMaximum Deployment Range: {maxRange}");
-                    popup.AddButton("Acknowledged");
-                    popup.IsNestedPopupWithBuiltInFader().CancelOnEscape().Render();
-
-                    ModInit.modLog.LogMessage($"Cannot spawn turret with coordinates farther than __instance.Ability.Def.IntParam2: {__instance.Ability.Def.IntParam2}");
-                    __state = false;
-                    return false;
-                }
-                __state = true;
-                return true;
-            }
 
             public static void Postfix(CombatHUDActionButton __instance, string teamGUID, Vector3 positionA,
-                Vector3 positionB, bool __state)
+                Vector3 positionB)
             {
-                if (!__state) return;
                 var def = __instance.Ability.Def;
 
                 var HUD = Traverse.Create(__instance).Property("HUD").GetValue<CombatHUD>();
@@ -734,10 +664,12 @@ namespace StrategicOperations.Patches
                 var maxRange = Mathf.RoundToInt(__instance.FromButton.Ability.Def.IntParam2);
                 if (__instance.FromButton.Ability.Def.specialRules == AbilityDef.SpecialRules.SpawnTurret && distance > maxRange && ___numPositionsLocked == 0)
                 {
+                    ModState.OutOfRange = true;
                     CombatSpawningReticle.Instance.HideReticle();
 //                    ModInit.modLog.LogMessage($"Cannot spawn turret with coordinates farther than __instance.Ability.Def.IntParam2: {__instance.FromButton.Ability.Def.IntParam2}");
                     return false;
                 }
+                ModState.OutOfRange = false;
                 return true;
             }
         }
@@ -762,10 +694,12 @@ namespace StrategicOperations.Patches
                 CombatTargetingReticle.Instance.UpdateReticle(positionA,positionB, radius, false);
                 if (__instance.FromButton.Ability.Def.specialRules == AbilityDef.SpecialRules.Strafe && (distance > maxRange && ___numPositionsLocked == 0) || (distanceToA > maxRange && ___numPositionsLocked == 1))
                 {
+                    ModState.OutOfRange = true;
                     CombatTargetingReticle.Instance.HideReticle();
 //                    ModInit.modLog.LogMessage($"Cannot strafe with coordinates farther than __instance.Ability.Def.IntParam2: {__instance.FromButton.Ability.Def.IntParam2}");
                     return false;
                 }
+                ModState.OutOfRange = false;
                 return true;
             }
         }
@@ -778,32 +712,35 @@ namespace StrategicOperations.Patches
                 var dm = __instance.FromButton.Ability.Combat.DataManager;
                 var hk = Input.GetKey(KeyCode.LeftShift) || Input.GetKey(KeyCode.RightShift);
                 var actorResource = __instance.FromButton.Ability.Def.ActorResource;
-                ModState.popupActorResource = actorResource;
-
-                if (hk && string.IsNullOrEmpty(ModState.deferredActorResource) && __instance.FromButton.Ability.Def.specialRules == AbilityDef.SpecialRules.Strafe)
+                //ModState.popupActorResource = actorResource;
+                
+                if (hk && string.IsNullOrEmpty(ModState.deferredActorResource) && __instance.FromButton.Ability.Def.specialRules == AbilityDef.SpecialRules.Strafe && ___numPositionsLocked < 1 && !ModState.OutOfRange)
                 {
                     var beaconDescs = "";
                     var type = "";
                     if (actorResource.StartsWith("mechdef_"))
                     {
                         dm.MechDefs.TryGet(actorResource, out var unit);
-                        beaconDescs = $"1: DEFAULT: {unit?.Description?.UIName ?? unit?.Description?.Name}\n\n";
+                        beaconDescs = $"1 (DEFAULT): {unit?.Description?.UIName ?? unit?.Description?.Name}\n\n";
                         type = "mechdef_";
                     }
                     
                     else if (actorResource.StartsWith("vehicledef_"))
                     {
                         dm.VehicleDefs.TryGet(actorResource, out var unit);
-                        beaconDescs = $"1: DEFAULT: {unit?.Description?.UIName ?? unit?.Description?.Name}\n\n";
+                        beaconDescs = $"1 (DEFAULT): {unit?.Description?.UIName ?? unit?.Description?.Name}\n\n";
                         type = "vehicledef_";
                     }
                     else
                     {
                         dm.TurretDefs.TryGet(actorResource, out var unit);
-                        beaconDescs = $"1: DEFAULT: {unit?.Description?.UIName ?? unit?.Description?.Name}\n\n";
+                        beaconDescs = $"1 (DEFAULT): {unit?.Description?.UIName ?? unit?.Description?.Name}\n\n";
                         type = "turretdef_";
                     }
                     var beacons = Utils.GetOwnedDeploymentBeaconsOfByTypeAndTag(type, "CanStrafe");
+                    beacons.Sort((MechComponentRef x, MechComponentRef y) =>
+                        string.CompareOrdinal(x.Def.Description.UIName, y.Def.Description.UIName));
+                    ModInit.modLog.LogMessage($"sorted beacons at SSCT2Pts - strafers");
 
                     for (var index = 0; index < beacons.Count; index++)
                     {
@@ -837,7 +774,7 @@ namespace StrategicOperations.Patches
                         .AddFader(new UIColorRef?(LazySingletonBehavior<UIManager>.Instance.UILookAndColorConstants.PopupBackfill));
                     popup.AlwaysOnTop = true;
                     popup.AddButton("1.",()=> { });
-                    for (var index = 0; index < beacons.Count; index++)
+                    for (var index = beacons.Count - 1; index >= 0; index--)
                     {
                         var beacon = beacons[index];
                         var id = beacon.Def.ComponentTags.FirstOrDefault(x =>
@@ -880,35 +817,38 @@ namespace StrategicOperations.Patches
                                 }));
                         }
                     }
-
+                    popup.CancelOnEscape();
                     popup.Render();
                 }
 
-
-                if (hk && string.IsNullOrEmpty(ModState.deferredActorResource) && __instance.FromButton.Ability.Def.specialRules == AbilityDef.SpecialRules.SpawnTurret)
+                else if (hk && string.IsNullOrEmpty(ModState.deferredActorResource) && __instance.FromButton.Ability.Def.specialRules == AbilityDef.SpecialRules.SpawnTurret && ___numPositionsLocked < 1 && !ModState.OutOfRange)
                 {
                     var beaconDescs = "";
                     var type = "";
                     if (actorResource.StartsWith("mechdef_"))
                     {
                         dm.MechDefs.TryGet(actorResource, out var unit);
-                        beaconDescs = $"1: DEFAULT: {unit?.Description?.UIName ?? unit?.Description?.Name}\n\n";
+                        beaconDescs = $"1 (DEFAULT): {unit?.Description?.UIName ?? unit?.Description?.Name}\n\n";
                         type = "mechdef_";
                     }
                     
                     else if (actorResource.StartsWith("vehicledef_"))
                     {
                         dm.VehicleDefs.TryGet(actorResource, out var unit);
-                        beaconDescs = $"1: DEFAULT: {unit?.Description?.UIName ?? unit?.Description?.Name}\n\n";
+                        beaconDescs = $"1 (DEFAULT): {unit?.Description?.UIName ?? unit?.Description?.Name}\n\n";
                         type = "vehicledef_";
                     }
                     else
                     {
                         dm.TurretDefs.TryGet(actorResource, out var unit);
-                        beaconDescs = $"1: DEFAULT: {unit?.Description?.UIName ?? unit?.Description?.Name}\n\n";
+                        beaconDescs = $"1 (DEFAULT): {unit?.Description?.UIName ?? unit?.Description?.Name}\n\n";
                         type = "turretdef_";
                     }
                     var beacons = Utils.GetOwnedDeploymentBeaconsOfByTypeAndTag(type, "CanSpawnTurret");
+
+                    beacons.Sort((MechComponentRef x, MechComponentRef y) =>
+                        string.CompareOrdinal(x.Def.Description.UIName, y.Def.Description.UIName));
+                    ModInit.modLog.LogMessage($"sorted beacons at SSCT2Pts - spawners");
 
                     for (var index = 0; index < beacons.Count; index++)
                     {
@@ -941,8 +881,8 @@ namespace StrategicOperations.Patches
                             beaconDescs)
                         .AddFader(new UIColorRef?(LazySingletonBehavior<UIManager>.Instance.UILookAndColorConstants.PopupBackfill));
                     popup.AlwaysOnTop = true;
-                    popup.AddButton("DEFAULT",()=> { });
-                    for (var index = 0; index < beacons.Count; index++)
+                    popup.AddButton("1.",()=> { });
+                    for (var index = beacons.Count - 1; index >= 0; index--)
                     {
                         var beacon = beacons[index];
                         var id = beacon.Def.ComponentTags.FirstOrDefault(x =>
@@ -986,6 +926,7 @@ namespace StrategicOperations.Patches
                         }
                     }
 
+                    popup.CancelOnEscape();
                     popup.Render();
                 }
 

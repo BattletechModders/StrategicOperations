@@ -17,7 +17,7 @@ namespace StrategicOperations.Framework
         public static string deferredActorResource = "";
         public static string popupActorResource = "";
         public static bool FromDelegate;
-        public static bool popupShown;
+        public static bool OutOfRange;
 
         public static List<Utils.CmdUseInfo> CommandUses = new List<Utils.CmdUseInfo>();
 
