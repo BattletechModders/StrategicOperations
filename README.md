@@ -2,6 +2,32 @@
 
 This mod enables (and fixes), and expands the unused vanilla Command Abilities. There are two main "types" of abilities, Strafes and Spawns.
 
+settings in the mod.json:
+
+```
+"enableLogging": true,
+		"strafeTargetsFriendlies": true,
+		"strafeVelocityDefault": 150.0,
+		"strafeAltitudeMin": 75.0,
+		"strafeAltitudeMax": 250.0,
+		"strafePreDistanceMult": 15.0,
+		"strafeMinDistanceToEnd": 10.0,
+		"deploymentBeaconEquipment": [
+			"Item.UpgradeDef.Gear_TurretBeacon_Cicada",
+			"Item.UpgradeDef.Gear_TurretBeacon_Cicada2",
+			"Item.UpgradeDef.Gear_TurretBeacon_kanazuchi",
+			"Item.UpgradeDef.Gear_TurretBeacon_hvac",
+			"Item.UpgradeDef.Gear_TurretBeacon_lgr",
+			"Item.UpgradeDef.Gear_TurretBeacon_Schiltron",
+			"Item.UpgradeDef.Gear_TurretBeacon_Schiltron2"
+		]
+```
+`strafeTargetsFriendlies` - bool, strafing can hit friendly units,
+
+`strafeVelocityDefault` - default velocity of strafing unit <i>while strafing</i>. The faster the unit moves, the fewer targets it will be able to hit during a strafe. If MaxSpeed is > 0 in the strafing unit
+
+
+
 ## Spawns
 
 Spawns are basically what they sound like: spawning reinforcement units at the selected location. These units will be AI-controlled (allied). Exactly <i>what</i> unit gets deployed depends on a few things.
