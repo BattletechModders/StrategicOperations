@@ -153,11 +153,58 @@ namespace StrategicOperations.Patches
                     $"Team.ActivateAbility needs to add handling for targetingtype {ability.Def.Targeting}");
                 return false;
                 publishAbilityConfirmed:
-           //     Utils.CooldownAllCMDAbilities(); // this initiates a cooldown for ALL cmd abilities when one is used. dumb.
                 __instance.Combat.MessageCenter.PublishMessage(new AbilityConfirmedMessage(msg.actingObjectGuid, msg.affectedObjectGuid, msg.abilityID, msg.positionA, msg.positionB));
                 return false;
             }
         }
+
+
+        [HarmonyPatch(typeof(AbstractActor), "ActivateAbility",
+            new Type[] {typeof(AbstractActor), typeof(string), typeof(string), typeof(Vector3), typeof(Vector3)})]
+        public static class AbstractActor_ActivateAbility
+        {
+            public static bool Prefix(AbstractActor __instance, AbstractActor pilotedActor, string abilityName,
+                string targetGUID, Vector3 posA, Vector3 posB)
+            {
+                Ability ability = __instance.ComponentAbilities.Find((Ability x) => x.Def.Id == abilityName);
+                if (ability.Def.Targeting == AbilityDef.TargetingType.CommandSpawnPosition)
+                {
+                    ability.Activate(__instance, posA, posB);
+                    return false;
+                }
+
+                return true;
+            }
+        }
+
+
+        [HarmonyPatch(typeof(Ability), "ActivateSpecialAbility",
+            new Type[] {typeof(AbstractActor), typeof(Vector3), typeof(Vector3)})]
+        public static class Ability_ActivateSpecialAbility
+        {
+            public static bool Prefix(Ability __instance, AbstractActor creator, Vector3 positionA, Vector3 positionB)
+            {
+
+                AbilityDef.SpecialRules specialRules = __instance.Def.specialRules;
+                if (specialRules == AbilityDef.SpecialRules.Strafe)
+                {
+                    Utils._activateStrafeMethod.Invoke(__instance, new object[]{creator.team, positionA, positionB, __instance.Def.FloatParam1});
+                    ModInit.modLog.LogMessage($"ActivateStrafe invoked from Ability.ActivateSpecialAbility");
+                    return false;
+                }
+
+                else if (specialRules == AbilityDef.SpecialRules.SpawnTurret)
+                {
+                    Utils._activateSpawnTurretMethod.Invoke(__instance, new object[] {creator.team, positionA, positionB});
+                    ModInit.modLog.LogMessage($"ActivateSpawnTurret invoked from Ability.ActivateSpecialAbility");
+                    return false;
+                }
+
+                return false;
+            }
+        }
+
+
         [HarmonyPatch(typeof(Ability), "ActivateStrafe")]
         public static class Ability_ActivateStrafe
         {
@@ -267,6 +314,7 @@ namespace StrategicOperations.Patches
                             }
                         }
 
+                        ModState.selectedAIVectors = new List<Vector3>();
                         return false;
 
                     }
@@ -275,10 +323,11 @@ namespace StrategicOperations.Patches
                     {
                         ModInit.modLog.LogMessage(
                             $"Something wrong with CMD Ability {__instance.Def.Id}, invalid ActorResource");
+                        ModState.selectedAIVectors = new List<Vector3>();
                         return false;
                     }
                 }
-
+                ModState.selectedAIVectors = new List<Vector3>();
                 return false;
             }
         }
@@ -601,6 +650,24 @@ namespace StrategicOperations.Patches
         [HarmonyPatch(typeof(CombatHUDActionButton), "ActivateCommandAbility", new Type[]{typeof(string), typeof(Vector3), typeof(Vector3)})]
         public static class CombatHUDActionButton_ActivateCommandAbility
         {
+            public static bool Prefix(CombatHUDActionButton __instance, string teamGUID, Vector3 positionA, //prefix to try and make command abilities behave like normal ones
+                Vector3 positionB)
+            {
+                var HUD = Traverse.Create(__instance).Property("HUD").GetValue<CombatHUD>();
+                var theActor = HUD.SelectedActor;
+                var combat = HUD.Combat;
+                if (__instance.Ability != null && __instance.Ability.Def.ActivationTime == AbilityDef.ActivationTiming.CommandAbility && (__instance.Ability.Def.Targeting == AbilityDef.TargetingType.CommandTargetTwoPoints || __instance.Ability.Def.Targeting == AbilityDef.TargetingType.CommandSpawnPosition))
+                {
+                    MessageCenterMessage messageCenterMessage = new AbilityInvokedMessage(theActor.GUID, theActor.GUID, __instance.Ability.Def.Id, positionA, positionB);
+                    messageCenterMessage.IsNetRouted = true;
+                    combat.MessageCenter.PublishMessage(messageCenterMessage);
+                    messageCenterMessage = new AbilityConfirmedMessage(theActor.GUID, theActor.GUID, __instance.Ability.Def.Id, positionA, positionB);
+                    messageCenterMessage.IsNetRouted = true;
+                    combat.MessageCenter.PublishMessage(messageCenterMessage);
+                    __instance.DisableButton();
+                }
+                return false;
+            }
             public static void Postfix(CombatHUDActionButton __instance, string teamGUID, Vector3 positionA,
                 Vector3 positionB)
             {
@@ -626,8 +693,25 @@ namespace StrategicOperations.Patches
         [HarmonyPatch(typeof(CombatHUDEquipmentSlot), "ActivateCommandAbility", new Type[]{typeof(string), typeof(Vector3), typeof(Vector3)})]
         public static class CombatHUDEquipmentSlot_ActivateCommandAbility
         {
-
-            public static void Postfix(CombatHUDActionButton __instance, string teamGUID, Vector3 positionA,
+            public static bool Prefix(CombatHUDEquipmentSlot __instance, string teamGUID, Vector3 positionA, //prefix to try and make command abilities behave like normal ones
+                    Vector3 positionB)
+                {
+                    var HUD = Traverse.Create(__instance).Property("HUD").GetValue<CombatHUD>();
+                    var theActor = HUD.SelectedActor;
+                    var combat = HUD.Combat;
+                    if (__instance.Ability != null && __instance.Ability.Def.ActivationTime == AbilityDef.ActivationTiming.CommandAbility && (__instance.Ability.Def.Targeting == AbilityDef.TargetingType.CommandTargetTwoPoints || __instance.Ability.Def.Targeting == AbilityDef.TargetingType.CommandSpawnPosition))
+                    {
+                        MessageCenterMessage messageCenterMessage = new AbilityInvokedMessage(theActor.GUID, theActor.GUID, __instance.Ability.Def.Id, positionA, positionB);
+                        messageCenterMessage.IsNetRouted = true;
+                        combat.MessageCenter.PublishMessage(messageCenterMessage);
+                        messageCenterMessage = new AbilityConfirmedMessage(theActor.GUID, theActor.GUID, __instance.Ability.Def.Id, positionA, positionB);
+                        messageCenterMessage.IsNetRouted = true;
+                        combat.MessageCenter.PublishMessage(messageCenterMessage);
+                        __instance.DisableButton();
+                    }
+                    return false;
+                }
+            public static void Postfix(CombatHUDEquipmentSlot __instance, string teamGUID, Vector3 positionA,
                 Vector3 positionB)
             {
                 var def = __instance.Ability.Def;
@@ -773,7 +857,7 @@ namespace StrategicOperations.Patches
                             beaconDescs)
                         .AddFader(new UIColorRef?(LazySingletonBehavior<UIManager>.Instance.UILookAndColorConstants.PopupBackfill));
                     popup.AlwaysOnTop = true;
-                    popup.AddButton("1.",()=> { });
+                    popup.AddButton("1.",()=> {});
                     for (var index = beacons.Count - 1; index >= 0; index--)
                     {
                         var beacon = beacons[index];
@@ -866,13 +950,13 @@ namespace StrategicOperations.Patches
                         {
                             dm.VehicleDefs.TryGet(id, out var beaconunit);
                             beaconDescs +=
-                                $"{index+2}: {beaconunit?.Description?.UIName ?? beaconunit?.Description?.Name} - You have {ModState.deploymentAssetsDict[id]} remaining.\n\n";
+                                $"{index + 2}: {beaconunit?.Description?.UIName ?? beaconunit?.Description?.Name} - You have {ModState.deploymentAssetsDict[id]} remaining.\n\n";
                         }
                         else
                         {
                             dm.TurretDefs.TryGet(id, out var beaconunit);
                             beaconDescs +=
-                                $"{index+2}: {beaconunit?.Description?.UIName ?? beaconunit?.Description?.Name} - You have {ModState.deploymentAssetsDict[id]} remaining.\n\n";
+                                $"{index + 2}: {beaconunit?.Description?.UIName ?? beaconunit?.Description?.Name} - You have {ModState.deploymentAssetsDict[id]} remaining.\n\n";
                         }
                     }
 

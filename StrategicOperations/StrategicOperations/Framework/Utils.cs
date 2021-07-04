@@ -16,6 +16,47 @@ namespace StrategicOperations.Framework
 {
     public static class Utils
     {
+        public static Vector3[] MakeCircle(Vector3 start,int numOfPoints, int radius)
+        {
+            var vectors = new List<Vector3>();
+            for (int i = 0; i < numOfPoints; i++)
+            {
+                float angle = i * Mathf.PI * 2f / 8;
+                var newPos = new Vector3(Mathf.Cos(angle) * radius, start.y, Mathf.Sin(angle) * radius);
+                vectors.Add(newPos);
+            }
+
+            return vectors.ToArray();
+        }
+
+        public static Rect[] MakeRectangle(Vector3 start, Vector3 end, float width)
+        {
+            
+            var rectangles = new List<Rect>();
+            Vector3 line = end - start;
+            float length = Vector3.Distance(start, end);
+
+            Vector3 left = Vector3.Cross(line, Vector3.up).normalized;
+            Vector3 right = -left;
+            var startLeft = start + (left * width);
+            var startRight = start + (right * width);
+
+            var rectLeft = new Rect(startLeft.x, startLeft.y, width, length);
+            var rectRight = new Rect(startRight.x, startRight.y, width, length);
+
+
+            rectangles.Add(rectLeft);
+            rectangles.Add(rectRight);
+
+            return rectangles.ToArray();
+        }
+
+        public static T GetRandomFromList<T>(List<T> list)
+        {
+            var idx = UnityEngine.Random.Range(0, list.Count);
+            return list[0];
+        }
+
         public class CmdUseInfo
         {
             public string UnitID;
@@ -163,6 +204,7 @@ namespace StrategicOperations.Framework
         }
 
         public static MethodInfo _activateSpawnTurretMethod = AccessTools.Method(typeof(Ability), "ActivateSpawnTurret");
+        public static MethodInfo _activateStrafeMethod = AccessTools.Method(typeof(Ability), "ActivateStrafe");
         public static MethodInfo _despawnActorMethod = AccessTools.Method(typeof(AbstractActor), "DespawnActor");
 
     }

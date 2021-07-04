@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using BattleTech;
+using UnityEngine;
 
 namespace StrategicOperations.Framework
 {
@@ -14,6 +15,7 @@ namespace StrategicOperations.Framework
         public static List<KeyValuePair<string, Action>>
             deferredInvokeSpawns = new List<KeyValuePair<string, Action>>();
 
+        public static List<Vector3> selectedAIVectors;
         public static string deferredActorResource = "";
         public static string popupActorResource = "";
         public static bool FromDelegate;

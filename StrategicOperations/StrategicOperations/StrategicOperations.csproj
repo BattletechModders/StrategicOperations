@@ -71,6 +71,7 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Framework\AI_Utils.cs" />
     <Compile Include="Framework\DropPodSpawn.cs" />
     <Compile Include="Framework\Utils.cs" />
     <Compile Include="Framework\ModState.cs" />

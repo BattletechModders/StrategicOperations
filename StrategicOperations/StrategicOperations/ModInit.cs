@@ -50,5 +50,6 @@ namespace StrategicOperations
         public float strafeMinDistanceToEnd = 10f;
         public float commandUseCostsMulti = 1f;
         public List<string> deploymentBeaconEquipment = new List<string>(); //e.g. Item.HeatSinkDef.Gear_HeatSink_Generic_Standard
+        public List<string> commandAbilities_AI = new List<string>(); //e.g. Item.HeatSinkDef.Gear_HeatSink_Generic_Standard
     }
 }
