@@ -16,7 +16,7 @@ namespace StrategicOperations.Framework
 {
     public static class Utils
     {
-        public static Vector3[] MakeCircle(Vector3 start,int numOfPoints, int radius)
+        public static Vector3[] MakeCircle(Vector3 start,int numOfPoints, float radius)
         {
             var vectors = new List<Vector3>();
             for (int i = 0; i < numOfPoints; i++)

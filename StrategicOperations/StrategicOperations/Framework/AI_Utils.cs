@@ -53,7 +53,7 @@ namespace StrategicOperations.Framework
                         possibleStart = enemyActor.CurrentPosition;
                     }
 
-                    var vectors = Utils.MakeCircle(possibleStart,steps, maxrange);
+                    var vectors = Utils.MakeCircle(possibleStart,steps, ability.Def.FloatParam2);
                     var currentSavedEndVector = new Vector3();
                     var currentSavedStartVector = new Vector3();
                     var currentMaxCount = 0;
