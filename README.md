@@ -4,8 +4,6 @@ This mod enables (and fixes), and expands the unused vanilla Command Abilities. 
 
 ## Spawns
 
-
-
 ## Strafes
 
 Strafes are mostly what they sound like: an aerospace (or other) unit strafing the battlefield. There are a few quirks about strafes. 1st, valid targets for a strafe are calculated within an AOE around a line drawn between 2 points (the "strafing run"). Simple, right?
