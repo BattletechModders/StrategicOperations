@@ -30,7 +30,11 @@ The json structure of a strafe ability follows:
 ```
 
 The configurable parameters of the above:
+
 `Description` - as any other Ability Description
+
 `ActivationCooldown` - int, turn cooldown to use the ability again
+
 `ActivationETA` - int, number of turns before the actual incoming strafe will occur.
+
 `FloatParam1` - float, SHIT WHAT IS THIS
