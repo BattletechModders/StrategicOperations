@@ -4,9 +4,45 @@ This mod enables (and fixes), and expands the unused vanilla Command Abilities. 
 
 ## Spawns
 
+Spawns are basically what they sound like: spawning reinforcement units at the selected location. These units will be AI-controlled (allied).
+
+```
+{
+	"Description" : {
+		"Id" : "AbilityDefCMD_UrbDrop",
+		"Name" : "UrbDrop",
+		"Details" : "DEPLOY MOBILE TURRET",
+		"Icon" : "uixSvgIcon_genericDiamond"
+	},
+	"ActivationTime" : "CommandAbility",
+	"Resource" : "CommandAbility",
+	"ActivationCooldown" : -1,
+	"NumberOfUses" : 1,
+	"specialRules" : "SpawnTurret",
+	"Targeting" : "CommandSpawnPosition",
+	"ActorResource" : "mechdef_urbanmech_UM-R50",
+	"StringParam1" : "vfxPrfPrtl_fireTerrain_smLoop",
+	"IntParam2" : 250
+}
+```
+The configurable parameters of the above:
+
+`Description` - as any other Ability Description
+
+`ActivationCooldown` - int, turn cooldown to use the ability again
+
+`NumberOfUses` - int, number of times the ability can be used in a given contract (set to -1 or remove for unlimited uses)
+
+`ActivationETA` - int, number of turns before the unit will be deployed.
+
+`ActorResource` - string, the default "def" ID of the unit to be deployed.
+
+`IntParam2` - int, the maximum distance from the initiating actor at which a unit can be deployed.
+
+
 ## Strafes
 
-Strafes are mostly what they sound like: an aerospace (or other) unit strafing the battlefield. There are a few quirks about strafes. 1st, valid targets for a strafe are calculated within an AOE around a line drawn between 2 points (the "strafing run"). Simple, right?
+Strafes are also mostly what they sound like: an aerospace (or other) unit strafing the battlefield. Valid targets for a strafe are calculated within an AOE around a line drawn between two points (the "strafing run"), and can be either units or Objective buildings. Friendly units within the AOE can and will be hit by the strafing run!
 
 The json structure of a strafe ability follows:
 
@@ -20,6 +56,7 @@ The json structure of a strafe ability follows:
 	"ActivationTime" : "CommandAbility",
 	"Resource" : "CommandAbility",
 	"ActivationCooldown" : 1,
+	"NumberOfUses" : 1,
 	"ActivationETA" : 1,
 	"specialRules" : "Strafe",
 	"Targeting" : "CommandTargetTwoPoints",
@@ -36,6 +73,8 @@ The configurable parameters of the above:
 `Description` - as any other Ability Description
 
 `ActivationCooldown` - int, turn cooldown to use the ability again
+
+`NumberOfUses` - int, number of times the ability can be used in a given contract (set to -1 or remove for unlimited uses)
 
 `ActivationETA` - int, number of turns before the actual incoming strafe will occur.
 
