@@ -15,7 +15,7 @@ namespace StrategicOperations.Framework
     public class TB_StrafeSequence : MultiSequence
     {
         private Team PlayerTeam;
-        private List<AbstractActor> AllTargets { get; set; }
+        private List<ICombatant> AllTargets { get; set; }
         private AbstractActor Attacker { get; set; }
         private Vector3 EndPos { get; set; }
         private float HeightOffset { get; set; }
@@ -66,7 +66,8 @@ namespace StrategicOperations.Framework
             {
                 if (this.AllTargets.Count < 1)
                 {
-                    ModInit.modLog.LogMessage($"We have {this.AllTargets.Count} targets remaining, probably shouldn't be calling AttackNextTarget anymore.");
+                    ModInit.modLog.LogMessage($"We have {this.AllTargets.Count} 0 targets remaining, probably shouldn't be calling AttackNextTarget anymore.");
+                    this.SetState(TB_StrafeSequence.SequenceState.Finished);
                     return;
                 }
                 for (var i = this.AllTargets.Count - 1; i >= 0; i--)
@@ -121,7 +122,7 @@ namespace StrategicOperations.Framework
         {
 
             Vector3 result = this.StartPos - this.Velocity * ModInit.modSettings.strafePreDistanceMult;
-            this.MaxWeaponRange = this.StrafeWeapons[0].MaxRange;
+            this.MaxWeaponRange = this.StrafeWeapons[0].MaxRange/4;
             this.HeightOffset = Mathf.Clamp(this.MaxWeaponRange, ModInit.modSettings.strafeAltitudeMin,
                 ModInit.modSettings.strafeAltitudeMax);
             result.y = base.Combat.MapMetaData.GetLerpedHeightAt(result, false) + this.HeightOffset;
@@ -130,24 +131,32 @@ namespace StrategicOperations.Framework
 
         private void CalcTargets()
         {
-            this.AllTargets = new List<AbstractActor>();
-            var allActors = new List<AbstractActor>(base.Combat.AllActors);
+            this.AllTargets = new List<ICombatant>();
+
+            var allCombatants = new List<ICombatant>(base.Combat.GetAllImporantCombatants());
             
             if (!ModInit.modSettings.strafeTargetsFriendlies)
             {
-                allActors = new List<AbstractActor>(base.Combat.AllActors.Where(x=>x.team.IsEnemy(this.PlayerTeam)));
+                allCombatants = new List<ICombatant>(allCombatants.Where(x=>x.team.IsEnemy(this.PlayerTeam)));
             }
-            allActors.RemoveAll(x => x.GUID == this.Attacker.GUID || x.IsDead || x.WasDespawned || x.WasEjected);
-            for (int i = 0; i < allActors.Count; i++)
+            allCombatants.RemoveAll(x => x.GUID == this.Attacker.GUID || x.IsDead);
+            for (int i = 0; i < allCombatants.Count; i++)
             {
-                if (this.IsTarget(allActors[i]))
+                if (allCombatants[i] is AbstractActor actor)
                 {
-                    this.AllTargets.Add(allActors[i]);
-                    ModInit.modLog.LogMessage($"Added target {allActors[i].DisplayName}: {allActors[i].GUID} to final target list.");
+                    if (actor.WasDespawned || actor.WasEjected)
+                    {
+                        continue;
+                    }
+                }
+                if (this.IsTarget(allCombatants[i]))
+                {
+                    this.AllTargets.Add(allCombatants[i]);
+                    ModInit.modLog.LogMessage($"Added target {allCombatants[i].DisplayName}: {allCombatants[i].GUID} to final target list.");
                 }
             }
             Vector3 preStartPos = this.EndPos - this.StartPos * 2f;
-            this.AllTargets.Sort((AbstractActor x, AbstractActor y) => Vector3.Distance(x.CurrentPosition, preStartPos).CompareTo(Vector3.Distance(y.CurrentPosition, preStartPos)));
+            this.AllTargets.Sort((ICombatant x, ICombatant y) => Vector3.Distance(x.CurrentPosition, preStartPos).CompareTo(Vector3.Distance(y.CurrentPosition, preStartPos)));
         }
         private void GetWeaponsForStrafe()
         {
@@ -162,18 +171,18 @@ namespace StrategicOperations.Framework
         }
 
         //maybe need to refresh weapons on attacker instead of in sequence?
-        private bool IsTarget(AbstractActor actor)
+        private bool IsTarget(ICombatant combatant)
         {
-            Vector3 currentPosition = actor.CurrentPosition;
+            Vector3 currentPosition = combatant.CurrentPosition;
             Vector3 vector = NvMath.NearestPointStrict(this.StartPos, this.EndPos, currentPosition);
             vector.y = base.Combat.MapMetaData.GetLerpedHeightAt(vector, false);
             var dist = Vector3.Distance(vector, currentPosition);
             if (dist < this.Radius)
             {
-                ModInit.modLog.LogMessage($"Target {actor.DisplayName} is within weapons range. Distance: {dist}, Range: {this.Radius}");
+                ModInit.modLog.LogMessage($"Target {combatant.DisplayName} is within weapons range. Distance: {dist}, Range: {this.Radius}");
                 return true;
             }
-            ModInit.modLog.LogMessage($"Target {actor.DisplayName} not within weapons range. Distance: {dist}, Range: {this.Radius}");
+            ModInit.modLog.LogMessage($"Target {combatant.DisplayName} not within weapons range. Distance: {dist}, Range: {this.Radius}");
             return false;
         }
         public override void Load(SerializationStream stream)

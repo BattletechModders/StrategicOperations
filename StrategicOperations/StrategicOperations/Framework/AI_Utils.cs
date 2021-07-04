@@ -28,7 +28,81 @@ namespace StrategicOperations.Framework
             }
         }
 
-        public int TargetsForStrafe(AbstractActor actor)
+        public bool CanStrafe(AbstractActor actor)
+        {
+            var ability =
+                actor.ComponentAbilities.FirstOrDefault(x => x.Def.specialRules == AbilityDef.SpecialRules.Strafe);
+            if (ability != null)
+            {
+                return true;
+            }
+
+            return false;
+        }
+
+        public float CalcExpectedDamage(ICombatant target, string attackerResource)
+        {
+            if (attackerResource.StartsWith("mechdef_"))
+            {
+                target.Combat.DataManager.MechDefs.TryGet(attackerResource, out MechDef attacker);
+                attacker.Refresh();
+                var potentialRegDamage = 0f;
+                var potentialHeatDamage = 0f;
+                var potentialStabDamage = 0f;
+                var finalDamage = 0f;
+                foreach (var weapon in attacker.Inventory.Where(x=>x.ComponentDefType == ComponentType.Weapon))
+                {
+                    var weaponDef = weapon.Def as WeaponDef;
+                    potentialRegDamage += weaponDef.Damage;
+                    potentialHeatDamage += weaponDef.HeatDamage;
+                    potentialStabDamage += weaponDef.Instability;
+                }
+
+                finalDamage = potentialRegDamage + potentialHeatDamage + potentialStabDamage;
+                return finalDamage;
+            }
+            else if (attackerResource.StartsWith("vehicledef_"))
+            {
+                target.Combat.DataManager.VehicleDefs.TryGet(attackerResource, out VehicleDef attacker);
+                attacker.Refresh();
+                var potentialRegDamage = 0f;
+                var potentialHeatDamage = 0f;
+                var potentialStabDamage = 0f;
+                var finalDamage = 0f;
+                foreach (var weapon in attacker.Inventory.Where(x=>x.ComponentDefType == ComponentType.Weapon))
+                {
+                    var weaponDef = weapon.Def as WeaponDef;
+                    potentialRegDamage += weaponDef.Damage;
+                    potentialHeatDamage += weaponDef.HeatDamage;
+                    potentialStabDamage += weaponDef.Instability;
+                }
+
+                finalDamage = potentialRegDamage + potentialHeatDamage + potentialStabDamage;
+                return finalDamage;
+            }
+            else if (attackerResource.StartsWith("turretdef_"))
+            {
+                target.Combat.DataManager.TurretDefs.TryGet(attackerResource, out TurretDef attacker);
+                attacker.Refresh();
+                var potentialRegDamage = 0f;
+                var potentialHeatDamage = 0f;
+                var potentialStabDamage = 0f;
+                var finalDamage = 0f;
+                foreach (var weapon in attacker.Inventory.Where(x=>x.ComponentDefType == ComponentType.Weapon))
+                {
+                    var weaponDef = weapon.Def as WeaponDef;
+                    potentialRegDamage += weaponDef.Damage;
+                    potentialHeatDamage += weaponDef.HeatDamage;
+                    potentialStabDamage += weaponDef.Instability;
+                }
+
+                finalDamage = potentialRegDamage + potentialHeatDamage + potentialStabDamage;
+                return finalDamage;
+            }
+            return 0f;
+        }
+
+        public float TargetsForStrafe(AbstractActor actor) //switch to Icombatant
         {
             var maxCount = 0;
             var savedEndVector = new Vector3();
@@ -41,16 +115,35 @@ namespace StrategicOperations.Framework
                 var maxrange = ability.Def.IntParam2;
                 var possibleStart = new Vector3();
 
-                var circ = ability.Def.IntParam2 * 2 * Math.PI;
+                var circ = maxrange * 2 * Math.PI;
                 var steps = Mathf.RoundToInt((float)circ / (ability.Def.FloatParam1 * 2));
 
-                for (int k = 0; k < actor.BehaviorTree.enemyUnits.Count; k++)
+                var enemyCombatants = new List<ICombatant>(actor.Combat.GetAllImporantCombatants().Where(x=>x.team.IsEnemy(actor.team)));
+
+                enemyCombatants.RemoveAll(x=> x.GUID == actor.GUID || x.IsDead);
+
+                for (int i = 0; i < enemyCombatants.Count; i++)
                 {
-                    AbstractActor enemyActor = actor.BehaviorTree.enemyUnits[k] as AbstractActor;
-                    if (enemyActor == null) continue;
-                    if (Mathf.RoundToInt(Vector3.Distance(actor.CurrentPosition, enemyActor.CurrentPosition)) < maxrange)
+                    if (enemyCombatants[i] is AbstractActor combatantAsActor)
                     {
-                        possibleStart = enemyActor.CurrentPosition;
+                        if (combatantAsActor.WasDespawned || combatantAsActor.WasEjected)
+                        {
+                            enemyCombatants.RemoveAt(i);
+                        }
+                    }
+                }
+
+                for (int k = 0; k < enemyCombatants.Count; k++)
+                {
+//                    AbstractActor enemyActor = actor.BehaviorTree.enemyUnits[k] as AbstractActor;
+                    if (enemyCombatants[k] == null) continue;
+                    if (Mathf.RoundToInt(Vector3.Distance(actor.CurrentPosition, enemyCombatants[k].CurrentPosition)) < maxrange)
+                    {
+                        possibleStart = enemyCombatants[k].CurrentPosition;
+                    }
+                    else
+                    {
+                        continue;
                     }
 
                     var vectors = Utils.MakeCircle(possibleStart,steps, ability.Def.FloatParam2);
