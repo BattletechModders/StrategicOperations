@@ -6,21 +6,21 @@ settings in the mod.json:
 
 ```
 "enableLogging": true,
-		"strafeTargetsFriendlies": true,
-		"strafeVelocityDefault": 150.0,
-		"strafeAltitudeMin": 75.0,
-		"strafeAltitudeMax": 250.0,
-		"strafePreDistanceMult": 15.0,
-		"strafeMinDistanceToEnd": 10.0,
-		"deploymentBeaconEquipment": [
-			"Item.UpgradeDef.Gear_TurretBeacon_Cicada",
-			"Item.UpgradeDef.Gear_TurretBeacon_Cicada2",
-			"Item.UpgradeDef.Gear_TurretBeacon_kanazuchi",
-			"Item.UpgradeDef.Gear_TurretBeacon_hvac",
-			"Item.UpgradeDef.Gear_TurretBeacon_lgr",
-			"Item.UpgradeDef.Gear_TurretBeacon_Schiltron",
-			"Item.UpgradeDef.Gear_TurretBeacon_Schiltron2"
-		]
+"strafeTargetsFriendlies": true,
+"strafeVelocityDefault": 150.0,
+"strafeAltitudeMin": 75.0,
+"strafeAltitudeMax": 250.0,
+"strafePreDistanceMult": 15.0,
+"strafeMinDistanceToEnd": 10.0,
+"deploymentBeaconEquipment": [
+	"Item.UpgradeDef.Gear_TurretBeacon_Cicada",
+	"Item.UpgradeDef.Gear_TurretBeacon_Cicada2",
+	"Item.UpgradeDef.Gear_TurretBeacon_kanazuchi",
+	"Item.UpgradeDef.Gear_TurretBeacon_hvac",
+	"Item.UpgradeDef.Gear_TurretBeacon_lgr",
+	"Item.UpgradeDef.Gear_TurretBeacon_Schiltron",
+	"Item.UpgradeDef.Gear_TurretBeacon_Schiltron2"
+]
 ```
 `strafeTargetsFriendlies` - bool, strafing can hit friendly units,
 
