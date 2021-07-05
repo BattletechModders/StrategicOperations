@@ -1,6 +1,6 @@
 # StrategicOperations
 
-This mod enables (and fixes), and expands the unused vanilla Command Abilities. There are two main "types" of abilities, Strafes and Spawns.
+This mod enables, fixes, and expands the unused vanilla Command Abilities. There are two main "types" of abilities, Strafes and Spawns.
 
 settings in the mod.json:
 
