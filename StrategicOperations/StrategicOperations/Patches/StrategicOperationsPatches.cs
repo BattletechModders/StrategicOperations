@@ -858,6 +858,8 @@ namespace StrategicOperations.Patches
                         .AddFader(new UIColorRef?(LazySingletonBehavior<UIManager>.Instance.UILookAndColorConstants.PopupBackfill));
                     popup.AlwaysOnTop = true;
                     popup.AddButton("1.",()=> {});
+                    ModInit.modLog.LogMessage(
+                        $"Added button for 1.");
                     for (var index = beacons.Count - 1; index >= 0; index--)
                     {
                         var beacon = beacons[index];
@@ -899,9 +901,12 @@ namespace StrategicOperations.Patches
                                     ModInit.modLog.LogMessage(
                                         $"Player pressed {id}. Now {ModState.popupActorResource} should be the same.");
                                 }));
+                            ModInit.modLog.LogMessage(
+                                $"Added button for {buttonName}");
                         }
                     }
                     popup.CancelOnEscape();
+
                     popup.Render();
                 }
 
@@ -965,7 +970,9 @@ namespace StrategicOperations.Patches
                             beaconDescs)
                         .AddFader(new UIColorRef?(LazySingletonBehavior<UIManager>.Instance.UILookAndColorConstants.PopupBackfill));
                     popup.AlwaysOnTop = true;
-                    popup.AddButton("1.",()=> { });
+                    popup.AddButton("1.",()=> {});
+                    ModInit.modLog.LogMessage(
+                        $"Added button for 1.");
                     for (var index = beacons.Count - 1; index >= 0; index--)
                     {
                         var beacon = beacons[index];
@@ -1007,9 +1014,11 @@ namespace StrategicOperations.Patches
                                     ModInit.modLog.LogMessage(
                                         $"Player pressed {id}. Now {ModState.popupActorResource} should be the same.");
                                 }));
+                            ModInit.modLog.LogMessage(
+                                $"Added button for {buttonName}");
                         }
                     }
-
+                   
                     popup.CancelOnEscape();
                     popup.Render();
                 }
