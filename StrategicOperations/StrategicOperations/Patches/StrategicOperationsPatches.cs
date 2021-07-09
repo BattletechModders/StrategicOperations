@@ -791,14 +791,15 @@ namespace StrategicOperations.Patches
         [HarmonyPatch(typeof(SelectionStateCommandTargetTwoPoints), "ProcessLeftClick")]
         public static class SelectionStateCommandTargetTwoPoints_ProcessLeftClick
         {
-            public static bool Prefix(SelectionStateCommandTargetTwoPoints __instance, Vector3 worldPos, int ___numPositionsLocked, ref bool __result)
+            public static bool Prefix(SelectionStateCommandTargetTwoPoints __instance, Vector3 worldPos,
+                int ___numPositionsLocked, ref bool __result)
             {
                 var dm = __instance.FromButton.Ability.Combat.DataManager;
                 var hk = Input.GetKey(KeyCode.LeftShift) || Input.GetKey(KeyCode.RightShift);
                 var actorResource = __instance.FromButton.Ability.Def.ActorResource;
                 //ModState.popupActorResource = actorResource;
-                
-                if (hk && string.IsNullOrEmpty(ModState.deferredActorResource) && __instance.FromButton.Ability.Def.specialRules == AbilityDef.SpecialRules.Strafe && ___numPositionsLocked < 1 && !ModState.OutOfRange)
+                if (hk && string.IsNullOrEmpty(ModState.deferredActorResource) && ___numPositionsLocked < 1 &&
+                    !ModState.OutOfRange)
                 {
                     var beaconDescs = "";
                     var type = "";
@@ -808,7 +809,7 @@ namespace StrategicOperations.Patches
                         beaconDescs = $"1 (DEFAULT): {unit?.Description?.UIName ?? unit?.Description?.Name}\n\n";
                         type = "mechdef_";
                     }
-                    
+
                     else if (actorResource.StartsWith("vehicledef_"))
                     {
                         dm.VehicleDefs.TryGet(actorResource, out var unit);
@@ -821,123 +822,20 @@ namespace StrategicOperations.Patches
                         beaconDescs = $"1 (DEFAULT): {unit?.Description?.UIName ?? unit?.Description?.Name}\n\n";
                         type = "turretdef_";
                     }
-                    var beacons = Utils.GetOwnedDeploymentBeaconsOfByTypeAndTag(type, "CanStrafe");
-                    beacons.Sort((MechComponentRef x, MechComponentRef y) =>
-                        string.CompareOrdinal(x.Def.Description.UIName, y.Def.Description.UIName));
-                    ModInit.modLog.LogMessage($"sorted beacons at SSCT2Pts - strafers");
 
-                    for (var index = 0; index < beacons.Count; index++)
+                    var beacons = new List<MechComponentRef>();
+                    if (__instance.FromButton.Ability.Def.specialRules == AbilityDef.SpecialRules.SpawnTurret)
                     {
-                        var beacon = beacons[index];
-                        var id = beacon.Def.ComponentTags.FirstOrDefault(x =>
-                            x.StartsWith("mechdef_") || x.StartsWith("vehicledef_") ||
-                            x.StartsWith("turretdef_"));
-                        if (id.StartsWith("mechdef_"))
-                        {
-                            dm.MechDefs.TryGet(id, out var beaconunit);
-                            beaconDescs +=
-                                $"{index+2}: {beaconunit?.Description?.UIName ?? beaconunit?.Description?.Name} - You have {ModState.deploymentAssetsDict[id]} remaining.\n\n";
-                        }
-                        else if (id.StartsWith("vehicledef_"))
-                        {
-                            dm.VehicleDefs.TryGet(id, out var beaconunit);
-                            beaconDescs +=
-                                $"{index+2}: {beaconunit?.Description?.UIName ?? beaconunit?.Description?.Name} - You have {ModState.deploymentAssetsDict[id]} remaining.\n\n";
-                        }
-                        else
-                        {
-                            dm.TurretDefs.TryGet(id, out var beaconunit);
-                            beaconDescs +=
-                                $"{index+2}: {beaconunit?.Description?.UIName ?? beaconunit?.Description?.Name} - You have {ModState.deploymentAssetsDict[id]} remaining.\n\n";
-                        }
+                        beacons = Utils.GetOwnedDeploymentBeaconsOfByTypeAndTag(type, "CanSpawnTurret");
                     }
-
-                    var popup = GenericPopupBuilder
-                        .Create("Select a unit to deploy",
-                            beaconDescs)
-                        .AddFader(new UIColorRef?(LazySingletonBehavior<UIManager>.Instance.UILookAndColorConstants.PopupBackfill));
-                    popup.AlwaysOnTop = true;
-                    popup.AddButton("1.",()=> {});
-                    ModInit.modLog.LogMessage(
-                        $"Added button for 1.");
-                    for (var index = beacons.Count - 1; index >= 0; index--)
+                    else if (__instance.FromButton.Ability.Def.specialRules == AbilityDef.SpecialRules.Strafe)
                     {
-                        var beacon = beacons[index];
-                        var id = beacon.Def.ComponentTags.FirstOrDefault(x =>
-                            x.StartsWith("mechdef_") || x.StartsWith("vehicledef_") ||
-                            x.StartsWith("turretdef_"));
-                        var buttonName = "";
-                        if (string.IsNullOrEmpty(id)) continue;
-                        if (id.StartsWith("mechdef_"))
-                        {
-                            dm.MechDefs.TryGet(id, out var beaconunit);
-                            buttonName += $"{index + 2}.";
-                            //buttonName += $"{beaconunit?.Description?.UIName ?? beaconunit?.Description?.Name}";
-                        }
-                        else if (id.StartsWith("vehicledef_"))
-                        {
-                            dm.VehicleDefs.TryGet(id, out var beaconunit);
-                            buttonName += $"{index + 2}.";
-                            //buttonName += $"{beaconunit?.Description?.UIName ?? beaconunit?.Description?.Name}";
-                        }
-                        else
-                        {
-                            dm.TurretDefs.TryGet(id, out var beaconunit);
-                            buttonName += $"{index + 2}.";
-                            //buttonName += $"{beaconunit?.Description?.UIName ?? beaconunit?.Description?.Name}";
-                        }
-
-                        if (!ModState.deploymentAssetsDict.ContainsKey(id) || ModState.deploymentAssetsDict[id] < 1)
-                        {
-                            ModInit.modLog.LogMessage(
-                                $"Player has no available {id} to deploy, not creating button");
-                        }
-                        else
-                        {
-                            popup.AddButton(buttonName,
-                                (Action) (() =>
-                                {
-                                    ModState.popupActorResource = id;
-                                    ModInit.modLog.LogMessage(
-                                        $"Player pressed {id}. Now {ModState.popupActorResource} should be the same.");
-                                }));
-                            ModInit.modLog.LogMessage(
-                                $"Added button for {buttonName}");
-                        }
+                        beacons = Utils.GetOwnedDeploymentBeaconsOfByTypeAndTag(type, "CanStrafe");
                     }
-                    popup.CancelOnEscape();
-
-                    popup.Render();
-                }
-
-                else if (hk && string.IsNullOrEmpty(ModState.deferredActorResource) && __instance.FromButton.Ability.Def.specialRules == AbilityDef.SpecialRules.SpawnTurret && ___numPositionsLocked < 1 && !ModState.OutOfRange)
-                {
-                    var beaconDescs = "";
-                    var type = "";
-                    if (actorResource.StartsWith("mechdef_"))
-                    {
-                        dm.MechDefs.TryGet(actorResource, out var unit);
-                        beaconDescs = $"1 (DEFAULT): {unit?.Description?.UIName ?? unit?.Description?.Name}\n\n";
-                        type = "mechdef_";
-                    }
-                    
-                    else if (actorResource.StartsWith("vehicledef_"))
-                    {
-                        dm.VehicleDefs.TryGet(actorResource, out var unit);
-                        beaconDescs = $"1 (DEFAULT): {unit?.Description?.UIName ?? unit?.Description?.Name}\n\n";
-                        type = "vehicledef_";
-                    }
-                    else
-                    {
-                        dm.TurretDefs.TryGet(actorResource, out var unit);
-                        beaconDescs = $"1 (DEFAULT): {unit?.Description?.UIName ?? unit?.Description?.Name}\n\n";
-                        type = "turretdef_";
-                    }
-                    var beacons = Utils.GetOwnedDeploymentBeaconsOfByTypeAndTag(type, "CanSpawnTurret");
 
                     beacons.Sort((MechComponentRef x, MechComponentRef y) =>
                         string.CompareOrdinal(x.Def.Description.UIName, y.Def.Description.UIName));
-                    ModInit.modLog.LogMessage($"sorted beacons at SSCT2Pts - spawners");
+                    ModInit.modLog.LogMessage("sorted beacons at SSCT2Pts");
 
                     for (var index = 0; index < beacons.Count; index++)
                     {
@@ -968,69 +866,136 @@ namespace StrategicOperations.Patches
                     var popup = GenericPopupBuilder
                         .Create("Select a unit to deploy",
                             beaconDescs)
-                        .AddFader(new UIColorRef?(LazySingletonBehavior<UIManager>.Instance.UILookAndColorConstants.PopupBackfill));
+                        .AddFader(new UIColorRef?(LazySingletonBehavior<UIManager>.Instance.UILookAndColorConstants
+                            .PopupBackfill));
                     popup.AlwaysOnTop = true;
-                    popup.AddButton("1.",()=> {});
+                    popup.AddButton("1.", () => { });
                     ModInit.modLog.LogMessage(
                         $"Added button for 1.");
-                    for (var index = beacons.Count - 1; index >= 0; index--)
+                    switch (beacons.Count)
                     {
-                        var beacon = beacons[index];
-                        var id = beacon.Def.ComponentTags.FirstOrDefault(x =>
+                        case 0:
+                        {
+                            goto RenderNow;
+                        }
+                        case 1:
+                        {
+                            var beacon = beacons[0];
+                            var id = beacon.Def.ComponentTags.FirstOrDefault((string x) =>
+                                x.StartsWith("mechdef_") || x.StartsWith("vehicledef_") ||
+                                x.StartsWith("turretdef_"));
+                            ModInit.modLog.LogMessage("beacon for button 2. will be " +
+                                                      beacon.Def.Description.Name + ", ID will be " + id);
+                            popup.AddButton("2.", (Action) (() =>
+                            {
+                                ModState.popupActorResource = id;
+                                ModInit.modLog.LogMessage("Player pressed " + id + ". Now " +
+                                                          ModState.popupActorResource + " should be the same.");
+                            }));
+                            goto RenderNow;
+                        }
+                        case 2:
+                        {
+                            var beacon = beacons[1];
+                            var id = beacon.Def.ComponentTags.FirstOrDefault((string x) =>
+                                x.StartsWith("mechdef_") || x.StartsWith("vehicledef_") ||
+                                x.StartsWith("turretdef_"));
+                            ModInit.modLog.LogMessage("beacon for button 3. will be " +
+                                                      beacon.Def.Description.Name + ", ID will be " + id);
+                            var id1 = id;
+                            popup.AddButton("3.", (Action) (() =>
+                            {
+                                ModState.popupActorResource = id1;
+                                ModInit.modLog.LogMessage("Player pressed " + id1 + ". Now " +
+                                                          ModState.popupActorResource + " should be the same.");
+                            }));
+
+                            beacon = beacons[0];
+                            id = beacon.Def.ComponentTags.FirstOrDefault((string x) =>
+                                x.StartsWith("mechdef_") || x.StartsWith("vehicledef_") ||
+                                x.StartsWith("turretdef_"));
+                            ModInit.modLog.LogMessage("beacon for button 2. will be " +
+                                                      beacon.Def.Description.Name + ", ID will be " + id);
+                            popup.AddButton("2.", (Action) (() =>
+                            {
+                                ModState.popupActorResource = id;
+                                ModInit.modLog.LogMessage("Player pressed " + id + ". Now " +
+                                                          ModState.popupActorResource + " should be the same.");
+                            }));
+
+                            goto RenderNow;
+                        }
+                    }
+
+                    if (beacons.Count > 2)
+                    {
+                        var beacon = beacons[1];
+                        var id = beacon.Def.ComponentTags.FirstOrDefault((string x) =>
                             x.StartsWith("mechdef_") || x.StartsWith("vehicledef_") ||
                             x.StartsWith("turretdef_"));
-                        var buttonName = "";
-                        if (string.IsNullOrEmpty(id)) continue;
-                        if (id.StartsWith("mechdef_"))
+                        ModInit.modLog.LogMessage("beacon for button 3. will be " +
+                                                  beacon.Def.Description.Name + ", ID will be " + id);
+                        var id1 = id;
+                        popup.AddButton("3.", (Action)(() =>
                         {
-                            dm.MechDefs.TryGet(id, out var beaconunit);
-                            buttonName += $"{index + 2}.";
-                            //buttonName += $"{beaconunit?.Description?.UIName ?? beaconunit?.Description?.Name}";
-                        }
-                        else if (id.StartsWith("vehicledef_"))
-                        {
-                            dm.VehicleDefs.TryGet(id, out var beaconunit);
-                            buttonName += $"{index + 2}.";
-                            //buttonName += $"{beaconunit?.Description?.UIName ?? beaconunit?.Description?.Name}";
-                        }
-                        else
-                        {
-                            dm.TurretDefs.TryGet(id, out var beaconunit);
-                            buttonName += $"{index + 2}.";
-                            //buttonName += $"{beaconunit?.Description?.UIName ?? beaconunit?.Description?.Name}";
-                        }
+                            ModState.popupActorResource = id1;
+                            ModInit.modLog.LogMessage("Player pressed " + id1 + ". Now " +
+                                                      ModState.popupActorResource + " should be the same.");
+                        }));
 
-                        if (!ModState.deploymentAssetsDict.ContainsKey(id) || ModState.deploymentAssetsDict[id] < 1)
+                        beacon = beacons[0];
+                        id = beacon.Def.ComponentTags.FirstOrDefault((string x) =>
+                            x.StartsWith("mechdef_") || x.StartsWith("vehicledef_") ||
+                            x.StartsWith("turretdef_"));
+                        ModInit.modLog.LogMessage("beacon for button 2. will be " +
+                                                  beacon.Def.Description.Name + ", ID will be " + id);
+                        var id2 = id;
+                        popup.AddButton("2.", (Action)(() =>
                         {
-                            ModInit.modLog.LogMessage(
-                                $"Player has no available {id} to deploy, not creating button");
-                        }
-                        else
+                            ModState.popupActorResource = id2;
+                            ModInit.modLog.LogMessage("Player pressed " + id2 + ". Now " +
+                                                      ModState.popupActorResource + " should be the same.");
+                        }));
+
+                        for (var index = 2; index < beacons.Count; index++)
                         {
+                            beacon = beacons[index];
+                            id = beacon.Def.ComponentTags.FirstOrDefault(x =>
+                                x.StartsWith("mechdef_") || x.StartsWith("vehicledef_") ||
+                                x.StartsWith("turretdef_"));
+                            var buttonName = $"{index + 2}.";
+                            if (string.IsNullOrEmpty(id)) continue;
+                            var id3 = id;
                             popup.AddButton(buttonName,
                                 (Action) (() =>
                                 {
-                                    ModState.popupActorResource = id;
+                                    ModState.popupActorResource = id3;
                                     ModInit.modLog.LogMessage(
-                                        $"Player pressed {id}. Now {ModState.popupActorResource} should be the same.");
+                                        $"Player pressed {id3}. Now {ModState.popupActorResource} should be the same.");
                                 }));
                             ModInit.modLog.LogMessage(
                                 $"Added button for {buttonName}");
                         }
                     }
-                   
+                    RenderNow:
                     popup.CancelOnEscape();
                     popup.Render();
-                }
 
-                var HUD = Traverse.Create(__instance).Property("HUD").GetValue<CombatHUD>();
-                var theActor = HUD.SelectedActor;
-                var distance = Mathf.RoundToInt(Vector3.Distance(theActor.CurrentPosition, worldPos));
-                var maxRange = Mathf.RoundToInt(__instance.FromButton.Ability.Def.IntParam2);
-                __result = true;
-                if ((__instance.FromButton.Ability.Def.specialRules == AbilityDef.SpecialRules.Strafe && distance > maxRange) || (__instance.FromButton.Ability.Def.specialRules == AbilityDef.SpecialRules.SpawnTurret && distance > maxRange && ___numPositionsLocked < 1))
-                {
-                    return false;
+                    var HUD = Traverse.Create(__instance).Property("HUD").GetValue<CombatHUD>();
+                    var theActor = HUD.SelectedActor;
+                    var distance = Mathf.RoundToInt(Vector3.Distance(theActor.CurrentPosition, worldPos));
+                    var maxRange = Mathf.RoundToInt(__instance.FromButton.Ability.Def.IntParam2);
+                    __result = true;
+                    if ((__instance.FromButton.Ability.Def.specialRules == AbilityDef.SpecialRules.Strafe &&
+                         distance > maxRange) ||
+                        (__instance.FromButton.Ability.Def.specialRules ==
+                         AbilityDef.SpecialRules.SpawnTurret &&
+                         distance > maxRange && ___numPositionsLocked < 1))
+                    {
+                        __result = false;
+                        return false;
+                    }
+                    return true;
                 }
                 return true;
             }
