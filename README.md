@@ -14,6 +14,7 @@ settings in the mod.json:
 "strafeAltitudeMax": 250.0,
 "strafePreDistanceMult": 15.0,
 "strafeMinDistanceToEnd": 10.0,
+"useBattleValueForCosts": false,
 "commandUseCostsMulti": 1.0,
 "deploymentBeaconEquipment": [
 	"Item.UpgradeDef.Gear_TurretBeacon_Cicada",
