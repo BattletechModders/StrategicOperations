@@ -7,11 +7,14 @@ settings in the mod.json:
 ```
 "enableLogging": true,
 "strafeTargetsFriendlies": true,
+"strafeEndsActivation": true,
+"spawnTurretEndsActivation": true,
 "strafeVelocityDefault": 150.0,
 "strafeAltitudeMin": 75.0,
 "strafeAltitudeMax": 250.0,
 "strafePreDistanceMult": 15.0,
 "strafeMinDistanceToEnd": 10.0,
+"commandUseCostsMulti": 1.0,
 "deploymentBeaconEquipment": [
 	"Item.UpgradeDef.Gear_TurretBeacon_Cicada",
 	"Item.UpgradeDef.Gear_TurretBeacon_Cicada2",
@@ -24,6 +27,10 @@ settings in the mod.json:
 ```
 `strafeTargetsFriendlies` - bool, strafing can hit friendly units,
 
+`strafeEndsActivation` - bool, do strafes automatically end the turn of the unit using them?
+
+`spawnTurretEndsActivation` - bool, does spawn unit automatically end the turn of the unit using them?
+
 `strafeVelocityDefault` - float, default velocity of strafing unit <i>while strafing</i>. The faster the unit moves, the fewer targets it will be able to hit during a strafe. If MaxSpeed is > 0 in the strafing unit, then that speed will override this value.
 
 `strafeAltitudeMin` and `strafeAltitudeMax` - float. The altitide of the strafing unit is the maximum weapon range of the strafing unit divided by 4, but is clamped between these two values.
@@ -31,6 +38,10 @@ settings in the mod.json:
 `strafePreDistanceMult` - float, controls the distance at which the strafing unit is instantiated from the point of strafing start; influences the length of the "fly-in" sequence.
 
 `strafeMinDistanceToEnd` - float, distance from the strafing unit to the endpoint of the strafe at which the strafe is considered to be "complete" and no more targets will be attacked.
+
+`useBattleValueForCosts` - bool, if true command ability usage costs costs are calculated by `# of uses X BattleValue`, where BattleValue is a function of the c-bill cost defined in the ChassisDef and the c-bill cost of all components mounted on the unit (see `MechStatisticsRules.CalculateCBillValue`). if false, command ability usage will simply be the cost listed in the Description of the MechDef, VehicleDef, or TurretDef. In both cases, final per-use cost is modified by `commandUseCostsMulti` below.
+
+`commandUseCostsMulti` - float, multiplier governing costs of using command abilities. 
 
 `deploymentBeaconEquipment` - List<string>, list of component IDs that are considered "deployment beacons" to give options for the specific unit that gets deployed/strafes during combat.
 
