@@ -63,9 +63,9 @@ namespace StrategicOperations.Framework
             public string CommandName;
             public string UnitName;
             public int UseCost;
-            public float UseCostAdjusted => UseCost * ModInit.modSettings.commandUseCostsMulti;
+            public int UseCostAdjusted => Mathf.RoundToInt(UseCost * ModInit.modSettings.commandUseCostsMulti);
             public int UseCount;
-            public int TotalCost => Mathf.RoundToInt(UseCount * UseCostAdjusted);
+            public int TotalCost => UseCount * UseCostAdjusted;
 
             public CmdUseInfo(string unitID, string CommandName, string UnitName, int UseCost)
             {
@@ -73,7 +73,7 @@ namespace StrategicOperations.Framework
                 this.CommandName = CommandName;
                 this.UnitName = UnitName;
                 this.UseCost = UseCost;
-                this.UseCount = 0;
+                this.UseCount = 1;
             }
         }
         public static Lance CreateCMDLance(Team team)

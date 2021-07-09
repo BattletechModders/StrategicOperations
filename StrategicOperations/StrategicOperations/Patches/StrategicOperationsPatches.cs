@@ -268,41 +268,45 @@ namespace StrategicOperations.Patches
                             var unitName = "";
                             var unitCost = 0;
                             var unitID = "";
-                            if (__instance.Def.ActorResource.StartsWith("mechdef_"))
+                            if (actorResource.StartsWith("mechdef_"))
                             {
                                 dm.MechDefs.TryGet(__instance.Def.ActorResource, out var mechDef);
                                 mechDef.Refresh();
                                 unitName = mechDef.Description.UIName;
                                 unitID = mechDef.Description.Id;
-                                unitCost = mechDef.BattleValue;
+                                unitCost = ModInit.modSettings.useBattleValueForCosts ? mechDef.BattleValue : mechDef.Description.Cost;
+                                ModInit.modLog.LogMessage($"Usage cost will be {unitCost}");
                             }
-                            else if (__instance.Def.ActorResource.StartsWith("vehicledef_"))
+                            else if (actorResource.StartsWith("vehicledef_"))
                             {
                                 dm.VehicleDefs.TryGet(__instance.Def.ActorResource, out var vehicleDef);
                                 vehicleDef.Refresh();
                                 unitName = vehicleDef.Description.UIName;
                                 unitID = vehicleDef.Description.Id;
-                                unitCost = vehicleDef.BattleValue;
+                                unitCost = ModInit.modSettings.useBattleValueForCosts ? vehicleDef.BattleValue : vehicleDef.Description.Cost;
+                                ModInit.modLog.LogMessage($"Usage cost will be {unitCost}");
                             }
                             else
                             {
-                                dm.TurretDefs.TryGet(__instance.Def.ActorResource, out var turretDef);
+                                dm.TurretDefs.TryGet(actorResource, out var turretDef);
                                 turretDef.Refresh();
                                 unitName = turretDef.Description.UIName;
                                 unitID = turretDef.Description.Id;
-                                unitCost = turretDef.BattleValue;
+                                unitCost = ModInit.modSettings.useBattleValueForCosts ? turretDef.BattleValue : turretDef.Description.Cost;
+                                ModInit.modLog.LogMessage($"Usage cost will be {unitCost}");
                             }
 
-                            if (ModState.CommandUses.All(x => x.UnitID != __instance.Def.ActorResource))
+                            if (ModState.CommandUses.All(x => x.UnitID != actorResource))
                             {
                             
                                 var commandUse = new Utils.CmdUseInfo(unitID, __instance.Def.Description.Name, unitName, unitCost);
 
                                 ModState.CommandUses.Add(commandUse);
+                                ModInit.modLog.LogMessage($"Added usage cost for {commandUse.CommandName} - {commandUse.UnitName}");
                             }
                             else
                             {
-                                var cmdUse = ModState.CommandUses.FirstOrDefault(x => x.UnitID == __instance.Def.ActorResource);
+                                var cmdUse = ModState.CommandUses.FirstOrDefault(x => x.UnitID == actorResource);
                                 if (cmdUse == null)
                                 {
                                     ModInit.modLog.LogMessage($"ERROR: cmdUseInfo was null");
@@ -310,6 +314,7 @@ namespace StrategicOperations.Patches
                                 else
                                 {
                                     cmdUse.UseCount += 1;
+                                    ModInit.modLog.LogMessage($"Added usage cost for {cmdUse.CommandName} - {cmdUse.UnitName}, used {cmdUse.UseCount} times");
                                 }
                             }
                         }
@@ -354,15 +359,21 @@ namespace StrategicOperations.Patches
                     ModInit.modLog.LogMessage($"Decrementing count of {actorResource} in deploymentAssetsDict");
                 }
 
-                var instanceGUID = $"{__instance.Def.Id}_{team.Name}_{actorResource}_{positionA}_{positionB}@{actorResource}";
+                var instanceGUID =
+                    $"{__instance.Def.Id}_{team.Name}_{actorResource}_{positionA}_{positionB}@{actorResource}";
 
                 if (ModState.deferredInvokeSpawns.All(x => x.Key != instanceGUID) && !ModState.FromDelegate)
                 {
-                    ModInit.modLog.LogMessage($"Deferred Spawner = null, creating delegate and returning false. Delegate should spawn {actorResource}");
-                    void DeferredInvokeSpawn() => Utils._activateSpawnTurretMethod.Invoke(__instance, new object[] {team, positionA, positionB});
+                    ModInit.modLog.LogMessage(
+                        $"Deferred Spawner = null, creating delegate and returning false. Delegate should spawn {actorResource}");
+
+                    void DeferredInvokeSpawn() =>
+                        Utils._activateSpawnTurretMethod.Invoke(__instance, new object[] {team, positionA, positionB});
+
                     var kvp = new KeyValuePair<string, Action>(instanceGUID, DeferredInvokeSpawn);
                     ModState.deferredInvokeSpawns.Add(kvp);
-                    var flares = Traverse.Create(__instance).Method("SpawnFlares",new object[] { positionA, positionA, __instance.Def.StringParam1, 1, 1});
+                    var flares = Traverse.Create(__instance).Method("SpawnFlares",
+                        new object[] {positionA, positionA, __instance.Def.StringParam1, 1, 1});
                     flares.GetValue();
                     return false;
                 }
@@ -378,81 +389,88 @@ namespace StrategicOperations.Patches
 
                 Quaternion quaternion = Quaternion.LookRotation(positionB - positionA);
 
-                    if (actorResource.StartsWith("mechdef_"))
-                    {
-                        ModInit.modLog.LogMessage($"Attempting to spawn {actorResource} as mech.");
-                        dm.MechDefs.TryGet(actorResource, out var supportActorMechDef);
-                        supportActorMechDef.Refresh();
-                        var supportActorMech = ActorFactory.CreateMech(supportActorMechDef, supportPilotDef, team.SupportTeam.EncounterTags, team.SupportTeam.Combat,
-                            team.SupportTeam.GetNextSupportUnitGuid(), "", null);
-                        supportActorMech.Init(positionA,quaternion.eulerAngles.y,false);
-                        supportActorMech.InitGameRep(null);
+                if (actorResource.StartsWith("mechdef_"))
+                {
+                    ModInit.modLog.LogMessage($"Attempting to spawn {actorResource} as mech.");
+                    dm.MechDefs.TryGet(actorResource, out var supportActorMechDef);
+                    supportActorMechDef.Refresh();
+                    var supportActorMech = ActorFactory.CreateMech(supportActorMechDef, supportPilotDef,
+                        team.SupportTeam.EncounterTags, team.SupportTeam.Combat,
+                        team.SupportTeam.GetNextSupportUnitGuid(), "", null);
+                    supportActorMech.Init(positionA, quaternion.eulerAngles.y, false);
+                    supportActorMech.InitGameRep(null);
 
-                        team.SupportTeam.AddUnit(supportActorMech);
-                        supportActorMech.AddToTeam(team.SupportTeam);
+                    team.SupportTeam.AddUnit(supportActorMech);
+                    supportActorMech.AddToTeam(team.SupportTeam);
 
-                        supportActorMech.AddToLance(cmdLance);
-                        supportActorMech.BehaviorTree = BehaviorTreeFactory.MakeBehaviorTree(__instance.Combat.BattleTechGame, supportActorMech, BehaviorTreeIDEnum.CoreAITree);
-                        //supportActorMech.GameRep.gameObject.SetActive(true);
-                        
-                        supportActorMech.OnPositionUpdate(positionA, quaternion, -1, true, null, false);
-                        supportActorMech.DynamicUnitRole = UnitRole.Brawler;
-                
-                        UnitSpawnedMessage message = new UnitSpawnedMessage("FROM_ABILITY", supportActorMech.GUID);
+                    supportActorMech.AddToLance(cmdLance);
+                    supportActorMech.BehaviorTree = BehaviorTreeFactory.MakeBehaviorTree(
+                        __instance.Combat.BattleTechGame, supportActorMech, BehaviorTreeIDEnum.CoreAITree);
+                    //supportActorMech.GameRep.gameObject.SetActive(true);
 
-                        __instance.Combat.MessageCenter.PublishMessage(message);
-                        supportActorMech.OnPlayerVisibilityChanged(VisibilityLevel.LOSFull);
+                    supportActorMech.OnPositionUpdate(positionA, quaternion, -1, true, null, false);
+                    supportActorMech.DynamicUnitRole = UnitRole.Brawler;
 
-                        ModInit.modLog.LogMessage($"Added {supportActorMech?.MechDef?.Description?.Id} to SupportUnits");
-                    }
-                    else if (actorResource.StartsWith("vehicledef_"))
-                    {
-                        ModInit.modLog.LogMessage($"Attempting to spawn {actorResource} as vehicle.");
-                        dm.VehicleDefs.TryGet(actorResource, out var supportActorVehicleDef);
-                        supportActorVehicleDef.Refresh();
-                        var supportActorVehicle = ActorFactory.CreateVehicle(supportActorVehicleDef, supportPilotDef, team.SupportTeam.EncounterTags, team.SupportTeam.Combat,
-                            team.SupportTeam.GetNextSupportUnitGuid(), "", null);
-                        supportActorVehicle.Init(positionA, quaternion.eulerAngles.y,false);
-                        supportActorVehicle.InitGameRep(null);
+                    UnitSpawnedMessage message = new UnitSpawnedMessage("FROM_ABILITY", supportActorMech.GUID);
 
-                        team.SupportTeam.AddUnit(supportActorVehicle);
-                        supportActorVehicle.AddToTeam(team.SupportTeam);
+                    __instance.Combat.MessageCenter.PublishMessage(message);
+                    supportActorMech.OnPlayerVisibilityChanged(VisibilityLevel.LOSFull);
 
-                        supportActorVehicle.AddToLance(cmdLance);
-                        supportActorVehicle.BehaviorTree = BehaviorTreeFactory.MakeBehaviorTree(__instance.Combat.BattleTechGame, supportActorVehicle, BehaviorTreeIDEnum.CoreAITree);
-                        //supportActorVehicle.GameRep.gameObject.SetActive(true);
-                        
-                        supportActorVehicle.OnPositionUpdate(positionA, quaternion, -1, true, null, false);
-                        supportActorVehicle.DynamicUnitRole = UnitRole.Vehicle;
-                
-                        UnitSpawnedMessage message = new UnitSpawnedMessage("FROM_ABILITY", supportActorVehicle.GUID);
+                    ModInit.modLog.LogMessage($"Added {supportActorMech?.MechDef?.Description?.Id} to SupportUnits");
+                }
+                else if (actorResource.StartsWith("vehicledef_"))
+                {
+                    ModInit.modLog.LogMessage($"Attempting to spawn {actorResource} as vehicle.");
+                    dm.VehicleDefs.TryGet(actorResource, out var supportActorVehicleDef);
+                    supportActorVehicleDef.Refresh();
+                    var supportActorVehicle = ActorFactory.CreateVehicle(supportActorVehicleDef, supportPilotDef,
+                        team.SupportTeam.EncounterTags, team.SupportTeam.Combat,
+                        team.SupportTeam.GetNextSupportUnitGuid(), "", null);
+                    supportActorVehicle.Init(positionA, quaternion.eulerAngles.y, false);
+                    supportActorVehicle.InitGameRep(null);
 
-                        __instance.Combat.MessageCenter.PublishMessage(message);
-                        supportActorVehicle.OnPlayerVisibilityChanged(VisibilityLevel.LOSFull);
+                    team.SupportTeam.AddUnit(supportActorVehicle);
+                    supportActorVehicle.AddToTeam(team.SupportTeam);
 
-                        ModInit.modLog.LogMessage($"Added {supportActorVehicle?.VehicleDef?.Description?.Id} to SupportUnits");
-                    }
+                    supportActorVehicle.AddToLance(cmdLance);
+                    supportActorVehicle.BehaviorTree = BehaviorTreeFactory.MakeBehaviorTree(
+                        __instance.Combat.BattleTechGame, supportActorVehicle, BehaviorTreeIDEnum.CoreAITree);
+                    //supportActorVehicle.GameRep.gameObject.SetActive(true);
 
-                    else
-                    {
-                        ModInit.modLog.LogMessage($"Attempting to spawn {actorResource} as turret.");
-                        var spawnTurretMethod = Traverse.Create(__instance).Method("SpawnTurret", new object[]{team.SupportTeam, actorResource, positionA, quaternion});
-                        var turretActor = spawnTurretMethod.GetValue<AbstractActor>();
+                    supportActorVehicle.OnPositionUpdate(positionA, quaternion, -1, true, null, false);
+                    supportActorVehicle.DynamicUnitRole = UnitRole.Vehicle;
 
-                        team.SupportTeam.AddUnit(turretActor);
-                        turretActor.AddToTeam(team.SupportTeam);
+                    UnitSpawnedMessage message = new UnitSpawnedMessage("FROM_ABILITY", supportActorVehicle.GUID);
 
-                        turretActor.AddToLance(cmdLance);
-                        turretActor.BehaviorTree = BehaviorTreeFactory.MakeBehaviorTree(__instance.Combat.BattleTechGame, turretActor, BehaviorTreeIDEnum.CoreAITree);
-                
-                        turretActor.OnPositionUpdate(positionA, quaternion, -1, true, null, false);
-                        turretActor.DynamicUnitRole = UnitRole.Turret;
-                
-                        UnitSpawnedMessage message = new UnitSpawnedMessage("FROM_ABILITY", turretActor.GUID);
+                    __instance.Combat.MessageCenter.PublishMessage(message);
+                    supportActorVehicle.OnPlayerVisibilityChanged(VisibilityLevel.LOSFull);
 
-                        __instance.Combat.MessageCenter.PublishMessage(message);
-                        turretActor.OnPlayerVisibilityChanged(VisibilityLevel.LOSFull);
-               
+                    ModInit.modLog.LogMessage(
+                        $"Added {supportActorVehicle?.VehicleDef?.Description?.Id} to SupportUnits");
+                }
+
+                else
+                {
+                    ModInit.modLog.LogMessage($"Attempting to spawn {actorResource} as turret.");
+                    var spawnTurretMethod = Traverse.Create(__instance).Method("SpawnTurret",
+                        new object[] {team.SupportTeam, actorResource, positionA, quaternion});
+                    var turretActor = spawnTurretMethod.GetValue<AbstractActor>();
+
+                    team.SupportTeam.AddUnit(turretActor);
+                    turretActor.AddToTeam(team.SupportTeam);
+
+                    turretActor.AddToLance(cmdLance);
+                    turretActor.BehaviorTree = BehaviorTreeFactory.MakeBehaviorTree(__instance.Combat.BattleTechGame,
+                        turretActor, BehaviorTreeIDEnum.CoreAITree);
+
+                    turretActor.OnPositionUpdate(positionA, quaternion, -1, true, null, false);
+                    turretActor.DynamicUnitRole = UnitRole.Turret;
+
+                    UnitSpawnedMessage message = new UnitSpawnedMessage("FROM_ABILITY", turretActor.GUID);
+
+                    __instance.Combat.MessageCenter.PublishMessage(message);
+                    turretActor.OnPlayerVisibilityChanged(VisibilityLevel.LOSFull);
+
 //                var stackID = combat.StackManager.NextStackUID;
 //                var component = UnitDropPodSpawner.UnitDropPodSpawnerInstance.GetComponentInParent<EncounterLayerParent>(); // this is returning null and  breaking shit
 //                if (component.dropPodLandedPrefab != null)
@@ -461,60 +479,68 @@ namespace StrategicOperations.Patches
 //                EncounterLayerParent.EnqueueLoadAwareMessage(new AddSequenceToStackMessage(dropPodAnimationSequence));
 //                UnitDropPodSpawner.UnitDropPodSpawnerInstance.StartDropPodAnimation(0.75f, null, stackID, stackID);
 
-                    }
+                }
 
-                    if (ModInit.modSettings.commandUseCostsMulti > 0)
+                if (ModInit.modSettings.commandUseCostsMulti > 0)
+                {
+                    var unitName = "";
+                    var unitCost = 0;
+                    var unitID = "";
+
+                    if (actorResource.StartsWith("mechdef_"))
                     {
-                        var unitName = "";
-                        var unitCost = 0;
-                        var unitID = "";
-                        if (actorResource.StartsWith("mechdef_"))
-                        {
-                            dm.MechDefs.TryGet(actorResource, out var mechDef);
-                            mechDef.Refresh();
-                            unitName = mechDef.Description.UIName;
-                            unitID = mechDef.Description.Id;
-                            unitCost = mechDef.BattleValue;
-                        }
-                        else if (actorResource.StartsWith("vehicledef_"))
-                        {
-                            dm.VehicleDefs.TryGet(actorResource, out var vehicleDef);
-                            vehicleDef.Refresh();
-                            unitName = vehicleDef.Description.UIName;
-                            unitID = vehicleDef.Description.Id;
-                            unitCost = vehicleDef.BattleValue;
-                        }
-                        else
-                        {
-                            dm.TurretDefs.TryGet(actorResource, out var turretDef);
-                            turretDef.Refresh();
-                            unitName = turretDef.Description.UIName;
-                            unitID = turretDef.Description.Id;
-                            unitCost = turretDef.BattleValue;
-                        }
-
-                        if (ModState.CommandUses.All(x => x.UnitID != actorResource))
-                        {
-                            
-                            var commandUse = new Utils.CmdUseInfo(unitID, __instance.Def.Description.Name, unitName, unitCost);
-
-                            ModState.CommandUses.Add(commandUse);
-                        }
-                        else
-                        {
-                            var cmdUse = ModState.CommandUses.FirstOrDefault(x => x.UnitID == actorResource);
-                            if (cmdUse == null)
-                            {
-                                ModInit.modLog.LogMessage($"ERROR: cmdUseInfo was null");
-                            }
-                            else
-                            {
-                                cmdUse.UseCount += 1;
-                            }
-                        }
+                        dm.MechDefs.TryGet(actorResource, out var mechDef);
+                        mechDef.Refresh();
+                        unitName = mechDef.Description.UIName;
+                        unitID = mechDef.Description.Id;
+                        unitCost = ModInit.modSettings.useBattleValueForCosts ? mechDef.BattleValue : mechDef.Description.Cost;
+                        ModInit.modLog.LogMessage($"Usage cost will be {unitCost}");
+                    }
+                    else if (actorResource.StartsWith("vehicledef_"))
+                    {
+                        dm.VehicleDefs.TryGet(actorResource, out var vehicleDef);
+                        vehicleDef.Refresh();
+                        unitName = vehicleDef.Description.UIName;
+                        unitID = vehicleDef.Description.Id;
+                        unitCost = ModInit.modSettings.useBattleValueForCosts ? vehicleDef.BattleValue : vehicleDef.Description.Cost;
+                        ModInit.modLog.LogMessage($"Usage cost will be {unitCost}");
+                    }
+                    else
+                    {
+                        dm.TurretDefs.TryGet(actorResource, out var turretDef);
+                        turretDef.Refresh();
+                        unitName = turretDef.Description.UIName;
+                        unitID = turretDef.Description.Id;
+                        unitCost = ModInit.modSettings.useBattleValueForCosts ? turretDef.BattleValue : turretDef.Description.Cost;
+                        ModInit.modLog.LogMessage($"Usage cost will be {unitCost}");
                     }
 
-                    return false;
+                    if (ModState.CommandUses.All(x => x.UnitID != actorResource))
+                    {
+
+                        var commandUse =
+                            new Utils.CmdUseInfo(unitID, __instance.Def.Description.Name, unitName, unitCost);
+
+                        ModState.CommandUses.Add(commandUse);
+                        ModInit.modLog.LogMessage(
+                            $"Added usage cost for {commandUse.CommandName} - {commandUse.UnitName}");
+                    }
+                    else
+                    {
+                        var cmdUse = ModState.CommandUses.FirstOrDefault(x => x.UnitID == actorResource);
+                        if (cmdUse == null)
+                        {
+                            ModInit.modLog.LogMessage($"ERROR: cmdUseInfo was null");
+                        }
+                        else
+                        {
+                            cmdUse.UseCount += 1;
+                            ModInit.modLog.LogMessage(
+                                $"Added usage cost for {cmdUse.CommandName} - {cmdUse.UnitName}, used {cmdUse.UseCount} times");
+                        }
+                    }
+                }
+                return false;
             }
         }
 
