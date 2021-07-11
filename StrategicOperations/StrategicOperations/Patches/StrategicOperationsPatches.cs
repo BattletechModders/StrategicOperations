@@ -626,8 +626,10 @@ namespace StrategicOperations.Patches
                 }
 
                 var team = __instance as Team;
+
+
                 team?.ResetUnitVisibilityLevels();
-                team?.RebuildVisibilityCache(__instance.Combat.GetAllLivingCombatants());
+                team?.RebuildVisibilityCacheAllUnits(__instance.Combat.GetAllLivingCombatants());
             }
         }
 

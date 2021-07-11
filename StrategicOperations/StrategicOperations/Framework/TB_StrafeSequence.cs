@@ -330,7 +330,10 @@ namespace StrategicOperations.Framework
                     {
                         Vector3 vector = pos2 - enemy.CurrentPosition;
                         vector.y = 0f;
-//                        ModInit.modLog.logt($"{enemy.Description.UIName} is {vector.magnitude} from strafing unit for visibility. Unit has sensor range of {base.Combat.LOS.GetSensorRange(Attacker)}!");
+//                        ModInit.modLog.logt($"{enemy.Description.UIName} is {vector.magnitude} from strafing unit for
+//
+//
+// . Unit has sensor range of {base.Combat.LOS.GetSensorRange(Attacker)}!");
                         if (vector.magnitude < ModInit.modSettings.strafeSensorFactor * base.Combat.LOS.GetSensorRange(Attacker))
                         {
 //                            ModInit.modLog.LogMessage($"Should be showing enemy!");
