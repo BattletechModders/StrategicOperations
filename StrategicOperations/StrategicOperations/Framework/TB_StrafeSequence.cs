@@ -120,10 +120,13 @@ namespace StrategicOperations.Framework
         }
         private Vector3 CalcStartPos()
         {
-
+            this.MaxWeaponRange = 400;
+            if (this.StrafeWeapons.Count != 0)
+            {
+                this.MaxWeaponRange = this.StrafeWeapons.FirstOrDefault().MaxRange;
+            }
             Vector3 result = this.StartPos - this.Velocity * ModInit.modSettings.strafePreDistanceMult;
-            this.MaxWeaponRange = this.StrafeWeapons[0].MaxRange/4;
-            this.HeightOffset = Mathf.Clamp(this.MaxWeaponRange, ModInit.modSettings.strafeAltitudeMin,
+            this.HeightOffset = Mathf.Clamp(this.MaxWeaponRange/4, ModInit.modSettings.strafeAltitudeMin,
                 ModInit.modSettings.strafeAltitudeMax);
             result.y = base.Combat.MapMetaData.GetLerpedHeightAt(result, false) + this.HeightOffset;
             return result;
@@ -163,7 +166,7 @@ namespace StrategicOperations.Framework
             this.StrafeWeapons = new List<Weapon>(this.Attacker.Weapons);
             if (this.StrafeWeapons.Count == 0)
             {
-                ModInit.modLog.LogMessage($"ERROR!! No weapons found for strafing run.");
+                ModInit.modLog.LogMessage($"No weapons found for strafing run.");
                 return;
             }
             this.StrafeWeapons.Sort((Weapon x, Weapon y) => y.MaxRange.CompareTo(x.MaxRange));
@@ -252,13 +255,16 @@ namespace StrategicOperations.Framework
                     Quaternion rotation = Quaternion.LookRotation(vector);
                     Quaternion rotation2 = Quaternion.LookRotation(Vector3.forward * 5f + Vector3.down * 1f);
                     this.SetPosition(position, rotation);
-                    base.SetCamera(CameraControl.Instance.ShowActorCam(this.Attacker, rotation2, 300f), base.MessageIndex);
+                    base.ClearCamera();
+                        if (ModInit.modSettings.showStrafeCamera) base.SetCamera(CameraControl.Instance.ShowActorCam(this.Attacker, rotation2, 300f), base.MessageIndex);
                     return;
                 }
                 case TB_StrafeSequence.SequenceState.Strafing:
                     base.ClearCamera();
                     if (this.Attacker.team.LocalPlayerControlsTeam)
                     {
+//                        Quaternion rotation2 = Quaternion.LookRotation(Vector3.forward * 5f + Vector3.down * 1f);
+//                        base.SetCamera(CameraControl.Instance.ShowActorCam(this.Attacker, rotation2, 300f), base.MessageIndex);
                         AudioEventManager.PlayRandomPilotVO(VOEvents.AirstrikeLaunched_Ally, base.Combat.LocalPlayerTeam, base.Combat.LocalPlayerTeam.units);
                         return;
                     }
@@ -320,6 +326,22 @@ namespace StrategicOperations.Framework
                     var pos2 = this.Attacker.CurrentPosition + this.Velocity * Time.deltaTime;
                     pos2.y = this.Combat.MapMetaData.GetLerpedHeightAt(pos2, false) + this.HeightOffset;
                     this.SetPosition(pos2, this.Attacker.CurrentRotation);
+                    foreach (var enemy in Combat.AllEnemies)
+                    {
+                        Vector3 vector = pos2 - enemy.CurrentPosition;
+                        vector.y = 0f;
+//                        ModInit.modLog.logt($"{enemy.Description.UIName} is {vector.magnitude} from strafing unit for visibility. Unit has sensor range of {base.Combat.LOS.GetSensorRange(Attacker)}!");
+                        if (vector.magnitude < ModInit.modSettings.strafeSensorFactor * base.Combat.LOS.GetSensorRange(Attacker))
+                        {
+//                            ModInit.modLog.LogMessage($"Should be showing enemy!");
+                            var rep = enemy.GameRep as PilotableActorRepresentation;
+                            if (rep != null && !rep.VisibleToPlayer && enemy.VisibilityToTargetUnit(PlayerTeam.units.FirstOrDefault(x=>!x.IsDead)) < VisibilityLevel.Blip0Minimum)
+                            {
+//                                ModInit.modLog.LogMessage($"Game Rep is not null!");
+                                rep.OnPlayerVisibilityChanged(VisibilityLevel.Blip0Minimum);
+                            }
+                        }
+                    }
                     return;
                 case TB_StrafeSequence.SequenceState.Strafing:
                     var pos3 = this.Attacker.CurrentPosition + this.Velocity * Time.deltaTime;

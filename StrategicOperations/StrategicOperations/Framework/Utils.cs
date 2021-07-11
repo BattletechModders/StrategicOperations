@@ -133,7 +133,7 @@ namespace StrategicOperations.Framework
                             MechComponentRef mechComponentRef = new MechComponentRef(componentDef.Description.Id, sgs.GenerateSimGameUID(), componentDef.ComponentType, ChassisLocations.None, -1, flag ? ComponentDamageLevel.NonFunctional : ComponentDamageLevel.Functional, false);
                             mechComponentRef.SetComponentDef(componentDef);
 
-                            if (mechComponentRef.Def.ComponentTags.All(x => x != "CanSpawnTurret")) continue;
+                            if (mechComponentRef.Def.ComponentTags.All(x => x != "CanSpawnTurret" && x != "CanStrafe")) continue;
                             var id = mechComponentRef.Def.ComponentTags.FirstOrDefault(x =>
                                 x.StartsWith("mechdef_") || x.StartsWith("vehicledef_") ||
                                 x.StartsWith("turretdef_"));
@@ -196,6 +196,24 @@ namespace StrategicOperations.Framework
                 }
             }
             return beacons;
+        }
+
+        public static void DeployEvasion(AbstractActor actor)
+        {
+            ModInit.modLog.LogMessage($"Adding deploy protection to {actor.DisplayName}.");
+            
+                if (actor is Turret turret)
+                {
+                    ModInit.modLog.LogMessage($"{actor.DisplayName} is a turret, skipping.");
+                    return;
+                }
+
+                if (ModInit.modSettings.deployProtection > 0)
+                {
+                    ModInit.modLog.LogMessage($"Adding {ModInit.modSettings.deployProtection} evasion pips");
+                    actor.EvasivePipsCurrent = ModInit.modSettings.deployProtection;
+                    AccessTools.Property(typeof(AbstractActor), "EvasivePipsTotal").SetValue(actor, actor.EvasivePipsCurrent, null);
+                }
         }
 
         public static void DP_AnimationComplete(string encounterObjectGUID)

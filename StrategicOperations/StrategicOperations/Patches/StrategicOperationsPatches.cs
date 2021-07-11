@@ -42,8 +42,6 @@ namespace StrategicOperations.Patches
 
                 loadRequest.AddBlindLoadRequest(BattleTechResourceType.PilotDef, "pilot_sim_starter_dekker");
                 ModInit.modLog.LogMessage($"Added loadrequest for PilotDef: pilot_sim_starter_dekker (hardcoded)");
-                loadRequest.AddBlindLoadRequest(BattleTechResourceType.MechDef, "mechdef_hunchback_HBK-4G");
-                ModInit.modLog.LogMessage($"Added loadrequest for MechDef: mechdef_hunchback_HBK-4G (hardcoded)");
 
                 foreach (var abilityDef in dm.AbilityDefs.Where(x => x.Key.StartsWith("AbilityDefCMD_")))
                 {
@@ -190,6 +188,7 @@ namespace StrategicOperations.Patches
                 {
                     Utils._activateStrafeMethod.Invoke(__instance, new object[]{creator.team, positionA, positionB, __instance.Def.FloatParam1});
                     ModInit.modLog.LogMessage($"ActivateStrafe invoked from Ability.ActivateSpecialAbility");
+
                     return false;
                 }
 
@@ -234,7 +233,7 @@ namespace StrategicOperations.Patches
                     }
 
                     if (actorResource.StartsWith("vehicledef_"))
-                    {
+                    {//switching to support team for vision, maybe
                         dm.VehicleDefs.TryGet(actorResource, out var supportActorVehicleDef);
                         supportActorVehicleDef.Refresh();
                         var supportActorVehicle = ActorFactory.CreateVehicle(supportActorVehicleDef,
@@ -249,7 +248,11 @@ namespace StrategicOperations.Patches
                         supportActorVehicle.BehaviorTree = BehaviorTreeFactory.MakeBehaviorTree(
                             __instance.Combat.BattleTechGame, supportActorVehicle,
                             BehaviorTreeIDEnum.DoNothingTree);
+                        //LOS?
 
+//                        UnitSpawnedMessage message = new UnitSpawnedMessage("FROM_ABILITY", supportActorVehicle.GUID);
+//                        __instance.Combat.MessageCenter.PublishMessage(message);
+//                        supportActorVehicle.OnPlayerVisibilityChanged(VisibilityLevel.LOSFull);
 
                         ModInit.modLog.LogMessage($"Initializing Strafing Run!");
 
@@ -274,7 +277,7 @@ namespace StrategicOperations.Patches
                                 mechDef.Refresh();
                                 unitName = mechDef.Description.UIName;
                                 unitID = mechDef.Description.Id;
-                                unitCost = ModInit.modSettings.useBattleValueForCosts ? mechDef.BattleValue : mechDef.Description.Cost;
+                                unitCost = mechDef.Description.Cost;
                                 ModInit.modLog.LogMessage($"Usage cost will be {unitCost}");
                             }
                             else if (actorResource.StartsWith("vehicledef_"))
@@ -283,7 +286,7 @@ namespace StrategicOperations.Patches
                                 vehicleDef.Refresh();
                                 unitName = vehicleDef.Description.UIName;
                                 unitID = vehicleDef.Description.Id;
-                                unitCost = ModInit.modSettings.useBattleValueForCosts ? vehicleDef.BattleValue : vehicleDef.Description.Cost;
+                                unitCost = vehicleDef.Description.Cost;
                                 ModInit.modLog.LogMessage($"Usage cost will be {unitCost}");
                             }
                             else
@@ -292,7 +295,7 @@ namespace StrategicOperations.Patches
                                 turretDef.Refresh();
                                 unitName = turretDef.Description.UIName;
                                 unitID = turretDef.Description.Id;
-                                unitCost = ModInit.modSettings.useBattleValueForCosts ? turretDef.BattleValue : turretDef.Description.Cost;
+                                unitCost = turretDef.Description.Cost;
                                 ModInit.modLog.LogMessage($"Usage cost will be {unitCost}");
                             }
 
@@ -416,6 +419,8 @@ namespace StrategicOperations.Patches
                     __instance.Combat.MessageCenter.PublishMessage(message);
                     supportActorMech.OnPlayerVisibilityChanged(VisibilityLevel.LOSFull);
 
+                    Utils.DeployEvasion(supportActorMech);
+
                     ModInit.modLog.LogMessage($"Added {supportActorMech?.MechDef?.Description?.Id} to SupportUnits");
                 }
                 else if (actorResource.StartsWith("vehicledef_"))
@@ -444,6 +449,8 @@ namespace StrategicOperations.Patches
 
                     __instance.Combat.MessageCenter.PublishMessage(message);
                     supportActorVehicle.OnPlayerVisibilityChanged(VisibilityLevel.LOSFull);
+
+                    Utils.DeployEvasion(supportActorVehicle);
 
                     ModInit.modLog.LogMessage(
                         $"Added {supportActorVehicle?.VehicleDef?.Description?.Id} to SupportUnits");
@@ -493,7 +500,7 @@ namespace StrategicOperations.Patches
                         mechDef.Refresh();
                         unitName = mechDef.Description.UIName;
                         unitID = mechDef.Description.Id;
-                        unitCost = ModInit.modSettings.useBattleValueForCosts ? mechDef.BattleValue : mechDef.Description.Cost;
+                        unitCost = mechDef.Description.Cost;
                         ModInit.modLog.LogMessage($"Usage cost will be {unitCost}");
                     }
                     else if (actorResource.StartsWith("vehicledef_"))
@@ -502,7 +509,7 @@ namespace StrategicOperations.Patches
                         vehicleDef.Refresh();
                         unitName = vehicleDef.Description.UIName;
                         unitID = vehicleDef.Description.Id;
-                        unitCost = ModInit.modSettings.useBattleValueForCosts ? vehicleDef.BattleValue : vehicleDef.Description.Cost;
+                        unitCost = vehicleDef.Description.Cost;
                         ModInit.modLog.LogMessage($"Usage cost will be {unitCost}");
                     }
                     else
@@ -511,7 +518,7 @@ namespace StrategicOperations.Patches
                         turretDef.Refresh();
                         unitName = turretDef.Description.UIName;
                         unitID = turretDef.Description.Id;
-                        unitCost = ModInit.modSettings.useBattleValueForCosts ? turretDef.BattleValue : turretDef.Description.Cost;
+                        unitCost = turretDef.Description.Cost;
                         ModInit.modLog.LogMessage($"Usage cost will be {unitCost}");
                     }
 
@@ -611,12 +618,16 @@ namespace StrategicOperations.Patches
         [HarmonyPatch(typeof(TurnActor), "OnRoundBegin")]
         public static class TurnActor_OnRoundBegin
         {
-            public static void Postfix(TurnDirector __instance)
+            public static void Postfix(TurnActor __instance)
             {
                 for (int i = 0; i < ModState.CommandAbilities.Count; i++)
                 {
                     ModState.CommandAbilities[i].OnNewRound();
                 }
+
+                var team = __instance as Team;
+                team?.ResetUnitVisibilityLevels();
+                team?.RebuildVisibilityCache(__instance.Combat.GetAllLivingCombatants());
             }
         }
 
@@ -719,7 +730,7 @@ namespace StrategicOperations.Patches
         [HarmonyPatch(typeof(CombatHUDEquipmentSlot), "ActivateCommandAbility", new Type[]{typeof(string), typeof(Vector3), typeof(Vector3)})]
         public static class CombatHUDEquipmentSlot_ActivateCommandAbility
         {
-            public static bool Prefix(CombatHUDEquipmentSlot __instance, string teamGUID, Vector3 positionA, //prefix to try and make command abilities behave like normal ones
+            public static bool Prefix(CombatHUDEquipmentSlot __instance, string teamGUID, Vector3 positionA, 
                     Vector3 positionB)
                 {
                     var HUD = Traverse.Create(__instance).Property("HUD").GetValue<CombatHUD>();
