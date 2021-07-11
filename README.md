@@ -6,6 +6,7 @@ settings in the mod.json:
 
 ```
 "enableLogging": true,
+"showStrafeCamera": false,
 "strafeTargetsFriendlies": true,
 "strafeEndsActivation": true,
 "spawnTurretEndsActivation": true,
@@ -14,7 +15,6 @@ settings in the mod.json:
 "strafeAltitudeMax": 250.0,
 "strafePreDistanceMult": 15.0,
 "strafeMinDistanceToEnd": 10.0,
-"useBattleValueForCosts": false,
 "commandUseCostsMulti": 1.0,
 "deploymentBeaconEquipment": [
 	"Item.UpgradeDef.Gear_TurretBeacon_Cicada",
@@ -28,9 +28,13 @@ settings in the mod.json:
 ```
 `strafeTargetsFriendlies` - bool, strafing can hit friendly units,
 
+`showStrafeCamera` - bool, if true, camera will show 1st person view of strafing unit as it flies in (but view returns to normal before it starts shooting).
+
 `strafeEndsActivation` - bool, do strafes automatically end the turn of the unit using them?
 
 `spawnTurretEndsActivation` - bool, does spawn unit automatically end the turn of the unit using them?
+
+`strafeSensorFactor` - float, multiplier of strafing units base sensor range for revealing sensor blips of hostiles as it flies over them.
 
 `strafeVelocityDefault` - float, default velocity of strafing unit <i>while strafing</i>. The faster the unit moves, the fewer targets it will be able to hit during a strafe. If MaxSpeed is > 0 in the strafing unit, then that speed will override this value.
 
@@ -39,8 +43,6 @@ settings in the mod.json:
 `strafePreDistanceMult` - float, controls the distance at which the strafing unit is instantiated from the point of strafing start; influences the length of the "fly-in" sequence.
 
 `strafeMinDistanceToEnd` - float, distance from the strafing unit to the endpoint of the strafe at which the strafe is considered to be "complete" and no more targets will be attacked.
-
-`useBattleValueForCosts` - bool, if true command ability usage costs costs are calculated by `# of uses X BattleValue`, where BattleValue is a function of the c-bill cost defined in the ChassisDef and the c-bill cost of all components mounted on the unit (see `MechStatisticsRules.CalculateCBillValue`). if false, command ability usage will simply be the cost listed in the Description of the MechDef, VehicleDef, or TurretDef. In both cases, final per-use cost is modified by `commandUseCostsMulti` below.
 
 `commandUseCostsMulti` - float, multiplier governing costs of using command abilities. 
 
@@ -92,6 +94,8 @@ The configurable parameters of the above:
 
 Strafes are also mostly what they sound like: a flying unit strafing the battlefield. Valid targets for a strafe are calculated within an AOE around a line drawn between two points (the "strafing run"), and can be either units or Objective buildings. Friendly units within the AOE can and will be hit by the strafing run!
 
+A unique feature of strafes is that the strafing unit will reveal the locations (minimal sensor blip) of hostile units it detects as it flies in to do the actual strafing. These sensor blips are removed/return to hidden at the start of the following round.
+	
 Similarly to Spawns, the actual unit doing the strafing depends on the following:
 1) Only vehicles can be used for strafing.
 2) Holding shift while activating the ability will bring up a popup with any available units to select for strafing (in addition to the default assigned in `ActorResource`). The player can obtain these "alternative" units by acquiring "deployment beacon" items. Deployment beacons for strafing can be of any upgrade type, but must have two things in their ComponentTags: they must have the tag "CanStrafe", and they must have a tag with the ID of the unit they will enable for strafing, e.g. "vehicledef_ALACORN_IIC". The number of "probes" in the player inventory is the number of times that unit can strafe in a given mission (within any restrictions also defined in the AbilityDef); i.e if you have 2 probes for vehicledef_ALACORN_IIC, you could strafe using that Alacorn twice, and subsequent strafes would be limited to whatever unit is defined in the ability ActorResource.
