@@ -23,7 +23,7 @@ namespace StrategicOperations.Framework
 
         public static List<Utils.CmdUseInfo> CommandUses = new List<Utils.CmdUseInfo>();
 
-        public static Dictionary<string, int> deploymentAssetsDict = new Dictionary<string, int>();
+        public static List<Utils.CmdUseStat> deploymentAssetsStats = new List<Utils.CmdUseStat>();
 
         public static void ResetAll()
         {

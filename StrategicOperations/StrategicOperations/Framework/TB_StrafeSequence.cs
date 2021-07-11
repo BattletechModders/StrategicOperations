@@ -108,7 +108,7 @@ namespace StrategicOperations.Framework
                         attackSequence.ResetWeapons();
                         this.AllTargets.RemoveAt(i);
                         this.timeSinceLastAttack = 0f;
-                        return;
+                        continue;
                     }
                     ModInit.modLog.LogMessage(
                         $"Attacker {Attacker.DisplayName} range to target {AllTargets[0].DisplayName} {targetDist} >= maxWeaponRange {this.MaxWeaponRange}");
@@ -341,7 +341,8 @@ namespace StrategicOperations.Framework
                             if (rep != null && !rep.VisibleToPlayer && enemy.VisibilityToTargetUnit(PlayerTeam.units.FirstOrDefault(x=>!x.IsDead)) < VisibilityLevel.Blip0Minimum)
                             {
 //                                ModInit.modLog.LogMessage($"Game Rep is not null!");
-                                rep.OnPlayerVisibilityChanged(VisibilityLevel.Blip0Minimum);
+//                                rep.OnPlayerVisibilityChanged(VisibilityLevel.Blip0Minimum);
+                                rep.SetForcedPlayerVisibilityLevel(VisibilityLevel.Blip0Minimum);
                             }
                         }
                     }

@@ -57,6 +57,24 @@ namespace StrategicOperations.Framework
             return list[0];
         }
 
+        public class CmdUseStat
+        {
+            public string ID;
+            public string stat;
+            public bool consumeOnUse;
+            public int contractUses;
+            public int simStatCount;
+
+            public CmdUseStat(string ID, string stat, bool consumeOnUse, int contractUses, int simStatCount)
+            {
+                this.ID = ID;
+                this.stat = stat;
+                this.consumeOnUse = consumeOnUse;
+                this.contractUses = contractUses;
+                this.simStatCount = simStatCount;
+            }
+        }
+
         public class CmdUseInfo
         {
             public string UnitID;
@@ -138,10 +156,13 @@ namespace StrategicOperations.Framework
                                 x.StartsWith("mechdef_") || x.StartsWith("vehicledef_") ||
                                 x.StartsWith("turretdef_"));
 
-                            if (!ModState.deploymentAssetsDict.ContainsKey(id))
+                            bool consumeOnUse = mechComponentRef.Def.ComponentTags.Any(x => x == "ConsumeOnUse");
+
+                            if (ModState.deploymentAssetsStats.All(x => x.ID != id))
                             {
                                 var value = sgs.CompanyStats.GetValue<int>(stat);
-                                ModState.deploymentAssetsDict.Add(id, value);
+                                var newStat = new CmdUseStat(id, stat, consumeOnUse, value, value);
+                                ModState.deploymentAssetsStats.Add(newStat);
                                 ModInit.modLog.LogMessage($"Added {id} to deploymentAssetsDict with value {value}.");
                             }
                             beacons.Add(mechComponentRef);
@@ -175,6 +196,9 @@ namespace StrategicOperations.Framework
                             mechComponentRef.SetComponentDef(componentDef);
 
                             if ((tag == "CanSpawnTurret" && mechComponentRef.Def.ComponentTags.All(x => x != "CanSpawnTurret")) || (tag == "CanStrafe" && mechComponentRef.Def.ComponentTags.All(x => x != "CanStrafe"))) continue;
+
+                            bool consumeOnUse = mechComponentRef.Def.ComponentTags.Any(x => x == "ConsumeOnUse");
+
                             var id = mechComponentRef.Def.ComponentTags.FirstOrDefault(x =>
                                 x.StartsWith("mechdef_") || x.StartsWith("vehicledef_") ||
                                 x.StartsWith("turretdef_"));
@@ -184,10 +208,11 @@ namespace StrategicOperations.Framework
                                 continue;
                             }
 
-                            if (!ModState.deploymentAssetsDict.ContainsKey(id))
+                            if (ModState.deploymentAssetsStats.All(x => x.ID != id))
                             {
                                 var value = sgs.CompanyStats.GetValue<int>(stat);
-                                ModState.deploymentAssetsDict.Add(id, value);
+                                var newStat = new CmdUseStat(id, stat, consumeOnUse, value, value);
+                                ModState.deploymentAssetsStats.Add(newStat);
                                 ModInit.modLog.LogMessage($"Added {id} to deploymentAssetsDict with value {value}.");
                             }
                             beacons.Add(mechComponentRef);

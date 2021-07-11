@@ -210,6 +210,7 @@ namespace StrategicOperations.Patches
             public static bool Prefix(Ability __instance, Team team, Vector3 positionA, Vector3 positionB, float radius)
             {
                 var dm = __instance.Combat.DataManager;
+                var sim = UnityGameInstance.BattleTechGame.Simulation;
                 dm.PilotDefs.TryGet("pilot_sim_starter_dekker", out var supportPilotDef);
 
                 if (__instance.Combat.Teams.All(x => x.GUID != "61612bb3-abf9-4586-952a-0559fa9dcd75"))
@@ -230,6 +231,20 @@ namespace StrategicOperations.Patches
                     {
                         actorResource = ModState.popupActorResource;
                         ModState.popupActorResource = "";
+                    }
+
+                    if (ModState.deploymentAssetsStats.Any(x => x.ID == actorResource))
+                    {
+                        var assetStatInfo = ModState.deploymentAssetsStats.FirstOrDefault(x => x.ID == actorResource);
+                        if (assetStatInfo != null)
+                        {
+                            assetStatInfo.contractUses -= 1;
+                            if (assetStatInfo.consumeOnUse)
+                            {
+                                sim?.CompanyStats.ModifyStat("StratOps", -1, assetStatInfo.stat, StatCollection.StatOperation.Int_Subtract, 1);
+                            }
+                        }
+                        ModInit.modLog.LogMessage($"Decrementing count of {actorResource} in deploymentAssetsDict");
                     }
 
                     if (actorResource.StartsWith("vehicledef_"))
@@ -347,6 +362,7 @@ namespace StrategicOperations.Patches
             {
                 var combat = UnityGameInstance.BattleTechGame.Combat;
                 var dm = combat.DataManager;
+                var sim = UnityGameInstance.BattleTechGame.Simulation;
 
                 var actorResource = __instance.Def.ActorResource;
 
@@ -356,9 +372,17 @@ namespace StrategicOperations.Patches
                     ModState.popupActorResource = "";
                 }
 
-                if (ModState.deploymentAssetsDict.ContainsKey(actorResource))
+                if (ModState.deploymentAssetsStats.Any(x=>x.ID == actorResource))
                 {
-                    ModState.deploymentAssetsDict[actorResource] -= 1;
+                    var assetStatInfo = ModState.deploymentAssetsStats.FirstOrDefault(x=>x.ID == actorResource);
+                    if (assetStatInfo != null)
+                    {
+                        assetStatInfo.contractUses -= 1;
+                        if (assetStatInfo.consumeOnUse)
+                        {
+                            sim?.CompanyStats.ModifyStat("StratOps", -1, assetStatInfo.stat, StatCollection.StatOperation.Int_Subtract, 1);
+                        }
+                    }
                     ModInit.modLog.LogMessage($"Decrementing count of {actorResource} in deploymentAssetsDict");
                 }
 
@@ -627,9 +651,16 @@ namespace StrategicOperations.Patches
 
                 var team = __instance as Team;
 
+                if (team?.units != null)
+                    foreach (var unit  in team?.units)
+                    {
+                        var rep = unit.GameRep as PilotableActorRepresentation;
+                        rep.ClearForcedPlayerVisibilityLevel(__instance.Combat.GetAllLivingCombatants());
+                    }
 
-                team?.ResetUnitVisibilityLevels();
+                //                team?.ResetUnitVisibilityLevels();
                 team?.RebuildVisibilityCacheAllUnits(__instance.Combat.GetAllLivingCombatants());
+
             }
         }
 
@@ -886,19 +917,19 @@ namespace StrategicOperations.Patches
                         {
                             dm.MechDefs.TryGet(id, out var beaconunit);
                             beaconDescs +=
-                                $"{index + 2}: {beaconunit?.Description?.UIName ?? beaconunit?.Description?.Name} - You have {ModState.deploymentAssetsDict[id]} remaining.\n\n";
+                                $"{index + 2}: {beaconunit?.Description?.UIName ?? beaconunit?.Description?.Name} - You have {ModState.deploymentAssetsStats.FirstOrDefault(x=>x.ID == id).contractUses} remaining.\n\n";
                         }
                         else if (id.StartsWith("vehicledef_"))
                         {
                             dm.VehicleDefs.TryGet(id, out var beaconunit);
                             beaconDescs +=
-                                $"{index + 2}: {beaconunit?.Description?.UIName ?? beaconunit?.Description?.Name} - You have {ModState.deploymentAssetsDict[id]} remaining.\n\n";
+                                $"{index + 2}: {beaconunit?.Description?.UIName ?? beaconunit?.Description?.Name} - You have {ModState.deploymentAssetsStats.FirstOrDefault(x => x.ID == id).contractUses} remaining.\n\n";
                         }
                         else
                         {
                             dm.TurretDefs.TryGet(id, out var beaconunit);
                             beaconDescs +=
-                                $"{index + 2}: {beaconunit?.Description?.UIName ?? beaconunit?.Description?.Name} - You have {ModState.deploymentAssetsDict[id]} remaining.\n\n";
+                                $"{index + 2}: {beaconunit?.Description?.UIName ?? beaconunit?.Description?.Name} - You have {ModState.deploymentAssetsStats.FirstOrDefault(x => x.ID == id).contractUses} remaining.\n\n";
                         }
                     }
 
