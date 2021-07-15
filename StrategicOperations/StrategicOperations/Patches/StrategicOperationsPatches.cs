@@ -748,12 +748,20 @@ namespace StrategicOperations.Patches
                 if (def.specialRules == AbilityDef.SpecialRules.Strafe &&
                     ModInit.modSettings.strafeEndsActivation)
                 {
+                    if (theActor is Mech mech)
+                    {
+                        mech.GenerateAndPublishHeatSequence(-1, true, false, theActor.GUID);
+                    }
                     theActor.OnActivationEnd(theActor.GUID, __instance.GetInstanceID());
                     return;
                 } 
                 if (def.specialRules == AbilityDef.SpecialRules.SpawnTurret &&
                       ModInit.modSettings.spawnTurretEndsActivation)
                 {
+                    if (theActor is Mech mech)
+                    {
+                        mech.GenerateAndPublishHeatSequence(-1, true, false, theActor.GUID);
+                    }
                     theActor.OnActivationEnd(theActor.GUID, __instance.GetInstanceID());
                 }
                 //need to make sure proccing from equipment button also ends turn?
