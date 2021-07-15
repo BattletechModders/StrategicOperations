@@ -175,6 +175,41 @@ namespace StrategicOperations.Patches
             }
         }
 
+        [HarmonyPatch(typeof(Ability), "Activate",
+            new Type[] { typeof(AbstractActor), typeof(Vector3), typeof(Vector3) })]
+        public static class Ability_Activate
+        {
+            public static bool Prefix(Ability __instance, AbstractActor creator, Vector3 positionA, Vector3 positionB)
+            {
+                ModInit.modLog.LogMessage($"Running Ability.Activate");
+                if (!__instance.IsAvailable)
+                {
+                    ModInit.modLog.LogMessage($"Ability {__instance.Def.Description.Name} was unavailable, continuing to vanilla handling.");
+                    return true;
+                }
+
+                AbilityDef.SpecialRules specialRules = __instance.Def.specialRules;
+                if (specialRules == AbilityDef.SpecialRules.Strafe)
+                {
+                    Utils._activateStrafeMethod.Invoke(__instance, new object[] { creator.team, positionA, positionB, __instance.Def.FloatParam1 });
+                    ModInit.modLog.LogMessage($"ActivateStrafe invoked from Ability.Activate");
+                    __instance.Combat.MessageCenter.PublishMessage(new AbilityActivatedMessage(creator.GUID, creator.GUID, __instance.Def.Id, positionA, positionB));
+                    __instance.ActivateCooldown();
+                    return false;
+                }
+
+                else if (specialRules == AbilityDef.SpecialRules.SpawnTurret)
+                {
+                    Utils._activateSpawnTurretMethod.Invoke(__instance, new object[] { creator.team, positionA, positionB });
+                    ModInit.modLog.LogMessage($"ActivateSpawnTurret invoked from Ability.Activate");
+                    __instance.Combat.MessageCenter.PublishMessage(new AbilityActivatedMessage(creator.GUID, creator.GUID, __instance.Def.Id, positionA, positionB));
+                    __instance.ActivateCooldown();
+                    return false;
+                }
+                return true;
+            }
+        }
+
 
         [HarmonyPatch(typeof(Ability), "ActivateSpecialAbility",
             new Type[] {typeof(AbstractActor), typeof(Vector3), typeof(Vector3)})]
@@ -182,7 +217,7 @@ namespace StrategicOperations.Patches
         {
             public static bool Prefix(Ability __instance, AbstractActor creator, Vector3 positionA, Vector3 positionB)
             {
-
+                ModInit.modLog.LogMessage($"Running Ability.ActivateSpecialAbility");
                 AbilityDef.SpecialRules specialRules = __instance.Def.specialRules;
                 if (specialRules == AbilityDef.SpecialRules.Strafe)
                 {
@@ -209,6 +244,7 @@ namespace StrategicOperations.Patches
         {
             public static bool Prefix(Ability __instance, Team team, Vector3 positionA, Vector3 positionB, float radius)
             {
+                ModInit.modLog.LogMessage($"Running Ability.ActivateStrafe");
                 var dm = __instance.Combat.DataManager;
                 var sim = UnityGameInstance.BattleTechGame.Simulation;
                 dm.PilotDefs.TryGet("pilot_sim_starter_dekker", out var supportPilotDef);
@@ -360,6 +396,7 @@ namespace StrategicOperations.Patches
         {
             public static bool Prefix(Ability __instance, Team team, Vector3 positionA, Vector3 positionB)
             {
+                ModInit.modLog.LogMessage($"Running Ability.ActivateSpawnTurret");
                 var combat = UnityGameInstance.BattleTechGame.Combat;
                 var dm = combat.DataManager;
                 var sim = UnityGameInstance.BattleTechGame.Simulation;
@@ -669,7 +706,7 @@ namespace StrategicOperations.Patches
         {
             public static void Postfix(TurnDirector __instance)
             {
-
+                //will need to add handling for AI teams in here
                 var team = __instance.Combat.Teams.First(x => x.IsLocalPlayer);
                 var dm = team.Combat.DataManager;
 
@@ -678,7 +715,7 @@ namespace StrategicOperations.Patches
 
                     if (team.units.Any(x => x.GetPilot().Abilities.Any(y => y.Def == abilityDefKVP.Value)) || team.units.Any(x=>x.ComponentAbilities.Any(z=>z.Def == abilityDefKVP.Value)))
                     {
-                        //only do things for abilities that pilots have? move things here. also move AbstractActor initialization to ability start to minimize neutralTeam think time, etc. and then despawn?
+                        //only do things for abilities that pilots have? move things here. also move AbstractActor initialization to ability start to minimize neutralTeam think time, etc. and then despawn? - done
                         var ability = new Ability(abilityDefKVP.Value);
                         ability.Init(team.Combat);
                         if (ModState.CommandAbilities.All(x => x != ability))
@@ -688,7 +725,6 @@ namespace StrategicOperations.Patches
 
                         ModInit.modLog.LogMessage($"Added {ability?.Def?.Id} to CommandAbilities");
 
-                        //need to create SpawnPointGameLogic? for magic safety teleporter ???s or disable SafetyTeleport logic for certain units?
                     }
                 }
             }
@@ -807,7 +843,6 @@ namespace StrategicOperations.Patches
                 {
                     theActor.OnActivationEnd(theActor.GUID, __instance.GetInstanceID());
                 }
-                //need to make sure proccing from equipment button also ends turn?
             }
         }
 
