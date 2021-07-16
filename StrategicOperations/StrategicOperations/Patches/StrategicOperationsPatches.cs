@@ -210,35 +210,6 @@ namespace StrategicOperations.Patches
             }
         }
 
-
-        [HarmonyPatch(typeof(Ability), "ActivateSpecialAbility",
-            new Type[] {typeof(AbstractActor), typeof(Vector3), typeof(Vector3)})]
-        public static class Ability_ActivateSpecialAbility
-        {
-            public static bool Prefix(Ability __instance, AbstractActor creator, Vector3 positionA, Vector3 positionB)
-            {
-                ModInit.modLog.LogMessage($"Running Ability.ActivateSpecialAbility");
-                AbilityDef.SpecialRules specialRules = __instance.Def.specialRules;
-                if (specialRules == AbilityDef.SpecialRules.Strafe)
-                {
-                    Utils._activateStrafeMethod.Invoke(__instance, new object[]{creator.team, positionA, positionB, __instance.Def.FloatParam1});
-                    ModInit.modLog.LogMessage($"ActivateStrafe invoked from Ability.ActivateSpecialAbility");
-
-                    return false;
-                }
-
-                else if (specialRules == AbilityDef.SpecialRules.SpawnTurret)
-                {
-                    Utils._activateSpawnTurretMethod.Invoke(__instance, new object[] {creator.team, positionA, positionB});
-                    ModInit.modLog.LogMessage($"ActivateSpawnTurret invoked from Ability.ActivateSpecialAbility");
-                    return false;
-                }
-
-                return false;
-            }
-        }
-
-
         [HarmonyPatch(typeof(Ability), "ActivateStrafe")]
         public static class Ability_ActivateStrafe
         {
