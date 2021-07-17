@@ -19,6 +19,7 @@ namespace StrategicOperations.Patches
         {
             public static void Postfix(AAR_ContractObjectivesWidget __instance, Contract ___theContract)
             {
+                if (UnityGameInstance.BattleTechGame.Simulation == null) return;
                 if (ModState.CommandUses.Count <= 0 || !(ModInit.modSettings.commandUseCostsMulti > 0)) return;
                 var addObjectiveMethod = Traverse.Create(__instance).Method("AddObjective", new Type[] { typeof(MissionObjectiveResult) });
                 var finalCommandCosts = 0;

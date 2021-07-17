@@ -37,6 +37,7 @@ namespace StrategicOperations.Patches
         {
             public static void Postfix(TurnDirector __instance, MessageCenterMessage message)
             {
+                if (UnityGameInstance.BattleTechGame.Combat.ActiveContract.ContractTypeValue.IsSkirmish) return;
                 var dm = __instance.Combat.DataManager;
                 LoadRequest loadRequest = dm.CreateLoadRequest();
 
@@ -98,6 +99,7 @@ namespace StrategicOperations.Patches
             {
                 var combat = UnityGameInstance.BattleTechGame.Combat;
                 if (combat == null) return true;
+                if (combat.ActiveContract.ContractTypeValue.IsSkirmish) return true;
                 var registry = combat.ItemRegistry;
 
                 if (____parentActor == null || ____parentActor?.spawnerGUID == null)
@@ -115,6 +117,7 @@ namespace StrategicOperations.Patches
         {
             public static bool Prefix(Team __instance, AbilityMessage msg)
             {
+                if (__instance.Combat.ActiveContract.ContractTypeValue.IsSkirmish) return true;
                 Ability ability = ModState.CommandAbilities.Find((Ability x) => x.Def.Id == msg.abilityID);
                 if (ability == null)
                 {
@@ -164,6 +167,7 @@ namespace StrategicOperations.Patches
             public static bool Prefix(AbstractActor __instance, AbstractActor pilotedActor, string abilityName,
                 string targetGUID, Vector3 posA, Vector3 posB)
             {
+                if (__instance.Combat.ActiveContract.ContractTypeValue.IsSkirmish) return true;
                 Ability ability = __instance.ComponentAbilities.Find((Ability x) => x.Def.Id == abilityName);
                 if (ability.Def.Targeting == AbilityDef.TargetingType.CommandSpawnPosition)
                 {
@@ -181,6 +185,7 @@ namespace StrategicOperations.Patches
         {
             public static bool Prefix(Ability __instance, AbstractActor creator, Vector3 positionA, Vector3 positionB)
             {
+                if (__instance.Combat.ActiveContract.ContractTypeValue.IsSkirmish) return true;
                 ModInit.modLog.LogMessage($"Running Ability.Activate");
                 if (!__instance.IsAvailable)
                 {
@@ -215,6 +220,7 @@ namespace StrategicOperations.Patches
         {
             public static bool Prefix(Ability __instance, Team team, Vector3 positionA, Vector3 positionB, float radius)
             {
+                if (__instance.Combat.ActiveContract.ContractTypeValue.IsSkirmish) return true;
                 ModInit.modLog.LogMessage($"Running Ability.ActivateStrafe");
                 var dm = __instance.Combat.DataManager;
                 var sim = UnityGameInstance.BattleTechGame.Simulation;
@@ -367,6 +373,7 @@ namespace StrategicOperations.Patches
         {
             public static bool Prefix(Ability __instance, Team team, Vector3 positionA, Vector3 positionB)
             {
+                if (__instance.Combat.ActiveContract.ContractTypeValue.IsSkirmish) return true;
                 ModInit.modLog.LogMessage($"Running Ability.ActivateSpawnTurret");
                 var combat = UnityGameInstance.BattleTechGame.Combat;
                 var dm = combat.DataManager;
@@ -588,6 +595,7 @@ namespace StrategicOperations.Patches
         {
             private static bool Prefix(Ability __instance, Vector3 positionA, Vector3 positionB, string prefabName, int numFlares, int numPhases)
             {
+                if (__instance.Combat.ActiveContract.ContractTypeValue.IsSkirmish) return true;
                 Vector3 b = (positionB - positionA) / (float)(numFlares - 1);
 
                 Vector3 line = positionB - positionA;
@@ -652,6 +660,7 @@ namespace StrategicOperations.Patches
         {
             public static void Postfix(TurnActor __instance)
             {
+                if (__instance.Combat.ActiveContract.ContractTypeValue.IsSkirmish) return;
                 for (int i = 0; i < ModState.CommandAbilities.Count; i++)
                 {
                     ModState.CommandAbilities[i].OnNewRound();
@@ -677,6 +686,7 @@ namespace StrategicOperations.Patches
         {
             public static void Postfix(TurnDirector __instance)
             {
+                if (__instance.Combat.ActiveContract.ContractTypeValue.IsSkirmish) return;
                 //will need to add handling for AI teams in here
                 var team = __instance.Combat.Teams.First(x => x.IsLocalPlayer);
                 var dm = team.Combat.DataManager;
@@ -706,6 +716,7 @@ namespace StrategicOperations.Patches
         {
             public static void Prefix(TurnDirector __instance)
             {
+                if (__instance.Combat.ActiveContract.ContractTypeValue.IsSkirmish) return;
                 if (ModState.deferredInvokeSpawns.Count > 0 && __instance.ActiveTurnActor is Team activeTeam && activeTeam.IsLocalPlayer)
                 {
                     for (var index = 0; index < ModState.deferredInvokeSpawns.Count; index++)
@@ -733,6 +744,7 @@ namespace StrategicOperations.Patches
                 var HUD = Traverse.Create(__instance).Property("HUD").GetValue<CombatHUD>();
                 var theActor = HUD.SelectedActor;
                 var combat = HUD.Combat;
+                if (combat.ActiveContract.ContractTypeValue.IsSkirmish) return true;
                 if (__instance.Ability != null && __instance.Ability.Def.ActivationTime == AbilityDef.ActivationTiming.CommandAbility && (__instance.Ability.Def.Targeting == AbilityDef.TargetingType.CommandTargetTwoPoints || __instance.Ability.Def.Targeting == AbilityDef.TargetingType.CommandSpawnPosition))
                 {
                     MessageCenterMessage messageCenterMessage = new AbilityInvokedMessage(theActor.GUID, theActor.GUID, __instance.Ability.Def.Id, positionA, positionB);
@@ -748,8 +760,8 @@ namespace StrategicOperations.Patches
             public static void Postfix(CombatHUDActionButton __instance, string teamGUID, Vector3 positionA,
                 Vector3 positionB)
             {
+                if (UnityGameInstance.BattleTechGame.Combat.ActiveContract.ContractTypeValue.IsSkirmish) return;
                 var def = __instance.Ability.Def;
-
                 var HUD = Traverse.Create(__instance).Property("HUD").GetValue<CombatHUD>();
                 var theActor = HUD.SelectedActor;
                 if (def.specialRules == AbilityDef.SpecialRules.Strafe &&
@@ -784,7 +796,8 @@ namespace StrategicOperations.Patches
                     var HUD = Traverse.Create(__instance).Property("HUD").GetValue<CombatHUD>();
                     var theActor = HUD.SelectedActor;
                     var combat = HUD.Combat;
-                    if (__instance.Ability != null && __instance.Ability.Def.ActivationTime == AbilityDef.ActivationTiming.CommandAbility && (__instance.Ability.Def.Targeting == AbilityDef.TargetingType.CommandTargetTwoPoints || __instance.Ability.Def.Targeting == AbilityDef.TargetingType.CommandSpawnPosition))
+                    if (combat.ActiveContract.ContractTypeValue.IsSkirmish) return true;
+                if (__instance.Ability != null && __instance.Ability.Def.ActivationTime == AbilityDef.ActivationTiming.CommandAbility && (__instance.Ability.Def.Targeting == AbilityDef.TargetingType.CommandTargetTwoPoints || __instance.Ability.Def.Targeting == AbilityDef.TargetingType.CommandSpawnPosition))
                     {
                         MessageCenterMessage messageCenterMessage = new AbilityInvokedMessage(theActor.GUID, theActor.GUID, __instance.Ability.Def.Id, positionA, positionB);
                         messageCenterMessage.IsNetRouted = true;
@@ -799,8 +812,8 @@ namespace StrategicOperations.Patches
             public static void Postfix(CombatHUDEquipmentSlot __instance, string teamGUID, Vector3 positionA,
                 Vector3 positionB)
             {
+                if (__instance.Ability.Combat.ActiveContract.ContractTypeValue.IsSkirmish) return;
                 var def = __instance.Ability.Def;
-
                 var HUD = Traverse.Create(__instance).Property("HUD").GetValue<CombatHUD>();
                 var theActor = HUD.SelectedActor;
                 if (def.specialRules == AbilityDef.SpecialRules.Strafe &&
@@ -825,6 +838,7 @@ namespace StrategicOperations.Patches
         {
             public static bool Prefix(SelectionStateCommandSpawnTarget __instance, Vector3 worldPos, int ___numPositionsLocked)
             {
+                if (UnityGameInstance.BattleTechGame.Combat.ActiveContract.ContractTypeValue.IsSkirmish) return true;
                 CombatSpawningReticle.Instance.ShowReticle();
                 var HUD = Traverse.Create(__instance).Property("HUD").GetValue<CombatHUD>();
                 var theActor = HUD.SelectedActor;
@@ -847,6 +861,7 @@ namespace StrategicOperations.Patches
         {
             public static bool Prefix(SelectionStateCommandTargetTwoPoints __instance, Vector3 worldPos, int ___numPositionsLocked)
             {
+                if (UnityGameInstance.BattleTechGame.Combat.ActiveContract.ContractTypeValue.IsSkirmish) return true;
                 CombatTargetingReticle.Instance.ShowReticle();
                 var HUD = Traverse.Create(__instance).Property("HUD").GetValue<CombatHUD>();
                 var positionA = Traverse.Create(__instance).Property("positionA").GetValue<Vector3>();
@@ -878,6 +893,7 @@ namespace StrategicOperations.Patches
             public static bool Prefix(SelectionStateCommandTargetTwoPoints __instance, Vector3 worldPos,
                 int ___numPositionsLocked, ref bool __result)
             {
+                if (UnityGameInstance.BattleTechGame.Combat.ActiveContract.ContractTypeValue.IsSkirmish) return true;
                 var dm = __instance.FromButton.Ability.Combat.DataManager;
                 var hk = Input.GetKey(KeyCode.LeftShift) || Input.GetKey(KeyCode.RightShift);
                 var actorResource = __instance.FromButton.Ability.Def.ActorResource;
@@ -1091,6 +1107,7 @@ namespace StrategicOperations.Patches
             public static bool Prefix(CameraControl __instance, AbstractActor actor, Quaternion rotation, float duration, ref AttachToActorCameraSequence __result)
             {
                 var combat = UnityGameInstance.BattleTechGame.Combat;
+                if (combat.ActiveContract.ContractTypeValue.IsSkirmish) return true;
                 Vector3 offset = new Vector3(0f, 50f, 50f);
                 __result = new AttachToActorCameraSequence(combat, actor.GameRep.transform, offset, rotation, duration, true, false);
                 return false;
