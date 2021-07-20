@@ -27,7 +27,7 @@ namespace StrategicOperations.Patches
                 {
                     var cmdUseCost = $"Command Ability Costs for {cmdUse.CommandName}: {cmdUse.UnitName}: {cmdUse.UseCount} Uses x {cmdUse.UseCostAdjusted} ea. = ¢-{cmdUse.TotalCost}";
 
-                    var cmdUseCostResult = new MissionObjectiveResult($"-{cmdUseCost}", Guid.NewGuid().ToString(), false, true, ObjectiveStatus.Succeeded, false);
+                    var cmdUseCostResult = new MissionObjectiveResult($"{cmdUseCost}", Guid.NewGuid().ToString(), false, true, ObjectiveStatus.Failed, false);
 
                     addObjectiveMethod.GetValue(cmdUseCostResult);
                     finalCommandCosts += cmdUse.TotalCost;
