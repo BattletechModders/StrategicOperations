@@ -22,7 +22,6 @@ namespace StrategicOperations.Patches
                 if (UnityGameInstance.BattleTechGame.Simulation == null) return;
                 if (ModState.CommandUses.Count <= 0 || !(ModInit.modSettings.commandUseCostsMulti > 0)) return;
                 var addObjectiveMethod = Traverse.Create(__instance).Method("AddObjective", new Type[] { typeof(MissionObjectiveResult) });
-                var finalCommandCosts = 0;
                 foreach (var cmdUse in ModState.CommandUses)
                 {
                     var cmdUseCost = $"Command Ability Costs for {cmdUse.CommandName}: {cmdUse.UnitName}: {cmdUse.UseCount} Uses x {cmdUse.UseCostAdjusted} ea. = ¢-{cmdUse.TotalCost}";
@@ -30,12 +29,27 @@ namespace StrategicOperations.Patches
                     var cmdUseCostResult = new MissionObjectiveResult($"{cmdUseCost}", Guid.NewGuid().ToString(), false, true, ObjectiveStatus.Failed, false);
 
                     addObjectiveMethod.GetValue(cmdUseCostResult);
+                }
+            }
+        }
+
+        [HarmonyPatch(typeof(Contract), "CompleteContract", new Type[] {typeof(MissionResult), typeof(bool)})]
+        public static class Contract_CompleteContract_Patch
+        {
+            public static void Postfix(Contract __instance, MissionResult result, bool isGoodFaithEffort)
+            {
+                if (UnityGameInstance.BattleTechGame.Simulation == null) return;
+                if (ModState.CommandUses.Count <= 0 || !(ModInit.modSettings.commandUseCostsMulti > 0)) return;
+                var finalCommandCosts = 0;
+                foreach (var cmdUse in ModState.CommandUses)
+                {
+                    var cmdUseCost = $"Command Ability Costs for {cmdUse.CommandName}: {cmdUse.UnitName}: {cmdUse.UseCount} Uses x {cmdUse.UseCostAdjusted} ea. = ¢-{cmdUse.TotalCost}";
                     finalCommandCosts += cmdUse.TotalCost;
                     ModInit.modLog.LogMessage($"{cmdUseCost} in command costs for {cmdUse.CommandName}: {cmdUse.UnitName}. Current Total Command Cost: {finalCommandCosts}");
                 }
 
-                var moneyResults = ___theContract.MoneyResults - finalCommandCosts;
-                Traverse.Create(___theContract).Property("MoneyResults").SetValue(moneyResults);
+                var moneyResults = __instance.MoneyResults - finalCommandCosts;
+                Traverse.Create(__instance).Property("MoneyResults").SetValue(moneyResults);
             }
         }
     }
