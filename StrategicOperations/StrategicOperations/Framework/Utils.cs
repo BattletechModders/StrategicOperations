@@ -84,7 +84,7 @@ namespace StrategicOperations.Framework
             public string UnitName;
             public int UseCost;
             public int AbilityUseCost;
-            public int UseCostAdjusted => Mathf.RoundToInt(UseCost * ModInit.modSettings.commandUseCostsMulti + AbilityUseCost);
+            public int UseCostAdjusted => Mathf.RoundToInt((UseCost * ModInit.modSettings.commandUseCostsMulti) + AbilityUseCost);
             public int UseCount;
             public int TotalCost => UseCount * UseCostAdjusted;
 
@@ -97,6 +97,17 @@ namespace StrategicOperations.Framework
                 this.AbilityUseCost = AbilityUseCost;
                 this.UseCount = 1;
             }
+        }
+
+        public static HeraldryDef SwapHeraldryColors(HeraldryDef def)
+        {
+            var secondaryID = def.primaryMechColorID;
+            var tertiaryID = def.secondaryMechColorID;
+            var primaryID = def.tertiaryMechColorID;
+
+            ModInit.modLog.LogMessage($"Creating new heraldry for support. {primaryID} was tertiary, now primary. {secondaryID} was primary, now secondary. {tertiaryID} was secondary, now tertiary.");
+
+            return new HeraldryDef(def.Description, def.textureLogoID, primaryID, secondaryID, tertiaryID);
         }
         public static Lance CreateCMDLance(Team team)
         {

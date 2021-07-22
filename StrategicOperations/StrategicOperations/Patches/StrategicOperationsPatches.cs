@@ -241,10 +241,12 @@ namespace StrategicOperations.Patches
                 var dm = __instance.Combat.DataManager;
                 var sim = UnityGameInstance.BattleTechGame.Simulation;
                 var pilotID = "pilot_sim_starter_dekker";
+                var supportHeraldryDef = Utils.SwapHeraldryColors(team.HeraldryDef);
                 if (!string.IsNullOrEmpty(ModState.PilotOverride))
                 {
                     pilotID = ModState.PilotOverride;
                 }
+
                 else if (!string.IsNullOrEmpty(__instance.Def.getAbilityDefExtension().CMDPilotOverride))
                 {
                     pilotID = __instance.Def.getAbilityDefExtension().CMDPilotOverride;
@@ -291,7 +293,7 @@ namespace StrategicOperations.Patches
                         supportActorMechDef.Refresh();
                         var supportActorMech = ActorFactory.CreateMech(supportActorMechDef,
                             supportPilotDef, neutralTeam.EncounterTags, neutralTeam.Combat,
-                            neutralTeam.GetNextSupportUnitGuid(), "", null);
+                            neutralTeam.GetNextSupportUnitGuid(), "", supportHeraldryDef);
                         supportActorMech.Init(neutralTeam.OffScreenPosition, 0f, false);
                         supportActorMech.InitGameRep(null);
                         neutralTeam.AddUnit(supportActorMech);
@@ -318,33 +320,10 @@ namespace StrategicOperations.Patches
                             var unitName = "";
                             var unitCost = 0;
                             var unitID = "";
-                            if (actorResource.StartsWith("mechdef_"))
-                            {
-                                dm.MechDefs.TryGet(__instance.Def.ActorResource, out var mechDef);
-                                mechDef.Refresh();
-                                unitName = mechDef.Description.UIName;
-                                unitID = mechDef.Description.Id;
-                                unitCost = mechDef.Description.Cost;
-                                ModInit.modLog.LogMessage($"Usage cost will be {unitCost}");
-                            }
-                            else if (actorResource.StartsWith("vehicledef_"))
-                            {
-                                dm.VehicleDefs.TryGet(__instance.Def.ActorResource, out var vehicleDef);
-                                vehicleDef.Refresh();
-                                unitName = vehicleDef.Description.UIName;
-                                unitID = vehicleDef.Description.Id;
-                                unitCost = vehicleDef.Description.Cost;
-                                ModInit.modLog.LogMessage($"Usage cost will be {unitCost}");
-                            }
-                            else
-                            {
-                                dm.TurretDefs.TryGet(actorResource, out var turretDef);
-                                turretDef.Refresh();
-                                unitName = turretDef.Description.UIName;
-                                unitID = turretDef.Description.Id;
-                                unitCost = turretDef.Description.Cost;
-                                ModInit.modLog.LogMessage($"Usage cost will be {unitCost}");
-                            }
+                            unitName = supportActorMechDef.Description.UIName;
+                            unitID = supportActorMechDef.Description.Id;
+                            unitCost = supportActorMechDef.Chassis.Description.Cost;
+                            ModInit.modLog.LogMessage($"Usage cost will be {unitCost}");
 
                             if (ModState.CommandUses.All(x => x.UnitID != actorResource))
                             {
@@ -376,7 +355,7 @@ namespace StrategicOperations.Patches
                         supportActorVehicleDef.Refresh();
                         var supportActorVehicle = ActorFactory.CreateVehicle(supportActorVehicleDef,
                             supportPilotDef, neutralTeam.EncounterTags, neutralTeam.Combat,
-                            neutralTeam.GetNextSupportUnitGuid(), "", null);
+                            neutralTeam.GetNextSupportUnitGuid(), "", supportHeraldryDef);
                         supportActorVehicle.Init(neutralTeam.OffScreenPosition, 0f, false);
                         supportActorVehicle.InitGameRep(null);
                         neutralTeam.AddUnit(supportActorVehicle);
@@ -404,33 +383,12 @@ namespace StrategicOperations.Patches
                             var unitName = "";
                             var unitCost = 0;
                             var unitID = "";
-                            if (actorResource.StartsWith("mechdef_"))
-                            {
-                                dm.MechDefs.TryGet(__instance.Def.ActorResource, out var mechDef);
-                                mechDef.Refresh();
-                                unitName = mechDef.Description.UIName;
-                                unitID = mechDef.Description.Id;
-                                unitCost = mechDef.Description.Cost;
-                                ModInit.modLog.LogMessage($"Usage cost will be {unitCost} + {__instance.Def.getAbilityDefExtension().CBillCost}");
-                            }
-                            else if (actorResource.StartsWith("vehicledef_"))
-                            {
-                                dm.VehicleDefs.TryGet(__instance.Def.ActorResource, out var vehicleDef);
-                                vehicleDef.Refresh();
-                                unitName = vehicleDef.Description.UIName;
-                                unitID = vehicleDef.Description.Id;
-                                unitCost = vehicleDef.Description.Cost;
-                                ModInit.modLog.LogMessage($"Usage cost will be {unitCost} + {__instance.Def.getAbilityDefExtension().CBillCost}");
-                            }
-                            else
-                            {
-                                dm.TurretDefs.TryGet(actorResource, out var turretDef);
-                                turretDef.Refresh();
-                                unitName = turretDef.Description.UIName;
-                                unitID = turretDef.Description.Id;
-                                unitCost = turretDef.Description.Cost;
-                                ModInit.modLog.LogMessage($"Usage cost will be {unitCost} + {__instance.Def.getAbilityDefExtension().CBillCost}");
-                            }
+
+                            unitName = supportActorVehicleDef.Description.UIName;
+                            unitID = supportActorVehicleDef.Description.Id;
+                            unitCost = supportActorVehicleDef.Chassis.Description.Cost;
+                            ModInit.modLog.LogMessage($"Usage cost will be {unitCost} + {__instance.Def.getAbilityDefExtension().CBillCost}");
+                           
 
                             if (ModState.CommandUses.All(x => x.UnitID != actorResource))
                             {
@@ -461,7 +419,7 @@ namespace StrategicOperations.Patches
                         supportActorTurretDef.Refresh();
                         var supportActorTurret = ActorFactory.CreateTurret(supportActorTurretDef,
                             supportPilotDef, neutralTeam.EncounterTags, neutralTeam.Combat,
-                            neutralTeam.GetNextSupportUnitGuid(), "", null);
+                            neutralTeam.GetNextSupportUnitGuid(), "", supportHeraldryDef);
                         supportActorTurret.Init(neutralTeam.OffScreenPosition, 0f, false);
                         supportActorTurret.InitGameRep(null);
                         neutralTeam.AddUnit(supportActorTurret);
@@ -489,33 +447,11 @@ namespace StrategicOperations.Patches
                             var unitName = "";
                             var unitCost = 0;
                             var unitID = "";
-                            if (actorResource.StartsWith("mechdef_"))
-                            {
-                                dm.MechDefs.TryGet(__instance.Def.ActorResource, out var mechDef);
-                                mechDef.Refresh();
-                                unitName = mechDef.Description.UIName;
-                                unitID = mechDef.Description.Id;
-                                unitCost = mechDef.Description.Cost;
-                                ModInit.modLog.LogMessage($"Usage cost will be {unitCost}");
-                            }
-                            else if (actorResource.StartsWith("vehicledef_"))
-                            {
-                                dm.VehicleDefs.TryGet(__instance.Def.ActorResource, out var vehicleDef);
-                                vehicleDef.Refresh();
-                                unitName = vehicleDef.Description.UIName;
-                                unitID = vehicleDef.Description.Id;
-                                unitCost = vehicleDef.Description.Cost;
-                                ModInit.modLog.LogMessage($"Usage cost will be {unitCost}");
-                            }
-                            else
-                            {
-                                dm.TurretDefs.TryGet(actorResource, out var turretDef);
-                                turretDef.Refresh();
-                                unitName = turretDef.Description.UIName;
-                                unitID = turretDef.Description.Id;
-                                unitCost = turretDef.Description.Cost;
-                                ModInit.modLog.LogMessage($"Usage cost will be {unitCost}");
-                            }
+
+                            unitName = supportActorTurretDef.Description.UIName;
+                            unitID = supportActorTurretDef.Description.Id;
+                            unitCost = supportActorTurretDef.Chassis.Description.Cost;
+                        
 
                             if (ModState.CommandUses.All(x => x.UnitID != actorResource))
                             {
@@ -523,7 +459,8 @@ namespace StrategicOperations.Patches
                                 var commandUse = new Utils.CmdUseInfo(unitID, __instance.Def.Description.Name, unitName, unitCost, __instance.Def.getAbilityDefExtension().CBillCost);
 
                                 ModState.CommandUses.Add(commandUse);
-                                ModInit.modLog.LogMessage($"Added usage cost for {commandUse.CommandName} - {commandUse.UnitName}");
+                                ModInit.modLog.LogMessage(
+                                    $"Added usage cost for {commandUse.CommandName} - {commandUse.UnitName}. UnitUseCost (unadjusted): {unitCost}. Ability Use Cost: {__instance.Def.getAbilityDefExtension().CBillCost}");
                             }
                             else
                             {
@@ -535,7 +472,8 @@ namespace StrategicOperations.Patches
                                 else
                                 {
                                     cmdUse.UseCount += 1;
-                                    ModInit.modLog.LogMessage($"Added usage cost for {cmdUse.CommandName} - {cmdUse.UnitName}, used {cmdUse.UseCount} times");
+                                    ModInit.modLog.LogMessage(
+                                        $"Added usage cost for {cmdUse.CommandName} - {cmdUse.UnitName}. UnitUseCost (unadjusted): {unitCost}. Ability Use Cost: {__instance.Def.getAbilityDefExtension().CBillCost}. Now used {cmdUse.UseCount} times");
                                 }
                             }
                         }
@@ -568,6 +506,9 @@ namespace StrategicOperations.Patches
                 var sim = UnityGameInstance.BattleTechGame.Simulation;
 
                 var actorResource = __instance.Def.ActorResource;
+
+                var supportHeraldryDef = Utils.SwapHeraldryColors(team.HeraldryDef);
+
 
                 if (!string.IsNullOrEmpty(ModState.popupActorResource))
                 {
@@ -635,7 +576,7 @@ namespace StrategicOperations.Patches
                     supportActorMechDef.Refresh();
                     var supportActorMech = ActorFactory.CreateMech(supportActorMechDef, supportPilotDef,
                         team.SupportTeam.EncounterTags, team.SupportTeam.Combat,
-                        team.SupportTeam.GetNextSupportUnitGuid(), "", null);
+                        team.SupportTeam.GetNextSupportUnitGuid(), "", supportHeraldryDef);
                     supportActorMech.Init(positionA, quaternion.eulerAngles.y, false);
                     supportActorMech.InitGameRep(null);
 
@@ -658,6 +599,44 @@ namespace StrategicOperations.Patches
                     Utils.DeployEvasion(supportActorMech);
 
                     ModInit.modLog.LogMessage($"Added {supportActorMech?.MechDef?.Description?.Id} to SupportUnits");
+
+                    if (ModInit.modSettings.commandUseCostsMulti > 0 || __instance.Def.getAbilityDefExtension().CBillCost > 0)
+                    {
+                        var unitName = "";
+                        var unitCost = 0;
+                        var unitID = "";
+
+                        unitName = supportActorMechDef.Description.UIName;
+                        unitID = supportActorMechDef.Description.Id;
+                        unitCost = supportActorMechDef.Chassis.Description.Cost;
+                        
+
+                        if (ModState.CommandUses.All(x => x.UnitID != actorResource))
+                        {
+                            var commandUse =
+                                new Utils.CmdUseInfo(unitID, __instance.Def.Description.Name, unitName, unitCost, __instance.Def.getAbilityDefExtension().CBillCost);
+
+                            ModState.CommandUses.Add(commandUse);
+                            ModInit.modLog.LogMessage(
+                                $"Added usage cost for {commandUse.CommandName} - {commandUse.UnitName}. UnitUseCost (unadjusted): {unitCost}. Ability Use Cost: {__instance.Def.getAbilityDefExtension().CBillCost}");
+                        }
+                        else
+                        {
+                            var cmdUse = ModState.CommandUses.FirstOrDefault(x => x.UnitID == actorResource);
+                            if (cmdUse == null)
+                            {
+                                ModInit.modLog.LogMessage($"ERROR: cmdUseInfo was null");
+                            }
+                            else
+                            {
+                                cmdUse.UseCount += 1;
+                                ModInit.modLog.LogMessage(
+                                    $"Added usage cost for {cmdUse.CommandName} - {cmdUse.UnitName}. UnitUseCost (unadjusted): {unitCost}. Ability Use Cost: {__instance.Def.getAbilityDefExtension().CBillCost}. Now used {cmdUse.UseCount} times.");
+                            }
+                        }
+                    }
+
+
                 }
                 else if (actorResource.StartsWith("vehicledef_"))
                 {
@@ -666,7 +645,7 @@ namespace StrategicOperations.Patches
                     supportActorVehicleDef.Refresh();
                     var supportActorVehicle = ActorFactory.CreateVehicle(supportActorVehicleDef, supportPilotDef,
                         team.SupportTeam.EncounterTags, team.SupportTeam.Combat,
-                        team.SupportTeam.GetNextSupportUnitGuid(), "", null);
+                        team.SupportTeam.GetNextSupportUnitGuid(), "", supportHeraldryDef);
                     supportActorVehicle.Init(positionA, quaternion.eulerAngles.y, false);
                     supportActorVehicle.InitGameRep(null);
 
@@ -690,6 +669,42 @@ namespace StrategicOperations.Patches
 
                     ModInit.modLog.LogMessage(
                         $"Added {supportActorVehicle?.VehicleDef?.Description?.Id} to SupportUnits");
+
+
+                    if (ModInit.modSettings.commandUseCostsMulti > 0 || __instance.Def.getAbilityDefExtension().CBillCost > 0)
+                    {
+                        var unitName = "";
+                        var unitCost = 0;
+                        var unitID = "";
+
+                        unitName = supportActorVehicleDef.Description.UIName;
+                        unitID = supportActorVehicleDef.Description.Id;
+                        unitCost = supportActorVehicleDef.Chassis.Description.Cost;
+                        
+                        if (ModState.CommandUses.All(x => x.UnitID != actorResource))
+                        {
+                            var commandUse =
+                                new Utils.CmdUseInfo(unitID, __instance.Def.Description.Name, unitName, unitCost, __instance.Def.getAbilityDefExtension().CBillCost);
+
+                            ModState.CommandUses.Add(commandUse);
+                            ModInit.modLog.LogMessage(
+                                $"Added usage cost for {commandUse.CommandName} - {commandUse.UnitName}. UnitUseCost (unadjusted): {unitCost}. Ability Use Cost: {__instance.Def.getAbilityDefExtension().CBillCost}");
+                        }
+                        else
+                        {
+                            var cmdUse = ModState.CommandUses.FirstOrDefault(x => x.UnitID == actorResource);
+                            if (cmdUse == null)
+                            {
+                                ModInit.modLog.LogMessage($"ERROR: cmdUseInfo was null");
+                            }
+                            else
+                            {
+                                cmdUse.UseCount += 1;
+                                ModInit.modLog.LogMessage(
+                                    $"Added usage cost for {cmdUse.CommandName} - {cmdUse.UnitName}. UnitUseCost (unadjusted): {unitCost}. Ability Use Cost: {__instance.Def.getAbilityDefExtension().CBillCost}. Now used {cmdUse.UseCount} times.");
+                            }
+                        }
+                    }
                 }
 
                 else
@@ -714,72 +729,42 @@ namespace StrategicOperations.Patches
                     __instance.Combat.MessageCenter.PublishMessage(message);
                     turretActor.OnPlayerVisibilityChanged(VisibilityLevel.LOSFull);
 
-//                var stackID = combat.StackManager.NextStackUID;
-//                var component = UnitDropPodSpawner.UnitDropPodSpawnerInstance.GetComponentInParent<EncounterLayerParent>(); // this is returning null and  breaking shit
-//                if (component.dropPodLandedPrefab != null)
-//                {                    UnitDropPodSpawner.UnitDropPodSpawnerInstance.LoadDropPodPrefabs(component.DropPodVfxPrefab, component.dropPodLandedPrefab);}
-//                var dropPodAnimationSequence = new GenericAnimationSequence(combat);
-//                EncounterLayerParent.EnqueueLoadAwareMessage(new AddSequenceToStackMessage(dropPodAnimationSequence));
-//                UnitDropPodSpawner.UnitDropPodSpawnerInstance.StartDropPodAnimation(0.75f, null, stackID, stackID);
 
-                }
+                    if (ModInit.modSettings.commandUseCostsMulti > 0 || __instance.Def.getAbilityDefExtension().CBillCost > 0)
+                    {
+                        var unitName = "";
+                        var unitCost = 0;
+                        var unitID = "";
 
-                if (ModInit.modSettings.commandUseCostsMulti > 0 || __instance.Def.getAbilityDefExtension().CBillCost > 0)
-                {
-                    var unitName = "";
-                    var unitCost = 0;
-                    var unitID = "";
-
-                    if (actorResource.StartsWith("mechdef_"))
-                    {
-                        dm.MechDefs.TryGet(actorResource, out var mechDef);
-                        mechDef.Refresh();
-                        unitName = mechDef.Description.UIName;
-                        unitID = mechDef.Description.Id;
-                        unitCost = mechDef.Description.Cost;
-                        ModInit.modLog.LogMessage($"Usage cost will be {unitCost}");
-                    }
-                    else if (actorResource.StartsWith("vehicledef_"))
-                    {
-                        dm.VehicleDefs.TryGet(actorResource, out var vehicleDef);
-                        vehicleDef.Refresh();
-                        unitName = vehicleDef.Description.UIName;
-                        unitID = vehicleDef.Description.Id;
-                        unitCost = vehicleDef.Description.Cost;
-                        ModInit.modLog.LogMessage($"Usage cost will be {unitCost}");
-                    }
-                    else
-                    {
                         dm.TurretDefs.TryGet(actorResource, out var turretDef);
                         turretDef.Refresh();
                         unitName = turretDef.Description.UIName;
                         unitID = turretDef.Description.Id;
-                        unitCost = turretDef.Description.Cost;
-                        ModInit.modLog.LogMessage($"Usage cost will be {unitCost}");
-                    }
-
-                    if (ModState.CommandUses.All(x => x.UnitID != actorResource))
-                    {
+                        unitCost = turretDef.Chassis.Description.Cost;
                         
-                        var commandUse =
-                            new Utils.CmdUseInfo(unitID, __instance.Def.Description.Name, unitName, unitCost, __instance.Def.getAbilityDefExtension().CBillCost);
 
-                        ModState.CommandUses.Add(commandUse);
-                        ModInit.modLog.LogMessage(
-                            $"Added usage cost for {commandUse.CommandName} - {commandUse.UnitName}");
-                    }
-                    else
-                    {
-                        var cmdUse = ModState.CommandUses.FirstOrDefault(x => x.UnitID == actorResource);
-                        if (cmdUse == null)
+                        if (ModState.CommandUses.All(x => x.UnitID != actorResource))
                         {
-                            ModInit.modLog.LogMessage($"ERROR: cmdUseInfo was null");
+                            var commandUse =
+                                new Utils.CmdUseInfo(unitID, __instance.Def.Description.Name, unitName, unitCost, __instance.Def.getAbilityDefExtension().CBillCost);
+
+                            ModState.CommandUses.Add(commandUse);
+                            ModInit.modLog.LogMessage(
+                                $"Added usage cost for {commandUse.CommandName} - {commandUse.UnitName}. UnitUseCost (unadjusted): {unitCost}. Ability Use Cost: {__instance.Def.getAbilityDefExtension().CBillCost}");
                         }
                         else
                         {
-                            cmdUse.UseCount += 1;
-                            ModInit.modLog.LogMessage(
-                                $"Added usage cost for {cmdUse.CommandName} - {cmdUse.UnitName}, used {cmdUse.UseCount} times");
+                            var cmdUse = ModState.CommandUses.FirstOrDefault(x => x.UnitID == actorResource);
+                            if (cmdUse == null)
+                            {
+                                ModInit.modLog.LogMessage($"ERROR: cmdUseInfo was null");
+                            }
+                            else
+                            {
+                                cmdUse.UseCount += 1;
+                                ModInit.modLog.LogMessage(
+                                    $"Added usage cost for {cmdUse.CommandName} - {cmdUse.UnitName}. UnitUseCost (unadjusted): {unitCost}. Ability Use Cost: {__instance.Def.getAbilityDefExtension().CBillCost}. Now used {cmdUse.UseCount} times.");
+                            }
                         }
                     }
                 }
@@ -926,7 +911,6 @@ namespace StrategicOperations.Patches
                         spawn();
                         ModState.ResetDelegateInfos();
                     }
-
                     ModState.ResetDeferredSpawners();
                 }
             }
