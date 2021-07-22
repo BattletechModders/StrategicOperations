@@ -17,6 +17,7 @@ settings in the mod.json:
 "strafeAltitudeMax": 250.0,
 "strafePreDistanceMult": 15.0,
 "strafeMinDistanceToEnd": 10.0,
+"timeBetweenAttacks": 0.35,
 "commandUseCostsMulti": 1.0,
 "deploymentBeaconEquipment": [
 	"Item.UpgradeDef.Gear_TurretBeacon_Cicada",
@@ -47,6 +48,8 @@ settings in the mod.json:
 `strafePreDistanceMult` - float, controls the distance at which the strafing unit is instantiated from the point of strafing start; influences the length of the "fly-in" sequence.
 
 `strafeMinDistanceToEnd` - float, distance from the strafing unit to the endpoint of the strafe at which the strafe is considered to be "complete" and no more targets will be attacked.
+
+`timeBetweenAttacks` - float. minimum amount of time that must elapse before strafing unit can instantiate another attack. 0.35 is HBS' default, can probably go as low as 0.1 without strange things happening. really only a minor tweak if you think the strafing units arent attacking "enough", but velocity and elevation are likely more important.
 
 `commandUseCostsMulti` - float, multiplier governing costs of using command abilities. if >0, the cost of the unit being used (as defined in the unit def) is multiplied by this value to obtain a per-use cost of using the ability. should probably only be used if beacons are not set to be consumed, or at least set to some low value.
 
