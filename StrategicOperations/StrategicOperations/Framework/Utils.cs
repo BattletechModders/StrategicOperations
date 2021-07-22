@@ -61,14 +61,16 @@ namespace StrategicOperations.Framework
         {
             public string ID;
             public string stat;
+            public string pilotID;
             public bool consumeOnUse;
             public int contractUses;
             public int simStatCount;
 
-            public CmdUseStat(string ID, string stat, bool consumeOnUse, int contractUses, int simStatCount)
+            public CmdUseStat(string ID, string stat, bool consumeOnUse, int contractUses, int simStatCount, string pilotID = null)
             {
                 this.ID = ID;
                 this.stat = stat;
+                this.pilotID = pilotID;
                 this.consumeOnUse = consumeOnUse;
                 this.contractUses = contractUses;
                 this.simStatCount = simStatCount;
@@ -81,16 +83,18 @@ namespace StrategicOperations.Framework
             public string CommandName;
             public string UnitName;
             public int UseCost;
-            public int UseCostAdjusted => Mathf.RoundToInt(UseCost * ModInit.modSettings.commandUseCostsMulti);
+            public int AbilityUseCost;
+            public int UseCostAdjusted => Mathf.RoundToInt(UseCost * ModInit.modSettings.commandUseCostsMulti + AbilityUseCost);
             public int UseCount;
             public int TotalCost => UseCount * UseCostAdjusted;
 
-            public CmdUseInfo(string unitID, string CommandName, string UnitName, int UseCost)
+            public CmdUseInfo(string unitID, string CommandName, string UnitName, int UseCost, int AbilityUseCost)
             {
                 this.UnitID = unitID;
                 this.CommandName = CommandName;
                 this.UnitName = UnitName;
                 this.UseCost = UseCost;
+                this.AbilityUseCost = AbilityUseCost;
                 this.UseCount = 1;
             }
         }
@@ -157,11 +161,14 @@ namespace StrategicOperations.Framework
                                 x.StartsWith("turretdef_"));
 
                             bool consumeOnUse = mechComponentRef.Def.ComponentTags.Any(x => x == "ConsumeOnUse");
+                            var pilotID = mechComponentRef.Def.ComponentTags.FirstOrDefault(x =>
+                                x.StartsWith("StratOpsPilot_"))
+                                ?.Remove(0, 14);
 
                             if (ModState.deploymentAssetsStats.All(x => x.ID != id))
                             {
                                 var value = sgs.CompanyStats.GetValue<int>(stat);
-                                var newStat = new CmdUseStat(id, stat, consumeOnUse, value, value);
+                                var newStat = new CmdUseStat(id, stat, consumeOnUse, value, value, pilotID);
                                 ModState.deploymentAssetsStats.Add(newStat);
                                 ModInit.modLog.LogMessage($"Added {id} to deploymentAssetsDict with value {value}.");
                             }
@@ -207,11 +214,14 @@ namespace StrategicOperations.Framework
 //                                ModInit.modLog.LogMessage($"{id} != {type}, ignoring.");
                                 continue;
                             }
-
+                            var pilotID = mechComponentRef.Def.ComponentTags.FirstOrDefault(x =>
+                                    x.StartsWith("StratOpsPilot_"))
+                                ?.Remove(0, 14);
                             if (ModState.deploymentAssetsStats.All(x => x.ID != id))
                             {
+
                                 var value = sgs.CompanyStats.GetValue<int>(stat);
-                                var newStat = new CmdUseStat(id, stat, consumeOnUse, value, value);
+                                var newStat = new CmdUseStat(id, stat, consumeOnUse, value, value, pilotID);
                                 ModState.deploymentAssetsStats.Add(newStat);
                                 ModInit.modLog.LogMessage($"Added {id} to deploymentAssetsDict with value {value}.");
                             }

@@ -5,6 +5,7 @@ using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading.Tasks;
+using Abilifier.Patches;
 using BattleTech;
 using BattleTech.Data;
 using BattleTech.UI;
@@ -48,6 +49,12 @@ namespace StrategicOperations.Patches
                 {
                     var ability = new Ability(abilityDef.Value);
                     if (string.IsNullOrEmpty(ability.Def?.ActorResource)) continue;
+                    if (!string.IsNullOrEmpty(ability.Def.getAbilityDefExtension().CMDPilotOverride))
+                    {
+                        var pilotID = ability.Def.getAbilityDefExtension().CMDPilotOverride;
+                        ModInit.modLog.LogMessage($"Added loadrequest for PilotDef: {pilotID}");
+                        loadRequest.AddBlindLoadRequest(BattleTechResourceType.PilotDef, pilotID);
+                    }
                     if (ability.Def.ActorResource.StartsWith("mechdef_"))
                     {
                         ModInit.modLog.LogMessage($"Added loadrequest for MechDef: {ability.Def.ActorResource}");
@@ -67,6 +74,15 @@ namespace StrategicOperations.Patches
 
                 foreach (var beacon in Utils.GetOwnedDeploymentBeacons())
                 {
+                    var pilotID = beacon.Def.ComponentTags.FirstOrDefault(x =>
+                            x.StartsWith("StratOpsPilot_"))
+                        ?.Remove(0, 14);
+                    if (!string.IsNullOrEmpty(pilotID))
+                    {
+                        ModInit.modLog.LogMessage($"Added loadrequest for PilotDef: {pilotID}");
+                        loadRequest.AddBlindLoadRequest(BattleTechResourceType.PilotDef, pilotID);
+                    }
+
                     var id = beacon.Def.ComponentTags.FirstOrDefault(x =>
                         x.StartsWith("mechdef_") || x.StartsWith("vehicledef_") ||
                         x.StartsWith("turretdef_"));
@@ -224,7 +240,16 @@ namespace StrategicOperations.Patches
                 ModInit.modLog.LogMessage($"Running Ability.ActivateStrafe");
                 var dm = __instance.Combat.DataManager;
                 var sim = UnityGameInstance.BattleTechGame.Simulation;
-                dm.PilotDefs.TryGet("pilot_sim_starter_dekker", out var supportPilotDef);
+                var pilotID = "pilot_sim_starter_dekker";
+                if (!string.IsNullOrEmpty(ModState.PilotOverride))
+                {
+                    pilotID = ModState.PilotOverride;
+                }
+                else if (!string.IsNullOrEmpty(__instance.Def.getAbilityDefExtension().CMDPilotOverride))
+                {
+                    pilotID = __instance.Def.getAbilityDefExtension().CMDPilotOverride;
+                }
+                dm.PilotDefs.TryGet(pilotID, out var supportPilotDef);
 
                 if (__instance.Combat.Teams.All(x => x.GUID != "61612bb3-abf9-4586-952a-0559fa9dcd75"))
                 {
@@ -245,7 +270,7 @@ namespace StrategicOperations.Patches
                         actorResource = ModState.popupActorResource;
                         ModState.popupActorResource = "";
                     }
-
+                    ModInit.modLog.LogMessage($"Pilot should be {pilotID}");
                     if (ModState.deploymentAssetsStats.Any(x => x.ID == actorResource))
                     {
                         var assetStatInfo = ModState.deploymentAssetsStats.FirstOrDefault(x => x.ID == actorResource);
@@ -260,41 +285,35 @@ namespace StrategicOperations.Patches
                         ModInit.modLog.LogMessage($"Decrementing count of {actorResource} in deploymentAssetsDict");
                     }
 
-                    if (actorResource.StartsWith("vehicledef_"))
-                    {//switching to support team for vision, maybe
-                        dm.VehicleDefs.TryGet(actorResource, out var supportActorVehicleDef);
-                        supportActorVehicleDef.Refresh();
-                        var supportActorVehicle = ActorFactory.CreateVehicle(supportActorVehicleDef,
+                    if (actorResource.StartsWith("mechdef_"))
+                    {
+                        dm.MechDefs.TryGet(actorResource, out var supportActorMechDef);
+                        supportActorMechDef.Refresh();
+                        var supportActorMech = ActorFactory.CreateMech(supportActorMechDef,
                             supportPilotDef, neutralTeam.EncounterTags, neutralTeam.Combat,
                             neutralTeam.GetNextSupportUnitGuid(), "", null);
-                        supportActorVehicle.Init(neutralTeam.OffScreenPosition, 0f, false);
-                        supportActorVehicle.InitGameRep(null);
-                        neutralTeam.AddUnit(supportActorVehicle);
-                        supportActorVehicle.AddToTeam(neutralTeam);
-                        supportActorVehicle.AddToLance(cmdLance);
-                        supportActorVehicle.GameRep.gameObject.SetActive(true);
-                        supportActorVehicle.BehaviorTree = BehaviorTreeFactory.MakeBehaviorTree(
-                            __instance.Combat.BattleTechGame, supportActorVehicle,
+                        supportActorMech.Init(neutralTeam.OffScreenPosition, 0f, false);
+                        supportActorMech.InitGameRep(null);
+                        neutralTeam.AddUnit(supportActorMech);
+                        supportActorMech.AddToTeam(neutralTeam);
+                        supportActorMech.AddToLance(cmdLance);
+                        supportActorMech.GameRep.gameObject.SetActive(true);
+                        supportActorMech.BehaviorTree = BehaviorTreeFactory.MakeBehaviorTree(
+                            __instance.Combat.BattleTechGame, supportActorMech,
                             BehaviorTreeIDEnum.DoNothingTree);
-                        //LOS?
-
-//                        UnitSpawnedMessage message = new UnitSpawnedMessage("FROM_ABILITY", supportActorVehicle.GUID);
-//                        __instance.Combat.MessageCenter.PublishMessage(message);
-//                        supportActorVehicle.OnPlayerVisibilityChanged(VisibilityLevel.LOSFull);
-
                         ModInit.modLog.LogMessage($"Initializing Strafing Run!");
 
-                        TB_StrafeSequence eventSequence = new TB_StrafeSequence(supportActorVehicle, positionA, positionB, radius, team);
+                        TB_StrafeSequence eventSequence = new TB_StrafeSequence(supportActorMech, positionA, positionB, radius, team);
                         TurnEvent tEvent = new TurnEvent(Guid.NewGuid().ToString(), __instance.Combat, __instance.Def.ActivationETA, null, eventSequence, __instance.Def, false);
                         __instance.Combat.TurnDirector.AddTurnEvent(tEvent);
                         if (__instance.Def.IntParam1 > 0)
                         {
-                            var flares = Traverse.Create(__instance).Method("SpawnFlares",new object[] { positionA, positionB, __instance.Def.StringParam1,
+                            var flares = Traverse.Create(__instance).Method("SpawnFlares", new object[] { positionA, positionB, __instance.Def.StringParam1,
                                 __instance.Def.IntParam1, __instance.Def.ActivationETA});
                             flares.GetValue();
                         }
 
-                        if (ModInit.modSettings.commandUseCostsMulti > 0)
+                        if (ModInit.modSettings.commandUseCostsMulti > 0 || __instance.Def.getAbilityDefExtension().CBillCost > 0)
                         {
                             var unitName = "";
                             var unitCost = 0;
@@ -329,8 +348,8 @@ namespace StrategicOperations.Patches
 
                             if (ModState.CommandUses.All(x => x.UnitID != actorResource))
                             {
-                            
-                                var commandUse = new Utils.CmdUseInfo(unitID, __instance.Def.Description.Name, unitName, unitCost);
+
+                                var commandUse = new Utils.CmdUseInfo(unitID, __instance.Def.Description.Name, unitName, unitCost, __instance.Def.getAbilityDefExtension().CBillCost);
 
                                 ModState.CommandUses.Add(commandUse);
                                 ModInit.modLog.LogMessage($"Added usage cost for {commandUse.CommandName} - {commandUse.UnitName}");
@@ -349,12 +368,178 @@ namespace StrategicOperations.Patches
                                 }
                             }
                         }
-
-                        ModState.selectedAIVectors = new List<Vector3>();
-                        return false;
-
                     }
 
+                    else if (actorResource.StartsWith("vehicledef_"))
+                    {
+                        dm.VehicleDefs.TryGet(actorResource, out var supportActorVehicleDef);
+                        supportActorVehicleDef.Refresh();
+                        var supportActorVehicle = ActorFactory.CreateVehicle(supportActorVehicleDef,
+                            supportPilotDef, neutralTeam.EncounterTags, neutralTeam.Combat,
+                            neutralTeam.GetNextSupportUnitGuid(), "", null);
+                        supportActorVehicle.Init(neutralTeam.OffScreenPosition, 0f, false);
+                        supportActorVehicle.InitGameRep(null);
+                        neutralTeam.AddUnit(supportActorVehicle);
+                        supportActorVehicle.AddToTeam(neutralTeam);
+                        supportActorVehicle.AddToLance(cmdLance);
+                        supportActorVehicle.GameRep.gameObject.SetActive(true);
+                        supportActorVehicle.BehaviorTree = BehaviorTreeFactory.MakeBehaviorTree(
+                            __instance.Combat.BattleTechGame, supportActorVehicle,
+                            BehaviorTreeIDEnum.DoNothingTree);
+
+                        ModInit.modLog.LogMessage($"Initializing Strafing Run!");
+
+                        TB_StrafeSequence eventSequence = new TB_StrafeSequence(supportActorVehicle, positionA, positionB, radius, team);
+                        TurnEvent tEvent = new TurnEvent(Guid.NewGuid().ToString(), __instance.Combat, __instance.Def.ActivationETA, null, eventSequence, __instance.Def, false);
+                        __instance.Combat.TurnDirector.AddTurnEvent(tEvent);
+                        if (__instance.Def.IntParam1 > 0)
+                        {
+                            var flares = Traverse.Create(__instance).Method("SpawnFlares", new object[] { positionA, positionB, __instance.Def.StringParam1,
+                                __instance.Def.IntParam1, __instance.Def.ActivationETA});
+                            flares.GetValue();
+                        }
+
+                        if (ModInit.modSettings.commandUseCostsMulti > 0 || __instance.Def.getAbilityDefExtension().CBillCost > 0)
+                        {
+                            var unitName = "";
+                            var unitCost = 0;
+                            var unitID = "";
+                            if (actorResource.StartsWith("mechdef_"))
+                            {
+                                dm.MechDefs.TryGet(__instance.Def.ActorResource, out var mechDef);
+                                mechDef.Refresh();
+                                unitName = mechDef.Description.UIName;
+                                unitID = mechDef.Description.Id;
+                                unitCost = mechDef.Description.Cost;
+                                ModInit.modLog.LogMessage($"Usage cost will be {unitCost} + {__instance.Def.getAbilityDefExtension().CBillCost}");
+                            }
+                            else if (actorResource.StartsWith("vehicledef_"))
+                            {
+                                dm.VehicleDefs.TryGet(__instance.Def.ActorResource, out var vehicleDef);
+                                vehicleDef.Refresh();
+                                unitName = vehicleDef.Description.UIName;
+                                unitID = vehicleDef.Description.Id;
+                                unitCost = vehicleDef.Description.Cost;
+                                ModInit.modLog.LogMessage($"Usage cost will be {unitCost} + {__instance.Def.getAbilityDefExtension().CBillCost}");
+                            }
+                            else
+                            {
+                                dm.TurretDefs.TryGet(actorResource, out var turretDef);
+                                turretDef.Refresh();
+                                unitName = turretDef.Description.UIName;
+                                unitID = turretDef.Description.Id;
+                                unitCost = turretDef.Description.Cost;
+                                ModInit.modLog.LogMessage($"Usage cost will be {unitCost} + {__instance.Def.getAbilityDefExtension().CBillCost}");
+                            }
+
+                            if (ModState.CommandUses.All(x => x.UnitID != actorResource))
+                            {
+
+                                var commandUse = new Utils.CmdUseInfo(unitID, __instance.Def.Description.Name, unitName, unitCost, __instance.Def.getAbilityDefExtension().CBillCost);
+
+                                ModState.CommandUses.Add(commandUse);
+                                ModInit.modLog.LogMessage($"Added usage cost for {commandUse.CommandName} - {commandUse.UnitName}");
+                            }
+                            else
+                            {
+                                var cmdUse = ModState.CommandUses.FirstOrDefault(x => x.UnitID == actorResource);
+                                if (cmdUse == null)
+                                {
+                                    ModInit.modLog.LogMessage($"ERROR: cmdUseInfo was null");
+                                }
+                                else
+                                {
+                                    cmdUse.UseCount += 1;
+                                    ModInit.modLog.LogMessage($"Added usage cost for {cmdUse.CommandName} - {cmdUse.UnitName}, used {cmdUse.UseCount} times");
+                                }
+                            }
+                        }
+                    }
+                    else if (actorResource.StartsWith("turretdef_"))
+                    {
+                        dm.TurretDefs.TryGet(actorResource, out var supportActorTurretDef);
+                        supportActorTurretDef.Refresh();
+                        var supportActorTurret = ActorFactory.CreateTurret(supportActorTurretDef,
+                            supportPilotDef, neutralTeam.EncounterTags, neutralTeam.Combat,
+                            neutralTeam.GetNextSupportUnitGuid(), "", null);
+                        supportActorTurret.Init(neutralTeam.OffScreenPosition, 0f, false);
+                        supportActorTurret.InitGameRep(null);
+                        neutralTeam.AddUnit(supportActorTurret);
+                        supportActorTurret.AddToTeam(neutralTeam);
+                        supportActorTurret.AddToLance(cmdLance);
+                        supportActorTurret.GameRep.gameObject.SetActive(true);
+                        supportActorTurret.BehaviorTree = BehaviorTreeFactory.MakeBehaviorTree(
+                            __instance.Combat.BattleTechGame, supportActorTurret,
+                            BehaviorTreeIDEnum.DoNothingTree);
+
+                        ModInit.modLog.LogMessage($"Initializing Strafing Run!");
+
+                        TB_StrafeSequence eventSequence = new TB_StrafeSequence(supportActorTurret, positionA, positionB, radius, team);
+                        TurnEvent tEvent = new TurnEvent(Guid.NewGuid().ToString(), __instance.Combat, __instance.Def.ActivationETA, null, eventSequence, __instance.Def, false);
+                        __instance.Combat.TurnDirector.AddTurnEvent(tEvent);
+                        if (__instance.Def.IntParam1 > 0)
+                        {
+                            var flares = Traverse.Create(__instance).Method("SpawnFlares", new object[] { positionA, positionB, __instance.Def.StringParam1,
+                                __instance.Def.IntParam1, __instance.Def.ActivationETA});
+                            flares.GetValue();
+                        }
+
+                        if (ModInit.modSettings.commandUseCostsMulti > 0 || __instance.Def.getAbilityDefExtension().CBillCost > 0)
+                        {
+                            var unitName = "";
+                            var unitCost = 0;
+                            var unitID = "";
+                            if (actorResource.StartsWith("mechdef_"))
+                            {
+                                dm.MechDefs.TryGet(__instance.Def.ActorResource, out var mechDef);
+                                mechDef.Refresh();
+                                unitName = mechDef.Description.UIName;
+                                unitID = mechDef.Description.Id;
+                                unitCost = mechDef.Description.Cost;
+                                ModInit.modLog.LogMessage($"Usage cost will be {unitCost}");
+                            }
+                            else if (actorResource.StartsWith("vehicledef_"))
+                            {
+                                dm.VehicleDefs.TryGet(__instance.Def.ActorResource, out var vehicleDef);
+                                vehicleDef.Refresh();
+                                unitName = vehicleDef.Description.UIName;
+                                unitID = vehicleDef.Description.Id;
+                                unitCost = vehicleDef.Description.Cost;
+                                ModInit.modLog.LogMessage($"Usage cost will be {unitCost}");
+                            }
+                            else
+                            {
+                                dm.TurretDefs.TryGet(actorResource, out var turretDef);
+                                turretDef.Refresh();
+                                unitName = turretDef.Description.UIName;
+                                unitID = turretDef.Description.Id;
+                                unitCost = turretDef.Description.Cost;
+                                ModInit.modLog.LogMessage($"Usage cost will be {unitCost}");
+                            }
+
+                            if (ModState.CommandUses.All(x => x.UnitID != actorResource))
+                            {
+
+                                var commandUse = new Utils.CmdUseInfo(unitID, __instance.Def.Description.Name, unitName, unitCost, __instance.Def.getAbilityDefExtension().CBillCost);
+
+                                ModState.CommandUses.Add(commandUse);
+                                ModInit.modLog.LogMessage($"Added usage cost for {commandUse.CommandName} - {commandUse.UnitName}");
+                            }
+                            else
+                            {
+                                var cmdUse = ModState.CommandUses.FirstOrDefault(x => x.UnitID == actorResource);
+                                if (cmdUse == null)
+                                {
+                                    ModInit.modLog.LogMessage($"ERROR: cmdUseInfo was null");
+                                }
+                                else
+                                {
+                                    cmdUse.UseCount += 1;
+                                    ModInit.modLog.LogMessage($"Added usage cost for {cmdUse.CommandName} - {cmdUse.UnitName}, used {cmdUse.UseCount} times");
+                                }
+                            }
+                        }
+                    }
                     else
                     {
                         ModInit.modLog.LogMessage(
@@ -362,6 +547,9 @@ namespace StrategicOperations.Patches
                         ModState.selectedAIVectors = new List<Vector3>();
                         return false;
                     }
+
+                    ModState.selectedAIVectors = new List<Vector3>();
+                    return false;
                 }
                 ModState.selectedAIVectors = new List<Vector3>();
                 return false;
@@ -425,8 +613,17 @@ namespace StrategicOperations.Patches
                     actorResource = ModState.deferredActorResource;
                     ModInit.modLog.LogMessage($"{actorResource} restored from deferredActorResource");
                 }
-
-                dm.PilotDefs.TryGet("pilot_sim_starter_dekker", out var supportPilotDef);
+                var pilotID = "pilot_sim_starter_dekker";
+                if (!string.IsNullOrEmpty(ModState.PilotOverride))
+                {
+                    pilotID = ModState.PilotOverride;
+                }
+                else if (!string.IsNullOrEmpty(__instance.Def.getAbilityDefExtension().CMDPilotOverride))
+                {
+                    pilotID = __instance.Def.getAbilityDefExtension().CMDPilotOverride;
+                }
+                ModInit.modLog.LogMessage($"Pilot should be {pilotID}");
+                dm.PilotDefs.TryGet(pilotID, out var supportPilotDef);
                 var cmdLance = Utils.CreateCMDLance(team.SupportTeam);
 
                 Quaternion quaternion = Quaternion.LookRotation(positionB - positionA);
@@ -527,7 +724,7 @@ namespace StrategicOperations.Patches
 
                 }
 
-                if (ModInit.modSettings.commandUseCostsMulti > 0)
+                if (ModInit.modSettings.commandUseCostsMulti > 0 || __instance.Def.getAbilityDefExtension().CBillCost > 0)
                 {
                     var unitName = "";
                     var unitCost = 0;
@@ -563,9 +760,9 @@ namespace StrategicOperations.Patches
 
                     if (ModState.CommandUses.All(x => x.UnitID != actorResource))
                     {
-
+                        
                         var commandUse =
-                            new Utils.CmdUseInfo(unitID, __instance.Def.Description.Name, unitName, unitCost);
+                            new Utils.CmdUseInfo(unitID, __instance.Def.Description.Name, unitName, unitCost, __instance.Def.getAbilityDefExtension().CBillCost);
 
                         ModState.CommandUses.Add(commandUse);
                         ModInit.modLog.LogMessage(
@@ -996,13 +1193,13 @@ namespace StrategicOperations.Patches
                             var id = beacon.Def.ComponentTags.FirstOrDefault((string x) =>
                                 x.StartsWith("mechdef_") || x.StartsWith("vehicledef_") ||
                                 x.StartsWith("turretdef_"));
-                            ModInit.modLog.LogMessage("beacon for button 2. will be " +
-                                                      beacon.Def.Description.Name + ", ID will be " + id);
+                            var pilotID = beacon.Def.ComponentTags.FirstOrDefault(x => x.StartsWith("StratOpsPilot_"))?.Remove(0, 14);
+                                ModInit.modLog.LogMessage($"beacon for button 2. will be {beacon.Def.Description.Name}, ID will be {id}, pilot will be {pilotID}");
                             popup.AddButton("2.", (Action) (() =>
                             {
                                 ModState.popupActorResource = id;
-                                ModInit.modLog.LogMessage("Player pressed " + id + ". Now " +
-                                                          ModState.popupActorResource + " should be the same.");
+                                ModState.PilotOverride = pilotID;
+                                ModInit.modLog.LogMessage($"Player pressed {id} with pilot {pilotID}. Now -{ModState.popupActorResource}- and pilot -{ModState.PilotOverride}- should be the same.");
                             }));
                             goto RenderNow;
                         }
@@ -1012,27 +1209,28 @@ namespace StrategicOperations.Patches
                             var id = beacon.Def.ComponentTags.FirstOrDefault((string x) =>
                                 x.StartsWith("mechdef_") || x.StartsWith("vehicledef_") ||
                                 x.StartsWith("turretdef_"));
-                            ModInit.modLog.LogMessage("beacon for button 3. will be " +
-                                                      beacon.Def.Description.Name + ", ID will be " + id);
-                            var id1 = id;
+                            var pilotID = beacon.Def.ComponentTags.FirstOrDefault(x => x.StartsWith("StratOpsPilot_"))?.Remove(0, 14);
+                            ModInit.modLog.LogMessage($"beacon for button 3. will be {beacon.Def.Description.Name}, ID will be {id}, pilot will be {pilotID}");
+                                var id1 = id;
+                            var pilotID1 = pilotID;
                             popup.AddButton("3.", (Action) (() =>
                             {
                                 ModState.popupActorResource = id1;
-                                ModInit.modLog.LogMessage("Player pressed " + id1 + ". Now " +
-                                                          ModState.popupActorResource + " should be the same.");
+                                ModState.PilotOverride = pilotID1;
+                                ModInit.modLog.LogMessage($"Player pressed {id1} with pilot {pilotID1}. Now -{ModState.popupActorResource}- and pilot -{ModState.PilotOverride}- should be the same.");
                             }));
 
                             beacon = beacons[0];
                             id = beacon.Def.ComponentTags.FirstOrDefault((string x) =>
                                 x.StartsWith("mechdef_") || x.StartsWith("vehicledef_") ||
                                 x.StartsWith("turretdef_"));
-                            ModInit.modLog.LogMessage("beacon for button 2. will be " +
-                                                      beacon.Def.Description.Name + ", ID will be " + id);
-                            popup.AddButton("2.", (Action) (() =>
+                            pilotID = beacon.Def.ComponentTags.FirstOrDefault(x => x.StartsWith("StratOpsPilot_"))?.Remove(0, 14);
+                            ModInit.modLog.LogMessage($"beacon for button 2. will be {beacon.Def.Description.Name}, ID will be {id}, pilot will be {pilotID}");
+                                popup.AddButton("2.", (Action) (() =>
                             {
                                 ModState.popupActorResource = id;
-                                ModInit.modLog.LogMessage("Player pressed " + id + ". Now " +
-                                                          ModState.popupActorResource + " should be the same.");
+                                ModState.PilotOverride = pilotID;
+                                ModInit.modLog.LogMessage($"Player pressed {id} with pilot {pilotID}. Now -{ModState.popupActorResource}- and pilot -{ModState.PilotOverride}- should be the same.");
                             }));
 
                             goto RenderNow;
@@ -1045,28 +1243,30 @@ namespace StrategicOperations.Patches
                         var id = beacon.Def.ComponentTags.FirstOrDefault((string x) =>
                             x.StartsWith("mechdef_") || x.StartsWith("vehicledef_") ||
                             x.StartsWith("turretdef_"));
-                        ModInit.modLog.LogMessage("beacon for button 3. will be " +
-                                                  beacon.Def.Description.Name + ", ID will be " + id);
+                        var pilotID = beacon.Def.ComponentTags.FirstOrDefault(x => x.StartsWith("StratOpsPilot_"))?.Remove(0, 14);
+                        ModInit.modLog.LogMessage($"beacon for button 3. will be {beacon.Def.Description.Name}, ID will be {id}, pilot will be {pilotID}");
                         var id1 = id;
+                        var pilotID1 = pilotID;
                         popup.AddButton("3.", (Action)(() =>
                         {
                             ModState.popupActorResource = id1;
-                            ModInit.modLog.LogMessage("Player pressed " + id1 + ". Now " +
-                                                      ModState.popupActorResource + " should be the same.");
+                            ModState.PilotOverride = pilotID1;
+                            ModInit.modLog.LogMessage($"Player pressed {id1} with pilot {pilotID1}. Now -{ModState.popupActorResource}- and pilot -{ModState.PilotOverride}- should be the same.");
                         }));
 
                         beacon = beacons[0];
                         id = beacon.Def.ComponentTags.FirstOrDefault((string x) =>
                             x.StartsWith("mechdef_") || x.StartsWith("vehicledef_") ||
                             x.StartsWith("turretdef_"));
-                        ModInit.modLog.LogMessage("beacon for button 2. will be " +
-                                                  beacon.Def.Description.Name + ", ID will be " + id);
+                        pilotID = beacon.Def.ComponentTags.FirstOrDefault(x => x.StartsWith("StratOpsPilot_"))?.Remove(0, 14);
+                        ModInit.modLog.LogMessage($"beacon for button 2. will be {beacon.Def.Description.Name}, ID will be {id}, pilot will be {pilotID}");
                         var id2 = id;
+                        var pilotID2 = pilotID;
                         popup.AddButton("2.", (Action)(() =>
                         {
                             ModState.popupActorResource = id2;
-                            ModInit.modLog.LogMessage("Player pressed " + id2 + ". Now " +
-                                                      ModState.popupActorResource + " should be the same.");
+                            ModState.PilotOverride = pilotID2;
+                            ModInit.modLog.LogMessage($"Player pressed {id2} with pilot {pilotID2}. Now -{ModState.popupActorResource}- and pilot -{ModState.PilotOverride}- should be the same.");
                         }));
 
                         for (var index = 2; index < beacons.Count; index++)
@@ -1075,15 +1275,18 @@ namespace StrategicOperations.Patches
                             id = beacon.Def.ComponentTags.FirstOrDefault(x =>
                                 x.StartsWith("mechdef_") || x.StartsWith("vehicledef_") ||
                                 x.StartsWith("turretdef_"));
+                            ModInit.modLog.LogMessage($"beacon for button {index + 2}. will be {beacon.Def.Description.Name}, ID will be {id}, pilot will be {pilotID}");
+                            pilotID = beacon.Def.ComponentTags.FirstOrDefault(x => x.StartsWith("StratOpsPilot_"))?.Remove(0, 14);
                             var buttonName = $"{index + 2}.";
                             if (string.IsNullOrEmpty(id)) continue;
                             var id3 = id;
+                            var pilotID3 = pilotID;
                             popup.AddButton(buttonName,
                                 (Action) (() =>
                                 {
                                     ModState.popupActorResource = id3;
-                                    ModInit.modLog.LogMessage(
-                                        $"Player pressed {id3}. Now {ModState.popupActorResource} should be the same.");
+                                    ModState.PilotOverride = pilotID3;
+                                    ModInit.modLog.LogMessage($"Player pressed {id3} with pilot {pilotID3}. Now -{ModState.popupActorResource}- and pilot -{ModState.PilotOverride}- should be the same.");
                                 }));
                             ModInit.modLog.LogMessage(
                                 $"Added button for {buttonName}");
