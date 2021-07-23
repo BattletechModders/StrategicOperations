@@ -67,6 +67,8 @@ Spawns are basically what they sound like: spawning reinforcement units at the s
 	
 3) If the "beacon" item contains the string "ConsumeOnUse" in its component tags, the beacon item will be actually consumed on use; the player inventory in simgame will be decremented.
 
+4) If the "beacon" item contains a component tag that starts with "StratOpsPilot_", the remainder of that tag should be the PilotDef ID of the pilot that will pilot the unit (overrides anything set by CMDPilotOverride below)
+
 Spawn ability json structure:
 ```
 {
@@ -76,6 +78,7 @@ Spawn ability json structure:
 		"Details" : "DEPLOY MOBILE TURRET",
 		"Icon" : "uixSvgIcon_genericDiamond"
 	},
+	"CMDPilotOverride" : "pilot_sim_dekker",
 	"ActivationTime" : "CommandAbility",
 	"Resource" : "CommandAbility",
 	"ActivationCooldown" : -1,
@@ -88,6 +91,8 @@ Spawn ability json structure:
 }
 ```
 The configurable parameters of the above:
+	
+`CMDPilotOverride` - string. if present and not "", lists ID of pilotDef for pilot that will use this unit.
 
 `Description` - as any other Ability Description
 
@@ -115,6 +120,8 @@ Similarly to Spawns, the actual unit doing the strafing depends on the following
 	
 3) If the "beacon" item contains the string "ConsumeOnUse" in its component tags, the beacon item will be actually consumed on use; the player inventory in simgame will be decremented.
 
+4) If the "beacon" item contains a component tag that starts with "StratOpsPilot_", the remainder of that tag should be the PilotDef ID of the pilot that will pilot the unit (overrides anything set by CMDPilotOverride below)
+
 The json structure of a strafe ability follows:
 
 ```
@@ -124,6 +131,7 @@ The json structure of a strafe ability follows:
 		"Details" : "CALLS IN A STRAFING RUN BY YOUR AEROSPACE SUPPORT UNIT.",
 		"Icon" : "uixSvgIcon_genericDiamond"
 	},
+	"CMDPilotOverride" : "pilot_sim_dekker",
 	"ActivationTime" : "CommandAbility",
 	"Resource" : "CommandAbility",
 	"ActivationCooldown" : 1,
@@ -143,6 +151,8 @@ The configurable parameters of the above:
 
 `Description` - as any other Ability Description
 
+`CMDPilotOverride` - string. if present and not "", lists ID of pilotDef for pilot that will use this unit.
+	
 `ActivationCooldown` - int, turn cooldown to use the ability again
 
 `NumberOfUses` - int, number of times the ability can be used in a given contract (set to -1 or remove for unlimited uses)
