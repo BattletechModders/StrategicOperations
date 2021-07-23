@@ -241,7 +241,7 @@ namespace StrategicOperations.Patches
                 var dm = __instance.Combat.DataManager;
                 var sim = UnityGameInstance.BattleTechGame.Simulation;
                 var pilotID = "pilot_sim_starter_dekker";
-                var supportHeraldryDef = Utils.SwapHeraldryColors(team.HeraldryDef);
+                var supportHeraldryDef = Utils.SwapHeraldryColors(team.HeraldryDef, dm);
                 if (!string.IsNullOrEmpty(ModState.PilotOverride))
                 {
                     pilotID = ModState.PilotOverride;
@@ -507,7 +507,7 @@ namespace StrategicOperations.Patches
 
                 var actorResource = __instance.Def.ActorResource;
 
-                var supportHeraldryDef = Utils.SwapHeraldryColors(team.HeraldryDef);
+                var supportHeraldryDef = Utils.SwapHeraldryColors(team.HeraldryDef, dm);
 
 
                 if (!string.IsNullOrEmpty(ModState.popupActorResource))

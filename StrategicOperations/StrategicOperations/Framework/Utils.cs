@@ -6,6 +6,7 @@ using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
 using BattleTech;
+using BattleTech.Data;
 using BattleTech.Framework;
 using BattleTech.UI;
 using Harmony;
@@ -99,15 +100,32 @@ namespace StrategicOperations.Framework
             }
         }
 
-        public static HeraldryDef SwapHeraldryColors(HeraldryDef def)
+        public static HeraldryDef SwapHeraldryColors(HeraldryDef def, DataManager dataManager, Action loadCompleteCallback = null)
         {
             var secondaryID = def.primaryMechColorID;
             var tertiaryID = def.secondaryMechColorID;
             var primaryID = def.tertiaryMechColorID;
 
             ModInit.modLog.LogMessage($"Creating new heraldry for support. {primaryID} was tertiary, now primary. {secondaryID} was primary, now secondary. {tertiaryID} was secondary, now tertiary.");
+            var newHeraldry = new HeraldryDef(def.Description, def.textureLogoID, primaryID, secondaryID, tertiaryID);
 
-            return new HeraldryDef(def.Description, def.textureLogoID, primaryID, secondaryID, tertiaryID);
+            newHeraldry.DataManager = dataManager;
+            LoadRequest loadRequest = dataManager.CreateLoadRequest(delegate (LoadRequest request)
+            {
+                newHeraldry.Refresh();
+                if (loadCompleteCallback != null)
+                {
+                    loadCompleteCallback();
+                }
+            }, false);
+            loadRequest.AddBlindLoadRequest(BattleTechResourceType.Texture2D, newHeraldry.textureLogoID, new bool?(false));
+            loadRequest.AddBlindLoadRequest(BattleTechResourceType.Sprite, newHeraldry.textureLogoID, new bool?(false));
+            loadRequest.AddBlindLoadRequest(BattleTechResourceType.ColorSwatch, newHeraldry.primaryMechColorID, new bool?(false));
+            loadRequest.AddBlindLoadRequest(BattleTechResourceType.ColorSwatch, newHeraldry.secondaryMechColorID, new bool?(false));
+            loadRequest.AddBlindLoadRequest(BattleTechResourceType.ColorSwatch, newHeraldry.tertiaryMechColorID, new bool?(false));
+            loadRequest.ProcessRequests(10U);
+            newHeraldry.Refresh();
+            return newHeraldry;
         }
         public static Lance CreateCMDLance(Team team)
         {
