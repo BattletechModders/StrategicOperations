@@ -1,16 +1,11 @@
 ﻿using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
-using System.Text;
-using System.Threading.Tasks;
 using BattleTech;
 using BattleTech.Data;
 using BattleTech.Framework;
-using BattleTech.UI;
 using Harmony;
-using Newtonsoft.Json.Linq;
 using UnityEngine;
 
 namespace StrategicOperations.Framework
@@ -113,10 +108,7 @@ namespace StrategicOperations.Framework
             LoadRequest loadRequest = dataManager.CreateLoadRequest(delegate (LoadRequest request)
             {
                 newHeraldry.Refresh();
-                if (loadCompleteCallback != null)
-                {
-                    loadCompleteCallback();
-                }
+                loadCompleteCallback?.Invoke();
             }, false);
             loadRequest.AddBlindLoadRequest(BattleTechResourceType.Texture2D, newHeraldry.textureLogoID, new bool?(false));
             loadRequest.AddBlindLoadRequest(BattleTechResourceType.Sprite, newHeraldry.textureLogoID, new bool?(false));
@@ -174,12 +166,12 @@ namespace StrategicOperations.Framework
                     {
                         '.'
                     });
-                    if (string.Compare(array[1], "MECHPART") != 0)
+                    if (string.CompareOrdinal(array[1], "MECHPART") != 0)
                     {
                         BattleTechResourceType battleTechResourceType = (BattleTechResourceType)Enum.Parse(typeof(BattleTechResourceType), array[1]);
                         if (battleTechResourceType != BattleTechResourceType.MechDef && sgs.DataManager.Exists(battleTechResourceType, array[2]))
                         {
-                            bool flag = array.Length > 3 && array[3].CompareTo("DAMAGED") == 0;
+                            bool flag = array.Length > 3 && string.Compare(array[3], "DAMAGED", StringComparison.Ordinal) == 0;
                             MechComponentDef componentDef = sgs.GetComponentDef(battleTechResourceType, array[2]);
                             MechComponentRef mechComponentRef = new MechComponentRef(componentDef.Description.Id, sgs.GenerateSimGameUID(), componentDef.ComponentType, ChassisLocations.None, -1, flag ? ComponentDamageLevel.NonFunctional : ComponentDamageLevel.Functional, false);
                             mechComponentRef.SetComponentDef(componentDef);
@@ -221,12 +213,12 @@ namespace StrategicOperations.Framework
                     {
                         '.'
                     });
-                    if (string.Compare(array[1], "MECHPART") != 0)
+                    if (string.CompareOrdinal(array[1], "MECHPART") != 0)
                     {
                         BattleTechResourceType battleTechResourceType = (BattleTechResourceType)Enum.Parse(typeof(BattleTechResourceType), array[1]);
                         if (battleTechResourceType != BattleTechResourceType.MechDef && sgs.DataManager.Exists(battleTechResourceType, array[2]))
                         {
-                            bool flag = array.Length > 3 && array[3].CompareTo("DAMAGED") == 0;
+                            bool flag = array.Length > 3 && string.Compare(array[3], "DAMAGED", StringComparison.Ordinal) == 0;
                             MechComponentDef componentDef = sgs.GetComponentDef(battleTechResourceType, array[2]);
                             MechComponentRef mechComponentRef = new MechComponentRef(componentDef.Description.Id, sgs.GenerateSimGameUID(), componentDef.ComponentType, ChassisLocations.None, -1, flag ? ComponentDamageLevel.NonFunctional : ComponentDamageLevel.Functional, false);
                             mechComponentRef.SetComponentDef(componentDef);

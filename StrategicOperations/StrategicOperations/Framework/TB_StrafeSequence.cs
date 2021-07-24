@@ -1,11 +1,6 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Linq;
-using System.Runtime.CompilerServices;
-using System.Text;
-using System.Threading.Tasks;
 using BattleTech;
-using BattleTech.Framework;
 using HBS.Math;
 using HBS.Util;
 using UnityEngine;
@@ -20,7 +15,7 @@ namespace StrategicOperations.Framework
         private Vector3 EndPos { get; set; }
         private float HeightOffset { get; set; }
         public override bool IsCancelable => false;
-        public override bool IsComplete => this.state == TB_StrafeSequence.SequenceState.Finished;
+        public override bool IsComplete => this._state == TB_StrafeSequence.SequenceState.Finished;
         public override bool IsParallelInterruptable => false;
         public bool IsValidMultisequenceChild => false;
         private float MaxWeaponRange { get; set; }
@@ -29,15 +24,15 @@ namespace StrategicOperations.Framework
         private float StrafeLength { get; set; }
         private List<Weapon> StrafeWeapons { get; set; }
         private Vector3 Velocity { get; set; }
-        private const float horizMultiplier = 4f;
+        private const float HorizMultiplier = 4f;
 //        private float speed = 150f;
-        private TB_StrafeSequence.SequenceState state;
-        private const float timeBetweenAttacks = 0.35f;
-        private const float timeIncoming = 6f;
-        private float timeInCurrentState;
-        private float timeSinceLastAttack;
-        private Vector3 zeroEndPos;
-        private Vector3 zeroStartPos;
+        private TB_StrafeSequence.SequenceState _state;
+        private const float TimeBetweenAttacks = 0.35f;
+        private const float TimeIncoming = 6f;
+        private float _timeInCurrentState;
+        private float _timeSinceLastAttack;
+        private Vector3 _zeroEndPos;
+        private Vector3 _zeroStartPos;
 
         public enum SequenceState
         {
@@ -56,13 +51,13 @@ namespace StrategicOperations.Framework
             this.StrafeLength = Mathf.Max(1f, Vector3.Distance(positionA, positionB)); 
             this.Radius = radius;
             this.PlayerTeam = team;
-            this.state = TB_StrafeSequence.SequenceState.None;
+            this._state = TB_StrafeSequence.SequenceState.None;
         }
 
         private void AttackNextTarget()
         {
-            this.timeSinceLastAttack += Time.deltaTime;
-            if (this.timeSinceLastAttack > ModInit.modSettings.timeBetweenAttacks && !base.Combat.AttackDirector.IsAnyAttackSequenceActive)
+            this._timeSinceLastAttack += Time.deltaTime;
+            if (this._timeSinceLastAttack > ModInit.modSettings.timeBetweenAttacks && !base.Combat.AttackDirector.IsAnyAttackSequenceActive)
             {
                 if (this.AllTargets.Count < 1)
                 {
@@ -107,7 +102,7 @@ namespace StrategicOperations.Framework
                         attackDirector.PerformAttack(attackSequence);
                         attackSequence.ResetWeapons();
                         this.AllTargets.RemoveAt(i);
-                        this.timeSinceLastAttack = 0f;
+                        this._timeSinceLastAttack = 0f;
                         continue;
                     }
                     ModInit.modLog.LogMessage(
@@ -227,23 +222,23 @@ namespace StrategicOperations.Framework
         }
         private void SetState(TB_StrafeSequence.SequenceState newState)
         {
-            if (this.state == newState)
+            if (this._state == newState)
             {
                 return;
             }
-            this.state = newState;
-            this.timeInCurrentState = 0f;
+            this._state = newState;
+            this._timeInCurrentState = 0f;
             switch (newState)
             {
                 case TB_StrafeSequence.SequenceState.Incoming:
                 {
-                    this.zeroStartPos = this.StartPos;
-                    this.zeroStartPos.y = 0f;
-                    this.zeroEndPos = this.EndPos;
-                    this.zeroEndPos.y = 0f;
+                    this._zeroStartPos = this.StartPos;
+                    this._zeroStartPos.y = 0f;
+                    this._zeroEndPos = this.EndPos;
+                    this._zeroEndPos.y = 0f;
                     this.CalcTargets();
                     this.GetWeaponsForStrafe();
-                    Vector3 vector = this.zeroEndPos - this.zeroStartPos;
+                    Vector3 vector = this._zeroEndPos - this._zeroStartPos;
                     vector.Normalize();
                     var speed = ModInit.modSettings.strafeVelocityDefault;;
                     if (Attacker.MaxSpeed > 0)
@@ -290,8 +285,8 @@ namespace StrategicOperations.Framework
         }
         private void Update()
         {
-            this.timeInCurrentState += Time.deltaTime;
-            switch (this.state)
+            this._timeInCurrentState += Time.deltaTime;
+            switch (this._state)
             {
                 case TB_StrafeSequence.SequenceState.Incoming:
                     if (Vector3.Distance(this.Attacker.CurrentPosition, this.StartPos) < this.MaxWeaponRange)
@@ -319,7 +314,7 @@ namespace StrategicOperations.Framework
                     }
                     break;
             }
-            switch (this.state)
+            switch (this._state)
             {
                     
                 case TB_StrafeSequence.SequenceState.Incoming:

@@ -1,18 +1,13 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using BattleTech;
 using BattleTech.Framework;
 using BattleTech.UI;
 using Harmony;
 using StrategicOperations.Framework;
-using UnityEngine;
 
 namespace StrategicOperations.Patches
 {
-    class SimGamePatches
+    public class SimGamePatches
     {
         [HarmonyPatch(typeof(AAR_ContractObjectivesWidget), "FillInObjectives")]
         public static class AAR_ContractObjectivesWidget_FillInObjectives_Patch

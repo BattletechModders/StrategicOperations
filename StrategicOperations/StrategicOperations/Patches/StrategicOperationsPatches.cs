@@ -1,25 +1,18 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Reflection;
-using System.Runtime.CompilerServices;
-using System.Text;
-using System.Threading.Tasks;
 using Abilifier.Patches;
 using BattleTech;
 using BattleTech.Data;
 using BattleTech.UI;
-using BattleTech.UI.Tooltips;
 using Harmony;
 using HBS;
-using HBS.Logging;
-using InControl;
 using StrategicOperations.Framework;
 using UnityEngine;
 
 namespace StrategicOperations.Patches
 {
-    class StrategicOperationsPatches
+    public class StrategicOperationsPatches
     {
         [HarmonyPatch(typeof(SimGameState), "RequestDataManagerResources")]
         
@@ -118,14 +111,13 @@ namespace StrategicOperations.Patches
                 if (combat.ActiveContract.ContractTypeValue.IsSkirmish) return true;
                 var registry = combat.ItemRegistry;
 
-                if (____parentActor == null || ____parentActor?.spawnerGUID == null)
+                if (____parentActor?.spawnerGUID == null)
                 {
                     //ModInit.modLog.LogMessage($"Couldn't find UnitSpawnPointGameLogic for {____parentActor?.DisplayName}. Should be CMD Ability actor; skipping safety teleport!");
                     return false;
                 }
-                if (registry.GetItemByGUID<UnitSpawnPointGameLogic>(____parentActor?.spawnerGUID) != null) return true;
+                return registry.GetItemByGUID<UnitSpawnPointGameLogic>(____parentActor?.spawnerGUID) != null;
                 //ModInit.modLog.LogMessage($"Couldn't find UnitSpawnPointGameLogic for {____parentActor?.DisplayName}. Should be CMD Ability actor; skipping safety teleport!");
-                return false;
             }
         }
         [HarmonyPatch(typeof(Team), "ActivateAbility")]
@@ -165,6 +157,26 @@ namespace StrategicOperations.Patches
                     case AbilityDef.TargetingType.CommandSpawnPosition:
                         ability.Activate(__instance, msg.positionA, msg.positionB);
                         goto publishAbilityConfirmed;
+                    case AbilityDef.TargetingType.NotSet:
+                        break;
+                    case AbilityDef.TargetingType.ActorSelf:
+                        break;
+                    case AbilityDef.TargetingType.ActorTarget:
+                        break;
+                    case AbilityDef.TargetingType.SensorLock:
+                        break;
+                    case AbilityDef.TargetingType.CommandTargetSingleAlly:
+                        break;
+                    case AbilityDef.TargetingType.ShadowMove:
+                        break;
+                    case AbilityDef.TargetingType.MultiFire:
+                        break;
+                    case AbilityDef.TargetingType.ConfirmCoolantVent:
+                        break;
+                    case AbilityDef.TargetingType.ActiveProbe:
+                        break;
+                    default:
+                        throw new ArgumentOutOfRangeException();
                 }
                 ModInit.modLog.LogMessage(
                     $"Team.ActivateAbility needs to add handling for targetingtype {ability.Def.Targeting}");
@@ -843,9 +855,9 @@ namespace StrategicOperations.Patches
             public static void Postfix(TurnActor __instance)
             {
                 if (__instance.Combat.ActiveContract.ContractTypeValue.IsSkirmish) return;
-                for (int i = 0; i < ModState.CommandAbilities.Count; i++)
+                foreach (var ability in ModState.CommandAbilities)
                 {
-                    ModState.CommandAbilities[i].OnNewRound();
+                    ability.OnNewRound();
                 }
 
                 var team = __instance as Team;

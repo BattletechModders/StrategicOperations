@@ -1,15 +1,8 @@
-﻿using System;
-using System.Collections;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using BattleTech;
-using UnityEngine;
+﻿using BattleTech;
 
 namespace StrategicOperations.Framework
 {
-    class UnitDropPodSpawner : UnitSpawnPointGameLogic
+    public class UnitDropPodSpawner : UnitSpawnPointGameLogic
     {
  //       private ParticleSystem dropPodVfxPrefab;
  //       private GameObject dropPodLandedPrefab;
@@ -27,7 +20,7 @@ namespace StrategicOperations.Framework
         }
     }
 
-    class LanceDropPodSpawner : LanceSpawnerGameLogic
+   public class LanceDropPodSpawner : LanceSpawnerGameLogic
     {
         //       private ParticleSystem dropPodVfxPrefab;
         //       private GameObject dropPodLandedPrefab;

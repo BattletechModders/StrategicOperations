@@ -1,15 +1,12 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using BattleTech;
-using HBS.Math;
 using UnityEngine;
 
 namespace StrategicOperations.Framework
 {
-    class AI_Utils
+    public class AI_Utils
     {
 
         public void GenerateAIStrategicAbilities(Team team, int difficulty)
@@ -49,16 +46,15 @@ namespace StrategicOperations.Framework
                 var potentialRegDamage = 0f;
                 var potentialHeatDamage = 0f;
                 var potentialStabDamage = 0f;
-                var finalDamage = 0f;
                 foreach (var weapon in attacker.Inventory.Where(x=>x.ComponentDefType == ComponentType.Weapon))
                 {
-                    var weaponDef = weapon.Def as WeaponDef;
+                    if (!(weapon.Def is WeaponDef weaponDef)) continue;
                     potentialRegDamage += weaponDef.Damage;
                     potentialHeatDamage += weaponDef.HeatDamage;
                     potentialStabDamage += weaponDef.Instability;
                 }
 
-                finalDamage = potentialRegDamage + potentialHeatDamage + potentialStabDamage;
+                var finalDamage = potentialRegDamage + potentialHeatDamage + potentialStabDamage;
                 return finalDamage;
             }
             else if (attackerResource.StartsWith("vehicledef_"))
@@ -68,16 +64,15 @@ namespace StrategicOperations.Framework
                 var potentialRegDamage = 0f;
                 var potentialHeatDamage = 0f;
                 var potentialStabDamage = 0f;
-                var finalDamage = 0f;
                 foreach (var weapon in attacker.Inventory.Where(x=>x.ComponentDefType == ComponentType.Weapon))
                 {
-                    var weaponDef = weapon.Def as WeaponDef;
+                    if (!(weapon.Def is WeaponDef weaponDef)) continue;
                     potentialRegDamage += weaponDef.Damage;
                     potentialHeatDamage += weaponDef.HeatDamage;
                     potentialStabDamage += weaponDef.Instability;
                 }
 
-                finalDamage = potentialRegDamage + potentialHeatDamage + potentialStabDamage;
+                var finalDamage = potentialRegDamage + potentialHeatDamage + potentialStabDamage;
                 return finalDamage;
             }
             else if (attackerResource.StartsWith("turretdef_"))
@@ -87,16 +82,15 @@ namespace StrategicOperations.Framework
                 var potentialRegDamage = 0f;
                 var potentialHeatDamage = 0f;
                 var potentialStabDamage = 0f;
-                var finalDamage = 0f;
                 foreach (var weapon in attacker.Inventory.Where(x=>x.ComponentDefType == ComponentType.Weapon))
                 {
-                    var weaponDef = weapon.Def as WeaponDef;
+                    if (!(weapon.Def is WeaponDef weaponDef)) continue;
                     potentialRegDamage += weaponDef.Damage;
                     potentialHeatDamage += weaponDef.HeatDamage;
                     potentialStabDamage += weaponDef.Instability;
                 }
 
-                finalDamage = potentialRegDamage + potentialHeatDamage + potentialStabDamage;
+                var finalDamage = potentialRegDamage + potentialHeatDamage + potentialStabDamage;
                 return finalDamage;
             }
             return 0f;
@@ -112,10 +106,9 @@ namespace StrategicOperations.Framework
 
             if (ability != null)
             {
-                var maxrange = ability.Def.IntParam2;
-                var possibleStart = new Vector3();
+                var maxRange = ability.Def.IntParam2;
 
-                var circ = maxrange * 2 * Math.PI;
+                var circ = maxRange * 2 * Math.PI;
                 var steps = Mathf.RoundToInt((float)circ / (ability.Def.FloatParam1 * 2));
 
                 var enemyCombatants = new List<ICombatant>(actor.Combat.GetAllImporantCombatants().Where(x=>x.team.IsEnemy(actor.team)));
@@ -137,7 +130,8 @@ namespace StrategicOperations.Framework
                 {
 //                    AbstractActor enemyActor = actor.BehaviorTree.enemyUnits[k] as AbstractActor;
                     if (enemyCombatants[k] == null) continue;
-                    if (Mathf.RoundToInt(Vector3.Distance(actor.CurrentPosition, enemyCombatants[k].CurrentPosition)) < maxrange)
+                    Vector3 possibleStart;
+                    if (Mathf.RoundToInt(Vector3.Distance(actor.CurrentPosition, enemyCombatants[k].CurrentPosition)) < maxRange)
                     {
                         possibleStart = enemyCombatants[k].CurrentPosition;
                     }
@@ -159,8 +153,7 @@ namespace StrategicOperations.Framework
                         {
                             for (int l = 0; l < actor.BehaviorTree.enemyUnits.Count; l++)
                             {
-                                AbstractActor newTarget = actor.BehaviorTree.enemyUnits[k] as AbstractActor;
-                                if (newTarget == null) continue;
+                                if (!(actor.BehaviorTree.enemyUnits[k] is AbstractActor newTarget)) continue;
                                 if (rectangle.Contains(newTarget.CurrentPosition))
                                 {
                                     targetCount += 1;
