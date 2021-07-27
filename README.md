@@ -29,7 +29,12 @@ settings in the mod.json:
 	"Item.UpgradeDef.Gear_TurretBeacon_lgr",
 	"Item.UpgradeDef.Gear_TurretBeacon_Schiltron",
 	"Item.UpgradeDef.Gear_TurretBeacon_Schiltron2"
-]
+	],
+"customSpawnReticleColor": {
+	"r": 255,
+	"g": 16,
+	"b": 240
+	}
 ```
 `strafeTargetsFriendlies` - bool, strafing can hit friendly units,
 
@@ -56,6 +61,8 @@ settings in the mod.json:
 `commandUseCostsMulti` - float, multiplier governing costs of using command abilities. if >0, the cost of the unit being used (as defined in the unit def) is multiplied by this value to obtain a per-use cost of using the ability. should probably only be used if beacons are not set to be consumed, or at least set to some low value. **this cost will stack with any manually defined costs in the AbilityDef using Abilifier**
 
 `deploymentBeaconEquipment` - List<string>, list of component IDs that are considered "deployment beacons" to give options for the specific unit that gets deployed/strafes during combat.
+
+`customSpawnReticleColor` - new type, defines custom color of reticle used for spawns. fields r, g, b, are decimal RGB values. If nothing set here, reticle will default to a bright green.
 
 ## Spawns
 
