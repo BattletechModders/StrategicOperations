@@ -5,6 +5,7 @@ using System.Reflection;
 using BattleTech;
 using BattleTech.Data;
 using BattleTech.Framework;
+using BattleTech.Rendering;
 using Harmony;
 using UnityEngine;
 
@@ -51,6 +52,17 @@ namespace StrategicOperations.Framework
         {
             var idx = UnityEngine.Random.Range(0, list.Count);
             return list[0];
+        }
+
+        public class ColorSetting
+        {
+            public int r;
+            public int g;
+            public int b;
+
+            public float Rf => r / 255f;
+            public float Gf => g / 255f;
+            public float Bf => b / 255f;
         }
 
         public class CmdUseStat
@@ -192,8 +204,18 @@ namespace StrategicOperations.Framework
                                 var newStat = new CmdUseStat(id, stat, consumeOnUse, value, value, pilotID);
                                 ModState.deploymentAssetsStats.Add(newStat);
                                 ModInit.modLog.LogMessage($"Added {id} to deploymentAssetsDict with value {value}.");
+                                beacons.Add(mechComponentRef);
                             }
-                            beacons.Add(mechComponentRef);
+                            var assetStatInfo = ModState.deploymentAssetsStats.FirstOrDefault(x => x.ID == id);
+                            {
+                                if (assetStatInfo != null)
+                                {
+                                    if (assetStatInfo.contractUses > 0)
+                                    {
+                                        beacons.Add(mechComponentRef);
+                                    }
+                                }
+                            }
                         }
                     }
                 }
@@ -201,7 +223,7 @@ namespace StrategicOperations.Framework
             return beacons;
         }
 
-        public static List<MechComponentRef> GetOwnedDeploymentBeaconsOfByTypeAndTag(string type, string tag)
+        public static List<MechComponentRef> GetOwnedDeploymentBeaconsOfByTypeAndTag(string type, string tag, string allowedUnitTags)
         {
             var sgs = UnityGameInstance.BattleTechGame.Simulation;
             var beacons = new List<MechComponentRef>();
@@ -235,18 +257,32 @@ namespace StrategicOperations.Framework
 //                                ModInit.modLog.LogMessage($"{id} != {type}, ignoring.");
                                 continue;
                             }
+
+                            if (!string.IsNullOrEmpty(allowedUnitTags) && mechComponentRef.Def.ComponentTags.All(x=>x != allowedUnitTags))
+                            {
+                                continue;
+                            }
                             var pilotID = mechComponentRef.Def.ComponentTags.FirstOrDefault(x =>
                                     x.StartsWith("StratOpsPilot_"))
                                 ?.Remove(0, 14);
                             if (ModState.deploymentAssetsStats.All(x => x.ID != id))
                             {
-
                                 var value = sgs.CompanyStats.GetValue<int>(stat);
                                 var newStat = new CmdUseStat(id, stat, consumeOnUse, value, value, pilotID);
                                 ModState.deploymentAssetsStats.Add(newStat);
                                 ModInit.modLog.LogMessage($"Added {id} to deploymentAssetsDict with value {value}.");
+                                beacons.Add(mechComponentRef);
                             }
-                            beacons.Add(mechComponentRef);
+                            var assetStatInfo = ModState.deploymentAssetsStats.FirstOrDefault(x => x.ID == id);
+                            {
+                                if (assetStatInfo != null)
+                                {
+                                    if (assetStatInfo.contractUses > 0)
+                                    {
+                                        beacons.Add(mechComponentRef);
+                                    }
+                                }
+                            }
                         }
                     }
                 }

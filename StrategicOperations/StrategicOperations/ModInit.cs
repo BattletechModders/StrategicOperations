@@ -4,6 +4,8 @@ using System.Reflection;
 using Harmony;
 using Newtonsoft.Json;
 using StrategicOperations.Framework;
+using UnityEngine;
+using Logger = StrategicOperations.Framework.Logger;
 
 namespace StrategicOperations
 {
@@ -53,5 +55,6 @@ namespace StrategicOperations
         public float commandUseCostsMulti = 1f;
         public List<string> deploymentBeaconEquipment = new List<string>(); //e.g. Item.HeatSinkDef.Gear_HeatSink_Generic_Standard
         public List<string> commandAbilities_AI = new List<string>(); //e.g. Item.HeatSinkDef.Gear_HeatSink_Generic_Standard
+        public Utils.ColorSetting customSpawnReticleColor = new Utils.ColorSetting();
     }
 }
