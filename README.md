@@ -34,7 +34,8 @@ settings in the mod.json:
 	"r": 255,
 	"g": 16,
 	"b": 240
-	}
+	},
+"customSpawnReticleAsset": "select_spawn_reticle"
 ```
 `strafeTargetsFriendlies` - bool, strafing can hit friendly units,
 
@@ -62,7 +63,9 @@ settings in the mod.json:
 
 `deploymentBeaconEquipment` - List<string>, list of component IDs that are considered "deployment beacons" to give options for the specific unit that gets deployed/strafes during combat.
 
-`customSpawnReticleColor` - new type, defines custom color of reticle used for spawns. fields r, g, b, are RGB values, 0-255. If nothing set here, reticle will default to a bright green.
+`customSpawnReticleColor` - new type, defines custom color of reticle used for spawns. fields r, g, b, are RGB values, 0-255.
+	
+`customSpawnReticleAsset` string. name of custom .DDS asset that will be used for Spawn reticle (needs to be one that is added to manifest via modtek)
 
 ## Spawns
 
