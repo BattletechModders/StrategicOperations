@@ -8,8 +8,19 @@ namespace StrategicOperations.Framework
 {
     public class AI_Utils
     {
+        public static float EvaluateStrafing(AbstractActor actor, out Ability ability, out Vector3 startpoint, out Vector3 endpoint)
+        {
+            startpoint = default(Vector3);
+            endpoint = default(Vector3);
+            if (!CanStrafe(actor, out ability)) return 0f;
+            var dmg = CalcExpectedDamage(actor, ability.Def.ActorResource);
 
-        public void GenerateAIStrategicAbilities(Team team, int difficulty)
+            var targets = TargetsForStrafe(actor, out startpoint, out endpoint);
+
+            return dmg * targets;
+        }
+
+        public static void GenerateAIStrategicAbilities(Team team, int difficulty)
         {
             var dm = team.Combat.DataManager;
             var cmdAbilities = new List<Ability>();
@@ -25,23 +36,24 @@ namespace StrategicOperations.Framework
             }
         }
 
-        public bool CanStrafe(AbstractActor actor)
+        public static bool CanStrafe(AbstractActor actor, out Ability ability)
         {
-            var ability =
+            var _ability =
                 actor.ComponentAbilities.FirstOrDefault(x => x.Def.specialRules == AbilityDef.SpecialRules.Strafe);
-            if (ability != null)
+            if (_ability != null)
             {
+                ability = _ability;
                 return true;
             }
-
+            ability = default(Ability);
             return false;
         }
 
-        public float CalcExpectedDamage(ICombatant target, string attackerResource)
+        public static float CalcExpectedDamage(AbstractActor actor, string attackerResource)
         {
             if (attackerResource.StartsWith("mechdef_"))
             {
-                target.Combat.DataManager.MechDefs.TryGet(attackerResource, out MechDef attacker);
+                actor.Combat.DataManager.MechDefs.TryGet(attackerResource, out MechDef attacker);
                 attacker.Refresh();
                 var potentialRegDamage = 0f;
                 var potentialHeatDamage = 0f;
@@ -59,7 +71,7 @@ namespace StrategicOperations.Framework
             }
             else if (attackerResource.StartsWith("vehicledef_"))
             {
-                target.Combat.DataManager.VehicleDefs.TryGet(attackerResource, out VehicleDef attacker);
+                actor.Combat.DataManager.VehicleDefs.TryGet(attackerResource, out VehicleDef attacker);
                 attacker.Refresh();
                 var potentialRegDamage = 0f;
                 var potentialHeatDamage = 0f;
@@ -77,7 +89,7 @@ namespace StrategicOperations.Framework
             }
             else if (attackerResource.StartsWith("turretdef_"))
             {
-                target.Combat.DataManager.TurretDefs.TryGet(attackerResource, out TurretDef attacker);
+                actor.Combat.DataManager.TurretDefs.TryGet(attackerResource, out TurretDef attacker);
                 attacker.Refresh();
                 var potentialRegDamage = 0f;
                 var potentialHeatDamage = 0f;
@@ -96,7 +108,7 @@ namespace StrategicOperations.Framework
             return 0f;
         }
 
-        public float TargetsForStrafe(AbstractActor actor) //switch to Icombatant
+        public static int TargetsForStrafe(AbstractActor actor, out Vector3 startPos, out Vector3 endPos) //switch to Icombatant
         {
             var maxCount = 0;
             var savedEndVector = new Vector3();
@@ -151,9 +163,9 @@ namespace StrategicOperations.Framework
                         var rectangles = Utils.MakeRectangle(possibleStart, vector, ability.Def.FloatParam1);
                         foreach (var rectangle in rectangles)
                         {
-                            for (int l = 0; l < actor.BehaviorTree.enemyUnits.Count; l++)
+                            for (int l = 0; l < enemyCombatants.Count; l++)
                             {
-                                if (!(actor.BehaviorTree.enemyUnits[k] is AbstractActor newTarget)) continue;
+                                if (!(enemyCombatants[l] is AbstractActor newTarget)) continue;
                                 if (rectangle.Contains(newTarget.CurrentPosition))
                                 {
                                     targetCount += 1;
@@ -177,11 +189,17 @@ namespace StrategicOperations.Framework
                         savedStartVector = currentSavedStartVector;
                     }
                 }
-                ModState.selectedAIVectors.Add(savedStartVector);
-                ModState.selectedAIVectors.Add(savedEndVector);
+                // should probably try to evaluate how many allied units it could hit and offset?
+
+                startPos = savedStartVector;
+                endPos = savedEndVector;
+               // ModState.selectedAIVectors.Add(savedStartVector);
+               // ModState.selectedAIVectors.Add(savedEndVector);
                 return maxCount;
             }
 
+            startPos = default(Vector3);
+            endPos = default(Vector3);
             return 0;
         }
     }

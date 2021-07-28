@@ -56,5 +56,6 @@ namespace StrategicOperations
         public List<string> deploymentBeaconEquipment = new List<string>(); //e.g. Item.HeatSinkDef.Gear_HeatSink_Generic_Standard
         public List<string> commandAbilities_AI = new List<string>(); //e.g. Item.HeatSinkDef.Gear_HeatSink_Generic_Standard
         public Utils.ColorSetting customSpawnReticleColor = new Utils.ColorSetting();
+        public string customSpawnReticleAsset = "";
     }
 }

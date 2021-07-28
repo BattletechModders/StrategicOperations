@@ -40,6 +40,11 @@ namespace StrategicOperations.Patches
                 loadRequest.AddBlindLoadRequest(BattleTechResourceType.PilotDef, "pilot_sim_starter_dekker");
                 ModInit.modLog.LogMessage($"Added loadrequest for PilotDef: pilot_sim_starter_dekker (hardcoded)");
 
+                loadRequest.AddBlindLoadRequest(BattleTechResourceType.Texture2D, "select-256");
+                loadRequest.AddBlindLoadRequest(BattleTechResourceType.Texture2D, "select-512");
+                ModInit.modLog.LogMessage($"Added loadrequest for Texture2D: uixTxrFram_circleSmallOutline2 (hardcoded)");
+
+
                 foreach (var abilityDef in dm.AbilityDefs.Where(x => x.Key.StartsWith("AbilityDefCMD_")))
                 {
                     var ability = new Ability(abilityDef.Value);
@@ -1433,6 +1438,41 @@ namespace StrategicOperations.Patches
             }
         }
 
+        // this is just for testing AI evaluator. sorta. hopefully.
+        [HarmonyPatch(typeof(SelectionStateCommandTargetTwoPoints), "ProcessPressedButton")]
+        public static class SelectionStateCommandTargetTwoPoints_ProcessPressedButton
+        {
+            static bool Prepare() => false; //keeping for testing but disabled for doves build
+            public static bool Prefix(SelectionStateCommandTargetTwoPoints __instance, string button, ref bool __result)
+            {
+                if (button == "BTN_FireConfirm")
+                {
+                    var dmg = AI_Utils.EvaluateStrafing(__instance.SelectedActor, out Ability ability,
+                        out Vector3 start,
+                        out Vector3 end);
+                    if (dmg > 1)
+                    {
+                        __instance.FromButton.ActivateCommandAbility(__instance.SelectedActor.team.GUID, start, end);
+                        ModInit.modLog.LogMessage(
+                            $"activated ability at pos {start.x}, {start.y},{start.z} and {end.x}, {end.y},{end.z}");
+                        __result = true;
+                        return false;
+                    }
+
+                    ModInit.modLog.LogMessage(
+                        $"dmg <1");
+                    __result = true;
+                    return false;
+                }
+
+                ModInit.modLog.LogMessage(
+                    $"button fucked up");
+                __result = true;
+                return false;
+            }
+        }
+
+
         [HarmonyPatch(typeof(CameraControl), "ShowActorCam")]
         public static class CameraControl_ShowActorCam
         {
@@ -1453,6 +1493,16 @@ namespace StrategicOperations.Patches
         {
             public static void Postfix(CombatSpawningReticle __instance)
             {
+                if (string.IsNullOrEmpty(ModInit.modSettings.customSpawnReticleAsset))
+                {
+                    var circle = GameObject.Find("ReticleDecalCircle");
+                    var decalFromCirle = circle.GetComponent<BTUIDecal>();
+                    var dm = UnityGameInstance.BattleTechGame.DataManager;
+                    var newTexture = dm.GetObjectOfType<Texture2D>(ModInit.modSettings.customSpawnReticleAsset,
+                        BattleTechResourceType.Texture2D);
+                    decalFromCirle.DecalMaterial.mainTexture = newTexture;
+                }
+
                 var decals = __instance.gameObject.GetComponentsInChildren<BTUIDecal>();
 
                 foreach (var decal in decals)
