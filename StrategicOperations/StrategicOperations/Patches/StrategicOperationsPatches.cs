@@ -1442,7 +1442,7 @@ namespace StrategicOperations.Patches
         [HarmonyPatch(typeof(SelectionStateCommandTargetTwoPoints), "ProcessPressedButton")]
         public static class SelectionStateCommandTargetTwoPoints_ProcessPressedButton
         {
-            static bool Prepare() => false; //keeping for testing but disabled for doves build
+            static bool Prepare() => true; //keeping for testing but disabled for doves build
             public static bool Prefix(SelectionStateCommandTargetTwoPoints __instance, string button, ref bool __result)
             {
                 if (button == "BTN_FireConfirm")
@@ -1493,7 +1493,7 @@ namespace StrategicOperations.Patches
         {
             public static void Postfix(CombatSpawningReticle __instance)
             {
-                if (string.IsNullOrEmpty(ModInit.modSettings.customSpawnReticleAsset))
+                if (!string.IsNullOrEmpty(ModInit.modSettings.customSpawnReticleAsset))
                 {
                     var circle = GameObject.Find("ReticleDecalCircle");
                     var decalFromCirle = circle.GetComponent<BTUIDecal>();

@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using BattleTech;
+using BattleTech.UI;
 using UnityEngine;
 
 namespace StrategicOperations.Framework
@@ -15,7 +16,7 @@ namespace StrategicOperations.Framework
             if (!CanStrafe(actor, out ability)) return 0f;
             var dmg = CalcExpectedDamage(actor, ability.Def.ActorResource);
 
-            var targets = TargetsForStrafe(actor, out startpoint, out endpoint);
+            var targets = TargetsForStrafe(actor, ability,out startpoint, out endpoint);
 
             return dmg * targets;
         }
@@ -42,8 +43,11 @@ namespace StrategicOperations.Framework
                 actor.ComponentAbilities.FirstOrDefault(x => x.Def.specialRules == AbilityDef.SpecialRules.Strafe);
             if (_ability != null)
             {
-                ability = _ability;
-                return true;
+                if (_ability.IsAvailable)
+                {
+                    ability = _ability;
+                    return true;
+                }
             }
             ability = default(Ability);
             return false;
@@ -108,17 +112,15 @@ namespace StrategicOperations.Framework
             return 0f;
         }
 
-        public static int TargetsForStrafe(AbstractActor actor, out Vector3 startPos, out Vector3 endPos) //switch to Icombatant
+        public static int TargetsForStrafe(AbstractActor actor, Ability ability, out Vector3 startPos, out Vector3 endPos) //switch to Icombatant
         {
             var maxCount = 0;
             var savedEndVector = new Vector3();
             var savedStartVector = new Vector3();
-            var ability =
-                actor.ComponentAbilities.FirstOrDefault(x => x.Def.specialRules == AbilityDef.SpecialRules.Strafe);
 
             if (ability != null)
             {
-                var maxRange = ability.Def.IntParam2;
+                var maxRange = ability.Def.IntParam2 - ability.Def.FloatParam2;
 
                 var circ = maxRange * 2 * Math.PI;
                 var steps = Mathf.RoundToInt((float)circ / (ability.Def.FloatParam1 * 2));
@@ -201,6 +203,83 @@ namespace StrategicOperations.Framework
             startPos = default(Vector3);
             endPos = default(Vector3);
             return 0;
+        }
+
+
+        public static bool CanSpawn(AbstractActor actor, out Ability ability)
+        {
+            var _ability =
+                actor.ComponentAbilities.FirstOrDefault(x => x.Def.specialRules == AbilityDef.SpecialRules.SpawnTurret);
+            if (_ability != null)
+            {
+                if (_ability.IsAvailable)
+                {
+                    ability = _ability;
+                    return true;
+                }
+            }
+            ability = default(Ability);
+            return false;
+        }
+
+        public static bool EvaluateSpawnLoc(AbstractActor actor, Ability ability, out int enemiesInRange, out Vector3 spawnpoint, out Vector3 rotationVector)
+        {
+            enemiesInRange = 0;
+            spawnpoint = new Vector3();
+            rotationVector = new Vector3();
+
+            if (ability != null)
+            {
+                var maxRange = ability.Def.IntParam2;
+
+                var circ = maxRange * 2 * Math.PI;
+
+                var enemyCombatants =
+                    new List<ICombatant>(actor.Combat.GetAllImporantCombatants()
+                        .Where(x => x.team.IsEnemy(actor.team)));
+
+                enemyCombatants.RemoveAll(x => x.GUID == actor.GUID || x.IsDead);
+
+                for (int i = 0; i < enemyCombatants.Count; i++)
+                {
+                    if (enemyCombatants[i] is AbstractActor combatantAsActor)
+                    {
+                        if (Mathf.RoundToInt(
+                                Vector3.Distance(actor.CurrentPosition, enemyCombatants[i].CurrentPosition)) >
+                            maxRange ||
+                            combatantAsActor.WasDespawned || combatantAsActor.WasEjected)
+                        {
+                            enemyCombatants.RemoveAt(i);
+                        }
+                    }
+                }
+
+                var center = new Vector3(0, 0, 0);
+                var count = 0;
+                foreach (var enemy in enemyCombatants)
+                {
+                    center += enemy.CurrentPosition;
+                    count++;
+                }
+
+                var theCenter = center / count;
+
+                var orientation = new Vector3(0, 0, 0);
+                foreach (var enemy in enemyCombatants)
+                {
+                    orientation += (enemy.CurrentPosition - theCenter);
+                }
+                var finalOrientation = orientation / count;
+                enemiesInRange = count;
+                spawnpoint = theCenter;
+                rotationVector = finalOrientation;
+                if (enemiesInRange > 1)
+                {
+                    return true;
+                }
+                return false;
+            }
+            return false;
         }
     }
 }
