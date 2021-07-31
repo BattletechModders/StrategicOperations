@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
+using System.Runtime.CompilerServices;
 using BattleTech;
 using BattleTech.Data;
 using BattleTech.Framework;
@@ -13,6 +14,19 @@ namespace StrategicOperations.Framework
 {
     public static class Utils
     {
+        public static List<AbstractActor> GetAllDetectedEnemies(this SharedVisibilityCache cache, CombatGameState combat)
+        {
+            var detectedEnemies = new List<AbstractActor>();
+            foreach (var enemy in combat.AllEnemies)
+            {
+                if (cache.CachedVisibilityToTarget(enemy).VisibilityLevel > 0)
+                {
+                    detectedEnemies.Add(enemy);
+                }
+            }
+            return detectedEnemies;
+        }
+        
         public static Vector3[] MakeCircle(Vector3 start,int numOfPoints, float radius)
         {
             var vectors = new List<Vector3>();
@@ -46,6 +60,11 @@ namespace StrategicOperations.Framework
             rectangles.Add(rectRight);
 
             return rectangles.ToArray();
+        }
+
+        public static Vector3 LerpByDistance(Vector3 start, Vector3 end, float x)
+        {
+            return x * Vector3.Normalize(end - start) + start;
         }
 
         public static T GetRandomFromList<T>(List<T> list)

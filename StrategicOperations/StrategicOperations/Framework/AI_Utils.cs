@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Runtime.Remoting.Messaging;
 using BattleTech;
 using BattleTech.UI;
 using UnityEngine;
@@ -222,64 +223,103 @@ namespace StrategicOperations.Framework
             return false;
         }
 
-        public static bool EvaluateSpawnLoc(AbstractActor actor, Ability ability, out int enemiesInRange, out Vector3 spawnpoint, out Vector3 rotationVector)
+
+        //this is still spawning way out of ranhe for some reason
+        public static int EvaluateSpawnLoc(AbstractActor actor, out Ability ability, out Vector3 spawnpoint, out Vector3 rotationVector)
         {
-            enemiesInRange = 0;
             spawnpoint = new Vector3();
             rotationVector = new Vector3();
+            if (!CanSpawn(actor, out ability)) return 0;
 
             if (ability != null)
             {
-                var maxRange = ability.Def.IntParam2;
+                var maxRange = ability.Def.IntParam2 * 2;
 
-                var circ = maxRange * 2 * Math.PI;
+                //var enemyActors = new List<AbstractActor>(actor.Combat.AllEnemies);
+                var enemyActors = actor.team.VisibilityCache.GetAllDetectedEnemies(actor.Combat);
+                ModInit.modLog.LogMessage(
+                    $"found {enemyActors.Count} to eval");
+                enemyActors.RemoveAll(x => x.WasDespawned || x.IsDead || x.IsFlaggedForDeath || x.WasEjected);
 
-                var enemyCombatants =
-                    new List<ICombatant>(actor.Combat.GetAllImporantCombatants()
-                        .Where(x => x.team.IsEnemy(actor.team)));
-
-                enemyCombatants.RemoveAll(x => x.GUID == actor.GUID || x.IsDead);
-
-                for (int i = 0; i < enemyCombatants.Count; i++)
+                if (false)
                 {
-                    if (enemyCombatants[i] is AbstractActor combatantAsActor)
+                    //disabled for now
+                    for (int i = enemyActors.Count - 1; i >= 0; i--)
                     {
-                        if (Mathf.RoundToInt(
-                                Vector3.Distance(actor.CurrentPosition, enemyCombatants[i].CurrentPosition)) >
-                            maxRange ||
-                            combatantAsActor.WasDespawned || combatantAsActor.WasEjected)
+                        var dist = Vector3.Distance(actor.CurrentPosition, enemyActors[i].CurrentPosition);
+                        ModInit.modLog.LogMessage(
+                            $"evaluating {enemyActors[i].Description.Name} {enemyActors[i].GUID}");
+                        if (dist > maxRange)
                         {
-                            enemyCombatants.RemoveAt(i);
+                            ModInit.modLog.LogMessage(
+                                $"actor out of range {dist} > {maxRange}");
+                            enemyActors.RemoveAt(i);
+                            continue;
                         }
+
+                        if (enemyActors[i].WasDespawned || enemyActors[i].WasEjected ||
+                            enemyActors[i].IsDead || enemyActors[i].GUID == actor.GUID)
+                        {
+                            ModInit.modLog.LogMessage(
+                                $"actor ejected, dead, or despawned");
+                            enemyActors.RemoveAt(i);
+                            continue;
+                        }
+
+                        ModInit.modLog.LogMessage(
+                            $"in range: {dist} < {maxRange}");
+                        
                     }
                 }
 
+                ModInit.modLog.LogMessage(
+                    $"found {enemyActors.Count} after eval");
                 var center = new Vector3(0, 0, 0);
                 var count = 0;
-                foreach (var enemy in enemyCombatants)
+                foreach (var enemy in enemyActors)
                 {
                     center += enemy.CurrentPosition;
                     count++;
                 }
 
-                var theCenter = center / count;
-
+                var avgCenter = new Vector3();
+                var theCenter = new Vector3();
                 var orientation = new Vector3(0, 0, 0);
-                foreach (var enemy in enemyCombatants)
+                var finalOrientation = new Vector3();
+
+
+                if (count == 0)
                 {
-                    orientation += (enemy.CurrentPosition - theCenter);
+                    theCenter = center;
+                    finalOrientation = orientation;
+                    goto skip;
                 }
-                var finalOrientation = orientation / count;
-                enemiesInRange = count;
+                avgCenter = center / count;
+                if (Vector3.Distance(actor.CurrentPosition, avgCenter) > maxRange)
+                {
+                    theCenter = Utils.LerpByDistance(actor.CurrentPosition, avgCenter, maxRange);
+                    ModInit.modLog.LogMessage($"Chosen point is {Vector3.Distance(actor.CurrentPosition, theCenter)} from source after LerpByDist");
+                }
+                else
+                {
+                    theCenter = avgCenter;
+                    ModInit.modLog.LogMessage($"Chosen point is {Vector3.Distance(actor.CurrentPosition, theCenter)} from source, should be < {maxRange}");
+                }
+
+                foreach (var enemy in enemyActors)
+                {
+                    orientation += (enemy.CurrentPosition - avgCenter);
+                }
+                finalOrientation = orientation / count;
+                
+
+                skip:
+                theCenter.y = actor.Combat.MapMetaData.GetLerpedHeightAt(theCenter);
                 spawnpoint = theCenter;
                 rotationVector = finalOrientation;
-                if (enemiesInRange > 1)
-                {
-                    return true;
-                }
-                return false;
+                return count;
             }
-            return false;
+            return 0;
         }
     }
 }

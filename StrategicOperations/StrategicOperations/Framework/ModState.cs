@@ -28,6 +28,7 @@ namespace StrategicOperations.Framework
             CommandAbilities = new List<Ability>();
             deferredInvokeSpawns = new List<KeyValuePair<string, Action>>();
             CommandUses = new List<Utils.CmdUseInfo>();
+            deploymentAssetsStats = new List<Utils.CmdUseStat>();
         }
 
         public static void ResetDelegateInfos()
