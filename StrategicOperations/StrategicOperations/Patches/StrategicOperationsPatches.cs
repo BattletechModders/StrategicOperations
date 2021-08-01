@@ -1445,7 +1445,7 @@ namespace StrategicOperations.Patches
         [HarmonyPatch(typeof(SelectionStateCommandTargetTwoPoints), "ProcessPressedButton")]
         public static class SelectionStateCommandTargetTwoPoints_ProcessPressedButton
         {
-            static bool Prepare() => false; //keeping for testing but disabled for doves build
+            static bool Prepare() => true; //keeping for testing but disabled for doves build
 
             public static bool Prefix(SelectionStateCommandTargetTwoPoints __instance, string button, ref bool __result)
             {

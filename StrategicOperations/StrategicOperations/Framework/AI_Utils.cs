@@ -233,7 +233,7 @@ namespace StrategicOperations.Framework
 
             if (ability != null)
             {
-                var maxRange = ability.Def.IntParam2 * 2;
+                var maxRange = ability.Def.IntParam2;
 
                 //var enemyActors = new List<AbstractActor>(actor.Combat.AllEnemies);
                 var enemyActors = actor.team.VisibilityCache.GetAllDetectedEnemies(actor.Combat);
