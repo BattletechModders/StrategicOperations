@@ -61,12 +61,14 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Framework\AI_Utils.cs" />
+    <Compile Include="Framework\Classes.cs" />
     <Compile Include="Framework\DropPodSpawn.cs" />
     <Compile Include="Framework\Utils.cs" />
     <Compile Include="Framework\ModState.cs" />
     <Compile Include="Framework\TB_StrafeSequence.cs" />
     <Compile Include="Framework\Logger.cs" />
     <Compile Include="ModInit.cs" />
+    <Compile Include="Patches\AI_Patches.cs" />
     <Compile Include="Patches\SimGamePatches.cs" />
     <Compile Include="Patches\StrategicOperationsPatches.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />

@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using BattleTech;
 using UnityEngine;
+using static StrategicOperations.Framework.Classes;
 
 namespace StrategicOperations.Framework
 {
@@ -19,16 +20,18 @@ namespace StrategicOperations.Framework
         public static bool FromDelegate;
         public static bool OutOfRange;
 
-        public static List<Utils.CmdUseInfo> CommandUses = new List<Utils.CmdUseInfo>();
+        public static AI_CmdInvocation AiCmd = new AI_CmdInvocation();
 
-        public static List<Utils.CmdUseStat> deploymentAssetsStats = new List<Utils.CmdUseStat>();
+        public static List<CmdUseInfo> CommandUses = new List<CmdUseInfo>();
+
+        public static List<CmdUseStat> deploymentAssetsStats = new List<CmdUseStat>();
 
         public static void ResetAll()
         {
             CommandAbilities = new List<Ability>();
             deferredInvokeSpawns = new List<KeyValuePair<string, Action>>();
-            CommandUses = new List<Utils.CmdUseInfo>();
-            deploymentAssetsStats = new List<Utils.CmdUseStat>();
+            CommandUses = new List<CmdUseInfo>();
+            deploymentAssetsStats = new List<CmdUseStat>();
         }
 
         public static void ResetDelegateInfos()

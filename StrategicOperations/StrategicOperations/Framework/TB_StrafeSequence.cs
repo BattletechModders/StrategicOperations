@@ -4,6 +4,7 @@ using BattleTech;
 using HBS.Math;
 using HBS.Util;
 using UnityEngine;
+using static StrategicOperations.Framework.Classes;
 
 namespace StrategicOperations.Framework
 {

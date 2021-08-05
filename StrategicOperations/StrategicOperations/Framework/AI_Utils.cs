@@ -3,19 +3,21 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Runtime.Remoting.Messaging;
 using BattleTech;
+using BattleTech.Data;
 using BattleTech.UI;
 using UnityEngine;
+using static StrategicOperations.Framework.Classes;
 
 namespace StrategicOperations.Framework
 {
     public class AI_Utils
     {
-        public static float EvaluateStrafing(AbstractActor actor, out Ability ability, out Vector3 startpoint, out Vector3 endpoint)
+        public static int EvaluateStrafing(AbstractActor actor, out Ability ability, out Vector3 startpoint, out Vector3 endpoint)
         {
             startpoint = default(Vector3);
             endpoint = default(Vector3);
-            if (!CanStrafe(actor, out ability)) return 0f;
-            var dmg = CalcExpectedDamage(actor, ability.Def.ActorResource);
+            if (!CanStrafe(actor, out ability)) return 0;
+            var dmg = Mathf.RoundToInt(CalcExpectedDamage(actor, ability.Def.ActorResource));
 
             var targets = TargetsForStrafe(actor, ability,out startpoint, out endpoint);
 
@@ -34,8 +36,108 @@ namespace StrategicOperations.Framework
 
             foreach (var unit in team.units)
             {
-                unit.ComponentAbilities.Add(Utils.GetRandomFromList(cmdAbilities));
+                if (unit.GetPilot().Abilities.All(x => x.Def.Resource != AbilityDef.ResourceConsumed.CommandAbility))
+                {
+                    ModInit.modLog.LogTrace($"No command abilities on pilot.");
+                    if (unit.ComponentAbilities.All(x => x.Def.Resource != AbilityDef.ResourceConsumed.CommandAbility))
+                    {
+                        ModInit.modLog.LogTrace($"No command abilities on unit from Components.");
+                        var roll = ModInit.Random.NextDouble();
+                        var chance = ModInit.modSettings.AI_CommandAbilityAddChance + (ModInit.modSettings.AI_CommandAbilityDifficulyMod * difficulty);
+                        if (roll <= chance);
+                        {
+                            ModInit.modLog.LogTrace($"Rolled {roll}, < {chance}.");
+                            var ability = Utils.GetRandomFromList(cmdAbilities);
+                            ModInit.modLog.LogTrace($"Adding {ability.Def?.Description?.Id} to {unit.Description?.Name}.");
+                            unit.ComponentAbilities.Add(ability);
+                        }
+                       
+                    }
+                }
             }
+        }
+
+        public static string AssignRandomSpawnAsset(Ability ability)
+        {
+            var sgs = UnityGameInstance.BattleTechGame.Simulation;
+            var dm = UnityGameInstance.BattleTechGame.DataManager;
+            var potentialAssetsForAI = new List<string>();
+
+            if (!string.IsNullOrEmpty(ability.Def.ActorResource))
+            {
+                string type;
+                if (ability.Def.ActorResource.StartsWith("mechdef_"))
+                {
+                    type = "mechdef_";
+                }
+
+                else if (ability.Def.ActorResource.StartsWith("vehicledef_"))
+                {
+                    type = "vehicledef_";
+                }
+                else if (ability.Def.ActorResource.StartsWith("turretdef_"))
+                {
+                    type = "turretdef_";
+                }
+                else
+                {
+                    ModInit.modLog.LogTrace($"Something fucked in the ability {ability.Def.Description.Id}");
+                    return "";
+                }
+                var allowedUnitTags = ability.Def.StringParam2;
+
+                foreach (var stat in ModInit.modSettings.deploymentBeaconEquipment)
+                {
+                    string[] array = stat.Split(new char[]
+                    {
+                        '.'
+                    });
+                    if (string.CompareOrdinal(array[1], "MECHPART") != 0)
+                    {
+                        BattleTechResourceType battleTechResourceType =
+                            (BattleTechResourceType) Enum.Parse(typeof(BattleTechResourceType), array[1]);
+                        if (battleTechResourceType != BattleTechResourceType.MechDef &&
+                            dm.Exists(battleTechResourceType, array[2]))
+                        {
+                            bool flag = array.Length > 3 &&
+                                        string.Compare(array[3], "DAMAGED", StringComparison.Ordinal) == 0;
+                            MechComponentDef componentDef = sgs.GetComponentDef(battleTechResourceType, array[2]);
+                            MechComponentRef mechComponentRef = new MechComponentRef(componentDef.Description.Id,
+                                sgs.GenerateSimGameUID(), componentDef.ComponentType, ChassisLocations.None, -1,
+                                flag ? ComponentDamageLevel.NonFunctional : ComponentDamageLevel.Functional, false);
+                            mechComponentRef.SetComponentDef(componentDef);
+
+                            if (mechComponentRef.Def.ComponentTags.All(x => x != "CanSpawnTurret" && ability.Def.specialRules == AbilityDef.SpecialRules.SpawnTurret))
+                                continue;
+                            if (mechComponentRef.Def.ComponentTags.All(x => x != "CanStrafe" && ability.Def.specialRules == AbilityDef.SpecialRules.Strafe))
+                                continue;
+                            var id = mechComponentRef.Def.ComponentTags.FirstOrDefault(x =>
+                                x.StartsWith("mechdef_") || x.StartsWith("vehicledef_") ||
+                                x.StartsWith("turretdef_"));
+
+
+                            if (!id.StartsWith(type))
+                            {
+                                ModInit.modLog.LogTrace($"{id} != {type}, ignoring.");
+                                continue;
+                            }
+
+                            if (!string.IsNullOrEmpty(allowedUnitTags) &&
+                                mechComponentRef.Def.ComponentTags.All(x => x != allowedUnitTags))
+                            {
+                                continue;
+                            }
+                            potentialAssetsForAI.Add(id);
+                            ModInit.modLog.LogTrace($"Added {id} to potential AI assets.");
+                        }
+                    }
+                }
+
+                var chosen = Utils.GetRandomFromList(potentialAssetsForAI);
+                ModInit.modLog.LogTrace($"Chose {chosen} for this activation.");
+                return chosen;
+            }
+            return "";
         }
 
         public static bool CanStrafe(AbstractActor actor, out Ability ability)
@@ -225,7 +327,7 @@ namespace StrategicOperations.Framework
 
 
         //this is still spawning way out of ranhe for some reason
-        public static int EvaluateSpawnLoc(AbstractActor actor, out Ability ability, out Vector3 spawnpoint, out Vector3 rotationVector)
+        public static int EvaluateSpawn(AbstractActor actor, out Ability ability, out Vector3 spawnpoint, out Vector3 rotationVector)
         {
             spawnpoint = new Vector3();
             rotationVector = new Vector3();
@@ -236,43 +338,12 @@ namespace StrategicOperations.Framework
                 var maxRange = ability.Def.IntParam2;
 
                 //var enemyActors = new List<AbstractActor>(actor.Combat.AllEnemies);
-                var enemyActors = actor.team.VisibilityCache.GetAllDetectedEnemies(actor.Combat);
-                ModInit.modLog.LogMessage(
+                var enemyActors = actor.team.VisibilityCache.GetAllDetectedEnemies(actor);
+                ModInit.modLog.LogTrace(
                     $"found {enemyActors.Count} to eval");
                 enemyActors.RemoveAll(x => x.WasDespawned || x.IsDead || x.IsFlaggedForDeath || x.WasEjected);
 
-                if (false)
-                {
-                    //disabled for now
-                    for (int i = enemyActors.Count - 1; i >= 0; i--)
-                    {
-                        var dist = Vector3.Distance(actor.CurrentPosition, enemyActors[i].CurrentPosition);
-                        ModInit.modLog.LogMessage(
-                            $"evaluating {enemyActors[i].Description.Name} {enemyActors[i].GUID}");
-                        if (dist > maxRange)
-                        {
-                            ModInit.modLog.LogMessage(
-                                $"actor out of range {dist} > {maxRange}");
-                            enemyActors.RemoveAt(i);
-                            continue;
-                        }
-
-                        if (enemyActors[i].WasDespawned || enemyActors[i].WasEjected ||
-                            enemyActors[i].IsDead || enemyActors[i].GUID == actor.GUID)
-                        {
-                            ModInit.modLog.LogMessage(
-                                $"actor ejected, dead, or despawned");
-                            enemyActors.RemoveAt(i);
-                            continue;
-                        }
-
-                        ModInit.modLog.LogMessage(
-                            $"in range: {dist} < {maxRange}");
-                        
-                    }
-                }
-
-                ModInit.modLog.LogMessage(
+                ModInit.modLog.LogTrace(
                     $"found {enemyActors.Count} after eval");
                 var center = new Vector3(0, 0, 0);
                 var count = 0;
@@ -298,12 +369,12 @@ namespace StrategicOperations.Framework
                 if (Vector3.Distance(actor.CurrentPosition, avgCenter) > maxRange)
                 {
                     theCenter = Utils.LerpByDistance(actor.CurrentPosition, avgCenter, maxRange);
-                    ModInit.modLog.LogMessage($"Chosen point is {Vector3.Distance(actor.CurrentPosition, theCenter)} from source after LerpByDist");
+                    ModInit.modLog.LogTrace($"Chosen point is {Vector3.Distance(actor.CurrentPosition, theCenter)} from source after LerpByDist");
                 }
                 else
                 {
                     theCenter = avgCenter;
-                    ModInit.modLog.LogMessage($"Chosen point is {Vector3.Distance(actor.CurrentPosition, theCenter)} from source, should be < {maxRange}");
+                    ModInit.modLog.LogTrace($"Chosen point is {Vector3.Distance(actor.CurrentPosition, theCenter)} from source, should be < {maxRange}");
                 }
 
                 foreach (var enemy in enemyActors)

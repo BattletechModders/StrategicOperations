@@ -10,6 +10,7 @@ using Harmony;
 using HBS;
 using StrategicOperations.Framework;
 using UnityEngine;
+using static StrategicOperations.Framework.Classes;
 
 namespace StrategicOperations.Patches
 {
@@ -33,7 +34,7 @@ namespace StrategicOperations.Patches
         {
             public static void Postfix(TurnDirector __instance, MessageCenterMessage message)
             {
-                if (UnityGameInstance.BattleTechGame.Combat.ActiveContract.ContractTypeValue.IsSkirmish) return;
+                if (__instance.Combat.ActiveContract.ContractTypeValue.IsSkirmish) return;
                 var dm = __instance.Combat.DataManager;
                 LoadRequest loadRequest = dm.CreateLoadRequest();
 
@@ -109,8 +110,10 @@ namespace StrategicOperations.Patches
                     }
 
                 }
-
                 loadRequest.ProcessRequests(1000u);
+
+
+
             }
         }
 
@@ -375,7 +378,7 @@ namespace StrategicOperations.Patches
                             if (ModState.CommandUses.All(x => x.UnitID != actorResource))
                             {
 
-                                var commandUse = new Utils.CmdUseInfo(unitID, __instance.Def.Description.Name, unitName,
+                                var commandUse = new CmdUseInfo(unitID, __instance.Def.Description.Name, unitName,
                                     unitCost, __instance.Def.getAbilityDefExtension().CBillCost);
 
                                 ModState.CommandUses.Add(commandUse);
@@ -450,7 +453,7 @@ namespace StrategicOperations.Patches
                             if (ModState.CommandUses.All(x => x.UnitID != actorResource))
                             {
 
-                                var commandUse = new Utils.CmdUseInfo(unitID, __instance.Def.Description.Name, unitName,
+                                var commandUse = new CmdUseInfo(unitID, __instance.Def.Description.Name, unitName,
                                     unitCost, __instance.Def.getAbilityDefExtension().CBillCost);
 
                                 ModState.CommandUses.Add(commandUse);
@@ -522,7 +525,7 @@ namespace StrategicOperations.Patches
                             if (ModState.CommandUses.All(x => x.UnitID != actorResource))
                             {
 
-                                var commandUse = new Utils.CmdUseInfo(unitID, __instance.Def.Description.Name, unitName,
+                                var commandUse = new CmdUseInfo(unitID, __instance.Def.Description.Name, unitName,
                                     unitCost, __instance.Def.getAbilityDefExtension().CBillCost);
 
                                 ModState.CommandUses.Add(commandUse);
@@ -687,7 +690,7 @@ namespace StrategicOperations.Patches
                         if (ModState.CommandUses.All(x => x.UnitID != actorResource))
                         {
                             var commandUse =
-                                new Utils.CmdUseInfo(unitID, __instance.Def.Description.Name, unitName, unitCost,
+                                new CmdUseInfo(unitID, __instance.Def.Description.Name, unitName, unitCost,
                                     __instance.Def.getAbilityDefExtension().CBillCost);
 
                             ModState.CommandUses.Add(commandUse);
@@ -759,7 +762,7 @@ namespace StrategicOperations.Patches
                         if (ModState.CommandUses.All(x => x.UnitID != actorResource))
                         {
                             var commandUse =
-                                new Utils.CmdUseInfo(unitID, __instance.Def.Description.Name, unitName, unitCost,
+                                new CmdUseInfo(unitID, __instance.Def.Description.Name, unitName, unitCost,
                                     __instance.Def.getAbilityDefExtension().CBillCost);
 
                             ModState.CommandUses.Add(commandUse);
@@ -823,7 +826,7 @@ namespace StrategicOperations.Patches
                         if (ModState.CommandUses.All(x => x.UnitID != actorResource))
                         {
                             var commandUse =
-                                new Utils.CmdUseInfo(unitID, __instance.Def.Description.Name, unitName, unitCost,
+                                new CmdUseInfo(unitID, __instance.Def.Description.Name, unitName, unitCost,
                                     __instance.Def.getAbilityDefExtension().CBillCost);
 
                             ModState.CommandUses.Add(commandUse);
@@ -1438,68 +1441,6 @@ namespace StrategicOperations.Patches
                 }
 
                 return true;
-            }
-        }
-
-        // this is just for testing AI evaluator. sorta. hopefully.
-        [HarmonyPatch(typeof(SelectionStateCommandTargetTwoPoints), "ProcessPressedButton")]
-        public static class SelectionStateCommandTargetTwoPoints_ProcessPressedButton
-        {
-            static bool Prepare() => true; //keeping for testing but disabled for doves build
-
-            public static bool Prefix(SelectionStateCommandTargetTwoPoints __instance, string button, ref bool __result)
-            {
-
-                if (button == "BTN_FireConfirm")
-                {
-                    if (__instance.FromButton.Ability.Def.specialRules == AbilityDef.SpecialRules.Strafe)
-                    {
-                        var dmg = AI_Utils.EvaluateStrafing(__instance.SelectedActor, out Ability ability,
-                            out Vector3 start,
-                            out Vector3 end);
-                        if (dmg > 1)
-                        {
-                            __instance.FromButton.ActivateCommandAbility(__instance.SelectedActor.team.GUID, start,
-                                end);
-                            ModInit.modLog.LogMessage(
-                                $"activated Strafe at pos {start.x}, {start.y}, {start.z} and {end.x}, {end.y},{end.z}");
-                            __result = true;
-                            return false;
-                        }
-
-                        ModInit.modLog.LogMessage(
-                            $"dmg <1");
-                        __result = true;
-                        return false;
-                    }
-
-                    if (__instance.FromButton.Ability.Def.specialRules == AbilityDef.SpecialRules.SpawnTurret)
-                    {
-                        var tgts = AI_Utils.EvaluateSpawnLoc(__instance.SelectedActor, out Ability ability,
-                            out Vector3 start,
-                            out Vector3 end);
-                        if (tgts > 1)
-                        {
-                            __instance.FromButton.ActivateCommandAbility(__instance.SelectedActor.team.GUID, start,
-                                end);
-                            ModInit.modLog.LogMessage(
-                                $"activated SpawnTurret at pos {start.x}, {start.y}, {start.z} and {end.x}, {end.y},{end.z}");
-                            __result = true;
-                            return false;
-                        }
-
-                        ModInit.modLog.LogMessage(
-                            $"dmg <1");
-                        __result = true;
-                        return false;
-                    }
-
-                }
-
-                ModInit.modLog.LogMessage(
-                    $"button fucked up");
-                __result = true;
-                return false;
             }
         }
 

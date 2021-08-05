@@ -3,23 +3,25 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using System.Runtime.CompilerServices;
+using System.Runtime.Remoting.Messaging;
 using BattleTech;
 using BattleTech.Data;
 using BattleTech.Framework;
 using BattleTech.Rendering;
 using Harmony;
 using UnityEngine;
+using static StrategicOperations.Framework.Classes;
 
 namespace StrategicOperations.Framework
 {
     public static class Utils
     {
-        public static List<AbstractActor> GetAllDetectedEnemies(this SharedVisibilityCache cache, CombatGameState combat)
+        public static List<AbstractActor> GetAllDetectedEnemies(this SharedVisibilityCache cache, AbstractActor actor)
         {
             var detectedEnemies = new List<AbstractActor>();
-            foreach (var enemy in combat.AllEnemies)
+            foreach (var enemy in actor.Combat.AllActors)
             {
-                if (cache.CachedVisibilityToTarget(enemy).VisibilityLevel > 0)
+                if (cache.CachedVisibilityToTarget(enemy).VisibilityLevel > 0 && actor.Combat.HostilityMatrix.IsEnemy(actor.team, enemy.team))
                 {
                     detectedEnemies.Add(enemy);
                 }
@@ -69,61 +71,9 @@ namespace StrategicOperations.Framework
 
         public static T GetRandomFromList<T>(List<T> list)
         {
+            if (list.Count == 0) return (T) new object();
             var idx = UnityEngine.Random.Range(0, list.Count);
             return list[0];
-        }
-
-        public class ColorSetting
-        {
-            public int r;
-            public int g;
-            public int b;
-
-            public float Rf => r / 255f;
-            public float Gf => g / 255f;
-            public float Bf => b / 255f;
-        }
-
-        public class CmdUseStat
-        {
-            public string ID;
-            public string stat;
-            public string pilotID;
-            public bool consumeOnUse;
-            public int contractUses;
-            public int simStatCount;
-
-            public CmdUseStat(string ID, string stat, bool consumeOnUse, int contractUses, int simStatCount, string pilotID = null)
-            {
-                this.ID = ID;
-                this.stat = stat;
-                this.pilotID = pilotID;
-                this.consumeOnUse = consumeOnUse;
-                this.contractUses = contractUses;
-                this.simStatCount = simStatCount;
-            }
-        }
-
-        public class CmdUseInfo
-        {
-            public string UnitID;
-            public string CommandName;
-            public string UnitName;
-            public int UseCost;
-            public int AbilityUseCost;
-            public int UseCostAdjusted => Mathf.RoundToInt((UseCost * ModInit.modSettings.commandUseCostsMulti) + AbilityUseCost);
-            public int UseCount;
-            public int TotalCost => UseCount * UseCostAdjusted;
-
-            public CmdUseInfo(string unitID, string CommandName, string UnitName, int UseCost, int AbilityUseCost)
-            {
-                this.UnitID = unitID;
-                this.CommandName = CommandName;
-                this.UnitName = UnitName;
-                this.UseCost = UseCost;
-                this.AbilityUseCost = AbilityUseCost;
-                this.UseCount = 1;
-            }
         }
 
         public static HeraldryDef SwapHeraldryColors(HeraldryDef def, DataManager dataManager, Action loadCompleteCallback = null)
@@ -184,6 +134,19 @@ namespace StrategicOperations.Framework
             combat.TurnDirector.AddTurnActor(aiteam);
             combat.ItemRegistry.AddItem(aiteam);
         }
+
+        public static void CreateOrUpdatCustomTeam()
+        {
+            AITeam aiteam = null;
+            var combat = UnityGameInstance.BattleTechGame.Combat;
+            if (!combat.IsLoadingFromSave || aiteam == null)
+            {
+                aiteam = new AITeam("CustomTeamTest", Color.yellow, Guid.NewGuid().ToString(), true, combat);
+            }
+            combat.TurnDirector.AddTurnActor(aiteam);
+            combat.ItemRegistry.AddItem(aiteam);
+        }
+
 
         public static List<MechComponentRef> GetOwnedDeploymentBeacons()
         {

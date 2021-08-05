@@ -4,6 +4,7 @@ using BattleTech.Framework;
 using BattleTech.UI;
 using Harmony;
 using StrategicOperations.Framework;
+using static StrategicOperations.Framework.Classes;
 
 namespace StrategicOperations.Patches
 {

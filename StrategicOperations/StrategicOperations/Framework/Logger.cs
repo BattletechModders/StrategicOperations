@@ -6,9 +6,8 @@ namespace StrategicOperations.Framework
     internal class Logger
     {
         private static StreamWriter logStreamWriter;
-        private bool enableLogging;
 
-        public Logger(string modDir, string fileName, bool enableLogging)
+        public Logger(string modDir, string fileName)
         {
             string filePath = Path.Combine(modDir, $"{fileName}.log");
             if (File.Exists(filePath))
@@ -18,19 +17,25 @@ namespace StrategicOperations.Framework
 
             logStreamWriter = File.AppendText(filePath);
             logStreamWriter.AutoFlush = true;
-
-            this.enableLogging = enableLogging;
         }
 
         public void LogMessage(string message)
         {
-            if (enableLogging)
+            if (ModInit.modSettings.enableLogging)
             {
                 string ts = DateTime.Now.ToString("s", System.Globalization.CultureInfo.InvariantCulture);
                 logStreamWriter.WriteLine($"INFO: {ts} - {message}");
             }
         }
 
+        public void LogTrace(string message)
+        {
+            if (ModInit.modSettings.enableTrace)
+            {
+                string ts = DateTime.Now.ToString("s", System.Globalization.CultureInfo.InvariantCulture);
+                logStreamWriter.WriteLine($"TRACE: {ts} - {message}");
+            }
+        }
 
         public void LogError(string message)
         {
