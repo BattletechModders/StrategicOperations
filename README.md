@@ -9,10 +9,11 @@ settings in the mod.json:
 ```
 "enableLogging": true,
 "showStrafeCamera": false,
-"strafeTargetsFriendlies": true,
 "strafeEndsActivation": true,
 "spawnTurretEndsActivation": true,
 "deployProtection": 8,
+"strafeTargetsFriendliesChance": 1.0,
+"strafeNeutralBuildingsChance": 0.2,
 "strafeSensorFactor": 4.0,
 "strafeVelocityDefault": 150.0,
 "strafeAltitudeMin": 75.0,
@@ -37,7 +38,6 @@ settings in the mod.json:
 	},
 "customSpawnReticleAsset": "select_spawn_reticle"
 ```
-`strafeTargetsFriendlies` - bool, strafing can hit friendly units,
 
 `showStrafeCamera` - bool, if true, camera will show 1st person view of strafing unit as it flies in (but view returns to normal before it starts shooting).
 
@@ -46,6 +46,10 @@ settings in the mod.json:
 `spawnTurretEndsActivation` - bool, does spawn unit automatically end the turn of the unit using them?
 
 `deployProtection` - int, number of evasion pips added to deployed units at spawn (IRTweaks/MC spawn protection dont work on these)
+
+`strafeTargetsFriendliesChance` - float, probability that strafing targets friendly units
+
+`strafeNeutralBuildingsChance` - float, probability that strafing targets non-objective buildings (friendly buildings are covered by `strafeTargetsFriendliesChance`)
 
 `strafeSensorFactor` - float, multiplier of strafing units base sensor range for revealing sensor blips of hostiles as it flies over them.
 
