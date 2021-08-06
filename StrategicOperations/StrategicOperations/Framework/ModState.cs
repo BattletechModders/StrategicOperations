@@ -13,7 +13,6 @@ namespace StrategicOperations.Framework
         public static List<KeyValuePair<string, Action>>
             deferredInvokeSpawns = new List<KeyValuePair<string, Action>>();
 
-        public static List<Vector3> selectedAIVectors;
         public static string deferredActorResource = "";
         public static string popupActorResource = "";
         public static string PilotOverride= null;

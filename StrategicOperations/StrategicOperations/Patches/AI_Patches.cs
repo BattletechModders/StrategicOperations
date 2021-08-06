@@ -4,6 +4,7 @@ using System.Linq;
 using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
+using Abilifier;
 using BattleTech;
 using BattleTech.Framework;
 using BattleTech.UI;
@@ -23,11 +24,11 @@ namespace StrategicOperations.Patches
 
             public static void Postfix(TurnDirector __instance, MessageCenterMessage message)
             {
-                Utils.CreateOrUpdatCustomTeam();
+                Utils.CreateOrUpdateCustomTeam(); // can remove this after testing.
 
                 var tgtTeam =
                     __instance.Combat.Teams.FirstOrDefault(x => x.GUID == "be77cadd-e245-4240-a93e-b99cc98902a5"); // TargetTeam is only team that gets cmdAbilities added?
-                AI_Utils.GenerateAIStrategicAbilities(tgtTeam, __instance.Combat.ActiveContract.Override.finalDifficulty);
+                AI_Utils.GenerateAIStrategicAbilities(tgtTeam, __instance.Combat);
             }
         }
 
@@ -103,10 +104,14 @@ namespace StrategicOperations.Patches
                 return AccessTools.Method(type, "Tick");
             }
 
-            public static bool Prefix(ref BehaviorTreeResults __result, string ___name, BehaviorTree ___tree,
+            public static bool Prefix(ref BehaviorTreeResults __result, string ___name,
                 AbstractActor ___unit)
             {
-//                if (ModState.AiCmd.active) return true;
+                if (ModState.AiCmd.active)
+                {
+                    __result = new BehaviorTreeResults(BehaviorNodeState.Failure);
+                    return false;
+                }
                 var spawnVal = AI_Utils.EvaluateSpawn(___unit, out var abilitySpawn, out var vector1Spawn, out var vector2Spawn);
                 var strafeVal = AI_Utils.EvaluateStrafing(___unit, out var abilityStrafe, out var vector1Strafe, out var vector2Strafe);
 
@@ -115,14 +120,16 @@ namespace StrategicOperations.Patches
                     var info = new AI_CmdInvocation(abilitySpawn, vector1Spawn, vector2Spawn, true);
                     ModState.AiCmd = info;
                     __result = new BehaviorTreeResults(BehaviorNodeState.Failure);
+                    return false;
                 }
                 else if (strafeVal > ModInit.modSettings.AI_InvokeStrafeThreshold && strafeVal >= spawnVal)
                 {
                     var info = new AI_CmdInvocation(abilityStrafe, vector1Strafe, vector2Strafe, true);
                     ModState.AiCmd = info;
                     __result = new BehaviorTreeResults(BehaviorNodeState.Failure);
+                    return false;
                 }
-                return false;
+                return true;
             }
         }
 
@@ -133,12 +140,16 @@ namespace StrategicOperations.Patches
             public static bool Prefix(AITeam __instance, AbstractActor unit, OrderInfo order, ref InvocationMessage __result)
             {
                 if (!ModState.AiCmd.active) return true;
-                ModState.deferredActorResource =
+                ModState.popupActorResource =
                     AI_Utils.AssignRandomSpawnAsset(ModState.AiCmd.ability);
+
+                ModInit.modLog.LogTrace($"AICMD DUMP: {ModState.AiCmd.active}, {ModState.AiCmd.vectorOne}, {ModState.AiCmd.vectorTwo}.");
+                ModInit.modLog.LogTrace($"CMD Ability DUMP: {ModState.AiCmd.ability} { ModState.AiCmd.ability.Def.Id}, Combat is null? {ModState.AiCmd.ability.Combat != null}");
+
                 ModState.AiCmd.ability.Activate(unit, ModState.AiCmd.vectorOne,
                     ModState.AiCmd.vectorTwo);
                 ModInit.modLog.LogMessage(
-                    $"activated {ModState.AiCmd.ability.Def.Description.Id} at pos {ModState.AiCmd.vectorOne.x}, {ModState.AiCmd.vectorOne.y}, {ModState.AiCmd.vectorOne.z} and {ModState.AiCmd.vectorTwo.x}, {ModState.AiCmd.vectorTwo.y}, {ModState.AiCmd.vectorTwo.z}");
+                    $"activated {ModState.AiCmd.ability.Def.Description.Id} at pos {ModState.AiCmd.vectorOne.x}, {ModState.AiCmd.vectorOne.y}, {ModState.AiCmd.vectorOne.z} and {ModState.AiCmd.vectorTwo.x}, {ModState.AiCmd.vectorTwo.y}, {ModState.AiCmd.vectorTwo.z}, dist = {ModState.AiCmd.dist}");
 
                 if (!unit.HasMovedThisRound)
                 {

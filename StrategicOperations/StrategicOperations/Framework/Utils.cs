@@ -73,7 +73,7 @@ namespace StrategicOperations.Framework
         {
             if (list.Count == 0) return (T) new object();
             var idx = UnityEngine.Random.Range(0, list.Count);
-            return list[0];
+            return list[idx];
         }
 
         public static HeraldryDef SwapHeraldryColors(HeraldryDef def, DataManager dataManager, Action loadCompleteCallback = null)
@@ -135,18 +135,23 @@ namespace StrategicOperations.Framework
             combat.ItemRegistry.AddItem(aiteam);
         }
 
-        public static void CreateOrUpdatCustomTeam()
+        public static void CreateOrUpdateCustomTeam()
         {
             AITeam aiteam = null;
             var combat = UnityGameInstance.BattleTechGame.Combat;
-            if (!combat.IsLoadingFromSave || aiteam == null)
-            {
-                aiteam = new AITeam("CustomTeamTest", Color.yellow, Guid.NewGuid().ToString(), true, combat);
-            }
+            aiteam = new AITeam("CustomTeamTest", Color.yellow, Guid.NewGuid().ToString(), true, combat);
             combat.TurnDirector.AddTurnActor(aiteam);
             combat.ItemRegistry.AddItem(aiteam);
         }
 
+        public static void CreateOrUpdateAISupportTeam()
+        {
+            AITeam aiteam = null;
+            var combat = UnityGameInstance.BattleTechGame.Combat;
+            aiteam = new AITeam("Opfor Support", Color.black, Guid.NewGuid().ToString(), true, combat);
+            combat.TurnDirector.AddTurnActor(aiteam);
+            combat.ItemRegistry.AddItem(aiteam);
+        }
 
         public static List<MechComponentRef> GetOwnedDeploymentBeacons()
         {

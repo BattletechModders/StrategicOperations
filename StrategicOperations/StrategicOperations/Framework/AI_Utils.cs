@@ -24,7 +24,7 @@ namespace StrategicOperations.Framework
             return dmg * targets;
         }
 
-        public static void GenerateAIStrategicAbilities(Team team, int difficulty)
+        public static void GenerateAIStrategicAbilities(Team team, CombatGameState combat)
         {
             var dm = team.Combat.DataManager;
             var cmdAbilities = new List<Ability>();
@@ -43,17 +43,18 @@ namespace StrategicOperations.Framework
                     {
                         ModInit.modLog.LogTrace($"No command abilities on unit from Components.");
                         var roll = ModInit.Random.NextDouble();
-                        var chance = ModInit.modSettings.AI_CommandAbilityAddChance + (ModInit.modSettings.AI_CommandAbilityDifficulyMod * difficulty);
-                        if (roll <= chance);
+                        var chance = ModInit.modSettings.AI_CommandAbilityAddChance + (ModInit.modSettings.AI_CommandAbilityDifficulyMod * combat.ActiveContract.Override.finalDifficulty);
+                        if (roll <= chance)
                         {
                             ModInit.modLog.LogTrace($"Rolled {roll}, < {chance}.");
                             var ability = Utils.GetRandomFromList(cmdAbilities);
                             ModInit.modLog.LogTrace($"Adding {ability.Def?.Description?.Id} to {unit.Description?.Name}.");
+                            ability.Init(combat);
                             unit.ComponentAbilities.Add(ability);
                         }
                        
                     }
-                }
+                }// did i add things o the wrong team? probably.
             }
         }
 
@@ -351,6 +352,8 @@ namespace StrategicOperations.Framework
                 {
                     center += enemy.CurrentPosition;
                     count++;
+                    ModInit.modLog.LogTrace(
+                        $"enemyActors count = {count}");
                 }
 
                 var avgCenter = new Vector3();
@@ -361,6 +364,8 @@ namespace StrategicOperations.Framework
 
                 if (count == 0)
                 {
+                    ModInit.modLog.LogTrace(
+                        $"FINAL enemyActors count = {count}");
                     theCenter = center;
                     finalOrientation = orientation;
                     goto skip;

@@ -235,8 +235,8 @@ namespace StrategicOperations.Patches
         {
             public static bool Prefix(Ability __instance, AbstractActor creator, Vector3 positionA, Vector3 positionB)
             {
+                ModInit.modLog.LogMessage($"Running Ability.Activate; check if skirmish.");
                 if (__instance.Combat.ActiveContract.ContractTypeValue.IsSkirmish) return true;
-                ModInit.modLog.LogMessage($"Running Ability.Activate");
                 if (!__instance.IsAvailable)
                 {
                     ModInit.modLog.LogMessage(
@@ -249,7 +249,7 @@ namespace StrategicOperations.Patches
                 {
                     Utils._activateStrafeMethod.Invoke(__instance,
                         new object[] {creator.team, positionA, positionB, __instance.Def.FloatParam1});
-                    ModInit.modLog.LogMessage($"ActivateStrafe invoked from Ability.Activate");
+                    ModInit.modLog.LogMessage($"{creator.Description?.Name}: ActivateStrafe invoked from Ability.Activate. Distance was {Vector3.Distance(positionA, positionB)}");
                     __instance.Combat.MessageCenter.PublishMessage(new AbilityActivatedMessage(creator.GUID,
                         creator.GUID, __instance.Def.Id, positionA, positionB));
                     __instance.ActivateCooldown();
@@ -260,7 +260,7 @@ namespace StrategicOperations.Patches
                 {
                     Utils._activateSpawnTurretMethod.Invoke(__instance,
                         new object[] {creator.team, positionA, positionB});
-                    ModInit.modLog.LogMessage($"ActivateSpawnTurret invoked from Ability.Activate");
+                    ModInit.modLog.LogMessage($"{creator.Description?.Name}: ActivateSpawnTurret invoked from Ability.Activate. Distance was {Vector3.Distance(positionA, positionB)}");
                     __instance.Combat.MessageCenter.PublishMessage(new AbilityActivatedMessage(creator.GUID,
                         creator.GUID, __instance.Def.Id, positionA, positionB));
                     __instance.ActivateCooldown();
@@ -315,7 +315,7 @@ namespace StrategicOperations.Patches
                     }
 
                     ModInit.modLog.LogMessage($"Pilot should be {pilotID}");
-                    if (ModState.deploymentAssetsStats.Any(x => x.ID == actorResource))
+                    if (ModState.deploymentAssetsStats.Any(x => x.ID == actorResource) && team.IsLocalPlayer)
                     {
                         var assetStatInfo = ModState.deploymentAssetsStats.FirstOrDefault(x => x.ID == actorResource);
                         if (assetStatInfo != null)
@@ -327,7 +327,6 @@ namespace StrategicOperations.Patches
                                     StatCollection.StatOperation.Int_Subtract, 1);
                             }
                         }
-
                         ModInit.modLog.LogMessage($"Decrementing count of {actorResource} in deploymentAssetsDict");
                     }
 
@@ -364,8 +363,8 @@ namespace StrategicOperations.Patches
                             flares.GetValue();
                         }
 
-                        if (ModInit.modSettings.commandUseCostsMulti > 0 ||
-                            __instance.Def.getAbilityDefExtension().CBillCost > 0)
+                        if (team.IsLocalPlayer && (ModInit.modSettings.commandUseCostsMulti > 0 ||
+                            __instance.Def.getAbilityDefExtension().CBillCost > 0))
                         {
                             var unitName = "";
                             var unitCost = 0;
@@ -436,8 +435,8 @@ namespace StrategicOperations.Patches
                             flares.GetValue();
                         }
 
-                        if (ModInit.modSettings.commandUseCostsMulti > 0 ||
-                            __instance.Def.getAbilityDefExtension().CBillCost > 0)
+                        if (team.IsLocalPlayer && (ModInit.modSettings.commandUseCostsMulti > 0 ||
+                                                   __instance.Def.getAbilityDefExtension().CBillCost > 0))
                         {
                             var unitName = "";
                             var unitCost = 0;
@@ -510,8 +509,8 @@ namespace StrategicOperations.Patches
                             flares.GetValue();
                         }
 
-                        if (ModInit.modSettings.commandUseCostsMulti > 0 ||
-                            __instance.Def.getAbilityDefExtension().CBillCost > 0)
+                        if (team.IsLocalPlayer && (ModInit.modSettings.commandUseCostsMulti > 0 ||
+                                                   __instance.Def.getAbilityDefExtension().CBillCost > 0))
                         {
                             var unitName = "";
                             var unitCost = 0;
@@ -552,15 +551,10 @@ namespace StrategicOperations.Patches
                     {
                         ModInit.modLog.LogMessage(
                             $"Something wrong with CMD Ability {__instance.Def.Id}, invalid ActorResource");
-                        ModState.selectedAIVectors = new List<Vector3>();
                         return false;
                     }
-
-                    ModState.selectedAIVectors = new List<Vector3>();
                     return false;
                 }
-
-                ModState.selectedAIVectors = new List<Vector3>();
                 return false;
             }
         }
@@ -576,6 +570,13 @@ namespace StrategicOperations.Patches
                 var dm = combat.DataManager;
                 var sim = UnityGameInstance.BattleTechGame.Simulation;
 
+                var teamSelection = team.SupportTeam;
+                if (!team.IsLocalPlayer)
+                {
+                    teamSelection = team as AITeam;
+                }
+
+
                 var actorResource = __instance.Def.ActorResource;
 
                 var supportHeraldryDef = Utils.SwapHeraldryColors(team.HeraldryDef, dm);
@@ -587,7 +588,7 @@ namespace StrategicOperations.Patches
                     ModState.popupActorResource = "";
                 }
 
-                if (ModState.deploymentAssetsStats.Any(x => x.ID == actorResource))
+                if (ModState.deploymentAssetsStats.Any(x => x.ID == actorResource) && team.IsLocalPlayer)
                 {
                     var assetStatInfo = ModState.deploymentAssetsStats.FirstOrDefault(x => x.ID == actorResource);
                     if (assetStatInfo != null)
@@ -640,7 +641,7 @@ namespace StrategicOperations.Patches
 
                 ModInit.modLog.LogMessage($"Pilot should be {pilotID}");
                 dm.PilotDefs.TryGet(pilotID, out var supportPilotDef);
-                var cmdLance = Utils.CreateCMDLance(team.SupportTeam);
+                var cmdLance = Utils.CreateCMDLance(teamSelection);
 
                 Quaternion quaternion = Quaternion.LookRotation(positionB - positionA);
 
@@ -650,13 +651,13 @@ namespace StrategicOperations.Patches
                     dm.MechDefs.TryGet(actorResource, out var supportActorMechDef);
                     supportActorMechDef.Refresh();
                     var supportActorMech = ActorFactory.CreateMech(supportActorMechDef, supportPilotDef,
-                        team.SupportTeam.EncounterTags, team.SupportTeam.Combat,
-                        team.SupportTeam.GetNextSupportUnitGuid(), "", supportHeraldryDef);
+                        teamSelection.EncounterTags, teamSelection.Combat,
+                        teamSelection.GetNextSupportUnitGuid(), "", supportHeraldryDef);
                     supportActorMech.Init(positionA, quaternion.eulerAngles.y, false);
                     supportActorMech.InitGameRep(null);
 
-                    team.SupportTeam.AddUnit(supportActorMech);
-                    supportActorMech.AddToTeam(team.SupportTeam);
+                    teamSelection.AddUnit(supportActorMech);
+                    supportActorMech.AddToTeam(teamSelection);
 
                     supportActorMech.AddToLance(cmdLance);
                     supportActorMech.BehaviorTree = BehaviorTreeFactory.MakeBehaviorTree(
@@ -675,8 +676,8 @@ namespace StrategicOperations.Patches
 
                     ModInit.modLog.LogMessage($"Added {supportActorMech?.MechDef?.Description?.Id} to SupportUnits");
 
-                    if (ModInit.modSettings.commandUseCostsMulti > 0 ||
-                        __instance.Def.getAbilityDefExtension().CBillCost > 0)
+                    if (team.IsLocalPlayer && (ModInit.modSettings.commandUseCostsMulti > 0 ||
+                                               __instance.Def.getAbilityDefExtension().CBillCost > 0))
                     {
                         var unitName = "";
                         var unitCost = 0;
@@ -721,13 +722,13 @@ namespace StrategicOperations.Patches
                     dm.VehicleDefs.TryGet(actorResource, out var supportActorVehicleDef);
                     supportActorVehicleDef.Refresh();
                     var supportActorVehicle = ActorFactory.CreateVehicle(supportActorVehicleDef, supportPilotDef,
-                        team.SupportTeam.EncounterTags, team.SupportTeam.Combat,
-                        team.SupportTeam.GetNextSupportUnitGuid(), "", supportHeraldryDef);
+                        teamSelection.EncounterTags, teamSelection.Combat,
+                        teamSelection.GetNextSupportUnitGuid(), "", supportHeraldryDef);
                     supportActorVehicle.Init(positionA, quaternion.eulerAngles.y, false);
                     supportActorVehicle.InitGameRep(null);
 
-                    team.SupportTeam.AddUnit(supportActorVehicle);
-                    supportActorVehicle.AddToTeam(team.SupportTeam);
+                    teamSelection.AddUnit(supportActorVehicle);
+                    supportActorVehicle.AddToTeam(teamSelection);
 
                     supportActorVehicle.AddToLance(cmdLance);
                     supportActorVehicle.BehaviorTree = BehaviorTreeFactory.MakeBehaviorTree(
@@ -748,8 +749,8 @@ namespace StrategicOperations.Patches
                         $"Added {supportActorVehicle?.VehicleDef?.Description?.Id} to SupportUnits");
 
 
-                    if (ModInit.modSettings.commandUseCostsMulti > 0 ||
-                        __instance.Def.getAbilityDefExtension().CBillCost > 0)
+                    if (team.IsLocalPlayer && (ModInit.modSettings.commandUseCostsMulti > 0 ||
+                                               __instance.Def.getAbilityDefExtension().CBillCost > 0))
                     {
                         var unitName = "";
                         var unitCost = 0;
@@ -790,11 +791,11 @@ namespace StrategicOperations.Patches
                 {
                     ModInit.modLog.LogMessage($"Attempting to spawn {actorResource} as turret.");
                     var spawnTurretMethod = Traverse.Create(__instance).Method("SpawnTurret",
-                        new object[] {team.SupportTeam, actorResource, positionA, quaternion});
+                        new object[] {teamSelection, actorResource, positionA, quaternion});
                     var turretActor = spawnTurretMethod.GetValue<AbstractActor>();
 
-                    team.SupportTeam.AddUnit(turretActor);
-                    turretActor.AddToTeam(team.SupportTeam);
+                    teamSelection.AddUnit(turretActor);
+                    turretActor.AddToTeam(teamSelection);
 
                     turretActor.AddToLance(cmdLance);
                     turretActor.BehaviorTree = BehaviorTreeFactory.MakeBehaviorTree(__instance.Combat.BattleTechGame,
@@ -809,8 +810,8 @@ namespace StrategicOperations.Patches
                     turretActor.OnPlayerVisibilityChanged(VisibilityLevel.LOSFull);
 
 
-                    if (ModInit.modSettings.commandUseCostsMulti > 0 ||
-                        __instance.Def.getAbilityDefExtension().CBillCost > 0)
+                    if (team.IsLocalPlayer && (ModInit.modSettings.commandUseCostsMulti > 0 ||
+                                               __instance.Def.getAbilityDefExtension().CBillCost > 0))
                     {
                         var unitName = "";
                         var unitCost = 0;
@@ -1431,7 +1432,7 @@ namespace StrategicOperations.Patches
                          distance > maxRange) ||
                         (__instance.FromButton.Ability.Def.specialRules ==
                          AbilityDef.SpecialRules.SpawnTurret &&
-                         distance > maxRange && ___numPositionsLocked < 1))
+                         distance > maxRange))
                     {
                         __result = false;
                         return false;

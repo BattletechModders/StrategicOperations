@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading.Tasks;
 using BattleTech;
@@ -68,6 +69,7 @@ namespace StrategicOperations.Framework
             public Vector3 vectorOne;
             public Vector3 vectorTwo;
             public bool active;
+            public float dist;
 
             public AI_CmdInvocation()
             {
@@ -75,6 +77,7 @@ namespace StrategicOperations.Framework
                 this.vectorOne = new Vector3();
                 this.vectorTwo = new Vector3();
                 this.active = false;
+                this.dist = Vector3.Distance(vectorOne, vectorTwo);
             }
             public AI_CmdInvocation(Ability cmdAbility, Vector3 firstVector, Vector3 secondVector, bool active)
             {
@@ -82,6 +85,7 @@ namespace StrategicOperations.Framework
                 this.vectorOne = firstVector;
                 this.vectorTwo = secondVector;
                 this.active = active;
+                this.dist = Vector3.Distance(vectorOne, vectorTwo);
             }
         }
     }
