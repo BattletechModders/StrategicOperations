@@ -24,9 +24,10 @@ namespace StrategicOperations.Framework
             return dmg * targets;
         }
 
-        public static void GenerateAIStrategicAbilities(Team team, CombatGameState combat)
+        public static void GenerateAIStrategicAbilities(AbstractActor unit)
         {
-            var dm = team.Combat.DataManager;
+            if (unit is Turret) return;
+            var dm = unit.Combat.DataManager;
             var cmdAbilities = new List<Ability>();
             foreach (var ability in ModInit.modSettings.commandAbilities_AI)
             {
@@ -34,28 +35,25 @@ namespace StrategicOperations.Framework
                 cmdAbilities.Add(new Ability(def));
             }
 
-            foreach (var unit in team.units)
+            if (unit.GetPilot().Abilities.All(x => x.Def.Resource != AbilityDef.ResourceConsumed.CommandAbility))
             {
-                if (unit.GetPilot().Abilities.All(x => x.Def.Resource != AbilityDef.ResourceConsumed.CommandAbility))
+                ModInit.modLog.LogTrace($"No command abilities on pilot.");
+                if (unit.ComponentAbilities.All(x => x.Def.Resource != AbilityDef.ResourceConsumed.CommandAbility))
                 {
-                    ModInit.modLog.LogTrace($"No command abilities on pilot.");
-                    if (unit.ComponentAbilities.All(x => x.Def.Resource != AbilityDef.ResourceConsumed.CommandAbility))
+                    ModInit.modLog.LogTrace($"No command abilities on unit from Components.");
+                    var roll = ModInit.Random.NextDouble();
+                    var chance = ModInit.modSettings.AI_CommandAbilityAddChance + (ModInit.modSettings.AI_CommandAbilityDifficultyMod * unit.Combat.ActiveContract.Override.finalDifficulty);
+                    if (roll <= chance)
                     {
-                        ModInit.modLog.LogTrace($"No command abilities on unit from Components.");
-                        var roll = ModInit.Random.NextDouble();
-                        var chance = ModInit.modSettings.AI_CommandAbilityAddChance + (ModInit.modSettings.AI_CommandAbilityDifficulyMod * combat.ActiveContract.Override.finalDifficulty);
-                        if (roll <= chance)
-                        {
-                            ModInit.modLog.LogTrace($"Rolled {roll}, < {chance}.");
-                            var ability = Utils.GetRandomFromList(cmdAbilities);
-                            ModInit.modLog.LogTrace($"Adding {ability.Def?.Description?.Id} to {unit.Description?.Name}.");
-                            ability.Init(combat);
-                            unit.ComponentAbilities.Add(ability);
-                        }
-                       
+                        ModInit.modLog.LogTrace($"Rolled {roll}, < {chance}.");
+                        var ability = Utils.GetRandomFromList(cmdAbilities);
+                        ModInit.modLog.LogTrace($"Adding {ability.Def?.Description?.Id} to {unit.Description?.Name}.");
+                        ability.Init(unit.Combat);
+                        unit.ComponentAbilities.Add(ability);
                     }
-                }// did i add things o the wrong team? probably.
-            }
+                }
+            }// did i add things o the wrong team? probably.
+            
         }
 
         public static string AssignRandomSpawnAsset(Ability ability)
@@ -258,7 +256,7 @@ namespace StrategicOperations.Framework
                         continue;
                     }
 
-                    var vectors = Utils.MakeCircle(possibleStart,steps, ability.Def.FloatParam2);
+                    var vectors = Utils.MakeCircle(possibleStart, steps, ability.Def.FloatParam2);
                     var currentSavedEndVector = new Vector3();
                     var currentSavedStartVector = new Vector3();
                     var currentMaxCount = 0;

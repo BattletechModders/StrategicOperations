@@ -17,18 +17,15 @@ namespace StrategicOperations.Patches
 {
     public class AI_Patches
     {
-        [HarmonyPatch(typeof(TurnDirector), "OnInitializeContractComplete")]
-        public static class TurnDirector_OnInitializeContractComplete_AI
+        [HarmonyPatch(typeof(Team), "AddUnit")]
+        public static class Team_AddUnit_AI
         {
             static bool Prepare() => ModInit.modSettings.AI_CommandAbilityAddChance > 0;
 
-            public static void Postfix(TurnDirector __instance, MessageCenterMessage message)
+            public static void Postfix(Team __instance, AbstractActor unit)
             {
-                Utils.CreateOrUpdateCustomTeam(); // can remove this after testing.
-
-                var tgtTeam =
-                    __instance.Combat.Teams.FirstOrDefault(x => x.GUID == "be77cadd-e245-4240-a93e-b99cc98902a5"); // TargetTeam is only team that gets cmdAbilities added?
-                AI_Utils.GenerateAIStrategicAbilities(tgtTeam, __instance.Combat);
+                if(__instance.GUID != "be77cadd-e245-4240-a93e-b99cc98902a5") return; // TargetTeam is only team that gets cmdAbilities added?
+                AI_Utils.GenerateAIStrategicAbilities(unit);
             }
         }
 

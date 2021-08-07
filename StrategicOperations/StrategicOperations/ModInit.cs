@@ -46,9 +46,10 @@ namespace StrategicOperations
         public bool enableLogging = true;
         public bool enableTrace = true;
         public bool showStrafeCamera = true;
-        public bool strafeTargetsFriendlies = true;
         public bool strafeEndsActivation = true;
         public bool spawnTurretEndsActivation = true;
+        public float strafeTargetsFriendliesChance = 1f;
+        public float strafeNeutralBuildingsChance = 1f;
         public int deployProtection = 8;
         public float strafeSensorFactor = 4f;
         public float strafeVelocityDefault = 150f;
@@ -63,7 +64,7 @@ namespace StrategicOperations
         public ColorSetting customSpawnReticleColor = new ColorSetting();
         public string customSpawnReticleAsset = "";
         public float AI_CommandAbilityAddChance = 1.0f;
-        public float AI_CommandAbilityDifficulyMod = 0.05f;
+        public float AI_CommandAbilityDifficultyMod = 0.05f;
         public int AI_InvokeStrafeThreshold = 1;
         public int AI_InvokeSpawnThreshold = 1;
     }

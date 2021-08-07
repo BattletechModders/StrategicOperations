@@ -133,8 +133,8 @@ namespace StrategicOperations.Framework
             this.AllTargets = new List<ICombatant>();
 
             var allCombatants = new List<ICombatant>(base.Combat.GetAllImporantCombatants());
-            
-            if (!ModInit.modSettings.strafeTargetsFriendlies)
+
+            if (ModInit.modSettings.strafeTargetsFriendliesChance == 0)
             {
                 allCombatants = new List<ICombatant>(allCombatants.Where(x=>x.team.IsEnemy(this.PlayerTeam)));
             }
@@ -147,6 +147,28 @@ namespace StrategicOperations.Framework
                     {
                         continue;
                     }
+                }
+
+                if (allCombatants[i] is BattleTech.Building building)
+                {
+                    if (building.team.GUID == "421027ec-8480-4cc6-bf01-369f84a22012") //only need to check for "World" since friendly buildings will be covered below, and we're ok targeting enemy buildings
+                    {
+                        var rollBuilding = ModInit.Random.NextDouble();
+                        var chanceBuilding = ModInit.modSettings.strafeNeutralBuildingsChance;
+                        if (rollBuilding >= chanceBuilding && allCombatants[i].team.IsFriendly(this.PlayerTeam))
+                        {
+                            ModInit.modLog.LogMessage($"Roll {rollBuilding} <= chance {chanceBuilding}.");
+                            continue;
+                        }
+                    }
+                }
+
+                var roll = ModInit.Random.NextDouble();
+                var chance = ModInit.modSettings.strafeTargetsFriendliesChance;
+                if (roll >= chance && allCombatants[i].team.IsFriendly(this.PlayerTeam))
+                {
+                    ModInit.modLog.LogMessage($"Roll {roll} <= chance {chance}.");
+                    continue;
                 }
                 if (this.IsTarget(allCombatants[i]))
                 {

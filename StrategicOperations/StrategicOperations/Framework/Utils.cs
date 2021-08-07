@@ -29,7 +29,7 @@ namespace StrategicOperations.Framework
             return detectedEnemies;
         }
         
-        public static Vector3[] MakeCircle(Vector3 start,int numOfPoints, float radius)
+        public static Vector3[] MakeCircle(Vector3 start, int numOfPoints, float radius)
         {
             var vectors = new List<Vector3>();
             for (int i = 0; i < numOfPoints; i++)
@@ -37,6 +37,7 @@ namespace StrategicOperations.Framework
                 float angle = i * Mathf.PI * 2f / 8;
                 var newPos = new Vector3(Mathf.Cos(angle) * radius, start.y, Mathf.Sin(angle) * radius);
                 vectors.Add(newPos);
+                ModInit.modLog.LogTrace($"Distance from possibleStart to ray endpoint is {Vector3.Distance(start, newPos)}.");
             }
 
             return vectors.ToArray();
@@ -48,7 +49,7 @@ namespace StrategicOperations.Framework
             var rectangles = new List<Rect>();
             Vector3 line = end - start;
             float length = Vector3.Distance(start, end);
-
+            ModInit.modLog.LogTrace($"Rectangle length should be {length}.");
             Vector3 left = Vector3.Cross(line, Vector3.up).normalized;
             Vector3 right = -left;
             var startLeft = start + (left * width);
@@ -291,9 +292,66 @@ namespace StrategicOperations.Framework
                 {
                     ModInit.modLog.LogMessage($"Adding {ModInit.modSettings.deployProtection} evasion pips");
                     actor.EvasivePipsCurrent = ModInit.modSettings.deployProtection;
-                    AccessTools.Property(typeof(AbstractActor), "EvasivePipsTotal").SetValue(actor, actor.EvasivePipsCurrent, null);
+                    Traverse.Create(actor).Property("EvasivePipsTotal").SetValue(actor.EvasivePipsCurrent);
                 }
         }
+
+        public static void SpawnFlares(Ability ability, Vector3 positionA, Vector3 positionB, string prefabName,
+            int numFlares, int numPhases, bool IsLocalPlayer)
+        {
+            if (ability.Combat.ActiveContract.ContractTypeValue.IsSkirmish) return;
+
+            Vector3 b = (positionB - positionA) / (float)(numFlares - 1);
+
+            Vector3 line = positionB - positionA;
+            Vector3 left = Vector3.Cross(line, Vector3.up).normalized;
+            Vector3 right = -left;
+
+            var startLeft = positionA + (left * ability.Def.FloatParam1);
+            var startRight = positionA + (right * ability.Def.FloatParam1);
+
+            Vector3 vector = positionA;
+
+            vector.y = ability.Combat.MapMetaData.GetLerpedHeightAt(vector, false);
+            startLeft.y = ability.Combat.MapMetaData.GetLerpedHeightAt(startLeft, false);
+            startRight.y = ability.Combat.MapMetaData.GetLerpedHeightAt(startRight, false);
+            List<ObjectSpawnData> list = new List<ObjectSpawnData>();
+            for (int i = 0; i < numFlares; i++)
+            {
+                ObjectSpawnData item = new ObjectSpawnData(prefabName, vector, Quaternion.identity, true, false);
+                list.Add(item);
+                vector += b;
+                vector.y = ability.Combat.MapMetaData.GetLerpedHeightAt(vector, false);
+            }
+
+            for (int i = 0; i < numFlares; i++)
+            {
+                ObjectSpawnData item = new ObjectSpawnData(prefabName, startLeft, Quaternion.identity, true, false);
+                list.Add(item);
+                startLeft += b;
+                startLeft.y = ability.Combat.MapMetaData.GetLerpedHeightAt(startLeft, false);
+            }
+
+            for (int i = 0; i < numFlares; i++)
+            {
+                ObjectSpawnData item =
+                    new ObjectSpawnData(prefabName, startRight, Quaternion.identity, true, false);
+                list.Add(item);
+                startRight += b;
+                startRight.y = ability.Combat.MapMetaData.GetLerpedHeightAt(startRight, false);
+            }
+
+            SpawnObjectSequence spawnObjectSequence = new SpawnObjectSequence(ability.Combat, list);
+            ability.Combat.MessageCenter.PublishMessage(new AddSequenceToStackMessage(spawnObjectSequence));
+            List<ObjectSpawnData> spawnedObjects = spawnObjectSequence.spawnedObjects;
+            CleanupObjectSequence eventSequence = new CleanupObjectSequence(ability.Combat, spawnedObjects);
+            if (!IsLocalPlayer) numPhases += 1;
+            TurnEvent tEvent = new TurnEvent(Guid.NewGuid().ToString(), ability.Combat, numPhases, null,
+                eventSequence, ability.Def, false);
+            ability.Combat.TurnDirector.AddTurnEvent(tEvent);
+            return;
+        }
+        
 
         public static void DP_AnimationComplete(string encounterObjectGUID)
         {

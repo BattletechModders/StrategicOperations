@@ -355,12 +355,13 @@ namespace StrategicOperations.Patches
                         __instance.Combat.TurnDirector.AddTurnEvent(tEvent);
                         if (__instance.Def.IntParam1 > 0)
                         {
-                            var flares = Traverse.Create(__instance).Method("SpawnFlares", new object[]
-                            {
-                                positionA, positionB, __instance.Def.StringParam1,
-                                __instance.Def.IntParam1, __instance.Def.ActivationETA
-                            });
-                            flares.GetValue();
+                            Utils.SpawnFlares(__instance, positionA, positionB, __instance.Def.StringParam1, __instance.Def.IntParam1, __instance.Def.ActivationETA, team.IsLocalPlayer);
+                        //    var flares = Traverse.Create(__instance).Method("SpawnFlares", new object[]
+                        //    {
+                        //        positionA, positionB, __instance.Def.StringParam1,
+                        //        __instance.Def.IntParam1, __instance.Def.ActivationETA
+                        //    });
+                        //    flares.GetValue();
                         }
 
                         if (team.IsLocalPlayer && (ModInit.modSettings.commandUseCostsMulti > 0 ||
@@ -427,12 +428,13 @@ namespace StrategicOperations.Patches
                         __instance.Combat.TurnDirector.AddTurnEvent(tEvent);
                         if (__instance.Def.IntParam1 > 0)
                         {
-                            var flares = Traverse.Create(__instance).Method("SpawnFlares", new object[]
-                            {
-                                positionA, positionB, __instance.Def.StringParam1,
-                                __instance.Def.IntParam1, __instance.Def.ActivationETA
-                            });
-                            flares.GetValue();
+                            Utils.SpawnFlares(__instance, positionA, positionB, __instance.Def.StringParam1, __instance.Def.IntParam1, __instance.Def.ActivationETA, team.IsLocalPlayer);
+//                            var flares = Traverse.Create(__instance).Method("SpawnFlares", new object[]
+//                            {
+//                                positionA, positionB, __instance.Def.StringParam1,
+//                                __instance.Def.IntParam1, __instance.Def.ActivationETA
+//                            });
+//                            flares.GetValue();
                         }
 
                         if (team.IsLocalPlayer && (ModInit.modSettings.commandUseCostsMulti > 0 ||
@@ -501,12 +503,13 @@ namespace StrategicOperations.Patches
                         __instance.Combat.TurnDirector.AddTurnEvent(tEvent);
                         if (__instance.Def.IntParam1 > 0)
                         {
-                            var flares = Traverse.Create(__instance).Method("SpawnFlares", new object[]
-                            {
-                                positionA, positionB, __instance.Def.StringParam1,
-                                __instance.Def.IntParam1, __instance.Def.ActivationETA
-                            });
-                            flares.GetValue();
+                            Utils.SpawnFlares(__instance, positionA, positionB, __instance.Def.StringParam1, __instance.Def.IntParam1, __instance.Def.ActivationETA, team.IsLocalPlayer);
+//                            var flares = Traverse.Create(__instance).Method("SpawnFlares", new object[]
+//                            {
+//                                positionA, positionB, __instance.Def.StringParam1,
+//                                __instance.Def.IntParam1, __instance.Def.ActivationETA
+//                            });
+//                            flares.GetValue();
                         }
 
                         if (team.IsLocalPlayer && (ModInit.modSettings.commandUseCostsMulti > 0 ||
@@ -617,9 +620,10 @@ namespace StrategicOperations.Patches
 
                     var kvp = new KeyValuePair<string, Action>(instanceGUID, DeferredInvokeSpawn);
                     ModState.deferredInvokeSpawns.Add(kvp);
-                    var flares = Traverse.Create(__instance).Method("SpawnFlares",
-                        new object[] {positionA, positionA, __instance.Def.StringParam1, 1, 1});
-                    flares.GetValue();
+                    Utils.SpawnFlares(__instance, positionA, positionB, __instance.Def.StringParam1, 1, __instance.Def.ActivationETA, team.IsLocalPlayer);
+//                    var flares = Traverse.Create(__instance).Method("SpawnFlares",
+//                        new object[] {positionA, positionA, __instance.Def.StringParam1, 1, 1});
+//                    flares.GetValue();
                     return false;
                 }
 
@@ -858,6 +862,7 @@ namespace StrategicOperations.Patches
         [HarmonyPatch(typeof(Ability), "SpawnFlares")]
         public static class Ability_SpawnFlares
         {
+            static bool Prepare() => false;
             private static bool Prefix(Ability __instance, Vector3 positionA, Vector3 positionB, string prefabName,
                 int numFlares, int numPhases)
             {
