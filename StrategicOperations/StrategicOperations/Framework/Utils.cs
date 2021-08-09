@@ -16,6 +16,33 @@ namespace StrategicOperations.Framework
 {
     public static class Utils
     {
+        public static object FetchUnitFromDM(this DataManager dm, string id)
+        {
+            if (id.StartsWith("mechdef_"))
+            {
+                dm.MechDefs.TryGet(id, out MechDef result);
+                {
+                    return result as MechDef;
+                }
+            }
+            else if (id.StartsWith("vehicledef_"))
+            {
+                dm.VehicleDefs.TryGet(id, out VehicleDef result);
+                {
+                    return result as VehicleDef;
+                }
+            }
+            else if (id.StartsWith("turretdef_"))
+            {
+                dm.TurretDefs.TryGet(id, out TurretDef result);
+                {
+                    return result as TurretDef;
+                }
+            }
+
+            return null;
+        }
+
         public static List<AbstractActor> GetAllDetectedEnemies(this SharedVisibilityCache cache, AbstractActor actor)
         {
             var detectedEnemies = new List<AbstractActor>();
@@ -31,12 +58,18 @@ namespace StrategicOperations.Framework
         
         public static Vector3[] MakeCircle(Vector3 start, int numOfPoints, float radius)
         {
+            if (ModInit.modSettings.debugFlares) Utils.SpawnDebugFlare(start, "vfxPrfPrtl_artillerySmokeSignal_loop",3);
             var vectors = new List<Vector3>();
             for (int i = 0; i < numOfPoints; i++)
             {
-                float angle = i * Mathf.PI * 2f / 8;
-                var newPos = new Vector3(Mathf.Cos(angle) * radius, start.y, Mathf.Sin(angle) * radius);
+                var radians = 2 * Mathf.PI / numOfPoints * i;
+                var vertical = Mathf.Sin(radians);
+                var horizontal = Mathf.Cos(radians);
+                var spawnDir = new Vector3(horizontal, 0, vertical);
+
+                var newPos = start + spawnDir * radius;
                 vectors.Add(newPos);
+                if (ModInit.modSettings.debugFlares) Utils.SpawnDebugFlare(newPos, "vfxPrfPrtl_artillerySmokeSignal_loop", 3);
                 ModInit.modLog.LogTrace($"Distance from possibleStart to ray endpoint is {Vector3.Distance(start, newPos)}.");
             }
 
@@ -54,14 +87,10 @@ namespace StrategicOperations.Framework
             Vector3 right = -left;
             var startLeft = start + (left * width);
             var startRight = start + (right * width);
-
             var rectLeft = new Rect(startLeft.x, startLeft.y, width, length);
             var rectRight = new Rect(startRight.x, startRight.y, width, length);
-
-
             rectangles.Add(rectLeft);
             rectangles.Add(rectRight);
-
             return rectangles.ToArray();
         }
 
@@ -296,12 +325,43 @@ namespace StrategicOperations.Framework
                 }
         }
 
+
+        public static void SpawnDebugFlare(Vector3 position, string prefabName, int numPhases)
+        {
+            var combat = UnityGameInstance.BattleTechGame.Combat;
+            position.y = combat.MapMetaData.GetLerpedHeightAt(position, false);
+            List<ObjectSpawnData> list = new List<ObjectSpawnData>();
+            ObjectSpawnData item = new ObjectSpawnData(prefabName, position, Quaternion.identity, true, false);
+            list.Add(item);
+            SpawnObjectSequence spawnObjectSequence = new SpawnObjectSequence(combat, list);
+            combat.MessageCenter.PublishMessage(new AddSequenceToStackMessage(spawnObjectSequence));
+            List<ObjectSpawnData> spawnedObjects = spawnObjectSequence.spawnedObjects;
+            CleanupObjectSequence eventSequence = new CleanupObjectSequence(combat, spawnedObjects);
+            TurnEvent tEvent = new TurnEvent(Guid.NewGuid().ToString(), combat, numPhases, null, eventSequence, default(AbilityDef), false);
+            combat.TurnDirector.AddTurnEvent(tEvent);
+        }
+
         public static void SpawnFlares(Ability ability, Vector3 positionA, Vector3 positionB, string prefabName,
             int numFlares, int numPhases, bool IsLocalPlayer)
         {
             if (ability.Combat.ActiveContract.ContractTypeValue.IsSkirmish) return;
 
-            Vector3 b = (positionB - positionA) / (float)(numFlares - 1);
+            if (ability.Def.specialRules == AbilityDef.SpecialRules.SpawnTurret)
+            {
+                positionA.y = ability.Combat.MapMetaData.GetLerpedHeightAt(positionA, false);
+                List<ObjectSpawnData> listSpawn = new List<ObjectSpawnData>();
+                ObjectSpawnData item = new ObjectSpawnData(prefabName, positionA, Quaternion.identity, true, false);
+                listSpawn.Add(item);
+                SpawnObjectSequence spawnObjectSequenceSpawn = new SpawnObjectSequence(ability.Combat, listSpawn);
+                ability.Combat.MessageCenter.PublishMessage(new AddSequenceToStackMessage(spawnObjectSequenceSpawn));
+                List<ObjectSpawnData> spawnedObjectsSpawn = spawnObjectSequenceSpawn.spawnedObjects;
+                CleanupObjectSequence eventSequenceSpawn = new CleanupObjectSequence(ability.Combat, spawnedObjectsSpawn);
+                TurnEvent tEventSpawn = new TurnEvent(Guid.NewGuid().ToString(), ability.Combat, numPhases + 1, null, eventSequenceSpawn, default(AbilityDef), false);
+                ability.Combat.TurnDirector.AddTurnEvent(tEventSpawn);
+                return;
+            }
+
+            Vector3 b = (positionB - positionA) / Math.Max(numFlares - 1, 1);
 
             Vector3 line = positionB - positionA;
             Vector3 left = Vector3.Cross(line, Vector3.up).normalized;
@@ -345,13 +405,12 @@ namespace StrategicOperations.Framework
             ability.Combat.MessageCenter.PublishMessage(new AddSequenceToStackMessage(spawnObjectSequence));
             List<ObjectSpawnData> spawnedObjects = spawnObjectSequence.spawnedObjects;
             CleanupObjectSequence eventSequence = new CleanupObjectSequence(ability.Combat, spawnedObjects);
-            if (!IsLocalPlayer) numPhases += 1;
-            TurnEvent tEvent = new TurnEvent(Guid.NewGuid().ToString(), ability.Combat, numPhases, null,
+ //           if (!IsLocalPlayer) numPhases += 1;
+            TurnEvent tEvent = new TurnEvent(Guid.NewGuid().ToString(), ability.Combat, numPhases + 1, null,
                 eventSequence, ability.Def, false);
             ability.Combat.TurnDirector.AddTurnEvent(tEvent);
             return;
         }
-        
 
         public static void DP_AnimationComplete(string encounterObjectGUID)
         {
@@ -361,6 +420,5 @@ namespace StrategicOperations.Framework
         public static MethodInfo _activateSpawnTurretMethod = AccessTools.Method(typeof(Ability), "ActivateSpawnTurret");
         public static MethodInfo _activateStrafeMethod = AccessTools.Method(typeof(Ability), "ActivateStrafe");
         public static MethodInfo _despawnActorMethod = AccessTools.Method(typeof(AbstractActor), "DespawnActor");
-
     }
 }

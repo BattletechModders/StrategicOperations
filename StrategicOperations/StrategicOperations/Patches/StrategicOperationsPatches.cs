@@ -960,7 +960,7 @@ namespace StrategicOperations.Patches
             public static void Postfix(TurnDirector __instance)
             {
                 if (__instance.Combat.ActiveContract.ContractTypeValue.IsSkirmish) return;
-                //will need to add handling for AI teams in here
+
                 var team = __instance.Combat.Teams.First(x => x.IsLocalPlayer);
                 var dm = team.Combat.DataManager;
 

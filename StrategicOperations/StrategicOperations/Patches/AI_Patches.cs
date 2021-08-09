@@ -104,56 +104,85 @@ namespace StrategicOperations.Patches
             public static bool Prefix(ref BehaviorTreeResults __result, string ___name,
                 AbstractActor ___unit)
             {
-                if (ModState.AiCmd.active)
+                if (ModState.AiCmds.ContainsKey(___unit.GUID))
                 {
-                    __result = new BehaviorTreeResults(BehaviorNodeState.Failure);
-                    return false;
-                }
-                var spawnVal = AI_Utils.EvaluateSpawn(___unit, out var abilitySpawn, out var vector1Spawn, out var vector2Spawn);
-                var strafeVal = AI_Utils.EvaluateStrafing(___unit, out var abilityStrafe, out var vector1Strafe, out var vector2Strafe);
+                    if (ModState.AiCmds[___unit.GUID].active)
+                    {
+                        __result = new BehaviorTreeResults(BehaviorNodeState.Failure);
+                        return false;
+                    }
 
-                if (spawnVal > ModInit.modSettings.AI_InvokeSpawnThreshold && spawnVal > strafeVal)
-                {
-                    var info = new AI_CmdInvocation(abilitySpawn, vector1Spawn, vector2Spawn, true);
-                    ModState.AiCmd = info;
-                    __result = new BehaviorTreeResults(BehaviorNodeState.Failure);
-                    return false;
+                    var spawnVal = AI_Utils.EvaluateSpawn(___unit, out var abilitySpawn, out var vector1Spawn,
+                        out var vector2Spawn);
+                    var strafeVal = AI_Utils.EvaluateStrafing(___unit, out var abilityStrafe, out var vector1Strafe,
+                        out var vector2Strafe);
+
+                    if (spawnVal > ModInit.modSettings.AI_InvokeSpawnThreshold && spawnVal > strafeVal)
+                    {
+                        var info = new AI_CmdInvocation(abilitySpawn, vector1Spawn, vector2Spawn, true);
+                        ModState.AiCmds[___unit.GUID] = info;
+                        __result = new BehaviorTreeResults(BehaviorNodeState.Failure);
+                        return false;
+                    }
+                    else if (strafeVal > ModInit.modSettings.AI_InvokeStrafeThreshold && strafeVal >= spawnVal)
+                    {
+                        var info = new AI_CmdInvocation(abilityStrafe, vector1Strafe, vector2Strafe, true);
+                        ModState.AiCmds[___unit.GUID] = info;
+                        __result = new BehaviorTreeResults(BehaviorNodeState.Failure);
+                        return false;
+                    }
                 }
-                else if (strafeVal > ModInit.modSettings.AI_InvokeStrafeThreshold && strafeVal >= spawnVal)
+                else
                 {
-                    var info = new AI_CmdInvocation(abilityStrafe, vector1Strafe, vector2Strafe, true);
-                    ModState.AiCmd = info;
-                    __result = new BehaviorTreeResults(BehaviorNodeState.Failure);
-                    return false;
+                    var spawnVal = AI_Utils.EvaluateSpawn(___unit, out var abilitySpawn, out var vector1Spawn,
+                        out var vector2Spawn);
+                    var strafeVal = AI_Utils.EvaluateStrafing(___unit, out var abilityStrafe, out var vector1Strafe,
+                        out var vector2Strafe);
+
+                    if (spawnVal > ModInit.modSettings.AI_InvokeSpawnThreshold && spawnVal > strafeVal)
+                    {
+                        var info = new AI_CmdInvocation(abilitySpawn, vector1Spawn, vector2Spawn, true);
+                        ModState.AiCmds[___unit.GUID] = info;
+                        __result = new BehaviorTreeResults(BehaviorNodeState.Failure);
+                        return false;
+                    }
+                    else if (strafeVal > ModInit.modSettings.AI_InvokeStrafeThreshold && strafeVal >= spawnVal)
+                    {
+                        var info = new AI_CmdInvocation(abilityStrafe, vector1Strafe, vector2Strafe, true);
+                        ModState.AiCmds[___unit.GUID] = info;
+                        __result = new BehaviorTreeResults(BehaviorNodeState.Failure);
+                        return false;
+                    }
                 }
                 return true;
             }
         }
-
 
         [HarmonyPatch(typeof(AITeam), "makeInvocationFromOrders")]
         public static class AITeam_makeInvocationFromOrders_patch
         {
             public static bool Prefix(AITeam __instance, AbstractActor unit, OrderInfo order, ref InvocationMessage __result)
             {
-                if (!ModState.AiCmd.active) return true;
+                if (!ModState.AiCmds.ContainsKey(unit.GUID)) return true;
+                else if (!ModState.AiCmds[unit.GUID].active) return true;
+
                 ModState.popupActorResource =
-                    AI_Utils.AssignRandomSpawnAsset(ModState.AiCmd.ability);
+                    AI_Utils.AssignRandomSpawnAsset(ModState.AiCmds[unit.GUID].ability);
 
-                ModInit.modLog.LogTrace($"AICMD DUMP: {ModState.AiCmd.active}, {ModState.AiCmd.vectorOne}, {ModState.AiCmd.vectorTwo}.");
-                ModInit.modLog.LogTrace($"CMD Ability DUMP: {ModState.AiCmd.ability} { ModState.AiCmd.ability.Def.Id}, Combat is null? {ModState.AiCmd.ability.Combat != null}");
+                ModInit.modLog.LogTrace($"AICMD DUMP: {ModState.AiCmds[unit.GUID].active}, {ModState.AiCmds[unit.GUID].vectorOne}, {ModState.AiCmds[unit.GUID].vectorTwo}.");
+                ModInit.modLog.LogTrace($"CMD Ability DUMP: {ModState.AiCmds[unit.GUID].ability} { ModState.AiCmds[unit.GUID].ability.Def.Id}, Combat is null? {ModState.AiCmds[unit.GUID].ability.Combat != null}");
 
-                ModState.AiCmd.ability.Activate(unit, ModState.AiCmd.vectorOne,
-                    ModState.AiCmd.vectorTwo);
+                ModState.AiCmds[unit.GUID].ability.Activate(unit, ModState.AiCmds[unit.GUID].vectorOne,
+                    ModState.AiCmds[unit.GUID].vectorTwo);
                 ModInit.modLog.LogMessage(
-                    $"activated {ModState.AiCmd.ability.Def.Description.Id} at pos {ModState.AiCmd.vectorOne.x}, {ModState.AiCmd.vectorOne.y}, {ModState.AiCmd.vectorOne.z} and {ModState.AiCmd.vectorTwo.x}, {ModState.AiCmd.vectorTwo.y}, {ModState.AiCmd.vectorTwo.z}, dist = {ModState.AiCmd.dist}");
+                    $"activated {ModState.AiCmds[unit.GUID].ability.Def.Description.Id} at pos {ModState.AiCmds[unit.GUID].vectorOne.x}, {ModState.AiCmds[unit.GUID].vectorOne.y}, {ModState.AiCmds[unit.GUID].vectorOne.z} and {ModState.AiCmds[unit.GUID].vectorTwo.x}, {ModState.AiCmds[unit.GUID].vectorTwo.y}, {ModState.AiCmds[unit.GUID].vectorTwo.z}, dist = {ModState.AiCmds[unit.GUID].dist}");
 
                 if (!unit.HasMovedThisRound)
                 {
                     unit.BehaviorTree.IncreaseSprintHysteresisLevel();
                 }
                 __result = new ReserveActorInvocation(unit, ReserveActorAction.DONE, unit.Combat.TurnDirector.CurrentRound);
-                ModState.AiCmd = new AI_CmdInvocation();
+                ModState.AiCmds.Remove(unit.GUID);
                 return false;
                 // invoke ability from modstate and then create/use a Brace/Reserve order.
                 // probably need to make sure we're referencing the actual ability on the AI actor, and not a new instance? unless it already is...

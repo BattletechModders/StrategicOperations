@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using BattleTech;
+using MissionControl.Logic;
 using UnityEngine;
 using static StrategicOperations.Framework.Classes;
 
@@ -19,7 +20,7 @@ namespace StrategicOperations.Framework
         public static bool FromDelegate;
         public static bool OutOfRange;
 
-        public static AI_CmdInvocation AiCmd = new AI_CmdInvocation();
+        public static Dictionary<string, AI_CmdInvocation> AiCmds = new Dictionary<string, AI_CmdInvocation>();
 
         public static List<CmdUseInfo> CommandUses = new List<CmdUseInfo>();
 
@@ -44,6 +45,10 @@ namespace StrategicOperations.Framework
         public static void ResetDeferredSpawners()
         {
             deferredInvokeSpawns = new List<KeyValuePair<string, Action>>();
+        }
+
+        public static void ResetSpawnInfo()
+        {
         }
     }
 }

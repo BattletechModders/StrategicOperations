@@ -367,7 +367,12 @@ namespace StrategicOperations.Framework
                     return;
                 case TB_StrafeSequence.SequenceState.Strafing:
                     var pos3 = this.Attacker.CurrentPosition + this.Velocity * Time.deltaTime;
-                    pos3.y = this.Combat.MapMetaData.GetLerpedHeightAt(pos3, false) + this.HeightOffset;
+                    // maybe try to smooth out altitude changes here. but i dont really care.
+
+                    if (this.Combat.MapMetaData.GetLerpedHeightAt(pos3, false) < this.HeightOffset)
+                    {
+                        pos3.y = this.Combat.MapMetaData.GetLerpedHeightAt(pos3, false) + this.HeightOffset;
+                    }
                     this.SetPosition(pos3, this.Attacker.CurrentRotation);
                     this.AttackNextTarget();
                     break;

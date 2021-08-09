@@ -43,6 +43,7 @@ namespace StrategicOperations
     class Settings
     {
         public bool DEVTEST_AIPOS = false;
+        public bool debugFlares = false;
         public bool enableLogging = true;
         public bool enableTrace = true;
         public bool showStrafeCamera = true;
@@ -67,5 +68,6 @@ namespace StrategicOperations
         public float AI_CommandAbilityDifficultyMod = 0.05f;
         public int AI_InvokeStrafeThreshold = 1;
         public int AI_InvokeSpawnThreshold = 1;
+        public Dictionary<string, string> AI_SpawnBehaviorTags = new Dictionary<string, string>(); // values can be "AMBUSH", "BRAWLER", "REINFORCE"
     }
 }
