@@ -34,29 +34,9 @@ namespace StrategicOperations.Patches
                         {
                             if (target.team.IsFriendly(creator.team))
                             {
-                                // need to check for destroyed locations and cache them in state, then restore after calling TrooperSquad.InitGameRep. I think. unless maybe I can just turn off the mesh but leave the gameobject? might be simpler/not require CU. lets try that first. - dont think this'll work, probably need to start on 
+                                
                                 creator.GameRep.IsTargetable = false;
                                 creator.TeleportActor(target.CurrentPosition);
-                                
-                                var components = creator.GameRep.transform.Cast<Transform>().ToList();
-                                foreach (var component in components)
-                                {
-                                    ModInit.modLog.LogTrace(
-                                        $"[Ability.Activate - BattleArmorMountID] Disabling component in creator.GameRep.tranform: {component.name}.");
-                                    ModState.CachedActiveComponents[creator.GUID].Add(component);
-                                    component.gameObject.SetActive(false);
-
-
-                                    if (component.gameObject.activeSelf && component.GetComponent<MechRepresentation>() != null && false) //disable this block rn
-                                    {
-                                        ModInit.modLog.LogTrace(
-                                            $"[Ability.Activate - BattleArmorMountID] Checking component {component.name} was gameObject activeSelf and has child component MechRepresentation (!= null).");
-                                        ModState.CachedActiveComponents[creator.GUID].Add(component);
-
-                                        var mesh = component.Find("mesh");
-                                        mesh.gameObject.SetActive(false);
-                                    }
-                                }
 
                                 creator.GameRep.enabled = false; // 
                                 //creator.GameRep.gameObject.SetActive(false);
@@ -73,26 +53,6 @@ namespace StrategicOperations.Patches
                             {
                                 creator.GameRep.IsTargetable = false;
                                 creator.TeleportActor(target.CurrentPosition);
-
-                                var components = creator.GameRep.transform.Cast<Transform>().ToList();
-                                foreach (var component in components)
-                                {
-                                    ModInit.modLog.LogTrace(
-                                        $"[Ability.Activate - BattleArmorMountID] Disabling component in creator.GameRep.tranform: {component.name}.");
-                                    ModState.CachedActiveComponents[creator.GUID].Add(component);
-                                    component.gameObject.SetActive(false);
-
-
-                                    if (component.gameObject.activeSelf && component.GetComponent<MechRepresentation>() != null && false) //disable this block rn
-                                    {
-                                        ModInit.modLog.LogTrace(
-                                            $"[Ability.Activate - BattleArmorMountID] Checking component {component.name} was gameObject activeSelf and has child component MechRepresentation (!= null).");
-                                        ModState.CachedActiveComponents[creator.GUID].Add(component);
-
-                                        var mesh = component.Find("mesh");
-                                        mesh.gameObject.SetActive(false);
-                                    }
-                                }
 
                                 creator.GameRep.enabled = false;
                                 //creator.GameRep.gameObject.SetActive(false);
@@ -124,22 +84,6 @@ namespace StrategicOperations.Patches
                                 
                                 creator.TeleportActor(newPos);
 
-                                if (ModState.CachedActiveComponents.ContainsKey(creator.GUID) && false)
-                                {
-                                    var components = creator.GameRep.transform.Cast<Transform>().ToList();
-                                    foreach (var component in components)
-                                    {
-                                        ModInit.modLog.LogTrace(
-                                            $"[Ability.Activate - BattleArmorMountID] Checking uf  component in creator.GameRep.tranform is in Modstate: {component.name}.");
-                                        if (ModState.CachedActiveComponents[creator.GUID].Any(x => x.gameObject.name == component.gameObject.name))
-                                        {
-                                            component.gameObject.SetActive(true);
-                                            ModInit.modLog.LogTrace(
-                                                $"[Ability.Activate - BattleArmorMountID] Reenabling component: {component.name}.");
-                                        }
-                                    }
-                                }
-
                                 creator.GameRep.enabled = true;
                                 creator.InitGameRep(null);
                                 //creator.GameRep.gameObject.SetActive(true);
@@ -159,25 +103,9 @@ namespace StrategicOperations.Patches
                                 creator.GameRep.IsTargetable = true;
                                 var newPos = BattleArmorUtils.FetchAdjacentHex(targetActor);
 
-                                creator.TeleportActor(newPos);
-                                if (ModState.CachedActiveComponents.ContainsKey(creator.GUID) && false)
-                                {
-                                    var components = creator.GameRep.transform.Cast<Transform>().ToList();
-                                    foreach (var component in components)
-                                    {
-                                        ModInit.modLog.LogTrace(
-                                            $"[Ability.Activate - BattleArmorMountID] Checking uf  component in creator.GameRep.tranform is in Modstate: {component.name}.");
-                                        if (ModState.CachedActiveComponents[creator.GUID].Any(x => x.gameObject.name == component.gameObject.name))
-                                        {
-                                            component.gameObject.SetActive(true);
-                                            ModInit.modLog.LogTrace(
-                                                $"[Ability.Activate - BattleArmorMountID] Reenabling component: {component.name}.");
-                                        }
-                                    }
-                                }
-
                                 creator.GameRep.enabled = true;
                                 creator.InitGameRep(null);
+                                creator.GameRep.Update
                                 //creator.GameRep.gameObject.SetActive(true);
                                 CombatMovementReticle.Instance.RefreshActor(creator);
                                 ModState.PositionLockSwarm.Remove(creator.GUID);
