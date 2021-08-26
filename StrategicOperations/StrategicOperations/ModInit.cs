@@ -3,8 +3,6 @@ using System.Collections.Generic;
 using System.Reflection;
 using Harmony;
 using Newtonsoft.Json;
-using StrategicOperations.Framework;
-using UnityEngine;
 using static StrategicOperations.Framework.Classes;
 using Logger = StrategicOperations.Framework.Logger;
 using Random = System.Random;
@@ -61,13 +59,13 @@ namespace StrategicOperations
         public float strafeMinDistanceToEnd = 10f;
         public float commandUseCostsMulti = 1f;
         public List<string> deploymentBeaconEquipment = new List<string>(); //e.g. Item.HeatSinkDef.Gear_HeatSink_Generic_Standard
-        public List<string> commandAbilities_AI = new List<string>(); //e.g. Item.HeatSinkDef.Gear_HeatSink_Generic_Standard
+        public List<AI_CommandAbilitySetting> commandAbilities_AI = new List<AI_CommandAbilitySetting>(); //e.g. Item.HeatSinkDef.Gear_HeatSink_Generic_Standard
         public ColorSetting customSpawnReticleColor = new ColorSetting();
         public string customSpawnReticleAsset = "";
-        public float AI_CommandAbilityAddChance = 1.0f;
-        public float AI_CommandAbilityDifficultyMod = 0.05f;
         public int AI_InvokeStrafeThreshold = 1;
         public int AI_InvokeSpawnThreshold = 1;
-        public Dictionary<string, string> AI_SpawnBehaviorTags = new Dictionary<string, string>(); // values can be "AMBUSH", "BRAWLER", "REINFORCE"
+        public List<AI_SpawnBehavior> AI_SpawnBehavior = new List<AI_SpawnBehavior>(); // values can be "AMBUSH", "BRAWLER" (is default if none selected), "REINFORCE"
+        public string BattleArmorMountID = "";
+        public string BattleArmorSwarmID = "";
     }
 }

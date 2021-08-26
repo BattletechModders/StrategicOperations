@@ -4,7 +4,6 @@ using BattleTech.Framework;
 using BattleTech.UI;
 using Harmony;
 using StrategicOperations.Framework;
-using static StrategicOperations.Framework.Classes;
 
 namespace StrategicOperations.Patches
 {
@@ -20,6 +19,7 @@ namespace StrategicOperations.Patches
                 var addObjectiveMethod = Traverse.Create(__instance).Method("AddObjective", new Type[] { typeof(MissionObjectiveResult) });
                 foreach (var cmdUse in ModState.CommandUses)
                 {
+                    if (cmdUse.TotalCost <= 0) continue;
                     var cmdUseCost = $"Command Ability Costs for {cmdUse.CommandName}: {cmdUse.UnitName}: {cmdUse.UseCount} Uses x {cmdUse.UseCostAdjusted} ea. = ¢-{cmdUse.TotalCost}";
 
                     var cmdUseCostResult = new MissionObjectiveResult($"{cmdUseCost}", Guid.NewGuid().ToString(), false, true, ObjectiveStatus.Ignored, false);

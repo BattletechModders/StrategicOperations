@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using BattleTech;
-using MissionControl.Logic;
 using UnityEngine;
 using static StrategicOperations.Framework.Classes;
 
@@ -9,6 +8,14 @@ namespace StrategicOperations.Framework
 {
     public static class ModState
     {
+        public static Dictionary<string, List<ChassisLocations>> CachedDestroyedLocations = new Dictionary<string, List<ChassisLocations>>();
+        public static Dictionary<string, List<Transform>> CachedActiveComponents = new Dictionary<string, List<Transform>>();
+
+
+        public static Dictionary<string, Vector3> CachedUnitCoordinates = new Dictionary<string, Vector3>();
+        public static Dictionary<string, string> PositionLockMount = new Dictionary<string, string>(); // key is mounted unit, value is carrier
+        public static Dictionary<string, string> PositionLockSwarm = new Dictionary<string, string>(); // key is mounted unit, value is carrier
+
         public static List<Ability> CommandAbilities = new List<Ability>();
 
         public static List<KeyValuePair<string, Action>>
@@ -32,6 +39,18 @@ namespace StrategicOperations.Framework
             deferredInvokeSpawns = new List<KeyValuePair<string, Action>>();
             CommandUses = new List<CmdUseInfo>();
             deploymentAssetsStats = new List<CmdUseStat>();
+            CachedDestroyedLocations = new Dictionary<string, List<ChassisLocations>>();
+            CachedActiveComponents = new Dictionary<string, List<Transform>>();
+            CachedUnitCoordinates = new Dictionary<string, Vector3>();
+            PositionLockMount = new Dictionary<string, string>();
+            PositionLockSwarm = new Dictionary<string, string>();
+            deferredActorResource = "";
+            popupActorResource = "";
+            PilotOverride = null;
+            FromDelegate = false;
+            OutOfRange = false;
+            AiCmds = new Dictionary<string, AI_CmdInvocation>();
+
         }
 
         public static void ResetDelegateInfos()
@@ -47,8 +66,7 @@ namespace StrategicOperations.Framework
             deferredInvokeSpawns = new List<KeyValuePair<string, Action>>();
         }
 
-        public static void ResetSpawnInfo()
-        {
-        }
+        public static List<AI_CommandAbilitySetting> AI_CommandAbilitySettings = new List<AI_CommandAbilitySetting>();
+
     }
 }

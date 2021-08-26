@@ -44,9 +44,6 @@
       <SpecificVersion>False</SpecificVersion>
       <HintPath>F:\Steam Library\steamapps\common\BATTLETECH\BattleTech_Data\Managed\InControl.dll</HintPath>
     </Reference>
-    <Reference Include="MissionControl">
-      <HintPath>F:\Steam Library\steamapps\common\BATTLETECH\Mods\MissionControl\MissionControl.dll</HintPath>
-    </Reference>
     <Reference Include="Newtonsoft.Json">
       <HintPath>F:\Steam Library\steamapps\common\BATTLETECH\BattleTech_Data\Managed\Newtonsoft.Json.dll</HintPath>
     </Reference>
@@ -63,8 +60,9 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
-    <None Include="Framework\AI_Utils.cs" />
-    <None Include="Framework\SpawnUtils.cs" />
+    <Compile Include="Framework\AI_Utils.cs" />
+    <Compile Include="Framework\BattleArmorUtils.cs" />
+    <Compile Include="Framework\SpawnUtils.cs" />
     <Compile Include="Framework\Classes.cs" />
     <Compile Include="Framework\DropPodSpawn.cs" />
     <Compile Include="Framework\Utils.cs" />
@@ -72,7 +70,8 @@
     <Compile Include="Framework\TB_StrafeSequence.cs" />
     <Compile Include="Framework\Logger.cs" />
     <Compile Include="ModInit.cs" />
-    <None Include="Patches\AI_Patches.cs" />
+    <Compile Include="Patches\AI_Patches.cs" />
+    <Compile Include="Patches\BattleArmorPatches.cs" />
     <Compile Include="Patches\SimGamePatches.cs" />
     <Compile Include="Patches\StrategicOperationsPatches.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />

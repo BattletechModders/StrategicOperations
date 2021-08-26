@@ -4,7 +4,6 @@ using BattleTech;
 using HBS.Math;
 using HBS.Util;
 using UnityEngine;
-using static StrategicOperations.Framework.Classes;
 
 namespace StrategicOperations.Framework
 {
@@ -58,7 +57,7 @@ namespace StrategicOperations.Framework
         private void AttackNextTarget()
         {
             this._timeSinceLastAttack += Time.deltaTime;
-            if (this._timeSinceLastAttack > ModInit.modSettings.timeBetweenAttacks && !base.Combat.AttackDirector.IsAnyAttackSequenceActive)
+            if (this._timeSinceLastAttack > ModInit.modSettings.timeBetweenAttacks)// && !base.Combat.AttackDirector.IsAnyAttackSequenceActive)
             {
                 if (this.AllTargets.Count < 1)
                 {
@@ -348,17 +347,14 @@ namespace StrategicOperations.Framework
                     {
                         Vector3 vector = pos2 - enemy.CurrentPosition;
                         vector.y = 0f;
-//                        ModInit.modLog.logt($"{enemy.Description.UIName} is {vector.magnitude} from strafing unit for
-//
-//
-// . Unit has sensor range of {base.Combat.LOS.GetSensorRange(Attacker)}!");
+                        ModInit.modLog.LogTrace($"{enemy.Description.UIName} is {vector.magnitude} from strafing unit for. Unit has sensor range of {base.Combat.LOS.GetSensorRange(Attacker)}!");
                         if (vector.magnitude < ModInit.modSettings.strafeSensorFactor * base.Combat.LOS.GetSensorRange(Attacker))
                         {
-//                            ModInit.modLog.LogMessage($"Should be showing enemy!");
+                            ModInit.modLog.LogTrace($"Should be showing enemy!");
                             var rep = enemy.GameRep as PilotableActorRepresentation;
                             if (rep != null && !rep.VisibleToPlayer && enemy.VisibilityToTargetUnit(PlayerTeam.units.FirstOrDefault(x=>!x.IsDead)) < VisibilityLevel.Blip0Minimum)
                             {
-//                                ModInit.modLog.LogMessage($"Game Rep is not null!");
+                                ModInit.modLog.LogTrace($"Game Rep is not null!");
 //                                rep.OnPlayerVisibilityChanged(VisibilityLevel.Blip0Minimum);
                                 rep.SetForcedPlayerVisibilityLevel(VisibilityLevel.Blip0Minimum);
                             }

@@ -1,14 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Runtime.Remoting.Messaging;
-using Abilifier;
 using BattleTech;
 using BattleTech.Data;
-using BattleTech.UI;
 using UnityEngine;
-using static StrategicOperations.Framework.Classes;
-using Random = UnityEngine.Random;
 
 namespace StrategicOperations.Framework
 {
@@ -30,11 +25,12 @@ namespace StrategicOperations.Framework
         {
             if (unit is Turret) return;
             var dm = unit.Combat.DataManager;
-            var cmdAbilities = new List<Ability>();
-            foreach (var ability in ModInit.modSettings.commandAbilities_AI)
+
+            if (ModState.AI_CommandAbilitySettings.Count == 0)
             {
-                dm.AbilityDefs.TryGet(ability, out var def);
-                cmdAbilities.Add(new Ability(def));
+                ModState.AI_CommandAbilitySettings =
+                    new List<Classes.AI_CommandAbilitySetting>(
+                        ModInit.modSettings.commandAbilities_AI.OrderBy(x => x.AddChance));
             }
 
             if (unit.GetPilot().Abilities.All(x => x.Def.Resource != AbilityDef.ResourceConsumed.CommandAbility))
@@ -43,26 +39,32 @@ namespace StrategicOperations.Framework
                 if (unit.ComponentAbilities.All(x => x.Def.Resource != AbilityDef.ResourceConsumed.CommandAbility))
                 {
                     ModInit.modLog.LogTrace($"No command abilities on unit from Components.");
-                    var roll = ModInit.Random.NextDouble();
-                    var chance = ModInit.modSettings.AI_CommandAbilityAddChance + (ModInit.modSettings.AI_CommandAbilityDifficultyMod * unit.Combat.ActiveContract.Override.finalDifficulty);
-                    if (roll <= chance)
+                    foreach (var abilitySetting in ModState.AI_CommandAbilitySettings)
                     {
-                        ModInit.modLog.LogTrace($"Rolled {roll}, < {chance}.");
-                        var ability = Utils.GetRandomFromList(cmdAbilities);
-                        ModInit.modLog.LogTrace($"Adding {ability.Def?.Description?.Id} to {unit.Description?.Name}.");
-                        ability.Init(unit.Combat);
-                        unit.ComponentAbilities.Add(ability);
+                        var roll = ModInit.Random.NextDouble();
+                        var chance = abilitySetting.AddChance +
+                                     (abilitySetting.DiffMod * unit.Combat.ActiveContract.Override.finalDifficulty);
+                        if (roll <= chance)
+                        {
+                            ModInit.modLog.LogTrace($"Rolled {roll}, < {chance}.");
+                            dm.AbilityDefs.TryGet(abilitySetting.AbilityID, out var def);
+                            var ability = new Ability(def);
+                            ModInit.modLog.LogTrace(
+                                $"Adding {ability.Def?.Description?.Id} to {unit.Description?.Name}.");
+                            ability.Init(unit.Combat);
+                            unit.ComponentAbilities.Add(ability);
+                            return;
+                        }
                     }
                 }
-            }// did i add things o the wrong team? probably.
-            
+            }
         }
 
         public static string AssignRandomSpawnAsset(Ability ability)
         {
             var sgs = UnityGameInstance.BattleTechGame.Simulation;
             var dm = UnityGameInstance.BattleTechGame.DataManager;
-            var potentialAssetsForAI = new List<string>();
+            var potentialAssetsForAI = new List<string> {ability.Def.ActorResource};
 
             if (!string.IsNullOrEmpty(ability.Def.ActorResource))
             {
@@ -134,8 +136,27 @@ namespace StrategicOperations.Framework
                     }
                 }
 
-                var chosen = Utils.GetRandomFromList(potentialAssetsForAI);
+                var chosen = potentialAssetsForAI.GetRandomElement();
                 ModInit.modLog.LogTrace($"Chose {chosen} for this activation.");
+
+                LoadRequest loadRequest = dm.CreateLoadRequest();
+                if (chosen.StartsWith("mechdef_"))
+                {
+                    ModInit.modLog.LogMessage($"Added loadrequest for MechDef: {chosen}");
+                    loadRequest.AddBlindLoadRequest(BattleTechResourceType.MechDef, chosen);
+                }
+                else if (chosen.StartsWith("vehicledef_"))
+                {
+                    ModInit.modLog.LogMessage($"Added loadrequest for VehicleDef: {chosen}");
+                    loadRequest.AddBlindLoadRequest(BattleTechResourceType.VehicleDef, chosen);
+                }
+                else if (chosen.StartsWith("turretdef_"))
+                {
+                    ModInit.modLog.LogMessage($"Added loadrequest for TurretDef: {chosen}");
+                    loadRequest.AddBlindLoadRequest(BattleTechResourceType.TurretDef, chosen);
+                }
+                loadRequest.ProcessRequests(1000u);
+
                 return chosen;
             }
             return "";
@@ -338,92 +359,116 @@ namespace StrategicOperations.Framework
             {
                 var assetID = AssignRandomSpawnAsset(ability);
 
-                var asset = Utils.FetchUnitFromDM(actor.Combat.DataManager, assetID);
+                var asset = actor.Combat.DataManager.FetchUnitFromDataManager(assetID);
 
-                var behaviorType = "";
+                Classes.AI_SpawnBehavior spawnBehavior = new Classes.AI_SpawnBehavior();
                 if (asset is MechDef mech)
                 {
-                    foreach (var key in ModInit.modSettings.AI_SpawnBehaviorTags.Keys)
+                    foreach (var behavior in ModInit.modSettings.AI_SpawnBehavior)
                     {
-                        if (mech.MechTags.Contains(key))
+                        if (mech.MechTags.Contains(behavior.Tag))
                         {
-                            behaviorType = ModInit.modSettings.AI_SpawnBehaviorTags[key];
+                            spawnBehavior = behavior;
                             goto behaviorEvalFinished;
                         }
                     }
                 }
                 else if (asset is VehicleDef vehicle)
                 {
-                    foreach (var key in ModInit.modSettings.AI_SpawnBehaviorTags.Keys)
+                    foreach (var behavior in ModInit.modSettings.AI_SpawnBehavior)
                     {
-                        if (vehicle.VehicleTags.Contains(key))
+                        if (vehicle.VehicleTags.Contains(behavior.Tag))
                         {
-                            behaviorType = ModInit.modSettings.AI_SpawnBehaviorTags[key];
+                            spawnBehavior = behavior;
                             goto behaviorEvalFinished;
                         }
                     }
                 }
                 else if (asset is TurretDef turret)
                 {
-                    foreach (var key in ModInit.modSettings.AI_SpawnBehaviorTags.Keys)
+                    foreach (var behavior in ModInit.modSettings.AI_SpawnBehavior)
                     {
-                        if (turret.TurretTags.Contains(key))
+                        if (turret.TurretTags.Contains(behavior.Tag))
                         {
-                            behaviorType = ModInit.modSettings.AI_SpawnBehaviorTags[key];
+                            spawnBehavior = behavior;
                             goto behaviorEvalFinished;
                         }
                     }
                 }
-                else
-                {
-                    behaviorType = "DEFAULT";
-                }
-
 
                 behaviorEvalFinished:
+                var maxRange = ability.Def.IntParam2;
+                //var enemyActors = new List<AbstractActor>(actor.Combat.AllEnemies);
+                var enemyActors = actor.team.VisibilityCache.GetAllDetectedEnemies(actor);
+                ModInit.modLog.LogTrace(
+                    $"found {enemyActors.Count} to eval");
+                enemyActors.RemoveAll(x => x.WasDespawned || x.IsDead || x.IsFlaggedForDeath || x.WasEjected);
+                ModInit.modLog.LogTrace(
+                    $"found {enemyActors.Count} after eval");
+                var avgCenter = new Vector3();
+                var theCenter = new Vector3();
+                var orientation = new Vector3();
+                var finalOrientation = new Vector3();
 
-                if (behaviorType == "REINFORCE")
+                if (spawnBehavior.Behavior == "AMBUSH")
                 {
-                   
-                }
-
-                if (behaviorType == "DEFAULT" || behaviorType == "BRAWLER")
-                {
-                    var maxRange = ability.Def.IntParam2;
-                    //var enemyActors = new List<AbstractActor>(actor.Combat.AllEnemies);
-                    var enemyActors = actor.team.VisibilityCache.GetAllDetectedEnemies(actor);
-                    ModInit.modLog.LogTrace(
-                        $"found {enemyActors.Count} to eval");
-                    enemyActors.RemoveAll(x => x.WasDespawned || x.IsDead || x.IsFlaggedForDeath || x.WasEjected);
-
-                    ModInit.modLog.LogTrace(
-                        $"found {enemyActors.Count} after eval");
-                    var center = new Vector3(0, 0, 0);
                     var count = 0;
-                    foreach (var enemy in enemyActors)
+                    var targetEnemy = Utils.GetClosestDetectedEnemy(actor.CurrentPosition, actor);
+
+                    if (targetEnemy != null)
                     {
-                        center += enemy.CurrentPosition;
-                        count++;
                         ModInit.modLog.LogTrace(
-                            $"enemyActors count = {count}");
+                            $"Target enemy {targetEnemy.DisplayName}");
+                        theCenter = targetEnemy.CurrentPosition;
+                        count = 1;
                     }
 
-                    var avgCenter = new Vector3();
-                    var theCenter = new Vector3();
-                    var orientation = new Vector3(0, 0, 0);
-                    var finalOrientation = new Vector3();
+                    if (Vector3.Distance(actor.CurrentPosition, theCenter) > maxRange)
+                    {
+                        theCenter = Utils.LerpByDistance(actor.CurrentPosition, theCenter, maxRange);
+                        ModInit.modLog.LogTrace(
+                            $"Chosen point is {Vector3.Distance(actor.CurrentPosition, theCenter)} from source after LerpByDist");
+                    }
+                    else
+                    {
+                        ModInit.modLog.LogTrace(
+                            $"Chosen point is {Vector3.Distance(actor.CurrentPosition, theCenter)} from source, should be < {maxRange}");
+                    }
 
+                    theCenter = SpawnUtils.FindValidSpawn(targetEnemy, actor, spawnBehavior.MinRange, maxRange);
+
+                    finalOrientation = targetEnemy.CurrentPosition - theCenter;
+
+                    theCenter.y = actor.Combat.MapMetaData.GetLerpedHeightAt(theCenter);
+                    spawnpoint = theCenter;
+                    rotationVector = finalOrientation;
+                    return count;
+                }
+
+                if (spawnBehavior.Behavior == "REINFORCE")
+                {
+                    var friendlyActors = actor.team.VisibilityCache.GetAllFriendlies(actor);
+                    var center = new Vector3(0, 0, 0);
+                    var count = 0;
+                    foreach (var friendly in friendlyActors)
+                    {
+                        center += friendly.CurrentPosition;
+                        count++;
+                        ModInit.modLog.LogTrace(
+                            $"friendlyActors count = {count}");
+                    }
 
                     if (count == 0)
                     {
                         ModInit.modLog.LogTrace(
-                            $"FINAL enemyActors count = {count}");
-                        theCenter = center;
+                            $"FINAL friendlyActors count = {count}");
+                        theCenter = actor.CurrentPosition;
                         finalOrientation = orientation;
                         goto skip;
                     }
 
                     avgCenter = center / count;
+
                     if (Vector3.Distance(actor.CurrentPosition, avgCenter) > maxRange)
                     {
                         theCenter = Utils.LerpByDistance(actor.CurrentPosition, avgCenter, maxRange);
@@ -437,13 +482,62 @@ namespace StrategicOperations.Framework
                             $"Chosen point is {Vector3.Distance(actor.CurrentPosition, theCenter)} from source, should be < {maxRange}");
                     }
 
+                    var targetFriendly = Utils.GetClosestDetectedFriendly(theCenter, actor);
+                    var closestEnemy = Utils.GetClosestDetectedEnemy(theCenter, actor);
+
+                    theCenter = SpawnUtils.FindValidSpawn(targetFriendly, actor, spawnBehavior.MinRange, maxRange);
+
+
+                    finalOrientation = closestEnemy.CurrentPosition - theCenter;
+
+                    skip:
+                    theCenter.y = actor.Combat.MapMetaData.GetLerpedHeightAt(theCenter);
+                    spawnpoint = theCenter;
+                    rotationVector = finalOrientation;
+                    return count;
+                }
+
+                if (spawnBehavior.Behavior == "DEFAULT" || spawnBehavior.Behavior == "BRAWLER")
+                {
+                    var center = new Vector3();
+                    var count = 0;
                     foreach (var enemy in enemyActors)
                     {
-                        orientation += (enemy.CurrentPosition - avgCenter);
+                        center += enemy.CurrentPosition;
+                        count++;
+                        ModInit.modLog.LogTrace(
+                            $"enemyActors count = {count}");
                     }
 
-                    finalOrientation = orientation / count;
+                    if (count == 0)
+                    {
+                        ModInit.modLog.LogTrace(
+                            $"FINAL enemyActors count = {count}");
+                        theCenter = actor.CurrentPosition;
+                        finalOrientation = orientation;
+                        goto skip;
+                    }
 
+                    avgCenter = center / count;
+
+                    if (Vector3.Distance(actor.CurrentPosition, avgCenter) > maxRange)
+                    {
+                        theCenter = Utils.LerpByDistance(actor.CurrentPosition, avgCenter, maxRange);
+                        ModInit.modLog.LogTrace(
+                            $"Chosen point is {Vector3.Distance(actor.CurrentPosition, theCenter)} from source after LerpByDist");
+                    }
+                    else
+                    {
+                        theCenter = avgCenter;
+                        ModInit.modLog.LogTrace(
+                            $"Chosen point is {Vector3.Distance(actor.CurrentPosition, theCenter)} from source, should be < {maxRange}");
+                    }
+
+                    var closestEnemy = Utils.GetClosestDetectedEnemy(theCenter, actor);
+
+                    theCenter = SpawnUtils.FindValidSpawn(closestEnemy, actor, spawnBehavior.MinRange, maxRange);
+
+                    finalOrientation = closestEnemy.CurrentPosition = theCenter;
 
                     skip:
                     theCenter.y = actor.Combat.MapMetaData.GetLerpedHeightAt(theCenter);
@@ -452,7 +546,6 @@ namespace StrategicOperations.Framework
                     return count;
                 }
             }
-
             return 0;
         }
     }

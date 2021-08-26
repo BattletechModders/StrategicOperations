@@ -2,21 +2,26 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
-using System.Runtime.CompilerServices;
-using System.Runtime.Remoting.Messaging;
 using BattleTech;
 using BattleTech.Data;
 using BattleTech.Framework;
-using BattleTech.Rendering;
 using Harmony;
 using UnityEngine;
 using static StrategicOperations.Framework.Classes;
+using Random = UnityEngine.Random;
 
 namespace StrategicOperations.Framework
 {
     public static class Utils
-    {
-        public static object FetchUnitFromDM(this DataManager dm, string id)
+    { public static Vector3 GetHexFromVector(this Vector3 point)
+        {
+            var combat = UnityGameInstance.BattleTechGame.Combat;
+            var hex = combat.HexGrid.GetClosestPointOnGrid(point);
+            hex.y = combat.MapMetaData.GetLerpedHeightAt(hex, false);
+            return hex;
+        }
+
+        public static object FetchUnitFromDataManager(this DataManager dm, string id)
         {
             if (id.StartsWith("mechdef_"))
             {
@@ -43,19 +48,68 @@ namespace StrategicOperations.Framework
             return null;
         }
 
+        public static AbstractActor GetClosestDetectedEnemy(Vector3 loc, AbstractActor actor)
+        {
+            var enemyUnits = new List<AbstractActor>();
+            enemyUnits.AddRange(actor.team.VisibilityCache.GetAllDetectedEnemies(actor));
+            var num = -1f;
+            AbstractActor closestActor = null;
+            foreach (var enemy in enemyUnits)
+            {
+                var magnitude = (loc - enemy.CurrentPosition).magnitude;
+                if (num < 0f || magnitude < num)
+                {
+                    num = magnitude;
+                    closestActor = enemy;
+                }
+            }
+            return closestActor;
+        }
+
+        public static AbstractActor GetClosestDetectedFriendly(Vector3 loc, AbstractActor actor)
+        {
+            var friendlyUnits = actor.team.VisibilityCache.GetAllFriendlies(actor);
+            var num = -1f;
+            AbstractActor closestActor = null;
+            foreach (var friendly in friendlyUnits)
+            {
+                var magnitude = (loc - friendly.CurrentPosition).magnitude;
+                if (num < 0f || magnitude < num)
+                {
+                    num = magnitude;
+                    closestActor = friendly;
+                }
+            }
+            return closestActor;
+        }
+
         public static List<AbstractActor> GetAllDetectedEnemies(this SharedVisibilityCache cache, AbstractActor actor)
         {
             var detectedEnemies = new List<AbstractActor>();
             foreach (var enemy in actor.Combat.AllActors)
             {
-                if (cache.CachedVisibilityToTarget(enemy).VisibilityLevel > 0 && actor.Combat.HostilityMatrix.IsEnemy(actor.team, enemy.team))
+                if (cache.CachedVisibilityToTarget(enemy).VisibilityLevel > 0 && actor.team.IsEnemy(enemy.team))
                 {
+                    ModInit.modLog.LogTrace($"unit {enemy.DisplayName} is enemy of {actor.DisplayName}.");
                     detectedEnemies.Add(enemy);
                 }
             }
             return detectedEnemies;
         }
-        
+        public static List<AbstractActor> GetAllFriendlies (this SharedVisibilityCache cache, AbstractActor actor)
+        {
+            var friendlyActors = new List<AbstractActor>();
+            foreach (var friendly in actor.Combat.AllActors)
+            {
+                if (actor.team.IsFriendly(friendly.team))
+                {
+                    ModInit.modLog.LogTrace($"unit {friendly.DisplayName} is friendly of {actor.DisplayName}.");
+                    friendlyActors.Add(friendly);
+                }
+            }
+            return friendlyActors;
+        }
+
         public static Vector3[] MakeCircle(Vector3 start, int numOfPoints, float radius)
         {
             if (ModInit.modSettings.debugFlares) Utils.SpawnDebugFlare(start, "vfxPrfPrtl_artillerySmokeSignal_loop",3);
@@ -97,13 +151,6 @@ namespace StrategicOperations.Framework
         public static Vector3 LerpByDistance(Vector3 start, Vector3 end, float x)
         {
             return x * Vector3.Normalize(end - start) + start;
-        }
-
-        public static T GetRandomFromList<T>(List<T> list)
-        {
-            if (list.Count == 0) return (T) new object();
-            var idx = UnityEngine.Random.Range(0, list.Count);
-            return list[idx];
         }
 
         public static HeraldryDef SwapHeraldryColors(HeraldryDef def, DataManager dataManager, Action loadCompleteCallback = null)

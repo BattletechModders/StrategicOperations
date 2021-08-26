@@ -1,12 +1,6 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
+﻿using System.Linq;
 using System.Reflection;
-using System.Text;
-using System.Threading.Tasks;
-using Abilifier;
 using BattleTech;
-using BattleTech.Framework;
 using BattleTech.UI;
 using Harmony;
 using StrategicOperations.Framework;
@@ -20,10 +14,11 @@ namespace StrategicOperations.Patches
         [HarmonyPatch(typeof(Team), "AddUnit")]
         public static class Team_AddUnit_AI
         {
-            static bool Prepare() => ModInit.modSettings.AI_CommandAbilityAddChance > 0;
+            static bool Prepare() => ModInit.modSettings.commandAbilities_AI.Any(x=>x.AddChance > 0f);
 
             public static void Postfix(Team __instance, AbstractActor unit)
             {
+                if (__instance.Combat.TurnDirector.CurrentRound > 1) return; // don't give abilities to reinforcements?
                 if(__instance.GUID != "be77cadd-e245-4240-a93e-b99cc98902a5") return; // TargetTeam is only team that gets cmdAbilities added?
                 AI_Utils.GenerateAIStrategicAbilities(unit);
             }
@@ -104,6 +99,7 @@ namespace StrategicOperations.Patches
             public static bool Prefix(ref BehaviorTreeResults __result, string ___name,
                 AbstractActor ___unit)
             {
+                if (!___unit.Combat.TurnDirector.IsInterleaved) return true;
                 if (ModState.AiCmds.ContainsKey(___unit.GUID))
                 {
                     if (ModState.AiCmds[___unit.GUID].active)
@@ -134,22 +130,25 @@ namespace StrategicOperations.Patches
                 }
                 else
                 {
+
                     var spawnVal = AI_Utils.EvaluateSpawn(___unit, out var abilitySpawn, out var vector1Spawn,
                         out var vector2Spawn);
                     var strafeVal = AI_Utils.EvaluateStrafing(___unit, out var abilityStrafe, out var vector1Strafe,
                         out var vector2Strafe);
 
-                    if (spawnVal > ModInit.modSettings.AI_InvokeSpawnThreshold && spawnVal > strafeVal)
+                    if (strafeVal > spawnVal) goto strafe;
+                    if (spawnVal >= ModInit.modSettings.AI_InvokeSpawnThreshold)
                     {
                         var info = new AI_CmdInvocation(abilitySpawn, vector1Spawn, vector2Spawn, true);
-                        ModState.AiCmds[___unit.GUID] = info;
+                        ModState.AiCmds.Add(___unit.GUID, info);
                         __result = new BehaviorTreeResults(BehaviorNodeState.Failure);
                         return false;
                     }
-                    else if (strafeVal > ModInit.modSettings.AI_InvokeStrafeThreshold && strafeVal >= spawnVal)
+                    strafe:
+                    if (strafeVal >= ModInit.modSettings.AI_InvokeStrafeThreshold)
                     {
                         var info = new AI_CmdInvocation(abilityStrafe, vector1Strafe, vector2Strafe, true);
-                        ModState.AiCmds[___unit.GUID] = info;
+                        ModState.AiCmds.Add(___unit.GUID, info);
                         __result = new BehaviorTreeResults(BehaviorNodeState.Failure);
                         return false;
                     }
@@ -170,7 +169,7 @@ namespace StrategicOperations.Patches
                     AI_Utils.AssignRandomSpawnAsset(ModState.AiCmds[unit.GUID].ability);
 
                 ModInit.modLog.LogTrace($"AICMD DUMP: {ModState.AiCmds[unit.GUID].active}, {ModState.AiCmds[unit.GUID].vectorOne}, {ModState.AiCmds[unit.GUID].vectorTwo}.");
-                ModInit.modLog.LogTrace($"CMD Ability DUMP: {ModState.AiCmds[unit.GUID].ability} { ModState.AiCmds[unit.GUID].ability.Def.Id}, Combat is null? {ModState.AiCmds[unit.GUID].ability.Combat != null}");
+                ModInit.modLog.LogTrace($"CMD Ability DUMP: {ModState.AiCmds[unit.GUID].ability} { ModState.AiCmds[unit.GUID].ability.Def.Id}, Combat is not null? {ModState.AiCmds[unit.GUID].ability.Combat != null}");
 
                 ModState.AiCmds[unit.GUID].ability.Activate(unit, ModState.AiCmds[unit.GUID].vectorOne,
                     ModState.AiCmds[unit.GUID].vectorTwo);

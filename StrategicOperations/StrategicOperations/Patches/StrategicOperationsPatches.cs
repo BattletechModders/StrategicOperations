@@ -41,8 +41,7 @@ namespace StrategicOperations.Patches
                 loadRequest.AddBlindLoadRequest(BattleTechResourceType.PilotDef, "pilot_sim_starter_dekker");
                 ModInit.modLog.LogMessage($"Added loadrequest for PilotDef: pilot_sim_starter_dekker (hardcoded)");
 
-                loadRequest.AddBlindLoadRequest(BattleTechResourceType.Texture2D, "select-256");
-                loadRequest.AddBlindLoadRequest(BattleTechResourceType.Texture2D, "select-512");
+                loadRequest.AddBlindLoadRequest(BattleTechResourceType.Texture2D, ModInit.modSettings.customSpawnReticleAsset);
                 ModInit.modLog.LogMessage(
                     $"Added loadrequest for Texture2D: uixTxrFram_circleSmallOutline2 (hardcoded)");
 
@@ -111,9 +110,6 @@ namespace StrategicOperations.Patches
 
                 }
                 loadRequest.ProcessRequests(1000u);
-
-
-
             }
         }
 
@@ -122,6 +118,7 @@ namespace StrategicOperations.Patches
         {
             public static bool Prefix(GameRepresentation __instance, AbstractActor ____parentActor)
             {
+                if (____parentActor == null) return true;
                 var combat = UnityGameInstance.BattleTechGame.Combat;
                 if (combat == null) return true;
                 if (combat.ActiveContract.ContractTypeValue.IsSkirmish) return true;
@@ -135,6 +132,56 @@ namespace StrategicOperations.Patches
 
                 return registry.GetItemByGUID<UnitSpawnPointGameLogic>(____parentActor?.spawnerGUID) != null;
                 //ModInit.modLog.LogMessage($"Couldn't find UnitSpawnPointGameLogic for {____parentActor?.DisplayName}. Should be CMD Ability actor; skipping safety teleport!");
+            }
+
+            public static void Postfix(GameRepresentation __instance, AbstractActor ____parentActor)
+            {
+                if (____parentActor == null) return;
+
+                if (ModState.CachedUnitCoordinates.ContainsKey(____parentActor.GUID))
+                {
+                    if (ModState.CachedUnitCoordinates[____parentActor.GUID] == ____parentActor.CurrentPosition)
+                    {
+                        return;
+                    }
+                }
+
+                if (____parentActor.HasMountedUnits())
+                {
+                    var combat = ____parentActor.Combat;
+                    var targetActorGUID = ModState.PositionLockMount.FirstOrDefault(x=>x.Value == ____parentActor.GUID).Key;
+                    var targetActor = combat.FindActorByGUID(targetActorGUID);
+                    if (targetActor == null) return;
+                    targetActor.TeleportActor(____parentActor.CurrentPosition);
+                    if (!ModState.CachedUnitCoordinates.ContainsKey(____parentActor.GUID))
+                    {
+                        ModState.CachedUnitCoordinates.Add(____parentActor.GUID, ____parentActor.CurrentPosition);
+                    }
+                    else
+                    {
+                        ModState.CachedUnitCoordinates[____parentActor.GUID] = ____parentActor.CurrentPosition;
+                    }
+                    ModInit.modLog.LogMessage($"PositionLockMount - Setting riding unit {____parentActor.DisplayName} position to same as carrier unit {targetActor.DisplayName}");
+                    return;
+                }
+                else if (____parentActor.HasSwarmingUnits())
+                {
+                    var combat = ____parentActor.Combat;
+                    var targetActorGUID = ModState.PositionLockMount.FirstOrDefault(x => x.Value == ____parentActor.GUID).Key;
+                    var targetActor = combat.FindActorByGUID(targetActorGUID);
+                    if (targetActor == null) return;
+                    targetActor.TeleportActor(____parentActor.CurrentPosition);
+                    if (!ModState.CachedUnitCoordinates.ContainsKey(____parentActor.GUID))
+                    {
+                        ModState.CachedUnitCoordinates.Add(____parentActor.GUID, ____parentActor.CurrentPosition);
+                    }
+                    else
+                    {
+                        ModState.CachedUnitCoordinates[____parentActor.GUID] = ____parentActor.CurrentPosition;
+                    }
+                    ModInit.modLog.LogMessage($"PositionLockSwarm - Setting riding unit {____parentActor.DisplayName} position to same as carrier unit {targetActor.DisplayName}");
+                    return;
+                }
             }
         }
 
@@ -224,7 +271,6 @@ namespace StrategicOperations.Patches
                     ability.Activate(__instance, posA, posB);
                     return false;
                 }
-
                 return true;
             }
         }
@@ -717,8 +763,6 @@ namespace StrategicOperations.Patches
                             }
                         }
                     }
-
-
                 }
                 else if (actorResource.StartsWith("vehicledef_"))
                 {
