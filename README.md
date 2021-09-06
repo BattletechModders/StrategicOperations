@@ -101,6 +101,7 @@ Spawn ability json structure:
 	"Targeting" : "CommandSpawnPosition",
 	"ActorResource" : "mechdef_urbanmech_UM-R50",
 	"StringParam1" : "vfxPrfPrtl_fireTerrain_smLoop",
+	"StringParam2" : "unit_urb",
 	"IntParam2" : 250
 }
 ```
@@ -120,6 +121,7 @@ The configurable parameters of the above:
 
 `IntParam2` - int, the maximum distance from the initiating actor at which a unit can be deployed.
 
+`StringParam2` - string, tag that "beacons" componentDefs are required to have in order to be used by this ability.
 
 ## Strafes
 
@@ -157,6 +159,7 @@ The json structure of a strafe ability follows:
 	"FloatParam2" : 250.0,
 	"ActorResource" : "vehicledef_SCHREK",
 	"StringParam1" : "vfxPrfPrtl_fireTerrain_smLoop",
+	"StringParam2" : "unit_urb",
 	"IntParam1" : 5,
 	"IntParam2" : 500
 ```
@@ -182,3 +185,5 @@ The configurable parameters of the above:
 `IntParam1` - int, number of "flares" that pop up to show the strafing effect area.
 
 `IntParam2` - int, the maximum distance from the initiating actor at which a strafing run can be initialized OR ended! so you can't start a run at `IntParam2` and still go `FloatParam2` past it.
+	
+`StringParam2` - string, tag that "beacons" componentDefs are required to have in order to be used by this ability.
