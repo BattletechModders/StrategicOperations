@@ -1,10 +1,48 @@
-﻿using BattleTech;
+﻿using System.Collections.Generic;
+using BattleTech;
+using IRBTModUtils.CustomInfluenceMap;
+using IRBTModUtils.Extension;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 using UnityEngine;
 
 namespace StrategicOperations.Framework
 {
+
     public class Classes
     {
+        public class BA_DamageTracker
+        {
+            public string TargetGUID = ""; // guid of carrier unit.
+            public bool IsSquadInternal;
+            public Dictionary<int, int> BA_MountedLocations = new Dictionary<int, int>(); // key is BA unit chassis location (HD, CT, LT, RT, LA, RA), value is BA mounted ARMOR location on carrier.
+
+            public BA_DamageTracker()
+            {
+                this.TargetGUID = "";
+                this.IsSquadInternal = false;
+                this.BA_MountedLocations = new Dictionary<int, int>();
+            }
+
+            public BA_DamageTracker(string targetGUID, bool internalSquad, Dictionary<int, int> mountedLocations)
+            {
+                this.TargetGUID = targetGUID;
+                this.IsSquadInternal = internalSquad;
+                this.BA_MountedLocations = mountedLocations;
+            }
+        }
+
+        public class BA_TargetEffect
+        {
+            public string ID = "";
+            public string Name = "";
+            public string Description = "";
+
+            [JsonIgnore]
+            public List<EffectData> effects = new List<EffectData>();
+            public List<JObject> effectDataJO = new List<JObject>();
+
+        }
         public class SpawnCoords
         {
             public string ID;
@@ -68,6 +106,27 @@ namespace StrategicOperations.Framework
                 this.UseCount = 1;
             }
         }
+
+        public class BA_MountOrSwarmInvocation
+        {
+            public Ability ability;
+            public AbstractActor targetActor;
+            public bool active;
+
+            public BA_MountOrSwarmInvocation()
+            {
+                this.ability = default(Ability);
+                this.targetActor = default(AbstractActor);
+                this.active = false;
+            }
+            public BA_MountOrSwarmInvocation(Ability cmdAbility, AbstractActor targetActor, bool active)
+            {
+                this.ability = cmdAbility;
+                this.targetActor = targetActor;
+                this.active = active;
+            }
+        }
+
         public class AI_CmdInvocation
         {
             public Ability ability;

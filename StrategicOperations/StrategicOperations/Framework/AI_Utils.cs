@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using Abilifier;
 using BattleTech;
 using BattleTech.Data;
 using UnityEngine;
@@ -24,8 +25,61 @@ namespace StrategicOperations.Framework
         public static void GenerateAIStrategicAbilities(AbstractActor unit)
         {
             if (unit is Turret) return;
+            if (unit.team.IsLocalPlayer) return;
             var dm = unit.Combat.DataManager;
 
+            //check for BA equipment. if present, we're going to spawn BA and mount it to AI
+            
+            ModInit.modLog.LogMessage($"Checking if unit {unit.DisplayName} {unit.GUID} should spawn Battle Armor.");
+
+            if (ModInit.modSettings.BattleArmorFactionAssociations.ContainsKey(unit.team.FactionValue.Name))
+            {
+                var baDefs = ModInit.modSettings.BattleArmorFactionAssociations[unit.team.FactionValue.Name];
+
+                var baLance = Utils.CreateOrFetchCMDLance(unit.team);
+
+                var internalSpace = unit.getAvailableInternalBASpace();
+                if (internalSpace > 0)
+                {
+                    for (int i = 0; i < internalSpace; i++)
+                    {
+                        var chosen = baDefs.GetRandomElement();
+                        var baRollInt = ModInit.Random.NextDouble();
+                        if (baRollInt <= ModInit.modSettings.AI_BattleArmorSpawnChance)
+                        {
+                            SpawnUtils.SpawnBattleArmorAtActor(unit, chosen, baLance);
+                            ModInit.modLog.LogMessage(
+                                $"Roll {baRollInt} < {ModInit.modSettings.AI_BattleArmorSpawnChance}, adding BA internally.");
+                        }
+                        else
+                        {
+                            ModInit.modLog.LogMessage(
+                                $"Roll {baRollInt} > {ModInit.modSettings.AI_BattleArmorSpawnChance}, not adding BA internally.");
+                        }
+                    }
+                }
+
+                if (unit.getHasBattleArmorMounts())
+                {
+                    var baRollExt = ModInit.Random.NextDouble();
+                    if (baRollExt <= ModInit.modSettings.AI_BattleArmorSpawnChance)
+                    {
+                        var chosen = baDefs.GetRandomElement();
+                        SpawnUtils.SpawnBattleArmorAtActor(unit, chosen, baLance);
+                        ModInit.modLog.LogMessage($"Roll {baRollExt} > {ModInit.modSettings.AI_BattleArmorSpawnChance}, adding BA externally.");
+                    }
+                    else
+                    {
+                        ModInit.modLog.LogMessage($"Roll {baRollExt} > {ModInit.modSettings.AI_BattleArmorSpawnChance}, not adding BA externally.");
+                    }
+                }
+            }
+
+
+
+            //do we want to generate AI abilities if they already have BA? unsure.
+            if (unit.Combat.TurnDirector.CurrentRound > 1) return; // don't give abilities to reinforcements?
+            if (unit.team.GUID != "be77cadd-e245-4240-a93e-b99cc98902a5") return; // TargetTeam is only team that gets cmdAbilities 
             if (ModState.AI_CommandAbilitySettings.Count == 0)
             {
                 ModState.AI_CommandAbilitySettings =
@@ -413,7 +467,7 @@ namespace StrategicOperations.Framework
                 if (spawnBehavior.Behavior == "AMBUSH")
                 {
                     var count = 0;
-                    var targetEnemy = Utils.GetClosestDetectedEnemy(actor.CurrentPosition, actor);
+                    var targetEnemy = actor.GetClosestDetectedEnemy(actor.CurrentPosition);
 
                     if (targetEnemy != null)
                     {
@@ -483,7 +537,7 @@ namespace StrategicOperations.Framework
                     }
 
                     var targetFriendly = Utils.GetClosestDetectedFriendly(theCenter, actor);
-                    var closestEnemy = Utils.GetClosestDetectedEnemy(theCenter, actor);
+                    var closestEnemy = actor.GetClosestDetectedEnemy(theCenter);
 
                     theCenter = SpawnUtils.FindValidSpawn(targetFriendly, actor, spawnBehavior.MinRange, maxRange);
 
@@ -533,7 +587,7 @@ namespace StrategicOperations.Framework
                             $"Chosen point is {Vector3.Distance(actor.CurrentPosition, theCenter)} from source, should be < {maxRange}");
                     }
 
-                    var closestEnemy = Utils.GetClosestDetectedEnemy(theCenter, actor);
+                    var closestEnemy = actor.GetClosestDetectedEnemy(theCenter);
 
                     theCenter = SpawnUtils.FindValidSpawn(closestEnemy, actor, spawnBehavior.MinRange, maxRange);
 

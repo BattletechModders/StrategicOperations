@@ -2,7 +2,9 @@
 using System.Collections.Generic;
 using System.Reflection;
 using Harmony;
+using Localize;
 using Newtonsoft.Json;
+using StrategicOperations.Framework;
 using static StrategicOperations.Framework.Classes;
 using Logger = StrategicOperations.Framework.Logger;
 using Random = System.Random;
@@ -33,9 +35,9 @@ namespace StrategicOperations
             }
             //HarmonyInstance.DEBUG = true;
             ModInit.modLog.LogMessage($"Initializing StrategicOperations - Version {typeof(Settings).Assembly.GetName().Version}");
-
             var harmony = HarmonyInstance.Create(HarmonyPackage);
             harmony.PatchAll(Assembly.GetExecutingAssembly());
+            ModState.Initialize();
         }
     }
     class Settings
@@ -58,14 +60,24 @@ namespace StrategicOperations
         public float timeBetweenAttacks = 0.35f;
         public float strafeMinDistanceToEnd = 10f;
         public float commandUseCostsMulti = 1f;
+        
         public List<string> deploymentBeaconEquipment = new List<string>(); //e.g. Item.HeatSinkDef.Gear_HeatSink_Generic_Standard
-        public List<AI_CommandAbilitySetting> commandAbilities_AI = new List<AI_CommandAbilitySetting>(); //e.g. Item.HeatSinkDef.Gear_HeatSink_Generic_Standard
+        public List<AI_CommandAbilitySetting> commandAbilities_AI = new List<AI_CommandAbilitySetting>();
         public ColorSetting customSpawnReticleColor = new ColorSetting();
         public string customSpawnReticleAsset = "";
         public int AI_InvokeStrafeThreshold = 1;
         public int AI_InvokeSpawnThreshold = 1;
         public List<AI_SpawnBehavior> AI_SpawnBehavior = new List<AI_SpawnBehavior>(); // values can be "AMBUSH", "BRAWLER" (is default if none selected), "REINFORCE"
         public string BattleArmorMountID = "";
-        public string BattleArmorSwarmID = "";
+        public BA_TargetEffect BATargetEffect = new BA_TargetEffect();
+        public float AI_BattleArmorSpawnChance = 0f;
+        public Dictionary<string, List<string>> BattleArmorFactionAssociations = new Dictionary<string, List<string>>();
+        public string BattleArmorDeSwarmRoll = "";
+        public string BattleArmorDeSwarmSwat = "";
+        public List<string> ArmActuatorCategoryIDs = new List<string>();
+
+
+        //this is maybe temporary
+        public int additionalStrafingAttacks = 0;
     }
 }

@@ -48,7 +48,7 @@ namespace StrategicOperations.Framework
             return null;
         }
 
-        public static AbstractActor GetClosestDetectedEnemy(Vector3 loc, AbstractActor actor)
+        public static AbstractActor GetClosestDetectedEnemy(this AbstractActor actor, Vector3 loc)
         {
             var enemyUnits = new List<AbstractActor>();
             enemyUnits.AddRange(actor.team.VisibilityCache.GetAllDetectedEnemies(actor));
@@ -108,6 +108,20 @@ namespace StrategicOperations.Framework
                 }
             }
             return friendlyActors;
+        }
+
+        public static List<AbstractActor> GetAllEnemies(this Team team)
+        {
+            var enemyActors = new List<AbstractActor>();
+            foreach (var enemy in team.Combat.AllActors)
+            {
+                if (team.IsEnemy(enemy.team))
+                {
+                    ModInit.modLog.LogTrace($"unit {enemy.DisplayName} is enemy of {team.DisplayName}.");
+                    enemyActors.Add(enemy);
+                }
+            }
+            return enemyActors;
         }
 
         public static Vector3[] MakeCircle(Vector3 start, int numOfPoints, float radius)
@@ -177,16 +191,20 @@ namespace StrategicOperations.Framework
             newHeraldry.Refresh();
             return newHeraldry;
         }
-        public static Lance CreateCMDLance(Team team)
+        public static Lance CreateOrFetchCMDLance(Team team)
         {
-            Lance lance = new Lance(team, new LanceSpawnerRef[0]);
-            var lanceGuid = LanceSpawnerGameLogic.GetLanceGuid(Guid.NewGuid().ToString());
-            lance.lanceGuid = lanceGuid;
-            var combat = UnityGameInstance.BattleTechGame.Combat;
-            combat.ItemRegistry.AddItem(lance);
-            team.lances.Add(lance);
-            ModInit.modLog.LogMessage($"Created lance {lance.DisplayName} for Team {team.DisplayName}.");
-            return lance;
+            if (!team.lances.Any(x => x.GUID.EndsWith($"{team.GUID}_StratOps")))
+            {
+                Lance lance = new Lance(team, Array.Empty<LanceSpawnerRef>());
+                var lanceGuid = $"{LanceSpawnerGameLogic.GetLanceGuid(Guid.NewGuid().ToString())}_{team.GUID}_StratOps";
+                lance.lanceGuid = lanceGuid;
+                var combat = UnityGameInstance.BattleTechGame.Combat;
+                combat.ItemRegistry.AddItem(lance);
+                team.lances.Add(lance);
+                ModInit.modLog.LogMessage($"Created lance {lance.DisplayName} for Team {team.DisplayName}.");
+                return lance;
+            }
+            return team.lances.FirstOrDefault(x => x.GUID.EndsWith($"{team.GUID}_StratOps"));
         }
         public static void CooldownAllCMDAbilities()
         {
@@ -370,6 +388,22 @@ namespace StrategicOperations.Framework
                     actor.EvasivePipsCurrent = ModInit.modSettings.deployProtection;
                     Traverse.Create(actor).Property("EvasivePipsTotal").SetValue(actor.EvasivePipsCurrent);
                 }
+        }
+
+        public static void BA_MountedEvasion(this AbstractActor actor, AbstractActor carrier)
+        {
+            ModInit.modLog.LogMessage($"Adding BA mounted protection to {actor.DisplayName}.");
+
+            if (actor is Turret turret)
+            {
+                ModInit.modLog.LogMessage($"{actor.DisplayName} is a turret, skipping.");
+                return;
+            }
+
+            var carrierEvasion = carrier.EvasivePipsCurrent;
+            ModInit.modLog.LogMessage($"Setting evasion to {carrierEvasion} from carrier");
+            actor.EvasivePipsCurrent = carrierEvasion;
+            Traverse.Create(actor).Property("EvasivePipsTotal").SetValue(actor.EvasivePipsCurrent);
         }
 
 

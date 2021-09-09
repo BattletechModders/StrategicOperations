@@ -9,7 +9,7 @@ namespace StrategicOperations.Framework
 {
     public class TB_StrafeSequence : MultiSequence
     {
-        private Team PlayerTeam;
+        private Team StrafingTeam;
         private List<ICombatant> AllTargets { get; set; }
         private AbstractActor Attacker { get; set; }
         private Vector3 EndPos { get; set; }
@@ -50,66 +50,86 @@ namespace StrategicOperations.Framework
             this.EndPos = positionB;
             this.StrafeLength = Mathf.Max(1f, Vector3.Distance(positionA, positionB)); 
             this.Radius = radius;
-            this.PlayerTeam = team;
+            this.StrafingTeam = team;
             this._state = TB_StrafeSequence.SequenceState.None;
         }
 
-        private void AttackNextTarget()
+        private void AttackNextTargets()
         {
             this._timeSinceLastAttack += Time.deltaTime;
-            if (this._timeSinceLastAttack > ModInit.modSettings.timeBetweenAttacks)// && !base.Combat.AttackDirector.IsAnyAttackSequenceActive)
+            if (this._timeSinceLastAttack > ModInit.modSettings.timeBetweenAttacks)
             {
-                if (this.AllTargets.Count < 1)
+                if (!base.Combat.AttackDirector.IsAnyAttackSequenceActive)
                 {
-                    ModInit.modLog.LogMessage($"We have {this.AllTargets.Count} 0 targets remaining, probably shouldn't be calling AttackNextTarget anymore.");
-                    this.SetState(TB_StrafeSequence.SequenceState.Finished);
-                    return;
-                }
-                for (var i = this.AllTargets.Count - 1; i >= 0; i--)
-                {
-                    var targetDist = Vector3.Distance(this.Attacker.CurrentPosition, this.AllTargets[i].CurrentPosition);
-                    var firingAngle = Vector3.Angle(AllTargets[i].CurrentPosition, this.Attacker.CurrentPosition);
-                    ModInit.modLog.LogMessage(
-                        $"Strafing unit {Attacker.DisplayName} is {targetDist}m from  {AllTargets[i].DisplayName} and firingAngle is {firingAngle}");
-                    if (targetDist <= this.MaxWeaponRange)
                     {
-                        var filteredWeapons =
-                            new List<Weapon>();
-                        foreach (var weapon in this.StrafeWeapons)
-                        {
-                            if (this.Attacker.HasLOFToTargetUnit(AllTargets[i], weapon) && weapon.MaxRange > targetDist)
-                            {
-                                weapon.ResetWeapon();
-                                filteredWeapons.Add(weapon);
-                                ModInit.modLog.LogMessage(
-                                    $"weapon {weapon.Name} has LOF and range");
-                            }
-                        }
-                        if (filteredWeapons.Count == 0)
+                        if (this.AllTargets.Count < 1)
                         {
                             ModInit.modLog.LogMessage(
-                                $"No weapons had LOF and range.");
-                            continue;
+                                $"We have {this.AllTargets.Count} 0 targets remaining, probably shouldn't be calling AttackNextTarget anymore.");
+                            this.SetState(TB_StrafeSequence.SequenceState.Finished);
+                            return;
+                        }
+
+                        for (var i = this.AllTargets.Count - 1; i >= 0; i--)
+                        {
+                            var targetDist = Vector3.Distance(this.Attacker.CurrentPosition,
+                                this.AllTargets[i].CurrentPosition);
+                            var firingAngle = Vector3.Angle(AllTargets[i].CurrentPosition,
+                                this.Attacker.CurrentPosition);
+                            ModInit.modLog.LogMessage(
+                                $"Strafing unit {Attacker.DisplayName} is {targetDist}m from  {AllTargets[i].DisplayName} and firingAngle is {firingAngle}");
+                            if (targetDist <= this.MaxWeaponRange)
+                            {
+                                var filteredWeapons =
+                                    new List<Weapon>();
+                                foreach (var weapon in this.StrafeWeapons)
+                                {
+                                    if (this.Attacker.HasLOFToTargetUnit(AllTargets[i], weapon) &&
+                                        weapon.MaxRange > targetDist)
+                                    {
+                                        weapon.ResetWeapon();
+                                        filteredWeapons.Add(weapon);
+                                        ModInit.modLog.LogMessage(
+                                            $"weapon {weapon.Name} has LOF and range");
+                                    }
+                                }
+
+                                if (filteredWeapons.Count == 0)
+                                {
+                                    ModInit.modLog.LogMessage(
+                                        $"No weapons had LOF and range.");
+                                    continue;
+                                }
+
+                                ModInit.modLog.LogMessage(
+                                    $"Strafing unit {Attacker.DisplayName} attacking target {AllTargets[i].DisplayName} from range {targetDist} and firingAngle {firingAngle}");
+
+                                var attackStackSequence = new AttackStackSequence(Attacker, this.AllTargets[i], Attacker.CurrentPosition,
+                                    Attacker.CurrentRotation, filteredWeapons, MeleeAttackType.NotSet, 0, -1);
+                                Attacker.Combat.MessageCenter.PublishMessage(new AddSequenceToStackMessage(attackStackSequence));
+
+                                //AttackDirector attackDirector = base.Combat.AttackDirector;
+                                //AttackDirector.AttackSequence attackSequence = attackDirector.CreateAttackSequence(
+                                //    base.SequenceGUID, this.Attacker, this.AllTargets[i], this.Attacker.CurrentPosition,
+                                //    this.Attacker.CurrentRotation, 0, filteredWeapons,
+                                //    MeleeAttackType.NotSet, 0, false);
+                                //attackDirector.PerformAttack(attackSequence);
+                                //attackSequence.ResetWeapons();
+                                this.AllTargets.RemoveAt(i);
+                                this._timeSinceLastAttack = 0f;
+                                continue;
+                            }
+
+                            ModInit.modLog.LogMessage(
+                                $"Attacker {Attacker.DisplayName} range to target {AllTargets[0].DisplayName} {targetDist} >= maxWeaponRange {this.MaxWeaponRange}");
+//                    this.AllTargets.RemoveAt(0);
                         }
 
                         ModInit.modLog.LogMessage(
-                            $"Strafing unit {Attacker.DisplayName} attacking target {AllTargets[i].DisplayName} from range {targetDist} and firingAngle {firingAngle}");
-                        AttackDirector attackDirector = base.Combat.AttackDirector;
-                        AttackDirector.AttackSequence attackSequence = attackDirector.CreateAttackSequence(
-                            base.SequenceGUID, this.Attacker, this.AllTargets[i], this.Attacker.CurrentPosition,
-                            this.Attacker.CurrentRotation, this.AllTargets.Count, filteredWeapons,
-                            MeleeAttackType.NotSet, 0, false);
-                        attackDirector.PerformAttack(attackSequence);
-                        attackSequence.ResetWeapons();
-                        this.AllTargets.RemoveAt(i);
-                        this._timeSinceLastAttack = 0f;
-                        continue;
+                            $"We have {this.AllTargets.Count} targets remaining, none that we can attack.");
                     }
-                    ModInit.modLog.LogMessage(
-                        $"Attacker {Attacker.DisplayName} range to target {AllTargets[0].DisplayName} {targetDist} >= maxWeaponRange {this.MaxWeaponRange}");
-//                    this.AllTargets.RemoveAt(0);
                 }
-                ModInit.modLog.LogMessage($"We have {this.AllTargets.Count} targets remaining, none that we can attack.");
+                ModInit.modLog.LogMessage($"There is already an attack sequence active, so we're not doing anything?");
             }
 //            ModInit.modLog.LogMessage($"timeSinceAttack was {this.timeSinceLastAttack} (needs to be > {timeBetweenAttacks}) and IsAnyAttackSequenceActive?: {base.Combat.AttackDirector.IsAnyAttackSequenceActive} should be false");
         }
@@ -135,7 +155,7 @@ namespace StrategicOperations.Framework
 
             if (ModInit.modSettings.strafeTargetsFriendliesChance == 0)
             {
-                allCombatants = new List<ICombatant>(allCombatants.Where(x=>x.team.IsEnemy(this.PlayerTeam)));
+                allCombatants = new List<ICombatant>(allCombatants.Where(x=>x.team.IsEnemy(this.StrafingTeam)));
             }
             allCombatants.RemoveAll(x => x.GUID == this.Attacker.GUID || x.IsDead);
             for (int i = 0; i < allCombatants.Count; i++)
@@ -154,7 +174,7 @@ namespace StrategicOperations.Framework
                     {
                         var rollBuilding = ModInit.Random.NextDouble();
                         var chanceBuilding = ModInit.modSettings.strafeNeutralBuildingsChance;
-                        if (rollBuilding >= chanceBuilding && allCombatants[i].team.IsFriendly(this.PlayerTeam))
+                        if (rollBuilding >= chanceBuilding && allCombatants[i].team.IsFriendly(this.StrafingTeam))
                         {
                             ModInit.modLog.LogMessage($"Roll {rollBuilding} <= chance {chanceBuilding}.");
                             continue;
@@ -164,7 +184,7 @@ namespace StrategicOperations.Framework
 
                 var roll = ModInit.Random.NextDouble();
                 var chance = ModInit.modSettings.strafeTargetsFriendliesChance;
-                if (roll >= chance && allCombatants[i].team.IsFriendly(this.PlayerTeam))
+                if (roll >= chance && allCombatants[i].team.IsFriendly(this.StrafingTeam))
                 {
                     ModInit.modLog.LogMessage($"Roll {roll} <= chance {chance}.");
                     continue;
@@ -338,25 +358,31 @@ namespace StrategicOperations.Framework
             }
             switch (this._state)
             {
-                    
                 case TB_StrafeSequence.SequenceState.Incoming:
                     var pos2 = this.Attacker.CurrentPosition + this.Velocity * Time.deltaTime;
                     pos2.y = this.Combat.MapMetaData.GetLerpedHeightAt(pos2, false) + this.HeightOffset;
                     this.SetPosition(pos2, this.Attacker.CurrentRotation);
-                    foreach (var enemy in Combat.AllEnemies)
+                    if (StrafingTeam.IsLocalPlayer)
                     {
-                        Vector3 vector = pos2 - enemy.CurrentPosition;
-                        vector.y = 0f;
-                        ModInit.modLog.LogTrace($"{enemy.Description.UIName} is {vector.magnitude} from strafing unit for. Unit has sensor range of {base.Combat.LOS.GetSensorRange(Attacker)}!");
-                        if (vector.magnitude < ModInit.modSettings.strafeSensorFactor * base.Combat.LOS.GetSensorRange(Attacker))
+                        foreach (var enemy in StrafingTeam.GetAllEnemies())
                         {
-                            ModInit.modLog.LogTrace($"Should be showing enemy!");
-                            var rep = enemy.GameRep as PilotableActorRepresentation;
-                            if (rep != null && !rep.VisibleToPlayer && enemy.VisibilityToTargetUnit(PlayerTeam.units.FirstOrDefault(x=>!x.IsDead)) < VisibilityLevel.Blip0Minimum)
+                            Vector3 vector = pos2 - enemy.CurrentPosition;
+                            vector.y = 0f;
+                            ModInit.modLog.LogTrace(
+                                $"{enemy.Description.UIName} is {vector.magnitude} from strafing unit for. Unit has sensor range of {base.Combat.LOS.GetSensorRange(Attacker)}!");
+                            if (vector.magnitude < ModInit.modSettings.strafeSensorFactor *
+                                base.Combat.LOS.GetSensorRange(Attacker))
                             {
-                                ModInit.modLog.LogTrace($"Game Rep is not null!");
+                                ModInit.modLog.LogTrace($"Should be showing enemy!");
+                                var rep = enemy.GameRep as PilotableActorRepresentation;
+                                if (rep != null && !rep.VisibleToPlayer &&
+                                    enemy.VisibilityToTargetUnit(StrafingTeam.units.FirstOrDefault(x => !x.IsDead)) <
+                                    VisibilityLevel.Blip0Minimum)
+                                {
+                                    ModInit.modLog.LogTrace($"Game Rep is not null!");
 //                                rep.OnPlayerVisibilityChanged(VisibilityLevel.Blip0Minimum);
-                                rep.SetForcedPlayerVisibilityLevel(VisibilityLevel.Blip0Minimum);
+                                    rep.SetForcedPlayerVisibilityLevel(VisibilityLevel.Blip0Minimum);
+                                }
                             }
                         }
                     }
@@ -370,7 +396,7 @@ namespace StrategicOperations.Framework
                         pos3.y = this.Combat.MapMetaData.GetLerpedHeightAt(pos3, false) + this.HeightOffset;
                     }
                     this.SetPosition(pos3, this.Attacker.CurrentRotation);
-                    this.AttackNextTarget();
+                    this.AttackNextTargets();
                     break;
                 case TB_StrafeSequence.SequenceState.Finished:
                     break;
