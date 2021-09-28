@@ -70,6 +70,59 @@ settings in the mod.json:
 `customSpawnReticleColor` - new type, defines custom color of reticle used for spawns. fields r, g, b, are RGB values, 0-255.
 	
 `customSpawnReticleAsset` string. name of custom .DDS asset that will be used for Spawn reticle (needs to be one that is added to manifest via modtek)
+	
+`strafeWaves` - int, number of units (same unit copied multiple times) that will perform a strafe. e.g., if set to 3 and strafe calls a Lightning Aerospace fighter, 3 Lightnings will strafe the target area in succession. They tend to target exactly the same units (unless of course one of the targeted units gets destroyed by one of the previous strafing units)
+
+`commandAbilities_AI` - list of command abilities the AI can get, as well as the probability and difficulty modifier to that probability that a given AI unit will be given the corresponding ability. e.g for the following setting, any given AI unit will have a 5% + 1% per-difficulty chance of being given `AbilityDefCMD_Strafe` at contract start.
+```
+
+{
+	"AbilityID": "AbilityDefCMD_Strafe",
+	"AddChance": 0.05,
+	"DiffMod": 0.01
+}
+```
+
+	
+`AI_SpawnBehavior` - list of "spawn behavior" for AI to use if they recieve a "spawn" type ability. Largely affects spawn positioning. "Tag" corresponds to a MechDef tag on the unit being spawned that will use the Behavior and MinRange defined in the setting. If the unit has multiple tags matching a behavior setting, it will simply use the behavior matching the first tag with a behavior defined. Options for behavior are: "AMBUSH" which will attempt to spawn the unit as close as possible to the nearest enemy, "BRAWLER" which will attempt to spawn the unit at an approximate centroid of all detected enemies, and "REINFORCE" which will attempt to spawn at the approximate centroid of all friendlies. MinRange simply sets a minimum spawn distance from any actor. Example setting:
+
+```
+{
+	"Tag": "ProtoMech",
+	"Behavior": "AMBUSH",
+	"MinRange": "5"
+}
+```
+
+`BattleArmorMountAndSwarmID` - string, ability ID of <b>component</b> ability that will allow Battle Armor to mount/swarm units (same ability is used for both). Ability will need to be added to BA specific component (something all BA, but only BA will have, such as cockpit. Should be one of the "hidden" single components so there are not duplicates).
+
+`BattleArmorDeSwarmRoll` - string, ability ID of pilot ability that allows mech to "roll" (forced self-knockdown) in order to dislodge swarming battle armor. Chance of success is 50% + (Piloting skill x 5%), capped at 95%. On a success, there is a 30% chance to smush the Battle Armor in the process. Ability is automatically granted to Mechs at contract start (e.g. does not need to be added manually to pilot).
+
+`BattleArmorDeSwarmSwat` - string, ability ID of pilot ability that allows mech to "swat" swarming battle armor (remove using arms). Chance of success is 30% + (Piloting skill x 5%) - 5% for each "missing" arm actuator. An arm actuator is considered "missing" if it is destroyed, or was never mounted in the first place. Shoulder, Upper Arm, Lower Arm, and Hand for both left and right arms; thus a mech missing both arms would suffer a 40% penalty (8 x 5%). Ability is automatically granted to Mechs at contract start (e.g. does not need to be added manually to pilot).
+
+`ArmActuatorCategoryIDs` - list of strings, Custom Category IDs identifying actuators that will be considered in `BattleArmorDeSwarmSwat` calculations. E.g, if ArmActuator is listed here and an actuator has the following, it would be counted:
+```
+{
+	"Custom": {
+		"Category" : [
+			{"CategoryID": "ArmActuator"},
+			{"CategoryID": "NonQuad"}
+		],
+```
+
+`BATargetEffect` - Effect which will be applied to Battle Armor while swarming. Intended use is to improve accuracy and clustering of swarming BA so they always (usually, mostly) hit the same location on the unit they're swarming. Of course you can add whatever else you want here.
+
+`AI_BattleArmorSpawnChance` - float, probability that AI units that <i>can</i> mount Battle Armor, either mounted externally or internally, will get Battle Armor at contract start. Note that this is independent of any "support lance" or "extra lance" settings in Mission Control or other mods.
+
+`BattleArmorFactionAssociations` - Faction information for AI battle armor spawning. If a faction does not have an entry here, it will not spawn Battle Armor. E.g, using the following setting the only faction that would spawn Battle Armor would be ClanGhostBear, and the only battle armor it would spawn is `mechdef_ba_is_standard`.
+
+```
+"BattleArmorFactionAssociations": {
+			"ClanGhostBear": [
+				"mechdef_ba_is_standard"
+			]
+		}
+```
 
 ## Spawns
 
