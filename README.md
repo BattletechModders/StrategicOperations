@@ -73,7 +73,7 @@ settings in the mod.json:
 	
 `strafeWaves` - int, number of units (same unit copied multiple times) that will perform a strafe. e.g., if set to 3 and strafe calls a Lightning Aerospace fighter, 3 Lightnings will strafe the target area in succession. They tend to target exactly the same units (unless of course one of the targeted units gets destroyed by one of the previous strafing units)
 
-`commandAbilities_AI` - list of command abilities the AI can get, as well as the probability and difficulty modifier to that probability that a given AI unit will be given the corresponding ability. e.g for the following setting, any given AI unit will have a 5% + 1% per-difficulty chance of being given `AbilityDefCMD_Strafe` at contract start.
+`commandAbilities_AI` - list of command abilities the AI can get, as well as the probability and difficulty modifier to that probability that a given AI unit will be given the corresponding ability. e.g for the following setting, any given AI unit will have a 5% + 1% per-difficulty chance of being given `AbilityDefCMD_Strafe` at contract start. Currently only the Target Team will recieve command abilities (their allies will not).
 ```
 
 {
@@ -240,3 +240,4 @@ The configurable parameters of the above:
 `IntParam2` - int, the maximum distance from the initiating actor at which a strafing run can be initialized OR ended! so you can't start a run at `IntParam2` and still go `FloatParam2` past it.
 	
 `StringParam2` - string, tag that "beacons" componentDefs are required to have in order to be used by this ability.
+
