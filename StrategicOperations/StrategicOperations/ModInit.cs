@@ -38,6 +38,8 @@ namespace StrategicOperations
             var harmony = HarmonyInstance.Create(HarmonyPackage);
             harmony.PatchAll(Assembly.GetExecutingAssembly());
             ModState.Initialize();
+            //dump settings
+            ModInit.modLog.LogTrace($"Settings dump: {settings}");
         }
     }
     class Settings
@@ -57,18 +59,22 @@ namespace StrategicOperations
         public float strafeAltitudeMin = 75f;
         public float strafeAltitudeMax = 250f;
         public float strafePreDistanceMult = 6f;
+        public int strafeWaves = 1; // strafes will spawn this many units and do successive strafing runs.
         public float timeBetweenAttacks = 0.35f;
         public float strafeMinDistanceToEnd = 10f;
         public float commandUseCostsMulti = 1f;
         
         public List<string> deploymentBeaconEquipment = new List<string>(); //e.g. Item.HeatSinkDef.Gear_HeatSink_Generic_Standard
+        
+        public Dictionary<string, List<string>> AI_FactionSpawnBeacons = new Dictionary<string, List<string>>(); // if factionvaluename is found here, will use only the associated list of units. else will use all in deploymentBeaconEquipment
+
         public List<AI_CommandAbilitySetting> commandAbilities_AI = new List<AI_CommandAbilitySetting>();
         public ColorSetting customSpawnReticleColor = new ColorSetting();
         public string customSpawnReticleAsset = "";
         public int AI_InvokeStrafeThreshold = 1;
         public int AI_InvokeSpawnThreshold = 1;
         public List<AI_SpawnBehavior> AI_SpawnBehavior = new List<AI_SpawnBehavior>(); // values can be "AMBUSH", "BRAWLER" (is default if none selected), "REINFORCE"
-        public string BattleArmorMountID = "";
+        public string BattleArmorMountAndSwarmID = "";
         public BA_TargetEffect BATargetEffect = new BA_TargetEffect();
         public float AI_BattleArmorSpawnChance = 0f;
         public Dictionary<string, List<string>> BattleArmorFactionAssociations = new Dictionary<string, List<string>>();
@@ -76,8 +82,6 @@ namespace StrategicOperations
         public string BattleArmorDeSwarmSwat = "";
         public List<string> ArmActuatorCategoryIDs = new List<string>();
 
-
-        //this is maybe temporary
-        public int additionalStrafingAttacks = 0;
+        
     }
 }

@@ -8,7 +8,6 @@ using UnityEngine;
 
 namespace StrategicOperations.Framework
 {
-
     public class Classes
     {
         public class BA_DamageTracker
@@ -104,6 +103,26 @@ namespace StrategicOperations.Framework
                 this.UseCost = useCost;
                 this.AbilityUseCost = abilityUseCost;
                 this.UseCount = 1;
+            }
+        }
+
+        public class AI_DealWithBAInvocation
+        {
+            public Ability ability;
+            public AbstractActor targetActor;
+            public bool active;
+
+            public AI_DealWithBAInvocation()
+            {
+                this.ability = default(Ability);
+                this.targetActor = default(AbstractActor);
+                this.active = false;
+            }
+            public AI_DealWithBAInvocation(Ability cmdAbility, AbstractActor targetActor, bool active)
+            {
+                this.ability = cmdAbility;
+                this.targetActor = targetActor;
+                this.active = active;
             }
         }
 

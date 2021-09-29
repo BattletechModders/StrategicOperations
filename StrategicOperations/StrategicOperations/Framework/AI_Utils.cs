@@ -4,6 +4,7 @@ using System.Linq;
 using Abilifier;
 using BattleTech;
 using BattleTech.Data;
+using CustomUnits;
 using UnityEngine;
 
 namespace StrategicOperations.Framework
@@ -34,6 +35,7 @@ namespace StrategicOperations.Framework
 
             if (ModInit.modSettings.BattleArmorFactionAssociations.ContainsKey(unit.team.FactionValue.Name))
             {
+                ModInit.modLog.LogTrace($"Found config for {unit.team.FactionValue.Name}.");
                 var baDefs = ModInit.modSettings.BattleArmorFactionAssociations[unit.team.FactionValue.Name];
 
                 var baLance = Utils.CreateOrFetchCMDLance(unit.team);
@@ -41,6 +43,7 @@ namespace StrategicOperations.Framework
                 var internalSpace = unit.getAvailableInternalBASpace();
                 if (internalSpace > 0)
                 {
+                    ModInit.modLog.LogTrace($"Unit has {internalSpace} internal space.");
                     for (int i = 0; i < internalSpace; i++)
                     {
                         var chosen = baDefs.GetRandomElement();
@@ -58,9 +61,14 @@ namespace StrategicOperations.Framework
                         }
                     }
                 }
+                else
+                {
+                    ModInit.modLog.LogTrace($"Unit dont has internal space.");
+                }
 
                 if (unit.getHasBattleArmorMounts())
                 {
+                    ModInit.modLog.LogTrace($"Unit has mounts.");
                     var baRollExt = ModInit.Random.NextDouble();
                     if (baRollExt <= ModInit.modSettings.AI_BattleArmorSpawnChance)
                     {
@@ -73,9 +81,52 @@ namespace StrategicOperations.Framework
                         ModInit.modLog.LogMessage($"Roll {baRollExt} > {ModInit.modSettings.AI_BattleArmorSpawnChance}, not adding BA externally.");
                     }
                 }
+
+                else
+                {
+                    ModInit.modLog.LogTrace($"Unit dont has mounts.");
+                }
             }
 
 
+            //give AI mechs ability to swat or roll
+            if (unit is Mech && !(unit is TrooperSquad))
+            {
+                if (!string.IsNullOrEmpty(ModInit.modSettings.BattleArmorDeSwarmSwat))
+                {
+                    if (unit.GetPilot().Abilities
+                            .All(x => x.Def.Id != ModInit.modSettings.BattleArmorDeSwarmSwat) &&
+                        unit.ComponentAbilities.All(y =>
+                            y.Def.Id != ModInit.modSettings.BattleArmorDeSwarmSwat))
+                    {
+                        dm.AbilityDefs.TryGet(ModInit.modSettings.BattleArmorDeSwarmSwat, out var def);
+                        var ability = new Ability(def);
+                        ModInit.modLog.LogTrace(
+                            $"Adding {ability.Def?.Description?.Id} to {unit.Description?.Name}.");
+                        ability.Init(unit.Combat);
+                        unit.GetPilot().Abilities.Add(ability);
+                        unit.GetPilot().ActiveAbilities.Add(ability);
+                    }
+                }
+
+                if (!string.IsNullOrEmpty(ModInit.modSettings.BattleArmorDeSwarmRoll))
+                {
+                    if (unit.GetPilot().Abilities
+                            .All(x => x.Def.Id != ModInit.modSettings.BattleArmorDeSwarmRoll) &&
+                        unit.ComponentAbilities.All(y =>
+                            y.Def.Id != ModInit.modSettings.BattleArmorDeSwarmRoll))
+                    {
+                        dm.AbilityDefs.TryGet(ModInit.modSettings.BattleArmorDeSwarmRoll, out var def);
+                        var ability = new Ability(def);
+                        ModInit.modLog.LogTrace(
+                            $"Adding {ability.Def?.Description?.Id} to {unit.Description?.Name}.");
+                        ability.Init(unit.Combat);
+                        unit.GetPilot().Abilities.Add(ability);
+                        unit.GetPilot().ActiveAbilities.Add(ability);
+                    }
+                }
+                
+            }
 
             //do we want to generate AI abilities if they already have BA? unsure.
             if (unit.Combat.TurnDirector.CurrentRound > 1) return; // don't give abilities to reinforcements?
@@ -110,11 +161,12 @@ namespace StrategicOperations.Framework
                             return;
                         }
                     }
+
                 }
             }
         }
 
-        public static string AssignRandomSpawnAsset(Ability ability)
+        public static string AssignRandomSpawnAsset(Ability ability, string factionName)
         {
             var sgs = UnityGameInstance.BattleTechGame.Simulation;
             var dm = UnityGameInstance.BattleTechGame.DataManager;
@@ -143,7 +195,18 @@ namespace StrategicOperations.Framework
                 }
                 var allowedUnitTags = ability.Def.StringParam2;
 
-                foreach (var stat in ModInit.modSettings.deploymentBeaconEquipment)
+                var beaconsToCheck = new List<string>();
+
+                if (ModInit.modSettings.AI_FactionSpawnBeacons.ContainsKey(factionName))
+                {
+                    beaconsToCheck = ModInit.modSettings.AI_FactionSpawnBeacons[factionName];
+                }
+                else
+                {
+                    beaconsToCheck = ModInit.modSettings.deploymentBeaconEquipment;
+                }
+
+                foreach (var stat in beaconsToCheck)
                 {
                     string[] array = stat.Split(new char[]
                     {
@@ -411,7 +474,7 @@ namespace StrategicOperations.Framework
 
             if (ability != null)
             {
-                var assetID = AssignRandomSpawnAsset(ability);
+                var assetID = AssignRandomSpawnAsset(ability, actor.team.FactionValue.Name);
 
                 var asset = actor.Combat.DataManager.FetchUnitFromDataManager(assetID);
 

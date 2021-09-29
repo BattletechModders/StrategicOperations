@@ -4,7 +4,9 @@ using System.Linq;
 using System.Reflection;
 using System.Runtime.Remoting.Messaging;
 using BattleTech;
+using BattleTech.DataObjects;
 using BattleTech.UI;
+using CustomUnits;
 using Harmony;
 using StrategicOperations.Framework;
 using UnityEngine;
@@ -14,82 +16,59 @@ namespace StrategicOperations.Patches
 {
     public class AI_Patches
     {
-        // this is just for testing AI evaluator. sorta. hopefully.
-        [HarmonyPatch(typeof(SelectionStateCommandTargetTwoPoints), "ProcessPressedButton")]
-        public static class SelectionStateCommandTargetTwoPoints_ProcessPressedButton
-        {
-            static bool Prepare() => ModInit.modSettings.DEVTEST_AIPOS;
-
-            public static bool Prefix(SelectionStateCommandTargetTwoPoints __instance, string button, ref bool __result)
-            {
-                if (button == "BTN_FireConfirm")
-                {
-                    if (__instance.FromButton.Ability.Def.specialRules == AbilityDef.SpecialRules.Strafe)
-                    {
-                        var dmg = AI_Utils.EvaluateStrafing(__instance.SelectedActor, out Ability ability,
-                            out Vector3 start,
-                            out Vector3 end);
-                        if (dmg > 1)
-                        {
-                            ModState.popupActorResource =
-                                AI_Utils.AssignRandomSpawnAsset(__instance.FromButton.Ability);
-                            __instance.FromButton.ActivateCommandAbility(__instance.SelectedActor.team.GUID, start,
-                                end);
-                            ModInit.modLog.LogMessage(
-                                $"activated Strafe at pos {start.x}, {start.y}, {start.z} and {end.x}, {end.y},{end.z}");
-                            __result = true;
-                            return false;
-                        }
-
-                        ModInit.modLog.LogMessage(
-                            $"dmg <1");
-                        __result = true;
-                        return false;
-                    }
-
-                    if (__instance.FromButton.Ability.Def.specialRules == AbilityDef.SpecialRules.SpawnTurret)
-                    {
-                        var tgts = AI_Utils.EvaluateSpawn(__instance.SelectedActor, out Ability ability,
-                            out Vector3 start,
-                            out Vector3 end);
-                        if (tgts > 1)
-                        {
-                            ModState.popupActorResource =
-                                AI_Utils.AssignRandomSpawnAsset(__instance.FromButton.Ability);
-                            __instance.FromButton.ActivateCommandAbility(__instance.SelectedActor.team.GUID, start,
-                                end);
-                            ModInit.modLog.LogMessage(
-                                $"activated SpawnTurret at pos {start.x}, {start.y}, {start.z} and {end.x}, {end.y},{end.z}");
-                            __result = true;
-                            return false;
-                        }
-
-                        ModInit.modLog.LogMessage(
-                            $"dmg <1");
-                        __result = true;
-                        return false;
-                    }
-                }
-                ModInit.modLog.LogMessage(
-                    $"button fucked up");
-                __result = true;
-                return false;
-            }
-        }
 
         [HarmonyPatch(typeof(Team), "AddUnit", new Type[] {typeof(AbstractActor)})]
         public static class Team_AddUnit_Patch
         {
             public static void Postfix(Team __instance, AbstractActor unit)
             {
-                if (__instance.IsLocalPlayer) return;
+                if (__instance.IsLocalPlayer)
+                {
+                    if (unit is Mech && !(unit is TrooperSquad))
+                    {
+                        if (!string.IsNullOrEmpty(ModInit.modSettings.BattleArmorDeSwarmSwat))
+                        {
+                            if (unit.GetPilot().Abilities
+                                    .All(x => x.Def.Id != ModInit.modSettings.BattleArmorDeSwarmSwat) &&
+                                unit.ComponentAbilities.All(y =>
+                                    y.Def.Id != ModInit.modSettings.BattleArmorDeSwarmSwat))
+                            {
+                                unit.Combat.DataManager.AbilityDefs.TryGet(ModInit.modSettings.BattleArmorDeSwarmSwat, out var def);
+                                var ability = new Ability(def);
+                                ModInit.modLog.LogTrace(
+                                    $"Adding {ability.Def?.Description?.Id} to {unit.Description?.Name}.");
+                                ability.Init(unit.Combat);
+                                unit.GetPilot().Abilities.Add(ability);
+                                unit.GetPilot().ActiveAbilities.Add(ability);
+                            }
+                        }
+
+                        if (!string.IsNullOrEmpty(ModInit.modSettings.BattleArmorDeSwarmRoll))
+                        {
+                            if (unit.GetPilot().Abilities
+                                    .All(x => x.Def.Id != ModInit.modSettings.BattleArmorDeSwarmRoll) &&
+                                unit.ComponentAbilities.All(y =>
+                                    y.Def.Id != ModInit.modSettings.BattleArmorDeSwarmRoll))
+                            {
+                                unit.Combat.DataManager.AbilityDefs.TryGet(ModInit.modSettings.BattleArmorDeSwarmRoll, out var def);
+                                var ability = new Ability(def);
+                                ModInit.modLog.LogTrace(
+                                    $"Adding {ability.Def?.Description?.Id} to {unit.Description?.Name}.");
+                                ability.Init(unit.Combat);
+                                unit.GetPilot().Abilities.Add(ability);
+                                unit.GetPilot().ActiveAbilities.Add(ability);
+                            }
+                        }
+
+                    }
+                    return;
+                }
 
                 if (unit is Mech mech)
                 {
                     if (mech.EncounterTags.Contains("SpawnedFromAbility")) return;
                 }
                 AI_Utils.GenerateAIStrategicAbilities(unit);
-                
             }
         }
 
@@ -100,10 +79,48 @@ namespace StrategicOperations.Patches
             public static bool Prefix(PreferFarthestAwayFromClosestHostilePositionFactor __instance, AbstractActor unit, Vector3 position, float angle, MoveType moveType_unused, PathNode pathNode_unused, ref float __result)
             {
                 if (unit.HasMountedUnits() ||
-                    unit.ComponentAbilities.Any(x => x.Def.Id == ModInit.modSettings.BattleArmorMountID))
+                    unit.ComponentAbilities.Any(x => x.Def.Id == ModInit.modSettings.BattleArmorMountAndSwarmID))
                 {
                     var result = 9001 * (1/AIUtil.DistanceToClosestEnemy(unit, position));
                     ModInit.modLog.LogTrace($"[PreferFarthestAwayFromClosestHostilePositionFactor] Actor {unit.DisplayName} evaluating position {position}, should return {result}");
+                    __result = result;
+                    return false;
+                }
+
+                return true;
+            }
+        }
+
+        [HarmonyPatch(typeof(PreferLowerMovementFactor), "EvaluateInfluenceMapFactorAtPosition",
+            new Type[] { typeof(AbstractActor), typeof(Vector3), typeof(float), typeof(MoveType), typeof(PathNode) })]
+        public static class PreferLowerMovementFactor_EvaluateInfluenceMapFactorAtPosition_BattleArmor
+        {
+            public static bool Prefix(PreferFarthestAwayFromClosestHostilePositionFactor __instance, AbstractActor unit, Vector3 position, float angle, MoveType moveType_unused, PathNode pathNode_unused, ref float __result)
+            {
+                if (unit.HasMountedUnits() ||
+                    unit.ComponentAbilities.Any(x => x.Def.Id == ModInit.modSettings.BattleArmorMountAndSwarmID))
+                {
+                    var result = 9001 * (1 / AIUtil.DistanceToClosestEnemy(unit, position));
+                    ModInit.modLog.LogTrace($"[PreferLowerMovementFactor] Actor {unit.DisplayName} evaluating position {position}, should return {result}");
+                    __result = result;
+                    return false;
+                }
+
+                return true;
+            }
+        }
+
+        [HarmonyPatch(typeof(PreferOptimalDistanceToAllyFactor), "EvaluateInfluenceMapFactorAtPositionWithAlly",
+            new Type[] { typeof(AbstractActor), typeof(Vector3), typeof(float), typeof(ICombatant)})]
+        public static class PreferOptimalDistanceToAllyFactor_EvaluateInfluenceMapFactorAtPosition_BattleArmor
+        {
+            public static bool Prefix(PreferFarthestAwayFromClosestHostilePositionFactor __instance, AbstractActor unit, Vector3 position, float angle, ICombatant allyUnit, ref float __result)
+            {
+                if (unit.HasMountedUnits() ||
+                    unit.ComponentAbilities.Any(x => x.Def.Id == ModInit.modSettings.BattleArmorMountAndSwarmID))
+                {
+                    var result = 9001 * (1 / AIUtil.DistanceToClosestEnemy(unit, position));
+                    ModInit.modLog.LogTrace($"[PreferOptimalDistanceToAllyFactor] Actor {unit.DisplayName} evaluating position {position}, should return {result}");
                     __result = result;
                     return false;
                 }
@@ -119,7 +136,7 @@ namespace StrategicOperations.Patches
             public static bool Prefix(PreferFarthestAwayFromClosestHostilePositionFactor __instance, AbstractActor unit, Vector3 position, float angle, MoveType moveType, ICombatant hostileUnit, ref float __result)
             {
                 if (unit.HasMountedUnits() ||
-                    unit.ComponentAbilities.Any(x => x.Def.Id == ModInit.modSettings.BattleArmorMountID))
+                    unit.ComponentAbilities.Any(x => x.Def.Id == ModInit.modSettings.BattleArmorMountAndSwarmID))
                 {
                     var result = 9001 * (1 / AIUtil.DistanceToClosestEnemy(unit, position));
                     ModInit.modLog.LogTrace($"[PreferFarthestAwayFromClosestHostilePositionFactor] Actor {unit.DisplayName} evaluating position {position}, should return {result}");
@@ -138,7 +155,7 @@ namespace StrategicOperations.Patches
             public static bool Prefix(PreferNoCloserThanMinDistToHostileFactor __instance, AbstractActor unit, Vector3 position, float angle, MoveType moveType, ICombatant hostileUnit, ref float __result)
             {
                 if (unit.HasMountedUnits() ||
-                    unit.ComponentAbilities.Any(x => x.Def.Id == ModInit.modSettings.BattleArmorMountID))
+                    unit.ComponentAbilities.Any(x => x.Def.Id == ModInit.modSettings.BattleArmorMountAndSwarmID))
                 {
                     var result = 9001 * (1 / AIUtil.DistanceToClosestEnemy(unit, position));
                     ModInit.modLog.LogTrace($"[PreferNoCloserThanMinDistToHostileFactor] Actor {unit.DisplayName} evaluating position {position}, should return {result}");
@@ -157,7 +174,7 @@ namespace StrategicOperations.Patches
             public static bool Prefix(PreferOptimalDistanceToHostileFactor __instance, AbstractActor unit, Vector3 position, float angle, MoveType moveType, ICombatant hostileUnit, ref float __result)
             {
                 if (unit.HasMountedUnits() ||
-                    unit.ComponentAbilities.Any(x => x.Def.Id == ModInit.modSettings.BattleArmorMountID))
+                    unit.ComponentAbilities.Any(x => x.Def.Id == ModInit.modSettings.BattleArmorMountAndSwarmID))
                 {
                     var result = 9001 * (1 / AIUtil.DistanceToClosestEnemy(unit, position));
                     __result = result;
@@ -167,9 +184,6 @@ namespace StrategicOperations.Patches
                 return true;
             }
         }
-
-        //try IsMovementAvailable again, just for BA and BA carrying units?
-
 
         [HarmonyPatch]
         public static class CanMoveAndShootWithoutOverheatingNode_Tick_Patch  // may need to be CanMoveAndShootWithoutOverheatingNode. was IsMovementAvailableForUnitNode
@@ -184,14 +198,16 @@ namespace StrategicOperations.Patches
                 AbstractActor ___unit)
             {
                 if (!___unit.Combat.TurnDirector.IsInterleaved) return true;
+
                 var battleArmorAbility =
-                    ___unit.ComponentAbilities.FirstOrDefault(x => x.Def.Id == ModInit.modSettings.BattleArmorMountID);
+                    ___unit.ComponentAbilities.FirstOrDefault(x => x.Def.Id == ModInit.modSettings.BattleArmorMountAndSwarmID);
                 if (battleArmorAbility != null)
                 {
                     if (battleArmorAbility.IsAvailable)
                     {
                         if (___unit.IsSwarmingUnit())
                         {
+                            ModInit.modLog.LogTrace($"[CanMoveAndShootWithoutOverheatingNode] Actor {___unit.DisplayName} is currently swarming. Doing nothing.");
                             //if currently swarming, dont do anything else.
                             __result = new BehaviorTreeResults(BehaviorNodeState.Failure);
                             return false;
@@ -216,8 +232,10 @@ namespace StrategicOperations.Patches
 
                         if (___unit.IsMountedUnit())
                         {
+                            ModInit.modLog.LogTrace($"[CanMoveAndShootWithoutOverheatingNode] Actor {___unit.DisplayName} is currently mounted. Evaluating range to nearest enemy.");
                             if (distance <= 1.25 * maxRange)
                             {
+                                ModInit.modLog.LogTrace($"[CanMoveAndShootWithoutOverheatingNode] Actor {___unit.DisplayName} is {distance} from nearest enemy, maxrange was {maxRange} * 1.25.");
                                 var carrier = ___unit.Combat.FindActorByGUID(ModState.PositionLockMount[___unit.GUID]);
                                 if (ModState.AiBattleArmorAbilityCmds.ContainsKey(___unit.GUID))
                                 {
@@ -246,8 +264,9 @@ namespace StrategicOperations.Patches
                         }
 
                         //if it isnt mounted, its on the ground and should try to swarm.
-                        if (distance <= maxRange)
+                        if (distance <= maxRange && !(closestEnemy is TrooperSquad))
                         {
+                            ModInit.modLog.LogTrace($"[CanMoveAndShootWithoutOverheatingNode] Actor {___unit.DisplayName} is on the ground, trying to swarm at {distance} from nearest enemy, maxrange was {maxRange} * 1.25.");
                             if (ModState.AiBattleArmorAbilityCmds.ContainsKey(___unit.GUID))
                             {
                                 if (ModState.AiBattleArmorAbilityCmds[___unit.GUID].active)
@@ -272,6 +291,35 @@ namespace StrategicOperations.Patches
                     }
                 }
 
+                if (___unit.HasSwarmingUnits())
+                {
+                    var deswarm = ___unit.GetDeswarmerAbility();
+                    if (deswarm?.Def?.Description?.Id != null)
+                    {
+                        if (ModState.AiDealWithBattleArmorCmds.ContainsKey(___unit.GUID))
+                        {
+                            if (ModState.AiDealWithBattleArmorCmds[___unit.GUID].active)
+                            {
+                                __result = new BehaviorTreeResults(BehaviorNodeState.Failure);
+                                return false;
+                            }
+
+                            var info = new AI_DealWithBAInvocation(deswarm, ___unit, true);
+                            ModState.AiDealWithBattleArmorCmds[___unit.GUID] = info;
+                            __result = new BehaviorTreeResults(BehaviorNodeState.Failure);
+                            return false; //was true
+                        }
+                        else
+                        {
+                            var info = new AI_DealWithBAInvocation(deswarm, ___unit, true);
+                            ModState.AiDealWithBattleArmorCmds.Add(___unit.GUID, info);
+                            __result = new BehaviorTreeResults(BehaviorNodeState.Failure);
+                            return false; //was true
+                        }
+                    }
+
+                }
+
                 if (ModState.AiCmds.ContainsKey(___unit.GUID))
                 {
                     if (ModState.AiCmds[___unit.GUID].active)
@@ -292,7 +340,7 @@ namespace StrategicOperations.Patches
                         __result = new BehaviorTreeResults(BehaviorNodeState.Failure);
                         return false;
                     }
-                    else if (strafeVal > ModInit.modSettings.AI_InvokeStrafeThreshold && strafeVal >= spawnVal)
+                    if (strafeVal > ModInit.modSettings.AI_InvokeStrafeThreshold && strafeVal >= spawnVal)
                     {
                         var info = new AI_CmdInvocation(abilityStrafe, vector1Strafe, vector2Strafe, true);
                         ModState.AiCmds[___unit.GUID] = info;
@@ -333,6 +381,28 @@ namespace StrategicOperations.Patches
         {
             public static bool Prefix(AITeam __instance, AbstractActor unit, OrderInfo order, ref InvocationMessage __result)
             {
+                if (unit.HasSwarmingUnits() && ModState.AiDealWithBattleArmorCmds.ContainsKey(unit.GUID))
+                {
+                    ModState.AiDealWithBattleArmorCmds[unit.GUID].ability.Activate(unit, unit);
+                    //     ModState.AiDealWithBattleArmorCmds[unit.GUID].targetActor);
+
+                    ModInit.modLog.LogMessage(
+                        $"activated {ModState.AiDealWithBattleArmorCmds[unit.GUID].ability.Def.Description.Id} on actor {unit.DisplayName} {unit.GUID}");
+
+                   // ModInit.modLog.LogMessage(
+                   //     $"activated {ModState.AiDealWithBattleArmorCmds[unit.GUID].ability.Def.Description.Id} on actor {ModState.AiDealWithBattleArmorCmds[unit.GUID].targetActor.DisplayName} {ModState.AiDealWithBattleArmorCmds[unit.GUID].targetActor.GUID}");
+
+                    if (!unit.HasMovedThisRound)
+                    {
+                        unit.BehaviorTree.IncreaseSprintHysteresisLevel();
+                    }
+
+                    __result = new ReserveActorInvocation(unit, ReserveActorAction.DONE,
+                        unit.Combat.TurnDirector.CurrentRound);
+                    ModState.AiDealWithBattleArmorCmds.Remove(unit.GUID);
+                    return false;
+                }
+
                 if (unit.IsMountedUnit() && !ModState.AiBattleArmorAbilityCmds.ContainsKey(unit.GUID))
                 {
                     __result = new ReserveActorInvocation(unit, ReserveActorAction.DONE,
@@ -357,8 +427,7 @@ namespace StrategicOperations.Patches
                         unit.BehaviorTree.IncreaseSprintHysteresisLevel();
                     }
 
-                    __result = new ReserveActorInvocation(unit, ReserveActorAction.DONE,
-                        unit.Combat.TurnDirector.CurrentRound);
+                    __result = new ReserveActorInvocation(unit, ReserveActorAction.DONE, unit.Combat.TurnDirector.CurrentRound);
                     return false;
                 }
                 if (ModState.AiBattleArmorAbilityCmds.ContainsKey(unit.GUID))
@@ -388,9 +457,9 @@ namespace StrategicOperations.Patches
                 }
 
                 if (!ModState.AiCmds.ContainsKey(unit.GUID)) return true;
-                else if (!ModState.AiCmds[unit.GUID].active) return true;
+                if (!ModState.AiCmds[unit.GUID].active) return true;
                 ModState.popupActorResource =
-                    AI_Utils.AssignRandomSpawnAsset(ModState.AiCmds[unit.GUID].ability);
+                    AI_Utils.AssignRandomSpawnAsset(ModState.AiCmds[unit.GUID].ability, unit.team.FactionValue.Name);
 
                 ModInit.modLog.LogTrace($"AICMD DUMP: {ModState.AiCmds[unit.GUID].active}, {ModState.AiCmds[unit.GUID].vectorOne}, {ModState.AiCmds[unit.GUID].vectorTwo}.");
                 ModInit.modLog.LogTrace($"CMD Ability DUMP: {ModState.AiCmds[unit.GUID].ability} { ModState.AiCmds[unit.GUID].ability.Def.Id}, Combat is not null? {ModState.AiCmds[unit.GUID].ability.Combat != null}");

@@ -72,6 +72,12 @@ namespace StrategicOperations.Framework
 
                         for (var i = this.AllTargets.Count - 1; i >= 0; i--)
                         {
+                            var target = this.AllTargets[i];
+                            if (target.IsDead || target.IsFlaggedForDeath || !target.IsOperational)
+                            {
+                                AllTargets.RemoveAt(i);
+                                continue;
+                            }
                             var targetDist = Vector3.Distance(this.Attacker.CurrentPosition,
                                 this.AllTargets[i].CurrentPosition);
                             var firingAngle = Vector3.Angle(AllTargets[i].CurrentPosition,
@@ -104,17 +110,18 @@ namespace StrategicOperations.Framework
                                 ModInit.modLog.LogMessage(
                                     $"Strafing unit {Attacker.DisplayName} attacking target {AllTargets[i].DisplayName} from range {targetDist} and firingAngle {firingAngle}");
 
-                                var attackStackSequence = new AttackStackSequence(Attacker, this.AllTargets[i], Attacker.CurrentPosition,
-                                    Attacker.CurrentRotation, filteredWeapons, MeleeAttackType.NotSet, 0, -1);
-                                Attacker.Combat.MessageCenter.PublishMessage(new AddSequenceToStackMessage(attackStackSequence));
+                                //var attackStackSequence = new AttackStackSequence(Attacker, this.AllTargets[i], Attacker.CurrentPosition,
+                                //Attacker.CurrentRotation, filteredWeapons, MeleeAttackType.NotSet, 0, -1);
+                                //Attacker.Combat.MessageCenter.PublishMessage(new AddSequenceToStackMessage(attackStackSequence));
 
-                                //AttackDirector attackDirector = base.Combat.AttackDirector;
-                                //AttackDirector.AttackSequence attackSequence = attackDirector.CreateAttackSequence(
-                                //    base.SequenceGUID, this.Attacker, this.AllTargets[i], this.Attacker.CurrentPosition,
-                                //    this.Attacker.CurrentRotation, 0, filteredWeapons,
-                                //    MeleeAttackType.NotSet, 0, false);
-                                //attackDirector.PerformAttack(attackSequence);
-                                //attackSequence.ResetWeapons();
+                                AttackDirector attackDirector = base.Combat.AttackDirector;
+                                AttackDirector.AttackSequence attackSequence = attackDirector.CreateAttackSequence(
+                                    base.SequenceGUID, this.Attacker, this.AllTargets[i], this.Attacker.CurrentPosition,
+                                    this.Attacker.CurrentRotation, 0, filteredWeapons,
+                                    MeleeAttackType.NotSet, 0, false);
+                                attackDirector.PerformAttack(attackSequence); 
+                                attackSequence.ResetWeapons();
+                                //attackDirector.RemoveAttackSequence(attackSequence);//dont use this, it just...immediately removes it before it processes so nothing happens.
                                 this.AllTargets.RemoveAt(i);
                                 this._timeSinceLastAttack = 0f;
                                 continue;
@@ -349,7 +356,7 @@ namespace StrategicOperations.Framework
                     var fromStart = Vector3.Distance(curPos_2D, startPos_2D);
                     var angle = Vector3.Angle(this.EndPos, this.Attacker.CurrentPosition);
                     ModInit.modLog.LogMessage($"Strafing unit {fromEnd}m in 2D space from endpoint! Angle to endPoint: {angle}");
-                    if (fromEnd < ModInit.modSettings.strafeMinDistanceToEnd)
+                    if (fromEnd < ModInit.modSettings.strafeMinDistanceToEnd || (fromEnd <= fromStart && fromEnd > this.StrafeLength))
                     {
                         ModInit.modLog.LogMessage($"Setting Strafe SequenceState to Finished!");
                         this.SetState(TB_StrafeSequence.SequenceState.Finished);
@@ -404,7 +411,5 @@ namespace StrategicOperations.Framework
                     return;
             }
         }
-
     }
-    
 }

@@ -38,6 +38,8 @@ namespace StrategicOperations.Framework
         public static bool DeferredBattleArmorSpawnerFromDelegate;
         public static bool OutOfRange;
 
+        public static Dictionary<string, AI_DealWithBAInvocation> AiDealWithBattleArmorCmds = new Dictionary<string, AI_DealWithBAInvocation>();
+
         public static Dictionary<string, AI_CmdInvocation> AiCmds = new Dictionary<string, AI_CmdInvocation>();
 
         public static Dictionary<string, BA_MountOrSwarmInvocation> AiBattleArmorAbilityCmds = new Dictionary<string, BA_MountOrSwarmInvocation>();

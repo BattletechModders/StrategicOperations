@@ -32,20 +32,19 @@ namespace StrategicOperations.Framework
             if (ability.parentComponent != null)
             {
                 flag = ability.parentComponent.IsFunctional;
+                ModInit.modLog.LogTrace($"[IsAvailableBAAbility] - {ability.parentComponent.parent.DisplayName} has parentComponent for ability {ability.Def.Description.Name}. Component functional? {flag}.");
                 if (!flag)
                 {
-                    foreach (var componentAbility in ability.parentComponent.parent.ComponentAbilities)
+                    if (ability.parentComponent.parent.ComponentAbilities.Any(x =>
+                        x.parentComponent.IsFunctional && x.Def.Id == ability.Def.Id))
                     {
-                        if (componentAbility.parentComponent.IsFunctional && componentAbility.Def.Id == ability.Def.Id)
-                        {
-                            flag = true;
-                            break;
-                        }
+                        flag = true;
+                        ModInit.modLog.LogTrace($"[IsAvailableBAAbility] - {ability.parentComponent.parent.DisplayName} has other component with same ability {ability.Def.Description.Name}. Component functional? {flag}.");
                     }
                 }
             }
             return ability.CurrentCooldown < 1 && (ability.Def.NumberOfUses < 1 || ability.NumUsesLeft > 0) && flag;
-        }
+        }// need to redo Ability.Activate from start, completely override for BA? Or just put ability on hidden componenet and ignore this shit.
 
         public static void MountBattleArmorToChassis(this AbstractActor carrier, AbstractActor battleArmor)
         {
@@ -83,6 +82,11 @@ namespace StrategicOperations.Framework
                 foreach (ChassisLocations BattleArmorChassisLoc in Enum.GetValues(typeof(ChassisLocations)))
                 {
                     var locationDef = battleArmorAsMech.MechDef.Chassis.GetLocationDef(BattleArmorChassisLoc);
+
+                    var statname = battleArmorAsMech.GetStringForStructureDamageLevel(BattleArmorChassisLoc);
+                    if (string.IsNullOrEmpty(statname) || !battleArmorAsMech.StatCollection.ContainsStatistic(statname)) continue;
+                    if (battleArmorAsMech.GetLocationDamageLevel(BattleArmorChassisLoc) == LocationDamageLevel.Destroyed) continue; // why did i do this?
+
                     if (locationDef.MaxArmor > 0f || locationDef.InternalStructure > 1f)
                     {
                         if (carrier is Mech mech)
@@ -266,6 +270,33 @@ namespace StrategicOperations.Framework
             ModInit.modLog.LogMessage(
                 $"[DismountBA] Removing PositionLock with rider  {actor.DisplayName} {actor.GUID} and carrier {carrier.DisplayName} {carrier.GUID}.");
 
+        }
+
+        public static Ability GetDeswarmerAbility(this AbstractActor actor)
+        {
+            var list = new List<Ability>();
+
+            if (!string.IsNullOrEmpty(ModInit.modSettings.BattleArmorDeSwarmSwat))
+            {
+                var swat = actor.GetPilot().Abilities
+                    .FirstOrDefault(x => x.Def.Id == ModInit.modSettings.BattleArmorDeSwarmSwat) ?? actor.ComponentAbilities
+                    .FirstOrDefault(x => x.Def.Id == ModInit.modSettings.BattleArmorDeSwarmSwat);
+                if (swat != null) list.Add(swat);
+            }
+
+            if (!string.IsNullOrEmpty(ModInit.modSettings.BattleArmorDeSwarmRoll))
+            {
+                var roll = actor.GetPilot().Abilities
+                    .FirstOrDefault(x => x.Def.Id == ModInit.modSettings.BattleArmorDeSwarmRoll) ?? actor.ComponentAbilities
+                    .FirstOrDefault(x => x.Def.Id == ModInit.modSettings.BattleArmorDeSwarmRoll);
+                if (roll != null) list.Add(roll);
+            }
+
+            if (list.Count > 0)
+            {
+                return list.GetRandomElement();
+            }
+            return new Ability(new AbilityDef());
         }
     }
 }
