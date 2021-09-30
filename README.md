@@ -312,6 +312,8 @@ Similarly to Spawns, the actual unit doing the strafing depends on the following
 
 4) If the "beacon" item contains a component tag that starts with "StratOpsPilot_", the remainder of that tag should be the PilotDef ID of the pilot that will pilot the unit (overrides anything set by CMDPilotOverride below)
 
+5) If the "beacon" item contains a component tag that starts with "StrafeWaves_", the remainder of that tag should be the number (integer) of "waves" or copies of the unit that will do the strafing. E.g. StrafeWaves_3 would strafe with 3 of whatever the unit is.
+
 The json structure of a strafe ability follows:
 
 ```
@@ -364,7 +366,7 @@ The configurable parameters of the above:
 
 ## AI Command Ability Usage
 
-Starting in 1.0.1.0, the AI can be given command abilities (spawn and strafe) just like the player. To reiterate, the following setting controls when/if the AI will be given a command ability. Any given AI unit can only receive a single command ability (i.e, a spawn or a strafe, but not both).
+Starting in 2.0.0.0, the AI can be given command abilities (spawn and strafe) just like the player. To reiterate, the following setting controls when/if the AI will be given a command ability. Any given AI unit can only receive a single command ability (i.e, a spawn or a strafe, but not both).
 
 `commandAbilities_AI` - list of command abilities the AI can get, as well as the probability and difficulty modifier to that probability that a given AI unit will be given the corresponding ability. e.g for the following setting, any given AI unit will have a 5% + 1% per-difficulty chance of being given `AbilityDefCMD_Strafe` at contract start. Currently only the Target Team will recieve command abilities (their allies will not).
 
