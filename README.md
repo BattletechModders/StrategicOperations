@@ -36,7 +36,124 @@ settings in the mod.json:
 	"g": 16,
 	"b": 240
 	},
-"customSpawnReticleAsset": "select_spawn_reticle"
+"customSpawnReticleAsset": "select_spawn_reticle",
+"strafeWaves": 3,
+		"AI_FactionBeacons": {
+			"ClanGhostBear": [
+				"Item.UpgradeDef.Gear_Contract_Tank_Burke_WoB"
+			]
+		},
+		"commandAbilities_AI": [
+			{
+				"AbilityID": "AbilityDefCMD_Strafe_AI",
+				"AddChance": 0.2,
+				"DiffMod": 0.0
+			}
+		],
+		"AI_SpawnBehavior": [
+			{
+				"Tag": "ProtoMech",
+				"Behavior": "AMBUSH",
+				"MinRange": "5"
+			}
+		],
+		"BattleArmorMountAndSwarmID": "AbilityDefBattleArmorMount",
+		"BattleArmorDeSwarmRoll": "AbilityDefDeSwarmerRoll",
+		"BattleArmorDeSwarmSwat": "AbilityDefDeSwarmerSwat",
+		"ArmActuatorCategoryIDs": [
+			"ArmShoulder",
+			"ArmUpperActuator",
+			"ArmLowerActuator",
+			"OmniLowerActuator",
+			"ArmHandActuator",
+			"OmniHandActuator"
+		],
+		"BATargetEffect": {
+			"ID": "BA_AccurateFire",
+			"Name": "Battle Armor - SwarmingAccuracy",
+			"description": "Battle Armor has greatly increased accuracy against the unit it is swarming.",
+			"effectDataJO": [
+				{
+					"durationData": {},
+					"targetingData": {
+						"effectTriggerType": "Passive",
+						"effectTargetType": "Creator",
+						"showInStatusPanel": true
+					},
+					"effectType": "StatisticEffect",
+					"Description": {
+						"Id": "BA_EasyTargetingPassive",
+						"Name": "Easy shots",
+						"Details": "Battle Armor has increased accuracy while swarming.",
+						"Icon": "allied-star"
+					},
+					"nature": "Buff",
+					"statisticData": {
+						"statName": "AccuracyModifier",
+						"operation": "Set",
+						"modValue": "-9001",
+						"modType": "System.Single"
+					}
+				},
+				{
+					"durationData": {
+						"duration": -1,
+						"stackLimit": -1
+					},
+					"targetingData": {
+						"effectTriggerType": "Passive",
+						"effectTargetType": "Creator"
+					},
+					"effectType": "StatisticEffect",
+					"Description": {
+						"Id": "BA_CALLED_SHOT",
+						"Name": "BA Called Shot",
+						"Details": "Called Shots twice as reliable when swarming",
+						"Icon": "uixSvgIcon_ability_mastertactician"
+					},
+					"statisticData": {
+						"statName": "CalledShotBonusMultiplier",
+						"operation": "Float_Multiply",
+						"modValue": "9001.0",
+						"modType": "System.Single"
+					}
+				},
+				{
+					"durationData": {
+						"duration": -1,
+						"stackLimit": -1
+					},
+					"targetingData": {
+						"effectTriggerType": "Passive",
+						"effectTargetType": "Creator",
+						"showInTargetPreview": false,
+						"showInStatusPanel": false
+					},
+					"effectType": "StatisticEffect",
+					"Description": {
+						"Id": "BA_FocusFireCluster",
+						"Name": "BA ClusterFuck",
+						"Details": "Better clustering for BA while swarming.",
+						"Icon": "UixSvgIcon_specialEquip_System"
+					},
+					"statisticData": {
+						"statName": "ClusteringModifier",
+						"operation": "Float_Add",
+						"modValue": "9001",
+						"modType": "System.Single",
+						"targetCollection": "Weapon"
+					},
+					"nature": "Buff"
+				}
+			]
+		},
+		"AI_BattleArmorSpawnChance": 1.0,
+		"AI_BattleArmorSpawnDiffMod": 0.05,
+		"BattleArmorFactionAssociations": {
+			"ClanGhostBear": [
+				"mechdef_ba_is_standard"
+			]
+		}
 ```
 
 `showStrafeCamera` - bool, if true, camera will show 1st person view of strafing unit as it flies in (but view returns to normal before it starts shooting).
@@ -71,11 +188,13 @@ settings in the mod.json:
 	
 `customSpawnReticleAsset` string. name of custom .DDS asset that will be used for Spawn reticle (needs to be one that is added to manifest via modtek)
 	
-`strafeWaves` - int, number of units (same unit copied multiple times) that will perform a strafe. e.g., if set to 3 and strafe calls a Lightning Aerospace fighter, 3 Lightnings will strafe the target area in succession. They tend to target exactly the same units (unless of course one of the targeted units gets destroyed by one of the previous strafing units)
+`strafeWaves` - int, default number of units (same unit copied multiple times) that will perform a strafe. e.g., if set to 3 and strafe calls a Lightning Aerospace fighter, 3 Lightnings will strafe the target area in succession. They tend to target exactly the same units (unless of course one of the targeted units gets destroyed by one of the previous strafing units). Overriden by mechcomponent tags in beacons where tag is "StrafeWaves_X" where X is the number of waves. E.g. a beacon with tag `StrafeWaves_5` would strafe with 5 units.
 
-`commandAbilities_AI` - list of command abilities the AI can get, as well as the probability and difficulty modifier to that probability that a given AI unit will be given the corresponding ability. e.g for the following setting, any given AI unit will have a 5% + 1% per-difficulty chance of being given `AbilityDefCMD_Strafe` at contract start. Currently only the Target Team will recieve command abilities (their allies will not).
+"AI_FactionBeacons": essentially functions the same as `deploymentBeaconEquipment`, but restricts factions listed to the corresponding equipment. if a faction is not listed in here, it will use all beacons from `deploymentBeaconEquipment`
+
+`commandAbilities_AI` - list of command abilities and probabilities the AI can get, as well as the probability and difficulty modifier to that probability that a given AI unit will be given the corresponding ability. e.g for the following setting, any given AI unit will have a 5% + 1% per-difficulty chance of being given `AbilityDefCMD_Strafe` at contract start. Currently only the Target Team will recieve command abilities (their allies will not).
+
 ```
-
 {
 	"AbilityID": "AbilityDefCMD_Strafe",
 	"AddChance": 0.05,
@@ -112,7 +231,9 @@ settings in the mod.json:
 
 `BATargetEffect` - Effect which will be applied to Battle Armor while swarming. Intended use is to improve accuracy and clustering of swarming BA so they always (usually, mostly) hit the same location on the unit they're swarming. Of course you can add whatever else you want here.
 
-`AI_BattleArmorSpawnChance` - float, probability that AI units that <i>can</i> mount Battle Armor, either mounted externally or internally, will get Battle Armor at contract start. Note that this is independent of any "support lance" or "extra lance" settings in Mission Control or other mods.
+`AI_BattleArmorSpawnChance` - float, base probability that AI units that <i>can</i> mount Battle Armor, either mounted externally or internally, will get Battle Armor at contract start. Note that any added Battle Armor is independent of any "support lance" or "extra lance" settings in Mission Control or other mods. Added to AI_BattleArmorSpawnDiffMod for total chance.
+
+`AI_BattleArmorSpawnDiffMod` - float, contract difficulty is multiplied by this value and added to AI_BattleArmorSpawnChance to determine probability of AI units spawning BA.
 
 `BattleArmorFactionAssociations` - Faction information for AI battle armor spawning. If a faction does not have an entry here, it will not spawn Battle Armor. E.g, using the following setting the only faction that would spawn Battle Armor would be ClanGhostBear, and the only battle armor it would spawn is `mechdef_ba_is_standard`.
 
@@ -241,3 +362,242 @@ The configurable parameters of the above:
 	
 `StringParam2` - string, tag that "beacons" componentDefs are required to have in order to be used by this ability.
 
+## AI Command Ability Usage
+
+Starting in 1.0.1.0, the AI can be given command abilities (spawn and strafe) just like the player. To reiterate, the following setting controls when/if the AI will be given a command ability. Any given AI unit can only receive a single command ability (i.e, a spawn or a strafe, but not both).
+
+`commandAbilities_AI` - list of command abilities the AI can get, as well as the probability and difficulty modifier to that probability that a given AI unit will be given the corresponding ability. e.g for the following setting, any given AI unit will have a 5% + 1% per-difficulty chance of being given `AbilityDefCMD_Strafe` at contract start. Currently only the Target Team will recieve command abilities (their allies will not).
+
+```
+{
+	"AbilityID": "AbilityDefCMD_Strafe",
+	"AddChance": 0.05,
+	"DiffMod": 0.01
+}
+```
+
+Generally speaking, if the AI <i>can</i> use a command ability, it <i>will</i> use a command ability. Because of this, I strongly suggest creating separate command abilities for AI use that a much higher cooldown and/or fewer uses than the command abilities available to the player. Unless you want to get spammed by strafes every round.
+	
+
+### AI Spawns
+
+To reiterate, the following setting controls spawn behavior: 
+
+`AI_SpawnBehavior` - list of "spawn behavior" for AI to use if they recieve a "spawn" type ability. Largely affects spawn positioning. "Tag" corresponds to a MechDef tag on the unit being spawned that will use the Behavior and MinRange defined in the setting. If the unit has multiple tags matching a behavior setting, it will simply use the behavior matching the first tag with a behavior defined. Options for behavior are: "AMBUSH" which will attempt to spawn the unit as close as possible to the nearest enemy, "BRAWLER" which will attempt to spawn the unit at an approximate centroid of all detected enemies, and "REINFORCE" which will attempt to spawn at the approximate centroid of all friendlies. MinRange simply sets a minimum spawn distance from any actor. Example setting:
+
+```
+{
+	"Tag": "ProtoMech",
+	"Behavior": "AMBUSH",
+	"MinRange": "5"
+}
+```
+
+### AI Strafes
+
+Strafes for the AI function largely in the same way as they do for the player. The AI will attempt to use strafes in a way that has the most enemy targets in the affected area, but will ignore friendly units in their calculations (given two options, one of which would hit 3 of your units and 3 of theirs versus another that would hit 2 of your units and none of theirs, they'll choose the 3 + 3). That said, the calculation isn't very smart, and the "start point" of a strafing run will always be the nearest target unit <i>even if there is another orientation that would hit more enemies</i>. I didn't want to iterate through every single possible start position and orientation because it became computationally expensive. Because of the logic involved this also means that if multiple enemies have a strafe available they'll tend to stack multiple strafes in the exact same orientation (assuming no units moved/nothing else changed between enemy A and enemy B activating).
+
+## Battle Armor Is Useful Now!
+
+Buckle up buttercup, there's a lot happening here.
+
+### Mount/Swarm
+
+Battle Armor can now mount/be carried by friendly units, as well as initiate true swarming attacks against enemies. Likewise, BattleMechs can attempt to dislodge swarming Battle Armor. 
+
+#### Enabling Mount/Swarm
+
+In order to mount/be carried, the battle armor must have a component ability such as the following:
+
+```
+{
+	"Description": {
+		"Id": "AbilityDefBattleArmorMount",
+		"Name": "Mount Up",
+		"Details": "ACTION: Battle armor will mount/dismount selected unit",
+		"Icon": "uixSvgIcon_skullAtlas"
+	},
+	"DisplayParams": "ShowInMWTRay",
+	"ActivationTime": "ConsumedByMovement",
+	"ActivationCooldown": -1,
+	"Targeting": "ActorTarget",
+	"ResolveCost": 0,
+	"TargetFriendlyUnit": "BOTH",
+	"EffectData": [
+		{
+			"durationData": {
+				"duration": -1,
+				"stackLimit": -1
+			},
+			"targetingData": {
+				"effectTriggerType": "OnActivation",
+				"effectTargetType": "SingleTarget",
+				"showInStatusPanel": false
+			},
+			"effectType": "StatisticEffect",
+			"Description": {
+				"Id": "StatusEffect-MountUnit",
+				"Name": "Battle Armor Mount",
+				"Details": "mount",
+				"Icon": "uixSvgIcon_ability_precisionstrike"
+			},
+			"nature": "Buff",
+			"statisticData": {
+				"statName": "BattleArmorMount",
+				"operation": "Set",
+				"modValue": "true",
+				"modType": "System.Boolean"
+			}
+		}
+	]
+}
+```
+
+The important parts are `"Targeting": "ActorTarget",`, `"TargetFriendlyUnit": "BOTH",`, targetingData be `OnActivation` and `SingleTarget`, and the effect itself must set `BattleArmorMount` to True.
+
+In order to have Battle Armor mounted <i>to</i> it, a unit must have either stat effect that sets bool `HasBattleArmorMounts` to true OR must have the integer stat `InternalBattleArmorSquadCap` set to the # of Battle Armor squads that can be carried internally (for APCs and such). For AI units, those are the two stats that further dictate whether BA can be spawned.
+
+On the player-facing side, an additional bool stat, `IsBattleArmorHandsy` can be added to <i>Battle Armor</i> that would allow BA to mount friendly units <i>regardless of</i> `HasBattleArmorMounts`. 
+This was added to allow Battle Armor such as the Marauder BA that canonically have Magnetic Clamps to allow them to ride on <i>any</i> friendly unit.
+
+For example, this may be added to the `statusEffects` section of the omnimech gyro:
+
+```
+{
+			"durationData": {
+				"duration": -1
+			},
+			"targetingData": {
+				"effectTriggerType": "Passive",
+				"effectTargetType": "Creator",
+				"showInTargetPreview": false,
+				"showInStatusPanel": false
+			},
+			"effectType": "StatisticEffect",
+			"Description": {
+				"Id": "StatusEffect-getHasBattleArmorMounts",
+				"Name": "getHasBattleArmorMounts",
+				"Details": "getHasBattleArmorMounts",
+				"Icon": "uixSvgIcon_ability_precisionstrike"
+			},
+			"nature": "Buff",
+			"statisticData": {
+				"statName": "HasBattleArmorMounts",
+				"operation": "Set",
+				"modValue": "true",
+				"modType": "System.Boolean"
+			}
+		}
+```
+
+#### Using Mount/Swarm
+
+In order to mount or swarm, activate the appropriate component ability, then select either a friendly (to mount) or enemy (to swarm) within range. By default the range within which you can mount/swarm is equal to the longest of walk/sprint/jump distance. Likewise, in order to dismount or stop swarming, activate the same component ability and then select the unit the BA is mounted to/currently swarming. Dismounting must be done at the start of the BA activation, and once dismounted the BA can move/attack as normal.
+
+Attempts to mount a friendly unit are always successful. Attempts to swarm an enemy unit make a simplified melee roll to determine success. If unsuccessful, the BA will be deposited in the same hex as the unit they attempted to swarm. On both a swarm success and failure, a floatie will be generated indicating success or failure. Attempts to mount or swarm always end the BA activation, and must be conducted <i>before</i> the BA attempts to move.
+
+BA that is either swarming or mounted is noted in the "carrier" unit's armor paperdoll, as well as the current armor/structure of the BA mounted to a specific location. The individual suits of the BA squad are always distributed "evenly" across a mech in the following order: CT, CT-R, RT, RT-R, LT, LT-R for mounts (only a single squad can be mounted), and CT, CT-R, RT, RT-R, LT, LT-R, LA, RA, LL, RL, HD for swarms. Multiple squads can swarm a mech simultaneously, and will double-up on locations as needed. For vehicles the order is Front, Rear, Left, Right, Turret for both swarms and mounts. Incoming attacks targeting the "carrier" have a 33% chance of impacting the BA suit mounted to that location instead of the "carrier", with excess damaging transfering through the BA to the carrier.
+
+If the mech chassis location where BA is mounted is destroyed, any BA mounted to that location has a 33% chance of also being destroyed except when the swarming BA is responsible for destroying that location. If the entire unit to which BA is mounted is destroyed, any BA mounted to that unit has a 33% chance of also being destroyed except when the swarming BA is responsible for destroying the unit. 
+
+Once BA is swarming an enemy, they cannot do any other actions on their activation. The only options are to either activate the mount/swarm ability again (and thus stop swarming the enemy), or to end their activation ("Done" button). If you choose "Done", the BA will fire all active weapons at the unit they are swarming automatically.
+
+The AI will also attempt to use Swarm against you. If an AI unit has BA (dictated by `AI_BattleArmorSpawnChance`, `BattleArmorFactionAssociations` and the unit has either HasBattleArmorMounts or InternalBattleArmorSquadCap > 0), some very ugly AI behavior patches should <i>try</i> to get the AI to move closer to your units. Once within a certain range, the AI BA will dismount from its carrier and attempt to swarm you if you're within range. If not, it'll just attack like a normal unit.
+
+#### Countering Mount/Swarm
+
+All mechs can be given one or two abilities in order to attempt to dislodge swarming BA, using the following settings. The AI will also attempt to dislodge player BA when swarming.
+
+`BattleArmorDeSwarmRoll` - string, ability ID of pilot ability that allows mech to "roll" (forced self-knockdown) in order to dislodge swarming battle armor. Chance of success is 50% + (Piloting skill x 5%), capped at 95%. On a success, there is a 30% chance to smush the Battle Armor in the process. Ability is automatically granted to Mechs at contract start (e.g. does not need to be added manually to pilot).
+
+`BattleArmorDeSwarmSwat` - string, ability ID of pilot ability that allows mech to "swat" swarming battle armor (remove using arms). Chance of success is 30% + (Piloting skill x 5%) - 5% for each "missing" arm actuator. An arm actuator is considered "missing" if it is destroyed, or was never mounted in the first place. Shoulder, Upper Arm, Lower Arm, and Hand for both left and right arms; thus a mech missing both arms would suffer a 40% penalty (8 x 5%). Ability is automatically granted to Mechs at contract start (e.g. does not need to be added manually to pilot).
+
+The two abilities must have at least the following (StratOps release contains these), although additional effects can certainly be added if developers wish to give Buffs/Debuffs when the ability is activated.
+
+```
+{
+	"Description": {
+		"Id": "AbilityDefDeSwarmerRoll",
+		"Name": "Roll",
+		"Details": "ACTION: Unit will roll (self-knockdown) to remove swarming Battle Armor",
+		"Icon": "uixSvgIcon_skullAtlas"
+	},
+	"ActivationTime": "ConsumedByFiring",
+	"Resource": "ConsumesActivation",
+	"ActivationCooldown": -1,
+	"Targeting": "ActorSelf",
+	"ResolveCost": 0,
+	"EffectData": [
+		{
+			"durationData": {
+				"duration": 1,
+				"stackLimit": 1
+			},
+			"targetingData": {
+				"effectTriggerType": "OnActivation",
+                "effectTargetType": "Creator",
+				"showInStatusPanel": false
+			},
+			"effectType": "StatisticEffect",
+			"Description": {
+				"Id": "StatusEffect-DeSwarmRoll",
+				"Name": "Battle Armor DeSwarmer Roll",
+				"Details": "mount",
+				"Icon": "uixSvgIcon_ability_precisionstrike"
+			},
+			"nature": "Buff",
+			"statisticData": {
+				"statName": "BattleArmorDeSwarmerRoll",
+				"operation": "Set",
+				"modValue": "true",
+				"modType": "System.Boolean"
+			}
+		}
+	]
+}
+```
+
+and 
+
+```
+{
+	"Description": {
+		"Id": "AbilityDefDeSwarmerSwat",
+		"Name": "Swat",
+		"Details": "ACTION: Unit will attempt to remove swarming Battle Armor with hands/limbs",
+		"Icon": "uixSvgIcon_skullAtlas"
+	},
+	"ActivationTime": "ConsumedByFiring",
+	"Resource": "ConsumesActivation",
+	"ActivationCooldown": -1,
+	"Targeting": "ActorSelf",
+	"ResolveCost": 0,
+	"EffectData": [
+		{
+			"durationData": {
+				"duration": 1,
+				"stackLimit": 1
+			},
+			"targetingData": {
+				"effectTriggerType": "OnActivation",
+                "effectTargetType": "Creator",
+				"showInStatusPanel": false
+			},
+			"effectType": "StatisticEffect",
+			"Description": {
+				"Id": "StatusEffect-DeSwarmSwat",
+				"Name": "Battle Armor DeSwarmer Swat",
+				"Details": "mount",
+				"Icon": "uixSvgIcon_ability_precisionstrike"
+			},
+			"nature": "Buff",
+			"statisticData": {
+				"statName": "BattleArmorDeSwarmerSwat",
+				"operation": "Set",
+				"modValue": "true",
+				"modType": "System.Boolean"
+			}
+		}
+	]
+}
+```
