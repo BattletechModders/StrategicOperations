@@ -362,6 +362,11 @@ namespace StrategicOperations.Patches
                 ModInit.modLog.LogMessage($"Team neturalTeam = {neutralTeam?.DisplayName}");
                 var cmdLance = Utils.CreateOrFetchCMDLance(neutralTeam);
                 var actorResource = __instance.Def.ActorResource;
+                var strafeWaves = ModInit.modSettings.strafeWaves;
+                if (ModState.strafeWaves > 0)
+                {
+                    strafeWaves = ModState.strafeWaves;
+                }
                 if (!string.IsNullOrEmpty(__instance.Def?.ActorResource))
                 {
                     if (!string.IsNullOrEmpty(ModState.popupActorResource))
@@ -383,245 +388,22 @@ namespace StrategicOperations.Patches
                                     StatCollection.StatOperation.Int_Subtract, 1);
                             }
                         }
+
                         ModInit.modLog.LogMessage($"Decrementing count of {actorResource} in deploymentAssetsDict");
                     }
 
-                    for (int i = 0; i < ModInit.modSettings.strafeWaves; i++)
+                    var parentSequenceID = Guid.NewGuid().ToString();
+                    var newWave = new PendingStrafeWave(strafeWaves - 1, __instance, team, positionA,
+                        positionB, radius, actorResource, neutralTeam, cmdLance, supportPilotDef, supportHeraldryDef,
+                        dm);
+                    ModState.PendingStrafeWaves.Add(parentSequenceID, newWave);
+                    Utils.InitiateStrafe(parentSequenceID, newWave);
+                    ModInit.modLog.LogMessage($"First time initializing strafe with GUID {parentSequenceID}");
+                    if (__instance.Def.IntParam1 > 0)
                     {
-                        if (actorResource.StartsWith("mechdef_"))
-                        {
-                            dm.MechDefs.TryGet(actorResource, out var supportActorMechDef);
-                            supportActorMechDef.Refresh();
-                            var customEncounterTags = new TagSet(neutralTeam.EncounterTags);
-                            customEncounterTags.Add("SpawnedFromAbility");
-                            var supportActorMech = ActorFactory.CreateMech(supportActorMechDef,
-                                supportPilotDef, customEncounterTags, neutralTeam.Combat,
-                                neutralTeam.GetNextSupportUnitGuid(), "", supportHeraldryDef);
-                            supportActorMech.Init(neutralTeam.OffScreenPosition, 0f, false);
-                            supportActorMech.InitGameRep(null);
-                            neutralTeam.AddUnit(supportActorMech);
-                            supportActorMech.AddToTeam(neutralTeam);
-                            supportActorMech.AddToLance(cmdLance);
-                            cmdLance.AddUnitGUID(supportActorMech.GUID);
-                            supportActorMech.GameRep.gameObject.SetActive(true);
-                            supportActorMech.BehaviorTree = BehaviorTreeFactory.MakeBehaviorTree(
-                                __instance.Combat.BattleTechGame, supportActorMech,
-                                BehaviorTreeIDEnum.DoNothingTree);
-                            ModInit.modLog.LogMessage($"Initializing Strafing Run!");
-
-                            TB_StrafeSequence eventSequence =
-                                new TB_StrafeSequence(supportActorMech, positionA, positionB, radius, team);
-                            TurnEvent tEvent = new TurnEvent(Guid.NewGuid().ToString(), __instance.Combat,
-                                __instance.Def.ActivationETA, null, eventSequence, __instance.Def, false);
-                            __instance.Combat.TurnDirector.AddTurnEvent(tEvent);
-                            if (__instance.Def.IntParam1 > 0)
-                            {
-                                Utils.SpawnFlares(__instance, positionA, positionB, __instance.Def.StringParam1,
-                                    __instance.Def.IntParam1, __instance.Def.ActivationETA, team.IsLocalPlayer);
-                            }
-
-                            if (team.IsLocalPlayer && (ModInit.modSettings.commandUseCostsMulti > 0 ||
-                                                       __instance.Def.getAbilityDefExtension().CBillCost > 0))
-                            {
-                                var unitName = "";
-                                var unitCost = 0;
-                                var unitID = "";
-                                unitName = supportActorMechDef.Description.UIName;
-                                unitID = supportActorMechDef.Description.Id;
-                                unitCost = supportActorMechDef.Chassis.Description.Cost;
-                                ModInit.modLog.LogMessage($"Usage cost will be {unitCost}");
-
-                                if (ModState.CommandUses.All(x => x.UnitID != actorResource))
-                                {
-
-                                    var commandUse = new CmdUseInfo(unitID, __instance.Def.Description.Name, unitName,
-                                        unitCost, __instance.Def.getAbilityDefExtension().CBillCost);
-
-                                    ModState.CommandUses.Add(commandUse);
-                                    ModInit.modLog.LogMessage(
-                                        $"Added usage cost for {commandUse.CommandName} - {commandUse.UnitName}");
-                                }
-                                else
-                                {
-                                    var cmdUse = ModState.CommandUses.FirstOrDefault(x => x.UnitID == actorResource);
-                                    if (cmdUse == null)
-                                    {
-                                        ModInit.modLog.LogMessage($"ERROR: cmdUseInfo was null");
-                                    }
-                                    else
-                                    {
-                                        cmdUse.UseCount += 1;
-                                        ModInit.modLog.LogMessage(
-                                            $"Added usage cost for {cmdUse.CommandName} - {cmdUse.UnitName}, used {cmdUse.UseCount} times");
-                                    }
-                                }
-                            }
-                        }
-
-                        else if (actorResource.StartsWith("vehicledef_"))
-                        {
-                            dm.VehicleDefs.TryGet(actorResource, out var supportActorVehicleDef);
-                            supportActorVehicleDef.Refresh();
-                            var customEncounterTags = new TagSet(neutralTeam.EncounterTags);
-                            customEncounterTags.Add("SpawnedFromAbility");
-                            var supportActorVehicle = ActorFactory.CreateVehicle(supportActorVehicleDef,
-                                supportPilotDef, customEncounterTags, neutralTeam.Combat,
-                                neutralTeam.GetNextSupportUnitGuid(), "", supportHeraldryDef);
-                            supportActorVehicle.Init(neutralTeam.OffScreenPosition, 0f, false);
-                            supportActorVehicle.InitGameRep(null);
-                            neutralTeam.AddUnit(supportActorVehicle);
-                            supportActorVehicle.AddToTeam(neutralTeam);
-                            supportActorVehicle.AddToLance(cmdLance);
-                            cmdLance.AddUnitGUID(supportActorVehicle.GUID);
-                            supportActorVehicle.GameRep.gameObject.SetActive(true);
-                            supportActorVehicle.BehaviorTree = BehaviorTreeFactory.MakeBehaviorTree(
-                                __instance.Combat.BattleTechGame, supportActorVehicle,
-                                BehaviorTreeIDEnum.DoNothingTree);
-
-                            ModInit.modLog.LogMessage($"Initializing Strafing Run!");
-
-                            TB_StrafeSequence eventSequence =
-                                new TB_StrafeSequence(supportActorVehicle, positionA, positionB, radius, team);
-                            TurnEvent tEvent = new TurnEvent(Guid.NewGuid().ToString(), __instance.Combat,
-                                __instance.Def.ActivationETA, null, eventSequence, __instance.Def, false);
-                            __instance.Combat.TurnDirector.AddTurnEvent(tEvent);
-                            if (__instance.Def.IntParam1 > 0)
-                            {
-                                Utils.SpawnFlares(__instance, positionA, positionB, __instance.Def.StringParam1,
-                                    __instance.Def.IntParam1, __instance.Def.ActivationETA, team.IsLocalPlayer);
-//                            var flares = Traverse.Create(__instance).Method("SpawnFlares", new object[]
-//                            {
-//                                positionA, positionB, __instance.Def.StringParam1,
-//                                __instance.Def.IntParam1, __instance.Def.ActivationETA
-//                            });
-//                            flares.GetValue();
-                            }
-
-                            if (team.IsLocalPlayer && (ModInit.modSettings.commandUseCostsMulti > 0 ||
-                                                       __instance.Def.getAbilityDefExtension().CBillCost > 0))
-                            {
-                                var unitName = "";
-                                var unitCost = 0;
-                                var unitID = "";
-
-                                unitName = supportActorVehicleDef.Description.UIName;
-                                unitID = supportActorVehicleDef.Description.Id;
-                                unitCost = supportActorVehicleDef.Chassis.Description.Cost;
-                                ModInit.modLog.LogMessage(
-                                    $"Usage cost will be {unitCost} + {__instance.Def.getAbilityDefExtension().CBillCost}");
-
-
-                                if (ModState.CommandUses.All(x => x.UnitID != actorResource))
-                                {
-
-                                    var commandUse = new CmdUseInfo(unitID, __instance.Def.Description.Name, unitName,
-                                        unitCost, __instance.Def.getAbilityDefExtension().CBillCost);
-
-                                    ModState.CommandUses.Add(commandUse);
-                                    ModInit.modLog.LogMessage(
-                                        $"Added usage cost for {commandUse.CommandName} - {commandUse.UnitName}");
-                                }
-                                else
-                                {
-                                    var cmdUse = ModState.CommandUses.FirstOrDefault(x => x.UnitID == actorResource);
-                                    if (cmdUse == null)
-                                    {
-                                        ModInit.modLog.LogMessage($"ERROR: cmdUseInfo was null");
-                                    }
-                                    else
-                                    {
-                                        cmdUse.UseCount += 1;
-                                        ModInit.modLog.LogMessage(
-                                            $"Added usage cost for {cmdUse.CommandName} - {cmdUse.UnitName}, used {cmdUse.UseCount} times");
-                                    }
-                                }
-                            }
-                        }
-                        else if (actorResource.StartsWith("turretdef_"))
-                        {
-                            dm.TurretDefs.TryGet(actorResource, out var supportActorTurretDef);
-                            supportActorTurretDef.Refresh();
-                            var customEncounterTags = new TagSet(neutralTeam.EncounterTags);
-                            customEncounterTags.Add("SpawnedFromAbility");
-                            var supportActorTurret = ActorFactory.CreateTurret(supportActorTurretDef,
-                                supportPilotDef, customEncounterTags, neutralTeam.Combat,
-                                neutralTeam.GetNextSupportUnitGuid(), "", supportHeraldryDef);
-                            supportActorTurret.Init(neutralTeam.OffScreenPosition, 0f, false);
-                            supportActorTurret.InitGameRep(null);
-                            neutralTeam.AddUnit(supportActorTurret);
-                            supportActorTurret.AddToTeam(neutralTeam);
-                            supportActorTurret.AddToLance(cmdLance);
-                            cmdLance.AddUnitGUID(supportActorTurret.GUID);
-                            supportActorTurret.GameRep.gameObject.SetActive(true);
-                            supportActorTurret.BehaviorTree = BehaviorTreeFactory.MakeBehaviorTree(
-                                __instance.Combat.BattleTechGame, supportActorTurret,
-                                BehaviorTreeIDEnum.DoNothingTree);
-
-                            ModInit.modLog.LogMessage($"Initializing Strafing Run!");
-
-                            TB_StrafeSequence eventSequence =
-                                new TB_StrafeSequence(supportActorTurret, positionA, positionB, radius, team);
-                            TurnEvent tEvent = new TurnEvent(Guid.NewGuid().ToString(), __instance.Combat,
-                                __instance.Def.ActivationETA, null, eventSequence, __instance.Def, false);
-                            __instance.Combat.TurnDirector.AddTurnEvent(tEvent);
-                            if (__instance.Def.IntParam1 > 0)
-                            {
-                                Utils.SpawnFlares(__instance, positionA, positionB, __instance.Def.StringParam1,
-                                    __instance.Def.IntParam1, __instance.Def.ActivationETA, team.IsLocalPlayer);
-//                            var flares = Traverse.Create(__instance).Method("SpawnFlares", new object[]
-//                            {
-//                                positionA, positionB, __instance.Def.StringParam1,
-//                                __instance.Def.IntParam1, __instance.Def.ActivationETA
-//                            });
-//                            flares.GetValue();
-                            }
-
-                            if (team.IsLocalPlayer && (ModInit.modSettings.commandUseCostsMulti > 0 ||
-                                                       __instance.Def.getAbilityDefExtension().CBillCost > 0))
-                            {
-                                var unitName = "";
-                                var unitCost = 0;
-                                var unitID = "";
-
-                                unitName = supportActorTurretDef.Description.UIName;
-                                unitID = supportActorTurretDef.Description.Id;
-                                unitCost = supportActorTurretDef.Chassis.Description.Cost;
-
-
-                                if (ModState.CommandUses.All(x => x.UnitID != actorResource))
-                                {
-
-                                    var commandUse = new CmdUseInfo(unitID, __instance.Def.Description.Name, unitName,
-                                        unitCost, __instance.Def.getAbilityDefExtension().CBillCost);
-
-                                    ModState.CommandUses.Add(commandUse);
-                                    ModInit.modLog.LogMessage(
-                                        $"Added usage cost for {commandUse.CommandName} - {commandUse.UnitName}. UnitUseCost (unadjusted): {unitCost}. Ability Use Cost: {__instance.Def.getAbilityDefExtension().CBillCost}");
-                                }
-                                else
-                                {
-                                    var cmdUse = ModState.CommandUses.FirstOrDefault(x => x.UnitID == actorResource);
-                                    if (cmdUse == null)
-                                    {
-                                        ModInit.modLog.LogMessage($"ERROR: cmdUseInfo was null");
-                                    }
-                                    else
-                                    {
-                                        cmdUse.UseCount += 1;
-                                        ModInit.modLog.LogMessage(
-                                            $"Added usage cost for {cmdUse.CommandName} - {cmdUse.UnitName}. UnitUseCost (unadjusted): {unitCost}. Ability Use Cost: {__instance.Def.getAbilityDefExtension().CBillCost}. Now used {cmdUse.UseCount} times");
-                                    }
-                                }
-                            }
-                        }
-                        else
-                        {
-                            ModInit.modLog.LogMessage(
-                                $"Something wrong with CMD Ability {__instance.Def.Id}, invalid ActorResource");
-                            return false;
-                        }
+                        Utils.SpawnFlares(__instance, positionA, positionB, __instance.Def.StringParam1,
+                            __instance.Def.IntParam1, __instance.Def.ActivationETA, team.IsLocalPlayer);
                     }
-                    return false;
                 }
                 return false;
             }
@@ -1343,6 +1125,9 @@ namespace StrategicOperations.Patches
 
                     beacons.Sort((MechComponentRef x, MechComponentRef y) =>
                         string.CompareOrdinal(x.Def.Description.UIName, y.Def.Description.UIName));
+
+
+
                     ModInit.modLog.LogMessage("sorted beacons at SSCT2Pts");
 
                     for (var index = 0; index < beacons.Count; index++)
@@ -1351,23 +1136,32 @@ namespace StrategicOperations.Patches
                         var id = beacon.Def.ComponentTags.FirstOrDefault(x =>
                             x.StartsWith("mechdef_") || x.StartsWith("vehicledef_") ||
                             x.StartsWith("turretdef_"));
+
+                        var waveString = beacon.Def.ComponentTags.FirstOrDefault(x => x.StartsWith("StrafeWaves_"));
+                        int.TryParse(waveString?.Substring(11), out var waves);
+                        var waveDesc = "";
+                        if (waves > 0)
+                        {
+                            waveDesc = $"- Waves: {waves}";
+                        }
                         if (id.StartsWith("mechdef_"))
                         {
                             dm.MechDefs.TryGet(id, out var beaconunit);
-                            beaconDescs +=
-                                $"{index + 2}: {beaconunit?.Description?.UIName ?? beaconunit?.Description?.Name} - You have {ModState.deploymentAssetsStats.FirstOrDefault(x => x.ID == id).contractUses} remaining.\n\n";
+                            if (ModState.deploymentAssetsStats != null)
+                                beaconDescs +=
+                                    $"{index + 2}: {beaconunit?.Description?.UIName ?? beaconunit?.Description?.Name} {waveDesc} - You have {ModState.deploymentAssetsStats.FirstOrDefault(x => x.ID == id).contractUses} remaining.\n\n";
                         }
                         else if (id.StartsWith("vehicledef_"))
                         {
                             dm.VehicleDefs.TryGet(id, out var beaconunit);
                             beaconDescs +=
-                                $"{index + 2}: {beaconunit?.Description?.UIName ?? beaconunit?.Description?.Name} - You have {ModState.deploymentAssetsStats.FirstOrDefault(x => x.ID == id).contractUses} remaining.\n\n";
+                                $"{index + 2}: {beaconunit?.Description?.UIName ?? beaconunit?.Description?.Name} {waveDesc} - You have {ModState.deploymentAssetsStats.FirstOrDefault(x => x.ID == id).contractUses} remaining.\n\n";
                         }
                         else
                         {
                             dm.TurretDefs.TryGet(id, out var beaconunit);
                             beaconDescs +=
-                                $"{index + 2}: {beaconunit?.Description?.UIName ?? beaconunit?.Description?.Name} - You have {ModState.deploymentAssetsStats.FirstOrDefault(x => x.ID == id).contractUses} remaining.\n\n";
+                                $"{index + 2}: {beaconunit?.Description?.UIName ?? beaconunit?.Description?.Name} {waveDesc} - You have {ModState.deploymentAssetsStats.FirstOrDefault(x => x.ID == id).contractUses} remaining.\n\n";
                         }
                     }
 
@@ -1394,10 +1188,13 @@ namespace StrategicOperations.Patches
                                 x.StartsWith("turretdef_"));
                             var pilotID = beacon.Def.ComponentTags.FirstOrDefault(x => x.StartsWith("StratOpsPilot_"))
                                 ?.Remove(0, 14);
-                            ModInit.modLog.LogMessage(
+                            var waveString = beacon.Def.ComponentTags.FirstOrDefault(x => x.StartsWith("StrafeWaves_"));
+                            int.TryParse(waveString?.Substring(11), out var waves);
+                                ModInit.modLog.LogMessage(
                                 $"beacon for button 2. will be {beacon.Def.Description.Name}, ID will be {id}, pilot will be {pilotID}");
                             popup.AddButton("2.", (Action) (() =>
                             {
+                                ModState.strafeWaves = waves;
                                 ModState.popupActorResource = id;
                                 ModState.PilotOverride = pilotID;
                                 ModInit.modLog.LogMessage(
@@ -1413,12 +1210,16 @@ namespace StrategicOperations.Patches
                                 x.StartsWith("turretdef_"));
                             var pilotID = beacon.Def.ComponentTags.FirstOrDefault(x => x.StartsWith("StratOpsPilot_"))
                                 ?.Remove(0, 14);
-                            ModInit.modLog.LogMessage(
+                            var waveString = beacon.Def.ComponentTags.FirstOrDefault(x => x.StartsWith("StrafeWaves_"));
+                            int.TryParse(waveString?.Substring(11), out var waves);
+                                ModInit.modLog.LogMessage(
                                 $"beacon for button 3. will be {beacon.Def.Description.Name}, ID will be {id}, pilot will be {pilotID}");
                             var id1 = id;
                             var pilotID1 = pilotID;
+                            var waves1 = waves;
                             popup.AddButton("3.", (Action) (() =>
                             {
+                                ModState.strafeWaves = waves1;
                                 ModState.popupActorResource = id1;
                                 ModState.PilotOverride = pilotID1;
                                 ModInit.modLog.LogMessage(
@@ -1431,10 +1232,13 @@ namespace StrategicOperations.Patches
                                 x.StartsWith("turretdef_"));
                             pilotID = beacon.Def.ComponentTags.FirstOrDefault(x => x.StartsWith("StratOpsPilot_"))
                                 ?.Remove(0, 14);
-                            ModInit.modLog.LogMessage(
+                            waveString = beacon.Def.ComponentTags.FirstOrDefault(x => x.StartsWith("StrafeWaves_"));
+                            int.TryParse(waveString?.Substring(11), out waves);
+                                ModInit.modLog.LogMessage(
                                 $"beacon for button 2. will be {beacon.Def.Description.Name}, ID will be {id}, pilot will be {pilotID}");
                             popup.AddButton("2.", (Action) (() =>
                             {
+                                ModState.strafeWaves = waves;
                                 ModState.popupActorResource = id;
                                 ModState.PilotOverride = pilotID;
                                 ModInit.modLog.LogMessage(
@@ -1453,12 +1257,16 @@ namespace StrategicOperations.Patches
                             x.StartsWith("turretdef_"));
                         var pilotID = beacon.Def.ComponentTags.FirstOrDefault(x => x.StartsWith("StratOpsPilot_"))
                             ?.Remove(0, 14);
+                        var waveString = beacon.Def.ComponentTags.FirstOrDefault(x => x.StartsWith("StrafeWaves_"));
+                        int.TryParse(waveString?.Substring(11), out var waves);
                         ModInit.modLog.LogMessage(
                             $"beacon for button 3. will be {beacon.Def.Description.Name}, ID will be {id}, pilot will be {pilotID}");
                         var id1 = id;
                         var pilotID1 = pilotID;
+                        var waves1 = waves;
                         popup.AddButton("3.", (Action) (() =>
                         {
+                            ModState.strafeWaves = waves1;
                             ModState.popupActorResource = id1;
                             ModState.PilotOverride = pilotID1;
                             ModInit.modLog.LogMessage(
@@ -1471,12 +1279,16 @@ namespace StrategicOperations.Patches
                             x.StartsWith("turretdef_"));
                         pilotID = beacon.Def.ComponentTags.FirstOrDefault(x => x.StartsWith("StratOpsPilot_"))
                             ?.Remove(0, 14);
+                        waveString = beacon.Def.ComponentTags.FirstOrDefault(x => x.StartsWith("StrafeWaves_"));
+                        int.TryParse(waveString?.Substring(11), out waves);
                         ModInit.modLog.LogMessage(
                             $"beacon for button 2. will be {beacon.Def.Description.Name}, ID will be {id}, pilot will be {pilotID}");
                         var id2 = id;
                         var pilotID2 = pilotID;
+                        var waves2 = waves;
                         popup.AddButton("2.", (Action) (() =>
                         {
+                            ModState.strafeWaves = waves2;
                             ModState.popupActorResource = id2;
                             ModState.PilotOverride = pilotID2;
                             ModInit.modLog.LogMessage(
@@ -1489,17 +1301,22 @@ namespace StrategicOperations.Patches
                             id = beacon.Def.ComponentTags.FirstOrDefault(x =>
                                 x.StartsWith("mechdef_") || x.StartsWith("vehicledef_") ||
                                 x.StartsWith("turretdef_"));
-                            ModInit.modLog.LogMessage(
-                                $"beacon for button {index + 2}. will be {beacon.Def.Description.Name}, ID will be {id}, pilot will be {pilotID}");
+                            
                             pilotID = beacon.Def.ComponentTags.FirstOrDefault(x => x.StartsWith("StratOpsPilot_"))
                                 ?.Remove(0, 14);
+                            waveString = beacon.Def.ComponentTags.FirstOrDefault(x => x.StartsWith("StrafeWaves_"));
+                            int.TryParse(waveString?.Substring(11), out waves);
+                            ModInit.modLog.LogMessage(
+                                $"beacon for button {index + 2}. will be {beacon.Def.Description.Name}, ID will be {id}, pilot will be {pilotID}");
                             var buttonName = $"{index + 2}.";
                             if (string.IsNullOrEmpty(id)) continue;
                             var id3 = id;
                             var pilotID3 = pilotID;
+                            var waves3 = waves;
                             popup.AddButton(buttonName,
                                 (Action) (() =>
                                 {
+                                    ModState.strafeWaves = waves3;
                                     ModState.popupActorResource = id3;
                                     ModState.PilotOverride = pilotID3;
                                     ModInit.modLog.LogMessage(

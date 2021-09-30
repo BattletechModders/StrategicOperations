@@ -459,7 +459,9 @@ namespace StrategicOperations.Patches
                 if (!ModState.AiCmds.ContainsKey(unit.GUID)) return true;
                 if (!ModState.AiCmds[unit.GUID].active) return true;
                 ModState.popupActorResource =
-                    AI_Utils.AssignRandomSpawnAsset(ModState.AiCmds[unit.GUID].ability, unit.team.FactionValue.Name);
+                    AI_Utils.AssignRandomSpawnAsset(ModState.AiCmds[unit.GUID].ability, unit.team.FactionValue.Name, out var waves);
+                ModState.strafeWaves = waves;
+                //assign waves here if needed
 
                 ModInit.modLog.LogTrace($"AICMD DUMP: {ModState.AiCmds[unit.GUID].active}, {ModState.AiCmds[unit.GUID].vectorOne}, {ModState.AiCmds[unit.GUID].vectorTwo}.");
                 ModInit.modLog.LogTrace($"CMD Ability DUMP: {ModState.AiCmds[unit.GUID].ability} { ModState.AiCmds[unit.GUID].ability.Def.Id}, Combat is not null? {ModState.AiCmds[unit.GUID].ability.Combat != null}");

@@ -16,7 +16,8 @@ namespace StrategicOperations.Framework
             startpoint = default(Vector3);
             endpoint = default(Vector3);
             if (!CanStrafe(actor, out ability)) return 0;
-            var dmg = Mathf.RoundToInt(CalcExpectedDamage(actor, ability.Def.ActorResource));
+            var assetID = AssignRandomSpawnAsset(ability, actor.team.FactionValue.Name, out var waves);
+            var dmg = Mathf.RoundToInt(CalcExpectedDamage(actor, assetID) * waves);
 
             var targets = TargetsForStrafe(actor, ability,out startpoint, out endpoint);
 
@@ -39,7 +40,9 @@ namespace StrategicOperations.Framework
                 var baDefs = ModInit.modSettings.BattleArmorFactionAssociations[unit.team.FactionValue.Name];
 
                 var baLance = Utils.CreateOrFetchCMDLance(unit.team);
-
+                var chance = ModInit.modSettings.AI_BattleArmorSpawnChance +
+                             (unit.Combat.ActiveContract.Override.finalDifficulty *
+                              ModInit.modSettings.AI_BattleArmorSpawnDiffMod);
                 var internalSpace = unit.getAvailableInternalBASpace();
                 if (internalSpace > 0)
                 {
@@ -48,16 +51,17 @@ namespace StrategicOperations.Framework
                     {
                         var chosen = baDefs.GetRandomElement();
                         var baRollInt = ModInit.Random.NextDouble();
-                        if (baRollInt <= ModInit.modSettings.AI_BattleArmorSpawnChance)
+                        
+                        if (baRollInt <= chance)
                         {
                             SpawnUtils.SpawnBattleArmorAtActor(unit, chosen, baLance);
                             ModInit.modLog.LogMessage(
-                                $"Roll {baRollInt} < {ModInit.modSettings.AI_BattleArmorSpawnChance}, adding BA internally.");
+                                $"Roll {baRollInt} <= {chance}, adding BA internally.");
                         }
                         else
                         {
                             ModInit.modLog.LogMessage(
-                                $"Roll {baRollInt} > {ModInit.modSettings.AI_BattleArmorSpawnChance}, not adding BA internally.");
+                                $"Roll {baRollInt} > {chance}, not adding BA internally.");
                         }
                     }
                 }
@@ -70,15 +74,15 @@ namespace StrategicOperations.Framework
                 {
                     ModInit.modLog.LogTrace($"Unit has mounts.");
                     var baRollExt = ModInit.Random.NextDouble();
-                    if (baRollExt <= ModInit.modSettings.AI_BattleArmorSpawnChance)
+                    if (baRollExt <= chance)
                     {
                         var chosen = baDefs.GetRandomElement();
                         SpawnUtils.SpawnBattleArmorAtActor(unit, chosen, baLance);
-                        ModInit.modLog.LogMessage($"Roll {baRollExt} > {ModInit.modSettings.AI_BattleArmorSpawnChance}, adding BA externally.");
+                        ModInit.modLog.LogMessage($"Roll {baRollExt} <= {chance}, adding BA externally.");
                     }
                     else
                     {
-                        ModInit.modLog.LogMessage($"Roll {baRollExt} > {ModInit.modSettings.AI_BattleArmorSpawnChance}, not adding BA externally.");
+                        ModInit.modLog.LogMessage($"Roll {baRollExt} > {chance}, not adding BA externally.");
                     }
                 }
 
@@ -166,11 +170,12 @@ namespace StrategicOperations.Framework
             }
         }
 
-        public static string AssignRandomSpawnAsset(Ability ability, string factionName)
+        public static string AssignRandomSpawnAsset(Ability ability, string factionName, out int waves)
         {
             var sgs = UnityGameInstance.BattleTechGame.Simulation;
             var dm = UnityGameInstance.BattleTechGame.DataManager;
             var potentialAssetsForAI = new List<string> {ability.Def.ActorResource};
+            var potentialAssetsForAIWaves = new List<int> {ModInit.modSettings.strafeWaves};
 
             if (!string.IsNullOrEmpty(ability.Def.ActorResource))
             {
@@ -191,15 +196,16 @@ namespace StrategicOperations.Framework
                 else
                 {
                     ModInit.modLog.LogTrace($"Something fucked in the ability {ability.Def.Description.Id}");
+                    waves = 0;
                     return "";
                 }
                 var allowedUnitTags = ability.Def.StringParam2;
 
                 var beaconsToCheck = new List<string>();
 
-                if (ModInit.modSettings.AI_FactionSpawnBeacons.ContainsKey(factionName))
+                if (ModInit.modSettings.AI_FactionBeacons.ContainsKey(factionName))
                 {
-                    beaconsToCheck = ModInit.modSettings.AI_FactionSpawnBeacons[factionName];
+                    beaconsToCheck = ModInit.modSettings.AI_FactionBeacons[factionName];
                 }
                 else
                 {
@@ -247,13 +253,18 @@ namespace StrategicOperations.Framework
                             {
                                 continue;
                             }
+                            var waveString = mechComponentRef.Def.ComponentTags.FirstOrDefault(x => x.StartsWith("StrafeWaves_"));
+                            int.TryParse(waveString?.Substring(11), out waves);
                             potentialAssetsForAI.Add(id);
+                            potentialAssetsForAIWaves.Add(waves);
                             ModInit.modLog.LogTrace($"Added {id} to potential AI assets.");
                         }
                     }
                 }
 
-                var chosen = potentialAssetsForAI.GetRandomElement();
+                var idx = potentialAssetsForAI.GetRandomIndex();
+                var chosen = potentialAssetsForAI[idx];
+                waves = potentialAssetsForAIWaves[idx];
                 ModInit.modLog.LogTrace($"Chose {chosen} for this activation.");
 
                 LoadRequest loadRequest = dm.CreateLoadRequest();
@@ -276,6 +287,8 @@ namespace StrategicOperations.Framework
 
                 return chosen;
             }
+
+            waves = 0;
             return "";
         }
 
@@ -474,7 +487,7 @@ namespace StrategicOperations.Framework
 
             if (ability != null)
             {
-                var assetID = AssignRandomSpawnAsset(ability, actor.team.FactionValue.Name);
+                var assetID = AssignRandomSpawnAsset(ability, actor.team.FactionValue.Name, out var waves);
 
                 var asset = actor.Combat.DataManager.FetchUnitFromDataManager(assetID);
 

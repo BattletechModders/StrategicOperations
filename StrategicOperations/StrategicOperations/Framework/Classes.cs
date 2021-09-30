@@ -1,5 +1,6 @@
 ﻿using System.Collections.Generic;
 using BattleTech;
+using BattleTech.Data;
 using IRBTModUtils.CustomInfluenceMap;
 using IRBTModUtils.Extension;
 using Newtonsoft.Json;
@@ -189,6 +190,38 @@ namespace StrategicOperations.Framework
             public string AbilityID;
             public float AddChance;
             public float DiffMod;
+        }
+
+        public class PendingStrafeWave
+        {
+            public int RemainingWaves;
+            public Ability Ability;
+            public Team Team;
+            public Vector3 PositionA;
+            public Vector3 PositionB;
+            public float Radius;
+            public string ActorResource;
+            public Team NeutralTeam;
+            public Lance CmdLance;
+            public PilotDef SupportPilotDef;
+            public HeraldryDef SupportHeraldryDef;
+            public DataManager DM;
+
+            public PendingStrafeWave(int remainingWaves, Ability ability, Team team, Vector3 positionA, Vector3 positionB, float radius, string actorResource, Team neutralTeam, Lance cmdLance, PilotDef supportPilotDef, HeraldryDef supportHeraldryDef, DataManager dm)
+            {
+                this.RemainingWaves = remainingWaves;
+                this.Ability = ability;
+                this.Team = team;
+                this.PositionA = positionA;
+                this.PositionB = positionB;
+                this.Radius = radius;
+                this.ActorResource = actorResource;
+                this.NeutralTeam = neutralTeam;
+                this.CmdLance = cmdLance;
+                this.SupportPilotDef = supportPilotDef;
+                this.SupportHeraldryDef = supportHeraldryDef;
+                this.DM = dm;
+            }
         }
     }
 }

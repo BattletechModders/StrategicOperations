@@ -9,6 +9,8 @@ namespace StrategicOperations.Framework
 {
     public class TB_StrafeSequence : MultiSequence
     {
+        public string ParentSequenceID;
+        public string TurnEventID;
         private Team StrafingTeam;
         private List<ICombatant> AllTargets { get; set; }
         private AbstractActor Attacker { get; set; }
@@ -33,6 +35,8 @@ namespace StrategicOperations.Framework
         private float _timeSinceLastAttack;
         private Vector3 _zeroEndPos;
         private Vector3 _zeroStartPos;
+        private List<int> attackSequences = new List<int>();
+
 
         public enum SequenceState
         {
@@ -42,9 +46,11 @@ namespace StrategicOperations.Framework
             Finished
         }
 
-        public TB_StrafeSequence(AbstractActor attacker, Vector3 positionA, Vector3 positionB,
+        public TB_StrafeSequence(string parentSequenceID, string turnEventID, AbstractActor attacker, Vector3 positionA, Vector3 positionB,
             float radius, Team team) : base(attacker.Combat)
         {
+            this.ParentSequenceID = parentSequenceID;
+            this.TurnEventID = turnEventID;
             this.Attacker = attacker;
             this.StartPos = positionA;
             this.EndPos = positionB;
@@ -119,9 +125,10 @@ namespace StrategicOperations.Framework
                                     base.SequenceGUID, this.Attacker, this.AllTargets[i], this.Attacker.CurrentPosition,
                                     this.Attacker.CurrentRotation, 0, filteredWeapons,
                                     MeleeAttackType.NotSet, 0, false);
+                                this.attackSequences.Add(attackSequence.id);
                                 attackDirector.PerformAttack(attackSequence); 
                                 attackSequence.ResetWeapons();
-                                //attackDirector.RemoveAttackSequence(attackSequence);//dont use this, it just...immediately removes it before it processes so nothing happens.
+
                                 this.AllTargets.RemoveAt(i);
                                 this._timeSinceLastAttack = 0f;
                                 continue;
@@ -158,9 +165,9 @@ namespace StrategicOperations.Framework
         {
             this.AllTargets = new List<ICombatant>();
 
-            var allCombatants = new List<ICombatant>(base.Combat.GetAllImporantCombatants());
+            var allCombatants = new List<ICombatant>(base.Combat.GetAllCombatants());
 
-            if (ModInit.modSettings.strafeTargetsFriendliesChance == 0)
+            if (ModInit.modSettings.strafeTargetsFriendliesChance == 0 && ModInit.modSettings.strafeNeutralBuildingsChance == 0)
             {
                 allCombatants = new List<ICombatant>(allCombatants.Where(x=>x.team.IsEnemy(this.StrafingTeam)));
             }
@@ -181,7 +188,7 @@ namespace StrategicOperations.Framework
                     {
                         var rollBuilding = ModInit.Random.NextDouble();
                         var chanceBuilding = ModInit.modSettings.strafeNeutralBuildingsChance;
-                        if (rollBuilding >= chanceBuilding && allCombatants[i].team.IsFriendly(this.StrafingTeam))
+                        if (rollBuilding >= chanceBuilding && allCombatants[i].team.IsNeutral(this.StrafingTeam))
                         {
                             ModInit.modLog.LogMessage($"Roll {rollBuilding} <= chance {chanceBuilding}.");
                             continue;
@@ -253,6 +260,11 @@ namespace StrategicOperations.Framework
 
             Utils._despawnActorMethod.Invoke(this.Attacker,
                 new object[] {msg});
+            foreach (var idx in this.attackSequences)
+            {
+                base.Combat.AttackDirector.RemoveAttackSequence(idx);
+            }
+            Utils.NotifyStrafeSequenceComplete(this.ParentSequenceID, this.TurnEventID);
         }
 
         public override void OnUpdate()

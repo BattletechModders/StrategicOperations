@@ -66,7 +66,7 @@ namespace StrategicOperations
         
         public List<string> deploymentBeaconEquipment = new List<string>(); //e.g. Item.HeatSinkDef.Gear_HeatSink_Generic_Standard
         
-        public Dictionary<string, List<string>> AI_FactionSpawnBeacons = new Dictionary<string, List<string>>(); // if factionvaluename is found here, will use only the associated list of units. else will use all in deploymentBeaconEquipment
+        public Dictionary<string, List<string>> AI_FactionBeacons = new Dictionary<string, List<string>>(); // if factionvaluename is found here, will use only the associated list of units. else will use all in deploymentBeaconEquipment
 
         public List<AI_CommandAbilitySetting> commandAbilities_AI = new List<AI_CommandAbilitySetting>();
         public ColorSetting customSpawnReticleColor = new ColorSetting();
@@ -77,6 +77,7 @@ namespace StrategicOperations
         public string BattleArmorMountAndSwarmID = "";
         public BA_TargetEffect BATargetEffect = new BA_TargetEffect();
         public float AI_BattleArmorSpawnChance = 0f;
+        public float AI_BattleArmorSpawnDiffMod = 0f;
         public Dictionary<string, List<string>> BattleArmorFactionAssociations = new Dictionary<string, List<string>>();
         public string BattleArmorDeSwarmRoll = "";
         public string BattleArmorDeSwarmSwat = "";

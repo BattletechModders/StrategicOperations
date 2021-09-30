@@ -9,6 +9,8 @@ namespace StrategicOperations.Framework
 {
     public static class ModState
     {
+        public static Dictionary<string, PendingStrafeWave> PendingStrafeWaves =
+            new Dictionary<string, PendingStrafeWave>();
         public static List<ArmorLocation> MechArmorMountOrder = new List<ArmorLocation>();
         public static List<ArmorLocation> MechArmorSwarmOrder = new List<ArmorLocation>();
 
@@ -33,6 +35,7 @@ namespace StrategicOperations.Framework
 
         public static string deferredActorResource = "";
         public static string popupActorResource = "";
+        public static int strafeWaves;
         public static string PilotOverride= null;
         public static bool DeferredSpawnerFromDelegate;
         public static bool DeferredBattleArmorSpawnerFromDelegate;
@@ -89,6 +92,7 @@ namespace StrategicOperations.Framework
 
         public static void ResetAll()
         {
+            PendingStrafeWaves = new Dictionary<string, PendingStrafeWave>();
             BADamageTrackers = new Dictionary<string, BA_DamageTracker>(); 
             CommandAbilities = new List<Ability>();
             deferredInvokeSpawns = new List<KeyValuePair<string, Action>>();
@@ -101,6 +105,7 @@ namespace StrategicOperations.Framework
             PositionLockSwarm = new Dictionary<string, string>();
             deferredActorResource = "";
             popupActorResource = "";
+            strafeWaves = 0; // this is TBD-> want to make beacons define # of waves.
             PilotOverride = null;
             DeferredSpawnerFromDelegate = false;
             DeferredBattleArmorSpawnerFromDelegate = false;
