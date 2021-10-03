@@ -8,6 +8,8 @@ settings in the mod.json:
 
 ```
 "enableLogging": true,
+"enableTrace": false,
+"flareResourceID": "vfxPrfPrtl_fireTerrain_smLoop",
 "showStrafeCamera": false,
 "strafeEndsActivation": true,
 "spawnTurretEndsActivation": true,
@@ -156,6 +158,12 @@ settings in the mod.json:
 		}
 ```
 
+`enableLogging` - bool, enable logging
+
+`enableTrace` - bool, enable verbose logging
+
+`flareResourceID` - string, name of vFX resource used for flares denoting strafe/spawn positions
+
 `showStrafeCamera` - bool, if true, camera will show 1st person view of strafing unit as it flies in (but view returns to normal before it starts shooting).
 
 `strafeEndsActivation` - bool, do strafes automatically end the turn of the unit using them?
@@ -274,7 +282,7 @@ Spawn ability json structure:
 	"specialRules" : "SpawnTurret",
 	"Targeting" : "CommandSpawnPosition",
 	"ActorResource" : "mechdef_urbanmech_UM-R50",
-	"StringParam1" : "vfxPrfPrtl_fireTerrain_smLoop",
+	"StringParam1" : "Deployment Unavailable",
 	"StringParam2" : "unit_urb",
 	"IntParam2" : 250
 }
@@ -334,7 +342,7 @@ The json structure of a strafe ability follows:
 	"FloatParam1" : 100.0,
 	"FloatParam2" : 250.0,
 	"ActorResource" : "vehicledef_SCHREK",
-	"StringParam1" : "vfxPrfPrtl_fireTerrain_smLoop",
+	"StringParam1" : "Strafe Unavailable",
 	"StringParam2" : "unit_urb",
 	"IntParam1" : 5,
 	"IntParam2" : 500
