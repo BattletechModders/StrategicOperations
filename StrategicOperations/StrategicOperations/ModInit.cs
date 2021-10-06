@@ -48,6 +48,7 @@ namespace StrategicOperations
         public bool debugFlares = false;
         public bool enableLogging = true;
         public bool enableTrace = true;
+        public string flareResourceID = "vfxPrfPrtl_fireTerrain_smLoop";
         public bool showStrafeCamera = true;
         public bool strafeEndsActivation = true;
         public bool spawnTurretEndsActivation = true;
@@ -66,9 +67,9 @@ namespace StrategicOperations
         
         public List<string> deploymentBeaconEquipment = new List<string>(); //e.g. Item.HeatSinkDef.Gear_HeatSink_Generic_Standard
         
-        public Dictionary<string, List<string>> AI_FactionBeacons = new Dictionary<string, List<string>>(); // if factionvaluename is found here, will use only the associated list of units. else will use all in deploymentBeaconEquipment
+        public Dictionary<string, List<string>> AI_FactionBeacons = new Dictionary<string, List<string>>(); // if factionvaluename is found here, will use only the associated list of units. else will use only default
 
-        public List<AI_CommandAbilitySetting> commandAbilities_AI = new List<AI_CommandAbilitySetting>();
+        public Dictionary<string, List<AI_FactionCommandAbilitySetting>> commandAbilities_AI = new Dictionary<string, List<AI_FactionCommandAbilitySetting>>(); //key is factionValue.Name, paired with list of AI_FactionCommandAbilitySetting contains AbilityDefID, AddChance and DiffMod.
         public ColorSetting customSpawnReticleColor = new ColorSetting();
         public string customSpawnReticleAsset = "";
         public int AI_InvokeStrafeThreshold = 1;

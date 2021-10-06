@@ -327,6 +327,9 @@ namespace StrategicOperations.Patches
             }
         }
 
+
+        // ActivateStrafe for AOE? use CAC TerrainAttackDeligate and "walk" it across the field?
+        //should it be a totally separate ability? probably. maybe. unsure.
         [HarmonyPatch(typeof(Ability), "ActivateStrafe")]
         public static class Ability_ActivateStrafe
         {
@@ -401,7 +404,7 @@ namespace StrategicOperations.Patches
                     ModInit.modLog.LogMessage($"First time initializing strafe with GUID {parentSequenceID}");
                     if (__instance.Def.IntParam1 > 0)
                     {
-                        Utils.SpawnFlares(__instance, positionA, positionB, __instance.Def.StringParam1,
+                        Utils.SpawnFlares(__instance, positionA, positionB, ModInit.modSettings.flareResourceID,
                             __instance.Def.IntParam1, __instance.Def.ActivationETA, team.IsLocalPlayer);
                     }
                 }
@@ -467,9 +470,9 @@ namespace StrategicOperations.Patches
 
                     var kvp = new KeyValuePair<string, Action>(instanceGUID, DeferredInvokeSpawn);
                     ModState.deferredInvokeSpawns.Add(kvp);
-                    Utils.SpawnFlares(__instance, positionA, positionB, __instance.Def.StringParam1, 1, __instance.Def.ActivationETA, team.IsLocalPlayer);
+                    Utils.SpawnFlares(__instance, positionA, positionB, ModInit.modSettings.flareResourceID, 1, __instance.Def.ActivationETA, team.IsLocalPlayer);
 //                    var flares = Traverse.Create(__instance).Method("SpawnFlares",
-//                        new object[] {positionA, positionA, __instance.Def.StringParam1, 1, 1});
+//                        new object[] {positionA, positionA, __instance.Def., 1, 1});
 //                    flares.GetValue();
                     return false;
                 }

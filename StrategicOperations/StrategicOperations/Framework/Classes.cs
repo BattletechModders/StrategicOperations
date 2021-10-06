@@ -185,9 +185,9 @@ namespace StrategicOperations.Framework
                 MinRange = 50;
             }
         }
-        public class AI_CommandAbilitySetting
+        public class AI_FactionCommandAbilitySetting
         {
-            public string AbilityID;
+            public string AbilityDefID;
             public float AddChance;
             public float DiffMod;
         }

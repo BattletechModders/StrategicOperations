@@ -135,12 +135,14 @@ namespace StrategicOperations.Framework
             //do we want to generate AI abilities if they already have BA? unsure.
             if (unit.Combat.TurnDirector.CurrentRound > 1) return; // don't give abilities to reinforcements?
             if (unit.team.GUID != "be77cadd-e245-4240-a93e-b99cc98902a5") return; // TargetTeam is only team that gets cmdAbilities 
-            if (ModState.AI_CommandAbilitySettings.Count == 0)
+            if (!ModInit.modSettings.commandAbilities_AI.ContainsKey(unit.team.FactionValue.Name))
             {
-                ModState.AI_CommandAbilitySettings =
-                    new List<Classes.AI_CommandAbilitySetting>(
-                        ModInit.modSettings.commandAbilities_AI.OrderBy(x => x.AddChance));
+                ModInit.modLog.LogMessage($"No settings for command abilities for {unit.team.FactionValue.Name}, skipping.");
             }
+
+            ModState.currentFactionSettingsList = new List<Classes.AI_FactionCommandAbilitySetting>(
+                    ModInit.modSettings.commandAbilities_AI[unit.team.FactionValue.Name].OrderBy(x => x.AddChance));
+            ModInit.modLog.LogTrace($"Ordering setting dictionary.");
 
             if (unit.GetPilot().Abilities.All(x => x.Def.Resource != AbilityDef.ResourceConsumed.CommandAbility))
             {
@@ -148,7 +150,7 @@ namespace StrategicOperations.Framework
                 if (unit.ComponentAbilities.All(x => x.Def.Resource != AbilityDef.ResourceConsumed.CommandAbility))
                 {
                     ModInit.modLog.LogTrace($"No command abilities on unit from Components.");
-                    foreach (var abilitySetting in ModState.AI_CommandAbilitySettings)
+                    foreach (var abilitySetting in ModState.currentFactionSettingsList)
                     {
                         var roll = ModInit.Random.NextDouble();
                         var chance = abilitySetting.AddChance +
@@ -156,16 +158,15 @@ namespace StrategicOperations.Framework
                         if (roll <= chance)
                         {
                             ModInit.modLog.LogTrace($"Rolled {roll}, < {chance}.");
-                            dm.AbilityDefs.TryGet(abilitySetting.AbilityID, out var def);
+                            dm.AbilityDefs.TryGet(abilitySetting.AbilityDefID, out var def);
                             var ability = new Ability(def);
-                            ModInit.modLog.LogTrace(
+                            ModInit.modLog.LogMessage(
                                 $"Adding {ability.Def?.Description?.Id} to {unit.Description?.Name}.");
                             ability.Init(unit.Combat);
                             unit.ComponentAbilities.Add(ability);
                             return;
                         }
                     }
-
                 }
             }
         }
@@ -209,7 +210,8 @@ namespace StrategicOperations.Framework
                 }
                 else
                 {
-                    beaconsToCheck = ModInit.modSettings.deploymentBeaconEquipment;
+                    ModInit.modLog.LogTrace($"No setting in AI_FactionBeacons for {factionName}, using only default {ability.Def.ActorResource}");
+                    goto choose;
                 }
 
                 foreach (var stat in beaconsToCheck)
@@ -262,6 +264,7 @@ namespace StrategicOperations.Framework
                     }
                 }
 
+                choose:
                 var idx = potentialAssetsForAI.GetRandomIndex();
                 var chosen = potentialAssetsForAI[idx];
                 waves = potentialAssetsForAIWaves[idx];

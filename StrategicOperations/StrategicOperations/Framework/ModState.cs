@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Collections.Specialized;
 using Abilifier;
 using BattleTech;
 using UnityEngine;
@@ -92,6 +93,7 @@ namespace StrategicOperations.Framework
 
         public static void ResetAll()
         {
+            currentFactionSettingsList = new List<AI_FactionCommandAbilitySetting>();
             PendingStrafeWaves = new Dictionary<string, PendingStrafeWave>();
             BADamageTrackers = new Dictionary<string, BA_DamageTracker>(); 
             CommandAbilities = new List<Ability>();
@@ -131,7 +133,6 @@ namespace StrategicOperations.Framework
             deferredInvokeBattleArmor = new List<KeyValuePair<string, Action>>();
         }
 
-        public static List<AI_CommandAbilitySetting> AI_CommandAbilitySettings = new List<AI_CommandAbilitySetting>();
-
+        public static List<AI_FactionCommandAbilitySetting> currentFactionSettingsList = new List<AI_FactionCommandAbilitySetting>();
     }
 }
