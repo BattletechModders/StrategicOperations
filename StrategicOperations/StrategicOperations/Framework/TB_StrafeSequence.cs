@@ -194,14 +194,14 @@ namespace StrategicOperations.Framework
                 vector.y = base.Combat.MapMetaData.GetLerpedHeightAt(vector, false);
                 ModInit.modLog.LogMessage($"Added impact point {vector}");
                 AOEPositions.Add(vector);
-                Utils.SpawnDebugFlare(vector, "vfxPrfPrtl_artillerySmokeSignal_loop", 3);
+                //Utils.SpawnDebugFlare(vector, "vfxPrfPrtl_artillerySmokeSignal_loop", 3);
                 for (int i = 0; i < this.AOECount-1; i++)
                 {
                     vector += b;
                     vector.y = base.Combat.MapMetaData.GetLerpedHeightAt(vector, false);
                     ModInit.modLog.LogMessage($"Added impact point {vector}");
                     AOEPositions.Add(vector);
-                    Utils.SpawnDebugFlare(vector,"vfxPrfPrtl_artillerySmokeSignal_loop", 3);
+                    //Utils.SpawnDebugFlare(vector,"vfxPrfPrtl_artillerySmokeSignal_loop", 3);
                 }
 
                 return;
