@@ -138,6 +138,7 @@ namespace StrategicOperations.Framework
             if (!ModInit.modSettings.commandAbilities_AI.ContainsKey(unit.team.FactionValue.Name))
             {
                 ModInit.modLog.LogMessage($"No settings for command abilities for {unit.team.FactionValue.Name}, skipping.");
+                return;
             }
 
             ModState.currentFactionSettingsList = new List<Classes.AI_FactionCommandAbilitySetting>(
@@ -158,7 +159,7 @@ namespace StrategicOperations.Framework
                         if (roll <= chance)
                         {
                             ModInit.modLog.LogTrace($"Rolled {roll}, < {chance}.");
-                            dm.AbilityDefs.TryGet(abilitySetting.AbilityDefID, out var def);
+                            if (!dm.AbilityDefs.TryGet(abilitySetting.AbilityDefID, out var def)) return;
                             var ability = new Ability(def);
                             ModInit.modLog.LogMessage(
                                 $"Adding {ability.Def?.Description?.Id} to {unit.Description?.Name}.");
@@ -177,6 +178,7 @@ namespace StrategicOperations.Framework
             var dm = UnityGameInstance.BattleTechGame.DataManager;
             var potentialAssetsForAI = new List<string> {ability.Def.ActorResource};
             var potentialAssetsForAIWaves = new List<int> {ModInit.modSettings.strafeWaves};
+            var isAOE = new List<bool>{false};
 
             if (!string.IsNullOrEmpty(ability.Def.ActorResource))
             {
@@ -259,6 +261,7 @@ namespace StrategicOperations.Framework
                             int.TryParse(waveString?.Substring(11), out waves);
                             potentialAssetsForAI.Add(id);
                             potentialAssetsForAIWaves.Add(waves);
+                            isAOE.Add(mechComponentRef.IsAOEStrafe(ability.Def.specialRules == AbilityDef.SpecialRules.Strafe));
                             ModInit.modLog.LogTrace($"Added {id} to potential AI assets.");
                         }
                     }
@@ -268,6 +271,7 @@ namespace StrategicOperations.Framework
                 var idx = potentialAssetsForAI.GetRandomIndex();
                 var chosen = potentialAssetsForAI[idx];
                 waves = potentialAssetsForAIWaves[idx];
+                ModState.IsStrafeAOE = isAOE[idx];
                 ModInit.modLog.LogTrace($"Chose {chosen} for this activation.");
 
                 LoadRequest loadRequest = dm.CreateLoadRequest();

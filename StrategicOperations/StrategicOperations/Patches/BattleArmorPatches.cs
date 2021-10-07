@@ -171,7 +171,7 @@ namespace StrategicOperations.Patches
                                             {
                                                 ModInit.modLog.LogMessage(
                                                     $"[Ability.Activate - DestroyBA on Roll] FAILURE: {destroyBARoll} >          0.30.");
-                                                swarmingUnitActor.DismountBA(creator);
+                                                swarmingUnitActor.DismountBA(creator, true);
                                             }
                                         }
                                         else
@@ -218,7 +218,7 @@ namespace StrategicOperations.Patches
                                                     false)));
                                         ModInit.modLog.LogMessage(
                                                 $"[Ability.Activate - BattleArmorDeSwarm] Deswarm SUCCESS: {roll} <=          {finalChance}.");
-                                            swarmingUnitActor.DismountBA(creator);
+                                            swarmingUnitActor.DismountBA(creator, true);
                                         }
                                         else
                                         {
@@ -576,7 +576,7 @@ namespace StrategicOperations.Patches
                             continue;
                         }
 
-                        actor.DismountBA(__instance, true);
+                        actor.DismountBA(__instance, false, true);
                     }
                 }
 
@@ -593,7 +593,7 @@ namespace StrategicOperations.Patches
                             actor.HandleDeath(attackerGUID);
                             continue;
                         }
-                        actor.DismountBA(__instance, true);
+                        actor.DismountBA(__instance, false, true);
                     }
                 }
             }

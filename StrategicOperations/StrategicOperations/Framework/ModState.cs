@@ -114,6 +114,7 @@ namespace StrategicOperations.Framework
             OutOfRange = false;
             AiCmds = new Dictionary<string, AI_CmdInvocation>();
             AiBattleArmorAbilityCmds = new Dictionary<string, BA_MountOrSwarmInvocation>();
+            IsStrafeAOE = false;
         }
 
         public static void ResetDelegateInfos()
@@ -134,5 +135,6 @@ namespace StrategicOperations.Framework
         }
 
         public static List<AI_FactionCommandAbilitySetting> currentFactionSettingsList = new List<AI_FactionCommandAbilitySetting>();
+        public static bool IsStrafeAOE = false;
     }
 }

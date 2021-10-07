@@ -1147,24 +1147,31 @@ namespace StrategicOperations.Patches
                         {
                             waveDesc = $"- Waves: {waves}";
                         }
+
+                        var aoeDesc = "";
+                        if (beacon.IsAOEStrafe(__instance.FromButton.Ability.Def.specialRules == AbilityDef.SpecialRules.Strafe))
+                        {
+                            aoeDesc = $" THIS IS AN AOE ATTACK!";
+                        }
+
                         if (id.StartsWith("mechdef_"))
                         {
                             dm.MechDefs.TryGet(id, out var beaconunit);
                             if (ModState.deploymentAssetsStats != null)
                                 beaconDescs +=
-                                    $"{index + 2}: {beaconunit?.Description?.UIName ?? beaconunit?.Description?.Name} {waveDesc} - You have {ModState.deploymentAssetsStats.FirstOrDefault(x => x.ID == id).contractUses} remaining.\n\n";
+                                    $"{index + 2}: {beaconunit?.Description?.UIName ?? beaconunit?.Description?.Name} {waveDesc} - You have {ModState.deploymentAssetsStats.FirstOrDefault(x => x.ID == id).contractUses} remaining.{aoeDesc}\n\n";
                         }
                         else if (id.StartsWith("vehicledef_"))
                         {
                             dm.VehicleDefs.TryGet(id, out var beaconunit);
                             beaconDescs +=
-                                $"{index + 2}: {beaconunit?.Description?.UIName ?? beaconunit?.Description?.Name} {waveDesc} - You have {ModState.deploymentAssetsStats.FirstOrDefault(x => x.ID == id).contractUses} remaining.\n\n";
+                                $"{index + 2}: {beaconunit?.Description?.UIName ?? beaconunit?.Description?.Name} {waveDesc} - You have {ModState.deploymentAssetsStats.FirstOrDefault(x => x.ID == id).contractUses} remaining.{aoeDesc}\n\n";
                         }
                         else
                         {
                             dm.TurretDefs.TryGet(id, out var beaconunit);
                             beaconDescs +=
-                                $"{index + 2}: {beaconunit?.Description?.UIName ?? beaconunit?.Description?.Name} {waveDesc} - You have {ModState.deploymentAssetsStats.FirstOrDefault(x => x.ID == id).contractUses} remaining.\n\n";
+                                $"{index + 2}: {beaconunit?.Description?.UIName ?? beaconunit?.Description?.Name} {waveDesc} - You have {ModState.deploymentAssetsStats.FirstOrDefault(x => x.ID == id).contractUses} remaining.{aoeDesc}\n\n";
                         }
                     }
 
@@ -1200,6 +1207,8 @@ namespace StrategicOperations.Patches
                                 ModState.strafeWaves = waves;
                                 ModState.popupActorResource = id;
                                 ModState.PilotOverride = pilotID;
+                                ModState.IsStrafeAOE = beacon.IsAOEStrafe(
+                                    __instance.FromButton.Ability.Def.specialRules == AbilityDef.SpecialRules.Strafe);
                                 ModInit.modLog.LogMessage(
                                     $"Player pressed {id} with pilot {pilotID}. Now -{ModState.popupActorResource}- and pilot -{ModState.PilotOverride}- should be the same.");
                             }));
@@ -1220,11 +1229,14 @@ namespace StrategicOperations.Patches
                             var id1 = id;
                             var pilotID1 = pilotID;
                             var waves1 = waves;
+                            var beacon1 = beacon;
                             popup.AddButton("3.", (Action) (() =>
                             {
                                 ModState.strafeWaves = waves1;
                                 ModState.popupActorResource = id1;
                                 ModState.PilotOverride = pilotID1;
+                                ModState.IsStrafeAOE = beacon1.IsAOEStrafe(
+                                    __instance.FromButton.Ability.Def.specialRules == AbilityDef.SpecialRules.Strafe);
                                 ModInit.modLog.LogMessage(
                                     $"Player pressed {id1} with pilot {pilotID1}. Now -{ModState.popupActorResource}- and pilot -{ModState.PilotOverride}- should be the same.");
                             }));
@@ -1244,6 +1256,8 @@ namespace StrategicOperations.Patches
                                 ModState.strafeWaves = waves;
                                 ModState.popupActorResource = id;
                                 ModState.PilotOverride = pilotID;
+                                ModState.IsStrafeAOE = beacon.IsAOEStrafe(
+                                    __instance.FromButton.Ability.Def.specialRules == AbilityDef.SpecialRules.Strafe);
                                 ModInit.modLog.LogMessage(
                                     $"Player pressed {id} with pilot {pilotID}. Now -{ModState.popupActorResource}- and pilot -{ModState.PilotOverride}- should be the same.");
                             }));
@@ -1267,11 +1281,14 @@ namespace StrategicOperations.Patches
                         var id1 = id;
                         var pilotID1 = pilotID;
                         var waves1 = waves;
+                        var beacon1 = beacon;
                         popup.AddButton("3.", (Action) (() =>
                         {
                             ModState.strafeWaves = waves1;
                             ModState.popupActorResource = id1;
                             ModState.PilotOverride = pilotID1;
+                            ModState.IsStrafeAOE = beacon1.IsAOEStrafe(
+                                __instance.FromButton.Ability.Def.specialRules == AbilityDef.SpecialRules.Strafe);
                             ModInit.modLog.LogMessage(
                                 $"Player pressed {id1} with pilot {pilotID1}. Now -{ModState.popupActorResource}- and pilot -{ModState.PilotOverride}- should be the same.");
                         }));
@@ -1289,11 +1306,14 @@ namespace StrategicOperations.Patches
                         var id2 = id;
                         var pilotID2 = pilotID;
                         var waves2 = waves;
+                        var beacon2 = beacon;
                         popup.AddButton("2.", (Action) (() =>
                         {
                             ModState.strafeWaves = waves2;
                             ModState.popupActorResource = id2;
                             ModState.PilotOverride = pilotID2;
+                            ModState.IsStrafeAOE = beacon2.IsAOEStrafe(
+                                __instance.FromButton.Ability.Def.specialRules == AbilityDef.SpecialRules.Strafe);
                             ModInit.modLog.LogMessage(
                                 $"Player pressed {id2} with pilot {pilotID2}. Now -{ModState.popupActorResource}- and pilot -{ModState.PilotOverride}- should be the same.");
                         }));
@@ -1316,12 +1336,15 @@ namespace StrategicOperations.Patches
                             var id3 = id;
                             var pilotID3 = pilotID;
                             var waves3 = waves;
+                            var beacon3 = beacon;
                             popup.AddButton(buttonName,
                                 (Action) (() =>
                                 {
                                     ModState.strafeWaves = waves3;
                                     ModState.popupActorResource = id3;
                                     ModState.PilotOverride = pilotID3;
+                                    ModState.IsStrafeAOE = beacon3.IsAOEStrafe(
+                                        __instance.FromButton.Ability.Def.specialRules == AbilityDef.SpecialRules.Strafe);
                                     ModInit.modLog.LogMessage(
                                         $"Player pressed {id3} with pilot {pilotID3}. Now -{ModState.popupActorResource}- and pilot -{ModState.PilotOverride}- should be the same.");
                                 }));

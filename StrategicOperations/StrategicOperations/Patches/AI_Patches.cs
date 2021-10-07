@@ -476,10 +476,10 @@ namespace StrategicOperations.Patches
                     unit.BehaviorTree.IncreaseSprintHysteresisLevel();
                 }
                 __result = new ReserveActorInvocation(unit, ReserveActorAction.DONE, unit.Combat.TurnDirector.CurrentRound);
-                ModState.AiCmds.Remove(unit.GUID);
+                ModState.AiCmds.Remove(unit.GUID); //somehow spawned BA doesn't always reserve on correct round?
                 return false;
                 // invoke ability from modstate and then create/use a Brace/Reserve order.
-                // probably need to make sure we're referencing the actual ability on the AI actor, and not a new instance? unless it already is...
+
             }
         }
     }

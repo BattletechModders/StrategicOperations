@@ -228,8 +228,9 @@ namespace StrategicOperations.Framework
             return point;
         }
 
-        public static void DismountBA (this AbstractActor actor, AbstractActor carrier, bool calledFromHandleDeath = false)
+        public static void DismountBA (this AbstractActor actor, AbstractActor carrier, bool calledFromDeswarm = false, bool calledFromHandleDeath = false)
         {
+
             if (ModState.BADamageTrackers.ContainsKey(actor.GUID))
             {
                 ModState.BADamageTrackers.Remove(actor.GUID);
@@ -255,8 +256,10 @@ namespace StrategicOperations.Framework
             ModState.PositionLockSwarm.Remove(actor.GUID);
             ModState.CachedUnitCoordinates.Remove(carrier.GUID);
 
-            if (!calledFromHandleDeath)
+            if (!calledFromHandleDeath && !calledFromDeswarm)
             {
+                ModInit.modLog.LogMessage(
+                    $"[DismountBA] Not called from HandleDeath or Deswarm, resetting buttons and pathing.");
                 hud.MechWarriorTray.JumpButton.ResetButtonIfNotActive(actor);
                 hud.MechWarriorTray.SprintButton.ResetButtonIfNotActive(actor);
                 hud.MechWarriorTray.MoveButton.ResetButtonIfNotActive(actor);
@@ -266,10 +269,15 @@ namespace StrategicOperations.Framework
                 actor.ResetPathing(false);
                 actor.Pathing.UpdateCurrentPath(false);
             }
-
+            else// if (actor.HasBegunActivation)
+            {
+                ModInit.modLog.LogMessage(
+                    $"[DismountBA] Called from handledeath? {calledFromHandleDeath} or Deswarm? {calledFromDeswarm}, forcing end of activation.");
+                actor.DoneWithActor();
+                actor.OnActivationEnd(actor.GUID, -1);
+            }
             ModInit.modLog.LogMessage(
                 $"[DismountBA] Removing PositionLock with rider  {actor.DisplayName} {actor.GUID} and carrier {carrier.DisplayName} {carrier.GUID}.");
-
         }
 
         public static Ability GetDeswarmerAbility(this AbstractActor actor)

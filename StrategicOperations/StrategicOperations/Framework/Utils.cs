@@ -2,10 +2,15 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
+using System.Runtime.Remoting.Messaging;
 using Abilifier.Patches;
 using BattleTech;
 using BattleTech.Data;
 using BattleTech.Framework;
+using BattleTech.UI;
+using CustAmmoCategories;
+using CustomAmmoCategoriesLog;
+using CustomAmmoCategoriesPatches;
 using Harmony;
 using HBS.Collections;
 using UnityEngine;
@@ -518,7 +523,13 @@ namespace StrategicOperations.Framework
             EncounterLayerParent.EnqueueLoadAwareMessage(new DropshipAnimationCompleteMessage(LanceSpawnerGameLogic.GetDropshipGuid(encounterObjectGUID)));
         }
 
-
+        public static bool IsAOEStrafe(this MechComponentRef component, bool IsStrafe)
+        {
+            if (!IsStrafe) return false;
+            if (component.Def.ComponentTags.Any(x => x == "IsAOEStrafe")) return true;
+            return false;
+        }
+            
         public static void InitiateStrafe(string parentSequenceID, PendingStrafeWave wave)
         {
             if (wave.ActorResource.StartsWith("mechdef_"))
@@ -543,7 +554,7 @@ namespace StrategicOperations.Framework
                 var eventID = Guid.NewGuid().ToString();
                 ModInit.modLog.LogMessage($"Initializing Strafing Run (wave) with id {eventID}!");
                 TB_StrafeSequence eventSequence =
-                    new TB_StrafeSequence(parentSequenceID, eventID, supportActorMech, wave.PositionA, wave.PositionB, wave.Radius, wave.Team);
+                    new TB_StrafeSequence(parentSequenceID, eventID, supportActorMech, wave.PositionA, wave.PositionB, wave.Radius, wave.Team, ModState.IsStrafeAOE, wave.Ability.Def.IntParam1);
                 TurnEvent tEvent = new TurnEvent(eventID, wave.Ability.Combat,
                     wave.Ability.Def.ActivationETA, null, eventSequence, wave.Ability.Def, false);
                 wave.Ability.Combat.TurnDirector.AddTurnEvent(tEvent);
@@ -610,7 +621,7 @@ namespace StrategicOperations.Framework
                 var eventID = Guid.NewGuid().ToString();
                 ModInit.modLog.LogMessage($"Initializing Strafing Run (wave) with id {eventID}!");
                 TB_StrafeSequence eventSequence =
-                    new TB_StrafeSequence(parentSequenceID, eventID, supportActorVehicle, wave.PositionA, wave.PositionB, wave.Radius, wave.Team);
+                    new TB_StrafeSequence(parentSequenceID, eventID, supportActorVehicle, wave.PositionA, wave.PositionB, wave.Radius, wave.Team, ModState.IsStrafeAOE, wave.Ability.Def.IntParam1);
                 TurnEvent tEvent = new TurnEvent(eventID, wave.Ability.Combat,
                     wave.Ability.Def.ActivationETA, null, eventSequence, wave.Ability.Def, false);
                 wave.Ability.Combat.TurnDirector.AddTurnEvent(tEvent);
@@ -678,7 +689,7 @@ namespace StrategicOperations.Framework
                 var eventID = Guid.NewGuid().ToString();
                 ModInit.modLog.LogMessage($"Initializing Strafing Run (wave) with id {eventID}!");
                 TB_StrafeSequence eventSequence =
-                    new TB_StrafeSequence(parentSequenceID, eventID, supportActorTurret, wave.PositionA, wave.PositionB, wave.Radius, wave.Team);
+                    new TB_StrafeSequence(parentSequenceID, eventID, supportActorTurret, wave.PositionA, wave.PositionB, wave.Radius, wave.Team, ModState.IsStrafeAOE, wave.Ability.Def.IntParam1);
                 TurnEvent tEvent = new TurnEvent(eventID, wave.Ability.Combat,
                     wave.Ability.Def.ActivationETA, null, eventSequence, wave.Ability.Def, false);
                 wave.Ability.Combat.TurnDirector.AddTurnEvent(tEvent);
@@ -722,7 +733,36 @@ namespace StrategicOperations.Framework
                 }
             }
         }
-
+        public static void PerformAttackStrafe(this TerrainAttackDeligate del, TB_StrafeSequence strafeSequence)
+        {
+            MechRepresentation gameRep = del.actor.GameRep as MechRepresentation;
+            bool flag = gameRep != null;
+            if (flag)
+            {
+                Log.LogWrite("ToggleRandomIdles false\n", false);
+                gameRep.ToggleRandomIdles(false);
+            }
+            
+            //del.HUD.SelectionHandler.DeselectActor(del.HUD.SelectionHandler.SelectedActor);
+            //del.HUD.MechWarriorTray.HideAllChevrons();
+            CombatSelectionHandler_TrySelectActor.SelectionForbidden = true;
+            int seqId = del.actor.Combat.StackManager.NextStackUID;
+            bool flag2 = del.actor.GUID == del.target.GUID;
+            if (flag2)
+            {
+                Log.LogWrite("Registering terrain attack to " + seqId + "\n", false);
+                del.actor.addTerrainHitPosition(del.targetPosition, del.LOFLevel < LineOfFireLevel.LOFObstructed);
+            }
+            else
+            {
+                Log.LogWrite("Registering friendly attack to " + seqId + "\n", false);
+            }
+            AttackDirector.AttackSequence attackSequence = del.actor.Combat.AttackDirector.CreateAttackSequence(seqId, del.actor, del.target, del.actor.CurrentPosition, del.actor.CurrentRotation, 0, del.weaponsList, MeleeAttackType.NotSet, 0, false);
+            strafeSequence.attackSequences.Add(attackSequence.id);
+            attackSequence.indirectFire = (del.LOFLevel < LineOfFireLevel.LOFObstructed);
+            del.actor.Combat.AttackDirector.PerformAttack(attackSequence);
+            attackSequence.ResetWeapons();
+        }
 
 
 

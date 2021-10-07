@@ -1,6 +1,10 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using BattleTech;
+using BattleTech.UI;
+using CustomAmmoCategoriesPatches;
+using Harmony;
 using HBS.Math;
 using HBS.Util;
 using UnityEngine;
@@ -35,8 +39,11 @@ namespace StrategicOperations.Framework
         private float _timeSinceLastAttack;
         private Vector3 _zeroEndPos;
         private Vector3 _zeroStartPos;
-        private List<int> attackSequences = new List<int>();
-
+        public List<int> attackSequences = new List<int>();
+        public bool IsStrafeAOE;
+        public int AOECount;
+        public List<Vector3> AOEPositions = new List<Vector3>();
+        public CombatHUD HUD;
 
         public enum SequenceState
         {
@@ -47,7 +54,7 @@ namespace StrategicOperations.Framework
         }
 
         public TB_StrafeSequence(string parentSequenceID, string turnEventID, AbstractActor attacker, Vector3 positionA, Vector3 positionB,
-            float radius, Team team) : base(attacker.Combat)
+            float radius, Team team, bool isStrafeAOE, int strafeAOECount = 0) : base(attacker.Combat)
         {
             this.ParentSequenceID = parentSequenceID;
             this.TurnEventID = turnEventID;
@@ -58,90 +65,107 @@ namespace StrategicOperations.Framework
             this.Radius = radius;
             this.StrafingTeam = team;
             this._state = TB_StrafeSequence.SequenceState.None;
+            this.IsStrafeAOE = isStrafeAOE; //do thing
+            this.AOECount = strafeAOECount;
         }
 
         private void AttackNextTargets()
         {
+
             this._timeSinceLastAttack += Time.deltaTime;
             if (this._timeSinceLastAttack > ModInit.modSettings.timeBetweenAttacks)
             {
+                if (IsStrafeAOE && this.HUD != null)
+                {
+                    ModInit.modLog.LogMessage($"Incoming AOE Attack");
+                    if (AOEPositions.Count > 0)
+                    {
+                        ModInit.modLog.LogMessage($"{AOEPositions.Count} attack points for AOE remain, creating delegate and performing terrain attack at point {this.AOEPositions[0]}");
+                        var aoeDeligate = new TerrainAttackDeligate(Attacker, this.HUD, LineOfFireLevel.LOFClear,
+                            Attacker, this.AOEPositions[0], this.StrafeWeapons);
+                        aoeDeligate.PerformAttackStrafe(this);
+                        this.AOEPositions.RemoveAt(0); //working, but ground impacts not displaying for first shots? why. also either change flare duration to match or just manually clear them. and possibly change flare width to match widest AOE weapon.
+                    }
+                    return;
+                }
+
                 if (!base.Combat.AttackDirector.IsAnyAttackSequenceActive)
                 {
+                    
+                    if (this.AllTargets.Count < 1)
                     {
-                        if (this.AllTargets.Count < 1)
+                        ModInit.modLog.LogMessage(
+                            $"We have {this.AllTargets.Count} 0 targets remaining, probably shouldn't be calling AttackNextTarget anymore.");
+                        this.SetState(TB_StrafeSequence.SequenceState.Finished);
+                        return;
+                    }
+
+                    for (var i = this.AllTargets.Count - 1; i >= 0; i--)
+                    {
+                        var target = this.AllTargets[i];
+                        if (target.IsDead || target.IsFlaggedForDeath || !target.IsOperational)
                         {
-                            ModInit.modLog.LogMessage(
-                                $"We have {this.AllTargets.Count} 0 targets remaining, probably shouldn't be calling AttackNextTarget anymore.");
-                            this.SetState(TB_StrafeSequence.SequenceState.Finished);
-                            return;
+                            AllTargets.RemoveAt(i);
+                            continue;
                         }
-
-                        for (var i = this.AllTargets.Count - 1; i >= 0; i--)
+                        var targetDist = Vector3.Distance(this.Attacker.CurrentPosition,
+                            this.AllTargets[i].CurrentPosition);
+                        var firingAngle = Vector3.Angle(AllTargets[i].CurrentPosition,
+                            this.Attacker.CurrentPosition);
+                        ModInit.modLog.LogMessage(
+                            $"Strafing unit {Attacker.DisplayName} is {targetDist}m from  {AllTargets[i].DisplayName} and firingAngle is {firingAngle}");
+                        if (targetDist <= this.MaxWeaponRange)
                         {
-                            var target = this.AllTargets[i];
-                            if (target.IsDead || target.IsFlaggedForDeath || !target.IsOperational)
+                            var filteredWeapons =
+                                new List<Weapon>();
+                            foreach (var weapon in this.StrafeWeapons)
                             {
-                                AllTargets.RemoveAt(i);
-                                continue;
-                            }
-                            var targetDist = Vector3.Distance(this.Attacker.CurrentPosition,
-                                this.AllTargets[i].CurrentPosition);
-                            var firingAngle = Vector3.Angle(AllTargets[i].CurrentPosition,
-                                this.Attacker.CurrentPosition);
-                            ModInit.modLog.LogMessage(
-                                $"Strafing unit {Attacker.DisplayName} is {targetDist}m from  {AllTargets[i].DisplayName} and firingAngle is {firingAngle}");
-                            if (targetDist <= this.MaxWeaponRange)
-                            {
-                                var filteredWeapons =
-                                    new List<Weapon>();
-                                foreach (var weapon in this.StrafeWeapons)
+                                if (this.Attacker.HasLOFToTargetUnit(AllTargets[i], weapon) &&
+                                    weapon.MaxRange > targetDist)
                                 {
-                                    if (this.Attacker.HasLOFToTargetUnit(AllTargets[i], weapon) &&
-                                        weapon.MaxRange > targetDist)
-                                    {
-                                        weapon.ResetWeapon();
-                                        filteredWeapons.Add(weapon);
-                                        ModInit.modLog.LogMessage(
-                                            $"weapon {weapon.Name} has LOF and range");
-                                    }
-                                }
-
-                                if (filteredWeapons.Count == 0)
-                                {
+                                    weapon.ResetWeapon();
+                                    filteredWeapons.Add(weapon);
                                     ModInit.modLog.LogMessage(
-                                        $"No weapons had LOF and range.");
-                                    continue;
+                                        $"weapon {weapon.Name} has LOF and range");
                                 }
+                            }
 
+                            if (filteredWeapons.Count == 0)
+                            {
                                 ModInit.modLog.LogMessage(
-                                    $"Strafing unit {Attacker.DisplayName} attacking target {AllTargets[i].DisplayName} from range {targetDist} and firingAngle {firingAngle}");
-
-                                //var attackStackSequence = new AttackStackSequence(Attacker, this.AllTargets[i], Attacker.CurrentPosition,
-                                //Attacker.CurrentRotation, filteredWeapons, MeleeAttackType.NotSet, 0, -1);
-                                //Attacker.Combat.MessageCenter.PublishMessage(new AddSequenceToStackMessage(attackStackSequence));
-
-                                AttackDirector attackDirector = base.Combat.AttackDirector;
-                                AttackDirector.AttackSequence attackSequence = attackDirector.CreateAttackSequence(
-                                    base.SequenceGUID, this.Attacker, this.AllTargets[i], this.Attacker.CurrentPosition,
-                                    this.Attacker.CurrentRotation, 0, filteredWeapons,
-                                    MeleeAttackType.NotSet, 0, false);
-                                this.attackSequences.Add(attackSequence.id);
-                                attackDirector.PerformAttack(attackSequence); 
-                                attackSequence.ResetWeapons();
-
-                                this.AllTargets.RemoveAt(i);
-                                this._timeSinceLastAttack = 0f;
+                                    $"No weapons had LOF and range.");
                                 continue;
                             }
 
                             ModInit.modLog.LogMessage(
-                                $"Attacker {Attacker.DisplayName} range to target {AllTargets[0].DisplayName} {targetDist} >= maxWeaponRange {this.MaxWeaponRange}");
-//                    this.AllTargets.RemoveAt(0);
+                                $"Strafing unit {Attacker.DisplayName} attacking target {AllTargets[i].DisplayName} from range {targetDist} and firingAngle {firingAngle}");
+
+                            //var attackStackSequence = new AttackStackSequence(Attacker, this.AllTargets[i], Attacker.CurrentPosition,
+                            //Attacker.CurrentRotation, filteredWeapons, MeleeAttackType.NotSet, 0, -1);
+                            //Attacker.Combat.MessageCenter.PublishMessage(new AddSequenceToStackMessage(attackStackSequence));
+
+                            AttackDirector attackDirector = base.Combat.AttackDirector;
+                            AttackDirector.AttackSequence attackSequence = attackDirector.CreateAttackSequence(
+                                base.SequenceGUID, this.Attacker, this.AllTargets[i], this.Attacker.CurrentPosition,
+                                this.Attacker.CurrentRotation, 0, filteredWeapons,
+                                MeleeAttackType.NotSet, 0, false);
+                            this.attackSequences.Add(attackSequence.id);
+                            attackDirector.PerformAttack(attackSequence); 
+                            attackSequence.ResetWeapons();
+
+                            this.AllTargets.RemoveAt(i);
+                            this._timeSinceLastAttack = 0f;
+                            continue;
                         }
 
                         ModInit.modLog.LogMessage(
-                            $"We have {this.AllTargets.Count} targets remaining, none that we can attack.");
+                            $"Attacker {Attacker.DisplayName} range to target {AllTargets[0].DisplayName} {targetDist} >= maxWeaponRange {this.MaxWeaponRange}");
+//                    this.AllTargets.RemoveAt(0);
                     }
+
+                    ModInit.modLog.LogMessage(
+                        $"We have {this.AllTargets.Count} targets remaining, none that we can attack.");
+                    
                 }
                 ModInit.modLog.LogMessage($"There is already an attack sequence active, so we're not doing anything?");
             }
@@ -163,6 +187,24 @@ namespace StrategicOperations.Framework
 
         private void CalcTargets()
         {
+            if (IsStrafeAOE)
+            {
+                ModInit.modLog.LogMessage($"Calculating impact points for AOE Strafe.");
+                this.HUD = Traverse.Create(CameraControl.Instance).Property("HUD").GetValue<CombatHUD>();
+                Vector3 b = (this.EndPos - StartPos) / Math.Max(this.AOECount - 1, 1);
+                Vector3 vector = StartPos;
+                vector.y = base.Combat.MapMetaData.GetLerpedHeightAt(vector, false);
+                for (int i = 0; i < this.AOECount; i++)
+                {
+                    vector += b;
+                    vector.y = base.Combat.MapMetaData.GetLerpedHeightAt(vector, false);
+                    ModInit.modLog.LogMessage($"Added impact point {vector}");
+                    AOEPositions.Add(vector);
+                }
+
+                return;
+            }
+
             this.AllTargets = new List<ICombatant>();
 
             var allCombatants = new List<ICombatant>(base.Combat.GetAllCombatants());
