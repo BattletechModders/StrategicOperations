@@ -71,27 +71,25 @@ namespace StrategicOperations.Framework
 
         private void AttackNextTargets()
         {
-
             this._timeSinceLastAttack += Time.deltaTime;
             if (this._timeSinceLastAttack > ModInit.modSettings.timeBetweenAttacks)
             {
-                if (IsStrafeAOE && this.HUD != null)
-                {
-                    ModInit.modLog.LogMessage($"Incoming AOE Attack");
-                    if (AOEPositions.Count > 0)
-                    {
-                        ModInit.modLog.LogMessage($"{AOEPositions.Count} attack points for AOE remain, creating delegate and performing terrain attack at point {this.AOEPositions[0]}");
-                        var aoeDeligate = new TerrainAttackDeligate(Attacker, this.HUD, LineOfFireLevel.LOFClear,
-                            Attacker, this.AOEPositions[0], this.StrafeWeapons);
-                        aoeDeligate.PerformAttackStrafe(this);
-                        this.AOEPositions.RemoveAt(0); //working, but ground impacts not displaying for first shots? why. also either change flare duration to match or just manually clear them. and possibly change flare width to match widest AOE weapon.
-                    }
-                    return;
-                }
-
                 if (!base.Combat.AttackDirector.IsAnyAttackSequenceActive)
                 {
-                    
+                    if (IsStrafeAOE && this.HUD != null)
+                    {
+                        ModInit.modLog.LogMessage($"Incoming AOE Attack");
+                        if (AOEPositions.Count > 0)
+                        {
+                            ModInit.modLog.LogMessage($"{AOEPositions.Count} attack points for AOE remain, creating delegate and performing terrain attack at point {this.AOEPositions[0]}");
+                            Combat.AttackDirector.isSequenceIsTerrainAttack(true);
+                            var aoeDeligate = new TerrainAttackDeligate(Attacker, this.HUD, LineOfFireLevel.LOFClear,
+                                Attacker, this.AOEPositions[0], this.StrafeWeapons);
+                            aoeDeligate.PerformAttackStrafe(this);
+                            this.AOEPositions.RemoveAt(0); //working, but ground impacts not displaying for first shots? why. also either change flare duration to match or just manually clear them. and possibly change flare width to match widest AOE weapon.
+                        }
+                        return;
+                    }
                     if (this.AllTargets.Count < 1)
                     {
                         ModInit.modLog.LogMessage(
@@ -194,12 +192,16 @@ namespace StrategicOperations.Framework
                 Vector3 b = (this.EndPos - StartPos) / Math.Max(this.AOECount - 1, 1);
                 Vector3 vector = StartPos;
                 vector.y = base.Combat.MapMetaData.GetLerpedHeightAt(vector, false);
-                for (int i = 0; i < this.AOECount; i++)
+                ModInit.modLog.LogMessage($"Added impact point {vector}");
+                AOEPositions.Add(vector);
+                Utils.SpawnDebugFlare(vector, "vfxPrfPrtl_artillerySmokeSignal_loop", 3);
+                for (int i = 0; i < this.AOECount-1; i++)
                 {
                     vector += b;
                     vector.y = base.Combat.MapMetaData.GetLerpedHeightAt(vector, false);
                     ModInit.modLog.LogMessage($"Added impact point {vector}");
                     AOEPositions.Add(vector);
+                    Utils.SpawnDebugFlare(vector,"vfxPrfPrtl_artillerySmokeSignal_loop", 3);
                 }
 
                 return;

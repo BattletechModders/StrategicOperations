@@ -414,7 +414,10 @@ namespace StrategicOperations.Patches
                 {
                     var target = unit.Combat.FindActorByGUID(ModState.PositionLockSwarm[unit.GUID]);
                     ModInit.modLog.LogTrace($"[AITeam.makeInvocationFromOrders] Actor {unit.DisplayName} has active swarm attack on {target.DisplayName}");
-
+                    foreach (var weapon in unit.Weapons)
+                    {
+                        weapon.EnableWeapon();
+                    }
                     var weps = unit.Weapons.Where(x => x.IsEnabled && x.HasAmmo).ToList();
 
                     var loc = ModState.BADamageTrackers[unit.GUID].BA_MountedLocations.Values.GetRandomElement();
@@ -426,7 +429,6 @@ namespace StrategicOperations.Patches
                     {
                         unit.BehaviorTree.IncreaseSprintHysteresisLevel();
                     }
-
                     __result = new ReserveActorInvocation(unit, ReserveActorAction.DONE, unit.Combat.TurnDirector.CurrentRound);
                     return false;
                 }
@@ -480,6 +482,23 @@ namespace StrategicOperations.Patches
                 return false;
                 // invoke ability from modstate and then create/use a Brace/Reserve order.
 
+            }
+        }
+
+        [HarmonyPatch(typeof(ReserveActorInvocation), "Invoke", new Type[]{typeof(CombatGameState)})]
+        public static class ReserveActorInvocation_Invoke_ShittyBypass
+        {
+            public static void Prefix(ReserveActorInvocation __instance, CombatGameState combatGameState)
+            {
+                if (__instance.targetRound != combatGameState.TurnDirector.CurrentRound)
+                {
+                    ModInit.modLog.LogMessage($"[ReserveActorInvocation.Invoke]: Running shitty bypass");
+                    var actor = combatGameState.FindActorByGUID(__instance.targetGUID);
+                    if (!actor.team.IsLocalPlayer)
+                    {
+                        __instance.targetRound = combatGameState.TurnDirector.CurrentRound;
+                    }
+                }
             }
         }
     }

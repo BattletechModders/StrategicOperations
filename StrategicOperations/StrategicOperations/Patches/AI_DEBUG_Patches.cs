@@ -16,7 +16,7 @@ namespace StrategicOperations.Patches
     {
 
         [HarmonyPatch]
-        public static class SortMoveCandidatesByInfMapNode_Tick // may need to be CanMoveAndShootWithoutOverheatingNode. was IsMovementAvailableForUnitNode
+        public static class SortMoveCandidatesByInfMapNode_Tick 
         {
             public static MethodBase TargetMethod()
             {
@@ -32,7 +32,7 @@ namespace StrategicOperations.Patches
         }
 
         [HarmonyPatch]
-        public static class MoveTowardsHighestPriorityMoveCandidateNode_Tick // may need to be CanMoveAndShootWithoutOverheatingNode. was IsMovementAvailableForUnitNode
+        public static class MoveTowardsHighestPriorityMoveCandidateNode_Tick
         {
             public static MethodBase TargetMethod()
             {
