@@ -381,14 +381,18 @@ The configurable parameters of the above:
 
 Starting in 2.0.0.0, the AI can be given command abilities (spawn and strafe) just like the player. To reiterate, the following setting controls when/if the AI will be given a command ability. Any given AI unit can only receive a single command ability (i.e, a spawn or a strafe, but not both).
 
-`commandAbilities_AI` - list of command abilities the AI can get, as well as the probability and difficulty modifier to that probability that a given AI unit will be given the corresponding ability. e.g for the following setting, any given AI unit will have a 5% + 1% per-difficulty chance of being given `AbilityDefCMD_Strafe` at contract start. Currently only the Target Team will recieve command abilities (their allies will not).
+`commandAbilities_AI` - **Format Change in v2.0.0.3** - dictionary of command abilities and probabilities the AI can get per-faction (dictionary "key" is FactionValue.Name, e.g. "ClanGhostBear" or "Liao"), as well as the probability and difficulty modifier to that probability that a given AI unit will be given the corresponding ability. e.g for the following setting, Clan Ghost Bear units will have a 2% + 0.5% per-difficulty chance of being given `AbilityDefCMD_Strafe_AI` at contract start. Currently only the Target Team will recieve command abilities (their allies will not). If a faction is <i>not</i> listed in this setting, they will not be given any command abilities.
 
 ```
-{
-	"AbilityID": "AbilityDefCMD_Strafe",
-	"AddChance": 0.05,
-	"DiffMod": 0.01
-}
+
+"ClanGhostBear": [
+			{
+				"AbilityID": "AbilityDefCMD_Strafe_AI",
+				"AddChance": 0.02,
+				"DiffMod": 0.05
+			}
+		]
+
 ```
 
 Generally speaking, if the AI <i>can</i> use a command ability, it <i>will</i> use a command ability. Because of this, I strongly suggest creating separate command abilities for AI use that a much higher cooldown and/or fewer uses than the command abilities available to the player. Unless you want to get spammed by strafes every round.
