@@ -7,155 +7,157 @@ This mod enables, fixes, and expands the unused vanilla Command Abilities. There
 settings in the mod.json:
 
 ```
-"enableLogging": true,
-"enableTrace": false,
-"flareResourceID": "vfxPrfPrtl_fireTerrain_smLoop",
-"showStrafeCamera": false,
-"strafeEndsActivation": true,
-"spawnTurretEndsActivation": true,
-"deployProtection": 8,
-"strafeTargetsFriendliesChance": 1.0,
-"strafeNeutralBuildingsChance": 0.2,
-"strafeSensorFactor": 4.0,
-"strafeVelocityDefault": 150.0,
-"strafeAltitudeMin": 75.0,
-"strafeAltitudeMax": 250.0,
-"strafePreDistanceMult": 15.0,
-"strafeMinDistanceToEnd": 10.0,
-"timeBetweenAttacks": 0.35,
-"commandUseCostsMulti": 1.0,
-"deploymentBeaconEquipment": [
-	"Item.UpgradeDef.Gear_TurretBeacon_Cicada",
-	"Item.UpgradeDef.Gear_TurretBeacon_Cicada2",
-	"Item.UpgradeDef.Gear_TurretBeacon_kanazuchi",
-	"Item.UpgradeDef.Gear_TurretBeacon_hvac",
-	"Item.UpgradeDef.Gear_TurretBeacon_lgr",
-	"Item.UpgradeDef.Gear_TurretBeacon_Schiltron",
-	"Item.UpgradeDef.Gear_TurretBeacon_Schiltron2"
+	"enableLogging": true,
+	"enableTrace": false,
+	"flareResourceID": "vfxPrfPrtl_fireTerrain_smLoop",
+	"showStrafeCamera": false,
+	"strafeEndsActivation": true,
+	"spawnTurretEndsActivation": true,
+	"deployProtection": 8,
+	"strafeTargetsFriendliesChance": 1.0,
+	"strafeNeutralBuildingsChance": 0.2,
+	"strafeSensorFactor": 4.0,
+	"strafeVelocityDefault": 150.0,
+	"strafeAltitudeMin": 75.0,
+	"strafeAltitudeMax": 250.0,
+	"strafePreDistanceMult": 15.0,
+	"strafeMinDistanceToEnd": 10.0,
+	"timeBetweenAttacks": 0.35,
+	"commandUseCostsMulti": 1.0,
+	"deploymentBeaconEquipment": [
+		"Item.UpgradeDef.Gear_TurretBeacon_Cicada",
+		"Item.UpgradeDef.Gear_TurretBeacon_Cicada2",
+		"Item.UpgradeDef.Gear_TurretBeacon_kanazuchi",
+		"Item.UpgradeDef.Gear_TurretBeacon_hvac",
+		"Item.UpgradeDef.Gear_TurretBeacon_lgr",
+		"Item.UpgradeDef.Gear_TurretBeacon_Schiltron",
+		"Item.UpgradeDef.Gear_TurretBeacon_Schiltron2"
 	],
-"customSpawnReticleColor": {
-	"r": 255,
-	"g": 16,
-	"b": 240
+	"customSpawnReticleColor": {
+		"r": 255,
+		"g": 16,
+		"b": 240
 	},
-"customSpawnReticleAsset": "select_spawn_reticle",
-"strafeWaves": 3,
-		"AI_FactionBeacons": {
-			"ClanGhostBear": [
-				"Item.UpgradeDef.Gear_Contract_Tank_Burke_WoB"
-			]
-		},
-		"commandAbilities_AI": [
+	"customSpawnReticleAsset": "select_spawn_reticle",
+	"strafeWaves": 3,
+	"AI_FactionBeacons": {
+		"ClanGhostBear": [
+			"Item.UpgradeDef.Gear_Contract_Tank_Burke_WoB"
+		]
+	},
+	"commandAbilities_AI": {
+		"ClanGhostBear": [
 			{
 				"AbilityID": "AbilityDefCMD_Strafe_AI",
 				"AddChance": 0.2,
 				"DiffMod": 0.0
 			}
-		],
-		"AI_SpawnBehavior": [
-			{
-				"Tag": "ProtoMech",
-				"Behavior": "AMBUSH",
-				"MinRange": "5"
-			}
-		],
-		"BattleArmorMountAndSwarmID": "AbilityDefBattleArmorMount",
-		"BattleArmorDeSwarmRoll": "AbilityDefDeSwarmerRoll",
-		"BattleArmorDeSwarmSwat": "AbilityDefDeSwarmerSwat",
-		"ArmActuatorCategoryIDs": [
-			"ArmShoulder",
-			"ArmUpperActuator",
-			"ArmLowerActuator",
-			"OmniLowerActuator",
-			"ArmHandActuator",
-			"OmniHandActuator"
-		],
-		"BATargetEffect": {
-			"ID": "BA_AccurateFire",
-			"Name": "Battle Armor - SwarmingAccuracy",
-			"description": "Battle Armor has greatly increased accuracy against the unit it is swarming.",
-			"effectDataJO": [
-				{
-					"durationData": {},
-					"targetingData": {
-						"effectTriggerType": "Passive",
-						"effectTargetType": "Creator",
-						"showInStatusPanel": true
-					},
-					"effectType": "StatisticEffect",
-					"Description": {
-						"Id": "BA_EasyTargetingPassive",
-						"Name": "Easy shots",
-						"Details": "Battle Armor has increased accuracy while swarming.",
-						"Icon": "allied-star"
-					},
-					"nature": "Buff",
-					"statisticData": {
-						"statName": "AccuracyModifier",
-						"operation": "Set",
-						"modValue": "-9001",
-						"modType": "System.Single"
-					}
-				},
-				{
-					"durationData": {
-						"duration": -1,
-						"stackLimit": -1
-					},
-					"targetingData": {
-						"effectTriggerType": "Passive",
-						"effectTargetType": "Creator"
-					},
-					"effectType": "StatisticEffect",
-					"Description": {
-						"Id": "BA_CALLED_SHOT",
-						"Name": "BA Called Shot",
-						"Details": "Called Shots twice as reliable when swarming",
-						"Icon": "uixSvgIcon_ability_mastertactician"
-					},
-					"statisticData": {
-						"statName": "CalledShotBonusMultiplier",
-						"operation": "Float_Multiply",
-						"modValue": "9001.0",
-						"modType": "System.Single"
-					}
-				},
-				{
-					"durationData": {
-						"duration": -1,
-						"stackLimit": -1
-					},
-					"targetingData": {
-						"effectTriggerType": "Passive",
-						"effectTargetType": "Creator",
-						"showInTargetPreview": false,
-						"showInStatusPanel": false
-					},
-					"effectType": "StatisticEffect",
-					"Description": {
-						"Id": "BA_FocusFireCluster",
-						"Name": "BA ClusterFuck",
-						"Details": "Better clustering for BA while swarming.",
-						"Icon": "UixSvgIcon_specialEquip_System"
-					},
-					"statisticData": {
-						"statName": "ClusteringModifier",
-						"operation": "Float_Add",
-						"modValue": "9001",
-						"modType": "System.Single",
-						"targetCollection": "Weapon"
-					},
-					"nature": "Buff"
-				}
-			]
-		},
-		"AI_BattleArmorSpawnChance": 1.0,
-		"AI_BattleArmorSpawnDiffMod": 0.05,
-		"BattleArmorFactionAssociations": {
-			"ClanGhostBear": [
-				"mechdef_ba_is_standard"
-			]
+		]
+	},
+	"AI_SpawnBehavior": [
+		{
+			"Tag": "ProtoMech",
+			"Behavior": "AMBUSH",
+			"MinRange": "5"
 		}
+	],
+	"BattleArmorMountAndSwarmID": "AbilityDefBattleArmorMount",
+	"BattleArmorDeSwarmRoll": "AbilityDefDeSwarmerRoll",
+	"BattleArmorDeSwarmSwat": "AbilityDefDeSwarmerSwat",
+	"ArmActuatorCategoryIDs": [
+		"ArmShoulder",
+		"ArmUpperActuator",
+		"ArmLowerActuator",
+		"OmniLowerActuator",
+		"ArmHandActuator",
+		"OmniHandActuator"
+	],
+	"BATargetEffect": {
+		"ID": "BA_AccurateFire",
+		"Name": "Battle Armor - SwarmingAccuracy",
+		"description": "Battle Armor has greatly increased accuracy against the unit it is swarming.",
+		"effectDataJO": [
+			{
+				"durationData": {},
+				"targetingData": {
+					"effectTriggerType": "Passive",
+					"effectTargetType": "Creator",
+					"showInStatusPanel": true
+				},
+				"effectType": "StatisticEffect",
+				"Description": {
+					"Id": "BA_EasyTargetingPassive",
+					"Name": "Easy shots",
+					"Details": "Battle Armor has increased accuracy while swarming.",
+					"Icon": "allied-star"
+				},
+				"nature": "Buff",
+				"statisticData": {
+					"statName": "AccuracyModifier",
+					"operation": "Set",
+					"modValue": "-9001",
+					"modType": "System.Single"
+				}
+			},
+			{
+				"durationData": {
+					"duration": -1,
+					"stackLimit": -1
+				},
+				"targetingData": {
+					"effectTriggerType": "Passive",
+					"effectTargetType": "Creator"
+				},
+				"effectType": "StatisticEffect",
+				"Description": {
+					"Id": "BA_CALLED_SHOT",
+					"Name": "BA Called Shot",
+					"Details": "Called Shots twice as reliable when swarming",
+					"Icon": "uixSvgIcon_ability_mastertactician"
+				},
+				"statisticData": {
+					"statName": "CalledShotBonusMultiplier",
+					"operation": "Float_Multiply",
+					"modValue": "9001.0",
+					"modType": "System.Single"
+				}
+			},
+			{
+				"durationData": {
+					"duration": -1,
+					"stackLimit": -1
+				},
+				"targetingData": {
+					"effectTriggerType": "Passive",
+					"effectTargetType": "Creator",
+					"showInTargetPreview": false,
+					"showInStatusPanel": false
+				},
+				"effectType": "StatisticEffect",
+				"Description": {
+					"Id": "BA_FocusFireCluster",
+					"Name": "BA ClusterFuck",
+					"Details": "Better clustering for BA while swarming.",
+					"Icon": "UixSvgIcon_specialEquip_System"
+				},
+				"statisticData": {
+					"statName": "ClusteringModifier",
+					"operation": "Float_Add",
+					"modValue": "9001",
+					"modType": "System.Single",
+					"targetCollection": "Weapon"
+				},
+				"nature": "Buff"
+			}
+		]
+	},
+	"AI_BattleArmorSpawnChance": 1.0,
+	"AI_BattleArmorSpawnDiffMod": 0.05,
+	"BattleArmorFactionAssociations": {
+		"ClanGhostBear": [
+			"mechdef_ba_is_standard"
+		]
+	}
 ```
 
 `enableLogging` - bool, enable logging
@@ -198,18 +200,21 @@ settings in the mod.json:
 	
 `strafeWaves` - int, default number of units (same unit copied multiple times) that will perform a strafe. e.g., if set to 3 and strafe calls a Lightning Aerospace fighter, 3 Lightnings will strafe the target area in succession. They tend to target exactly the same units (unless of course one of the targeted units gets destroyed by one of the previous strafing units). Overriden by mechcomponent tags in beacons where tag is "StrafeWaves_X" where X is the number of waves. E.g. a beacon with tag `StrafeWaves_5` would strafe with 5 units.
 
-"AI_FactionBeacons": essentially functions the same as `deploymentBeaconEquipment`, but restricts factions listed to the corresponding equipment. if a faction is not listed in here, it will use all beacons from `deploymentBeaconEquipment`
+"AI_FactionBeacons": essentially functions the same as `deploymentBeaconEquipment`, but restricts factions listed to the corresponding equipment. if a faction is not listed in here, it will use only the "default" unit listed in a given command ability.
 
-`commandAbilities_AI` - list of command abilities and probabilities the AI can get, as well as the probability and difficulty modifier to that probability that a given AI unit will be given the corresponding ability. e.g for the following setting, any given AI unit will have a 5% + 1% per-difficulty chance of being given `AbilityDefCMD_Strafe` at contract start. Currently only the Target Team will recieve command abilities (their allies will not).
+`commandAbilities_AI` - **Format Change in v2.0.0.3** - dictionary of command abilities and probabilities the AI can get per-faction (dictionary "key" is FactionValue.Name, e.g. "ClanGhostBear" or "Liao"), as well as the probability and difficulty modifier to that probability that a given AI unit will be given the corresponding ability. e.g for the following setting, Clan Ghost Bear units will have a 2% + 0.5% per-difficulty chance of being given `AbilityDefCMD_Strafe_AI` at contract start. Currently only the Target Team will recieve command abilities (their allies will not). If a faction is <i>not</i> listed in this setting, they will not be given any command abilities.
 
 ```
-{
-	"AbilityID": "AbilityDefCMD_Strafe",
-	"AddChance": 0.05,
-	"DiffMod": 0.01
-}
-```
 
+"ClanGhostBear": [
+			{
+				"AbilityID": "AbilityDefCMD_Strafe_AI",
+				"AddChance": 0.02,
+				"DiffMod": 0.05
+			}
+		]
+
+```
 	
 `AI_SpawnBehavior` - list of "spawn behavior" for AI to use if they recieve a "spawn" type ability. Largely affects spawn positioning. "Tag" corresponds to a MechDef tag on the unit being spawned that will use the Behavior and MinRange defined in the setting. If the unit has multiple tags matching a behavior setting, it will simply use the behavior matching the first tag with a behavior defined. Options for behavior are: "AMBUSH" which will attempt to spawn the unit as close as possible to the nearest enemy, "BRAWLER" which will attempt to spawn the unit at an approximate centroid of all detected enemies, and "REINFORCE" which will attempt to spawn at the approximate centroid of all friendlies. MinRange simply sets a minimum spawn distance from any actor. Example setting:
 
