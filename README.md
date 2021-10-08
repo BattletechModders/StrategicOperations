@@ -200,7 +200,7 @@ settings in the mod.json:
 	
 `strafeWaves` - int, default number of units (same unit copied multiple times) that will perform a strafe. e.g., if set to 3 and strafe calls a Lightning Aerospace fighter, 3 Lightnings will strafe the target area in succession. They tend to target exactly the same units (unless of course one of the targeted units gets destroyed by one of the previous strafing units). Overriden by mechcomponent tags in beacons where tag is "StrafeWaves_X" where X is the number of waves. E.g. a beacon with tag `StrafeWaves_5` would strafe with 5 units.
 
-"AI_FactionBeacons": essentially functions the same as `deploymentBeaconEquipment`, but restricts factions listed to the corresponding equipment. if a faction is not listed in here, it will use only the "default" unit listed in a given command ability.
+"AI_FactionBeacons"`: essentially functions the same as `deploymentBeaconEquipment`, but restricts factions listed to the corresponding equipment. if a faction is not listed in here, it will use only the "default" unit listed in a given command ability.
 
 `commandAbilities_AI` - **Format Change in v2.0.0.3** - dictionary of command abilities and probabilities the AI can get per-faction (dictionary "key" is FactionValue.Name, e.g. "ClanGhostBear" or "Liao"), as well as the probability and difficulty modifier to that probability that a given AI unit will be given the corresponding ability. e.g for the following setting, Clan Ghost Bear units will have a 2% + 0.5% per-difficulty chance of being given `AbilityDefCMD_Strafe_AI` at contract start. Currently only the Target Team will recieve command abilities (their allies will not). If a faction is <i>not</i> listed in this setting, they will not be given any command abilities.
 
