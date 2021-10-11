@@ -10,6 +10,7 @@ namespace StrategicOperations.Framework
 {
     public static class ModState
     {
+
         public static Dictionary<string, PendingStrafeWave> PendingStrafeWaves =
             new Dictionary<string, PendingStrafeWave>();
         public static List<ArmorLocation> MechArmorMountOrder = new List<ArmorLocation>();

@@ -86,7 +86,7 @@ namespace StrategicOperations.Framework
                             var aoeDeligate = new TerrainAttackDeligate(Attacker, this.HUD, LineOfFireLevel.LOFClear,
                                 Attacker, this.AOEPositions[0], this.StrafeWeapons);
                             aoeDeligate.PerformAttackStrafe(this);
-                            this.AOEPositions.RemoveAt(0); //working, but ground impacts not displaying for first shots? why. also either change flare duration to match or just manually clear them. and possibly change flare width to match widest AOE weapon.
+                            this.AOEPositions.RemoveAt(0); //sorta working? shitloads of NREs from bulletimpacteffect for some reason. wtf.
                         }
                         return;
                     }
@@ -299,11 +299,9 @@ namespace StrategicOperations.Framework
         public override void OnComplete()
         {
             base.OnComplete();
-            var msg = new DespawnActorMessage(EncounterLayerData.MapLogicGuid, this.Attacker.GUID,
-                (DeathMethod) DespawnFloatieMessage.Escaped);
 
-            Utils._despawnActorMethod.Invoke(this.Attacker,
-                new object[] {msg});
+            var msg = new DespawnActorMessage(EncounterLayerData.MapLogicGuid, this.Attacker.GUID, (DeathMethod) DespawnFloatieMessage.Escaped);
+            Utils._despawnActorMethod.Invoke(this.Attacker, new object[] {msg});
             foreach (var idx in this.attackSequences)
             {
                 base.Combat.AttackDirector.RemoveAttackSequence(idx);

@@ -504,8 +504,7 @@ namespace StrategicOperations.Patches
                     ModInit.modLog.LogMessage($"Attempting to spawn {actorResource} as mech.");
                     dm.MechDefs.TryGet(actorResource, out var supportActorMechDef);
                     supportActorMechDef.Refresh();
-                    var customEncounterTags = new TagSet(teamSelection.EncounterTags);
-                    customEncounterTags.Add("SpawnedFromAbility");
+                    var customEncounterTags = new TagSet(teamSelection.EncounterTags) {"SpawnedFromAbility"};
                     var supportActorMech = ActorFactory.CreateMech(supportActorMechDef, supportPilotDef,
                         customEncounterTags, teamSelection.Combat,
                         teamSelection.GetNextSupportUnitGuid(), "", supportHeraldryDef);
@@ -576,8 +575,7 @@ namespace StrategicOperations.Patches
                     ModInit.modLog.LogMessage($"Attempting to spawn {actorResource} as vehicle.");
                     dm.VehicleDefs.TryGet(actorResource, out var supportActorVehicleDef);
                     supportActorVehicleDef.Refresh();
-                    var customEncounterTags = new TagSet(teamSelection.EncounterTags);
-                    customEncounterTags.Add("SpawnedFromAbility");
+                    var customEncounterTags = new TagSet(teamSelection.EncounterTags) {"SpawnedFromAbility"};
                     var supportActorVehicle = ActorFactory.CreateVehicle(supportActorVehicleDef, supportPilotDef,
                         customEncounterTags, teamSelection.Combat,
                         teamSelection.GetNextSupportUnitGuid(), "", supportHeraldryDef);
@@ -717,7 +715,7 @@ namespace StrategicOperations.Patches
         [HarmonyPatch(typeof(Ability), "SpawnFlares")]
         public static class Ability_SpawnFlares
         {
-            static bool Prepare() => false;
+            static bool Prepare() => false; //disabled
             private static bool Prefix(Ability __instance, Vector3 positionA, Vector3 positionB, string prefabName,
                 int numFlares, int numPhases)
             {

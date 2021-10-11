@@ -484,22 +484,5 @@ namespace StrategicOperations.Patches
 
             }
         }
-
-        [HarmonyPatch(typeof(ReserveActorInvocation), "Invoke", new Type[]{typeof(CombatGameState)})]
-        public static class ReserveActorInvocation_Invoke_ShittyBypass
-        {
-            public static void Prefix(ReserveActorInvocation __instance, CombatGameState combatGameState)
-            {
-                if (__instance.targetRound != combatGameState.TurnDirector.CurrentRound)
-                {
-                    ModInit.modLog.LogMessage($"[ReserveActorInvocation.Invoke]: Running shitty bypass");
-                    var actor = combatGameState.FindActorByGUID(__instance.targetGUID);
-                    if (!actor.team.IsLocalPlayer)
-                    {
-                        __instance.targetRound = combatGameState.TurnDirector.CurrentRound;
-                    }
-                }
-            }
-        }
     }
 }
