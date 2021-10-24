@@ -522,15 +522,45 @@ namespace StrategicOperations.Patches
 
                     supportActorMech.OnPositionUpdate(positionA, quaternion, -1, true, null, false);
                     supportActorMech.DynamicUnitRole = UnitRole.Brawler;
-
                     UnitSpawnedMessage message = new UnitSpawnedMessage("FROM_ABILITY", supportActorMech.GUID);
-
                     __instance.Combat.MessageCenter.PublishMessage(message);
-                    supportActorMech.OnPlayerVisibilityChanged(VisibilityLevel.LOSFull);
-
-                    Utils.DeployEvasion(supportActorMech);
+                    //supportActorMech.OnPlayerVisibilityChanged(VisibilityLevel.LOSFull);
 
                     ModInit.modLog.LogMessage($"Added {supportActorMech?.MechDef?.Description?.Id} to SupportUnits");
+
+                    ////////////////
+
+                    //supportActorMech.PlaceFarAwayFromMap();
+                    var underMap = supportActorMech.CurrentPosition;
+                    underMap.y = -1000f;
+                    supportActorMech.TeleportActor(underMap);
+                    combat.ItemRegistry.AddItem(supportActorMech);
+                    combat.RebuildAllLists();
+                    EncounterLayerParent encounterLayerParent = combat.EncounterLayerData.gameObject.GetComponentInParent<EncounterLayerParent>();
+                    DropPodUtils.DropPodSpawner dropSpawner = encounterLayerParent.gameObject.GetComponent<DropPodUtils.DropPodSpawner>();
+                    if (dropSpawner == null) { dropSpawner = encounterLayerParent.gameObject.AddComponent<DropPodUtils.DropPodSpawner>(); }
+
+                    dropSpawner.Unit = supportActorMech;
+                    dropSpawner.Combat = combat;
+                    dropSpawner.Parent = UnityGameInstance.BattleTechGame.Combat.EncounterLayerData
+                        .GetComponentInParent<EncounterLayerParent>();
+                    dropSpawner.DropPodPosition = positionA;
+                    dropSpawner.DropPodRotation = quaternion;
+
+                    ModInit.modLog.LogTrace($"DropPodAnim location {positionA} is also {dropSpawner.DropPodPosition}");
+                    ModInit.modLog.LogTrace($"Is dropAnim null fuckin somehow? {dropSpawner == null}");
+                    dropSpawner.DropPodVfxPrefab = dropSpawner.Parent.DropPodVfxPrefab;
+                    dropSpawner.DropPodLandedPrefab = dropSpawner.Parent.dropPodLandedPrefab;
+                    dropSpawner.LoadDropPodPrefabs(dropSpawner.DropPodVfxPrefab, dropSpawner.DropPodLandedPrefab);
+                    ModInit.modLog.LogTrace($"loaded prefabs success");
+                    dropSpawner.StartCoroutine(dropSpawner.StartDropPodAnimation(0f));
+                    ModInit.modLog.LogTrace($"started drop pod anim");
+
+                    
+                    //supportActorMech.OnPlayerVisibilityChanged(VisibilityLevel.LOSFull);
+
+                    Utils.DeployEvasion(supportActorMech);
+                    ///////////////
 
                     if (team.IsLocalPlayer && (ModInit.modSettings.commandUseCostsMulti > 0 ||
                                                __instance.Def.getAbilityDefExtension().CBillCost > 0))
@@ -542,7 +572,6 @@ namespace StrategicOperations.Patches
                         unitName = supportActorMechDef.Description.UIName;
                         unitID = supportActorMechDef.Description.Id;
                         unitCost = supportActorMechDef.Chassis.Description.Cost;
-
 
                         if (ModState.CommandUses.All(x => x.UnitID != actorResource))
                         {
@@ -597,13 +626,47 @@ namespace StrategicOperations.Patches
                     UnitSpawnedMessage message = new UnitSpawnedMessage("FROM_ABILITY", supportActorVehicle.GUID);
 
                     __instance.Combat.MessageCenter.PublishMessage(message);
-                    supportActorVehicle.OnPlayerVisibilityChanged(VisibilityLevel.LOSFull);
+                    //supportActorVehicle.OnPlayerVisibilityChanged(VisibilityLevel.LOSFull);
 
-                    Utils.DeployEvasion(supportActorVehicle);
+                    //Utils.DeployEvasion(supportActorVehicle);
 
                     ModInit.modLog.LogMessage(
                         $"Added {supportActorVehicle?.VehicleDef?.Description?.Id} to SupportUnits");
 
+
+                    ////////////////
+
+                    //supportActorMech.PlaceFarAwayFromMap();
+                    var underMap = supportActorVehicle.CurrentPosition;
+                    underMap.y = -1000f;
+                    supportActorVehicle.TeleportActor(underMap);
+                    combat.ItemRegistry.AddItem(supportActorVehicle);
+                    combat.RebuildAllLists();
+                    EncounterLayerParent encounterLayerParent = combat.EncounterLayerData.gameObject.GetComponentInParent<EncounterLayerParent>();
+                    DropPodUtils.DropPodSpawner dropSpawner = encounterLayerParent.gameObject.GetComponent<DropPodUtils.DropPodSpawner>();
+                    if (dropSpawner == null) { dropSpawner = encounterLayerParent.gameObject.AddComponent<DropPodUtils.DropPodSpawner>(); }
+
+                    dropSpawner.Unit = supportActorVehicle;
+                    dropSpawner.Combat = combat;
+                    dropSpawner.Parent = UnityGameInstance.BattleTechGame.Combat.EncounterLayerData
+                        .GetComponentInParent<EncounterLayerParent>();
+                    dropSpawner.DropPodPosition = positionA;
+                    dropSpawner.DropPodRotation = quaternion;
+
+                    ModInit.modLog.LogTrace($"DropPodAnim location {positionA} is also {dropSpawner.DropPodPosition}");
+                    ModInit.modLog.LogTrace($"Is dropAnim null fuckin somehow? {dropSpawner == null}");
+                    dropSpawner.DropPodVfxPrefab = dropSpawner.Parent.DropPodVfxPrefab;
+                    dropSpawner.DropPodLandedPrefab = dropSpawner.Parent.dropPodLandedPrefab;
+                    dropSpawner.LoadDropPodPrefabs(dropSpawner.DropPodVfxPrefab, dropSpawner.DropPodLandedPrefab);
+                    ModInit.modLog.LogTrace($"loaded prefabs success");
+                    dropSpawner.StartCoroutine(dropSpawner.StartDropPodAnimation(0f));
+                    ModInit.modLog.LogTrace($"started drop pod anim");
+
+
+                    //supportActorMech.OnPlayerVisibilityChanged(VisibilityLevel.LOSFull);
+
+                    Utils.DeployEvasion(supportActorVehicle);
+                    ///////////////
 
                     if (team.IsLocalPlayer && (ModInit.modSettings.commandUseCostsMulti > 0 ||
                                                __instance.Def.getAbilityDefExtension().CBillCost > 0))
@@ -664,8 +727,38 @@ namespace StrategicOperations.Patches
                     UnitSpawnedMessage message = new UnitSpawnedMessage("FROM_ABILITY", turretActor.GUID);
 
                     __instance.Combat.MessageCenter.PublishMessage(message);
-                    turretActor.OnPlayerVisibilityChanged(VisibilityLevel.LOSFull);
+                    //turretActor.OnPlayerVisibilityChanged(VisibilityLevel.LOSFull);
 
+
+                    ////////////////
+
+                    //supportActorMech.PlaceFarAwayFromMap();
+                    var underMap = turretActor.CurrentPosition;
+                    underMap.y = -1000f;
+                    turretActor.TeleportActor(underMap);
+                    combat.ItemRegistry.AddItem(turretActor);
+                    combat.RebuildAllLists();
+                    EncounterLayerParent encounterLayerParent = combat.EncounterLayerData.gameObject.GetComponentInParent<EncounterLayerParent>();
+                    DropPodUtils.DropPodSpawner dropSpawner = encounterLayerParent.gameObject.GetComponent<DropPodUtils.DropPodSpawner>();
+                    if (dropSpawner == null) { dropSpawner = encounterLayerParent.gameObject.AddComponent<DropPodUtils.DropPodSpawner>(); }
+
+                    dropSpawner.Unit = turretActor;
+                    dropSpawner.Combat = combat;
+                    dropSpawner.Parent = UnityGameInstance.BattleTechGame.Combat.EncounterLayerData
+                        .GetComponentInParent<EncounterLayerParent>();
+                    dropSpawner.DropPodPosition = positionA;
+                    dropSpawner.DropPodRotation = quaternion;
+
+                    ModInit.modLog.LogTrace($"DropPodAnim location {positionA} is also {dropSpawner.DropPodPosition}");
+                    ModInit.modLog.LogTrace($"Is dropAnim null fuckin somehow? {dropSpawner == null}");
+                    dropSpawner.DropPodVfxPrefab = dropSpawner.Parent.DropPodVfxPrefab;
+                    dropSpawner.DropPodLandedPrefab = dropSpawner.Parent.dropPodLandedPrefab;
+                    dropSpawner.LoadDropPodPrefabs(dropSpawner.DropPodVfxPrefab, dropSpawner.DropPodLandedPrefab);
+                    ModInit.modLog.LogTrace($"loaded prefabs success");
+                    dropSpawner.StartCoroutine(dropSpawner.StartDropPodAnimation(0f));
+                    ModInit.modLog.LogTrace($"started drop pod anim");
+
+                    ///////////////
 
                     if (team.IsLocalPlayer && (ModInit.modSettings.commandUseCostsMulti > 0 ||
                                                __instance.Def.getAbilityDefExtension().CBillCost > 0))
@@ -892,6 +985,7 @@ namespace StrategicOperations.Patches
             {
                 var HUD = Traverse.Create(__instance).Property("HUD").GetValue<CombatHUD>();
                 var theActor = HUD.SelectedActor;
+                if (theActor == null) return true;
                 var combat = HUD.Combat;
                 if (combat.ActiveContract.ContractTypeValue.IsSkirmish) return true;
                 if (__instance.Ability != null &&
@@ -920,6 +1014,7 @@ namespace StrategicOperations.Patches
                 var def = __instance.Ability.Def;
                 var HUD = Traverse.Create(__instance).Property("HUD").GetValue<CombatHUD>();
                 var theActor = HUD.SelectedActor;
+                if (theActor == null) return;
                 if (def.specialRules == AbilityDef.SpecialRules.Strafe &&
                     ModInit.modSettings.strafeEndsActivation)
                 {
@@ -957,6 +1052,7 @@ namespace StrategicOperations.Patches
             {
                 var HUD = Traverse.Create(__instance).Property("HUD").GetValue<CombatHUD>();
                 var theActor = HUD.SelectedActor;
+                if (theActor == null) return true;
                 var combat = HUD.Combat;
                 if (combat.ActiveContract.ContractTypeValue.IsSkirmish) return true;
                 if (__instance.Ability != null &&
@@ -985,6 +1081,7 @@ namespace StrategicOperations.Patches
                 var def = __instance.Ability.Def;
                 var HUD = Traverse.Create(__instance).Property("HUD").GetValue<CombatHUD>();
                 var theActor = HUD.SelectedActor;
+                if (theActor == null) return;
                 if (def.specialRules == AbilityDef.SpecialRules.Strafe &&
                     ModInit.modSettings.strafeEndsActivation)
                 {
@@ -1025,6 +1122,7 @@ namespace StrategicOperations.Patches
                 CombatSpawningReticle.Instance.ShowReticle();
                 var HUD = Traverse.Create(__instance).Property("HUD").GetValue<CombatHUD>();
                 var theActor = HUD.SelectedActor;
+                if (theActor == null) return true;
                 var distance = Mathf.RoundToInt(Vector3.Distance(theActor.CurrentPosition, worldPos));
                 var maxRange = Mathf.RoundToInt(__instance.FromButton.Ability.Def.IntParam2);
                 if (__instance.FromButton.Ability.Def.specialRules == AbilityDef.SpecialRules.SpawnTurret &&
@@ -1054,6 +1152,7 @@ namespace StrategicOperations.Patches
                 var positionB = Traverse.Create(__instance).Property("positionB").GetValue<Vector3>();
 
                 var theActor = HUD.SelectedActor;
+                if (theActor == null) return true;
                 var distance = Mathf.RoundToInt(Vector3.Distance(theActor.CurrentPosition, worldPos));
                 var distanceToA = Mathf.RoundToInt(Vector3.Distance(theActor.CurrentPosition, positionA));
                 var distanceToB = Mathf.RoundToInt(Vector3.Distance(theActor.CurrentPosition, positionB));
@@ -1357,6 +1456,7 @@ namespace StrategicOperations.Patches
 
                     var HUD = Traverse.Create(__instance).Property("HUD").GetValue<CombatHUD>();
                     var theActor = HUD.SelectedActor;
+                    if (theActor == null) return true;
                     var distance = Mathf.RoundToInt(Vector3.Distance(theActor.CurrentPosition, worldPos));
                     var maxRange = Mathf.RoundToInt(__instance.FromButton.Ability.Def.IntParam2);
                     __result = true;

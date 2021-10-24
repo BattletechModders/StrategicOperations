@@ -1,42 +1,63 @@
 ﻿using System;
 using System.Collections;
+using System.Runtime.CompilerServices;
 using BattleTech;
 using BattleTech.Rendering.UrbanWarfare;
+using BattleTech.UI;
+using Harmony;
 using UnityEngine;
 
 namespace StrategicOperations.Framework
 {
     public class DropPodUtils
     {
-        public class DropPodSpawn : MonoBehaviour
+        [HarmonyPatch(typeof(CombatHUD))]
+        [HarmonyPatch("Init")]
+        [HarmonyPatch(MethodType.Normal)]
+        [HarmonyPatch(new Type[] { typeof(CombatGameState) })]
+        public static class CombatHUD_Init_Hotdrop
+        {
+            public static void Postfix(CombatHUD __instance, CombatGameState Combat)
+            {
+                EncounterLayerParent encounterLayerParent = Combat.EncounterLayerData.gameObject.GetComponentInParent<EncounterLayerParent>();
+                DropPodSpawner dropSpawner = encounterLayerParent.gameObject.GetComponent<DropPodSpawner>();
+                if (dropSpawner == null) { dropSpawner = encounterLayerParent.gameObject.AddComponent<DropPodSpawner>(); }
+            }
+        }
+
+
+        public class DropPodSpawner: MonoBehaviour
         {
             public AbstractActor Unit { get; set; } = null;
             public bool DropProcessing { get; set; } = false;
-
+            public EncounterLayerParent Parent { get; set; } = null;
             public ParticleSystem DropPodVfxPrefab
             {
-                get => EncounterLayerParent.Instance.DropPodVfxPrefab;
-                set => throw new NotImplementedException();
+                get;
+                set;
             }
 
             public GameObject DropPodLandedPrefab
             {
-                get => EncounterLayerParent.Instance.dropPodLandedPrefab;
-                set => EncounterLayerParent.Instance.dropPodLandedPrefab = value;
+                get;
+                set;
             }
 
+            public Vector3 DropPodPosition;
+            public Quaternion DropPodRotation;
             public Vector3 OffscreenDropPodPosition { get; set; } = Vector3.zero;
-            public string SpawnGUID { get; set; }
-            public Action OnDropComplete { get; set; }
+            //public string SpawnGUID { get; set; }
+            //public Action OnDropComplete { get; set; }
             public CombatGameState Combat;
-
 
             public void LoadDropPodPrefabs(ParticleSystem dropPodVfxPrefab, GameObject dropPodLandedPrefab)
             {
                 if (dropPodVfxPrefab != null)
                 {
-                    this.DropPodVfxPrefab = UnityEngine.Object.Instantiate<ParticleSystem>(dropPodVfxPrefab, this.transform);
-                    this.DropPodVfxPrefab.transform.position = this.transform.position;
+                    this.DropPodVfxPrefab = UnityEngine.Object.Instantiate<ParticleSystem>(dropPodVfxPrefab);
+                    ModInit.modLog.LogTrace($"instantiated prefabs");
+                    this.DropPodVfxPrefab.transform.position = DropPodPosition;
+                    ModInit.modLog.LogTrace($"set position");
                     this.DropPodVfxPrefab.Pause();
                     this.DropPodVfxPrefab.Clear();
                 }
@@ -44,31 +65,33 @@ namespace StrategicOperations.Framework
                 {
                     this.DropPodLandedPrefab = UnityEngine.Object.Instantiate<GameObject>(dropPodLandedPrefab, this.OffscreenDropPodPosition, Quaternion.identity);
                 }
+                ModInit.modLog.LogTrace($"finished load drop prefabs");
             }
-            public IEnumerator StartDropPodAnimation(AbstractActor actor, float initialDelay,
-                Action unitDropPodAnimationComplete)
+
+            public IEnumerator StartDropPodAnimation(float initialDelay)//, Action unitDropPodAnimationComplete)
             {
                 while (!EncounterLayerParent.encounterBegan)
                     yield return (object) null;
-                yield return (object) new WaitForSeconds(UnityEngine.Random.Range(0.5f, 1.75f) + initialDelay);
+                yield return (object) new WaitForSeconds(0.5f + initialDelay);
                 int num1 = (int) WwiseManager.PostEvent<AudioEventList_play>(
                     AudioEventList_play.play_dropPod_projectile,
                     WwiseManager.GlobalAudioObject);
                 if (this.DropPodVfxPrefab != null)
                 {
-                    this.DropPodVfxPrefab.transform.position = this.transform.position;
+                    this.DropPodVfxPrefab.transform.position = DropPodPosition;
                     this.DropPodVfxPrefab.Simulate(0.0f);
                     this.DropPodVfxPrefab.Play();
+                    ModInit.modLog.LogTrace($"playing droppod anim");
                 }
                 else
                 {
-                    //Log.TWL(0, "Null drop pod animation for this biome.");
+                    ModInit.modLog.LogTrace($"No Drop pod anim for biome");
                 }
 
                 yield return (object) new WaitForSeconds(1f);
                 int num2 = (int) WwiseManager.PostEvent<AudioEventList_play>(AudioEventList_play.play_dropPod_impact,
                     WwiseManager.GlobalAudioObject);
-                yield return (object) this.DestroyFlimsyObjects();
+                yield return (object) this.DestroyFlimsyObjects(DropPodPosition);
                 //yield return (object)this.ApplyDropPodDamageToSquashedUnits(sequenceGUID, rootSequenceGUID);
                 yield return (object) new WaitForSeconds(3f);
                 this.TeleportUnitToSpawnPoint();
@@ -76,35 +99,36 @@ namespace StrategicOperations.Framework
                 this.DropProcessing = false;
                 Combat.MessageCenter.PublishMessage(
                     (MessageCenterMessage) new AddSequenceToStackMessage(this.Unit.DoneWithActor()));
-                unitDropPodAnimationComplete();
+                //unitDropPodAnimationComplete();
+                ModInit.modLog.LogTrace($"finish droppod anim");
             }
 
             public void TeleportUnitToSpawnPoint()
             {
-                Vector3 spawnPosition = this.gameObject.transform.position;
                 if (this.DropPodLandedPrefab != null)
                 {
-                    this.DropPodLandedPrefab.transform.position = spawnPosition;
-                    this.DropPodLandedPrefab.transform.rotation = this.transform.rotation;
+                    this.DropPodLandedPrefab.transform.position = DropPodPosition;
+                    this.DropPodLandedPrefab.transform.rotation = DropPodRotation;
                 }
-                this.Unit.TeleportActor(spawnPosition);
+                this.Unit.TeleportActor(DropPodPosition);
+                ModInit.modLog.LogTrace($"teleported actor to {DropPodPosition}");
                 this.Unit.GameRep.FadeIn(1f);
                 this.Unit.OnPlayerVisibilityChanged(VisibilityLevel.LOSFull);
             }
 
-            public IEnumerator DestroyFlimsyObjects()
+            public IEnumerator DestroyFlimsyObjects(Vector3 position)
             {
-                Collider[] hits = Physics.OverlapSphere(this.gameObject.transform.position, 36f, -5, QueryTriggerInteraction.Ignore);
+                Collider[] hits = Physics.OverlapSphere(position, 36f, -5, QueryTriggerInteraction.Ignore);
                 float impactMagnitude = 3f * Combat.Constants.ResolutionConstants.FlimsyDestructionForceMultiplier;
                 for (int i = 0; i < hits.Length; ++i)
                 {
                     Collider collider = hits[i];
-                    Vector3 normalized = (collider.transform.position - this.gameObject.transform.position).normalized;
+                    Vector3 normalized = (collider.transform.position - position).normalized;
                     DestructibleObject component1 = collider.gameObject.GetComponent<DestructibleObject>();
                     DestructibleUrbanFlimsy component2 = collider.gameObject.GetComponent<DestructibleUrbanFlimsy>();
                     if (component1 != null && component1.isFlimsy)
                     {
-                        component1.TakeDamage(this.gameObject.transform.position, normalized, impactMagnitude);
+                        component1.TakeDamage(position, normalized, impactMagnitude);
                         component1.Collapse(normalized, impactMagnitude);
                     }
                     if ((UnityEngine.Object)component2 != (UnityEngine.Object)null)

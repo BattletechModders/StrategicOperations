@@ -234,7 +234,7 @@ namespace StrategicOperations.Framework
                         var chanceBuilding = ModInit.modSettings.strafeNeutralBuildingsChance;
                         if (rollBuilding >= chanceBuilding && allCombatants[i].team.IsNeutral(this.StrafingTeam))
                         {
-                            ModInit.modLog.LogMessage($"Roll {rollBuilding} <= chance {chanceBuilding}.");
+                            ModInit.modLog.LogMessage($"Roll {rollBuilding} >= chance {chanceBuilding}, skipping.");
                             continue;
                         }
                     }
@@ -244,7 +244,7 @@ namespace StrategicOperations.Framework
                 var chance = ModInit.modSettings.strafeTargetsFriendliesChance;
                 if (roll >= chance && allCombatants[i].team.IsFriendly(this.StrafingTeam))
                 {
-                    ModInit.modLog.LogMessage($"Roll {roll} <= chance {chance}.");
+                    ModInit.modLog.LogMessage($"Roll {roll} >= chance {chance}, skipping.");
                     continue;
                 }
                 if (this.IsTarget(allCombatants[i]))
