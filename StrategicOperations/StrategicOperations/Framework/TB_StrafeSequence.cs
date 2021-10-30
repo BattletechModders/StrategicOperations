@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using BattleTech;
 using BattleTech.UI;
+using CustAmmoCategoriesPatches;
 using CustomAmmoCategoriesPatches;
 using Harmony;
 using HBS.Math;
@@ -16,7 +17,8 @@ namespace StrategicOperations.Framework
         public string ParentSequenceID;
         public string TurnEventID;
         private Team StrafingTeam;
-        private List<ICombatant> AllTargets { get; set; }
+        private List<ICombatant> CurrentTargets { get; set; }
+        private List<string> AllTargetGUIDs { get; set; }
         private AbstractActor Attacker { get; set; }
         private Vector3 EndPos { get; set; }
         private float HeightOffset { get; set; }
@@ -66,6 +68,7 @@ namespace StrategicOperations.Framework
             this.StrafingTeam = team;
             this._state = TB_StrafeSequence.SequenceState.None;
             this.IsStrafeAOE = isStrafeAOE; //do thing
+            this.AllTargetGUIDs = new List<string>();
             this.AOECount = strafeAOECount;
         }
 
@@ -90,35 +93,35 @@ namespace StrategicOperations.Framework
                         }
                         return;
                     }
-                    if (this.AllTargets.Count < 1)
+                    if (this.CurrentTargets.Count < 1)
                     {
                         ModInit.modLog.LogMessage(
-                            $"We have {this.AllTargets.Count} 0 targets remaining, probably shouldn't be calling AttackNextTarget anymore.");
+                            $"We have {this.CurrentTargets.Count} 0 targets remaining, probably shouldn't be calling AttackNextTarget anymore.");
                         this.SetState(TB_StrafeSequence.SequenceState.Finished);
                         return;
                     }
 
-                    for (var i = this.AllTargets.Count - 1; i >= 0; i--)
+                    for (var i = this.CurrentTargets.Count - 1; i >= 0; i--)
                     {
-                        var target = this.AllTargets[i];
+                        var target = this.CurrentTargets[i];
                         if (target.IsDead || target.IsFlaggedForDeath || !target.IsOperational)
                         {
-                            AllTargets.RemoveAt(i);
+                            CurrentTargets.RemoveAt(i);
                             continue;
                         }
                         var targetDist = Vector3.Distance(this.Attacker.CurrentPosition,
-                            this.AllTargets[i].CurrentPosition);
-                        var firingAngle = Vector3.Angle(AllTargets[i].CurrentPosition,
+                            this.CurrentTargets[i].CurrentPosition);
+                        var firingAngle = Vector3.Angle(CurrentTargets[i].CurrentPosition,
                             this.Attacker.CurrentPosition);
                         ModInit.modLog.LogMessage(
-                            $"Strafing unit {Attacker.DisplayName} is {targetDist}m from  {AllTargets[i].DisplayName} and firingAngle is {firingAngle}");
+                            $"Strafing unit {Attacker.DisplayName} is {targetDist}m from  {target.DisplayName} and firingAngle is {firingAngle}");
                         if (targetDist <= this.MaxWeaponRange)
                         {
                             var filteredWeapons =
                                 new List<Weapon>();
                             foreach (var weapon in this.StrafeWeapons)
                             {
-                                if (this.Attacker.HasLOFToTargetUnit(AllTargets[i], weapon) &&
+                                if (this.Attacker.HasLOFToTargetUnit(target, weapon) &&
                                     weapon.MaxRange > targetDist)
                                 {
                                     weapon.ResetWeapon();
@@ -136,33 +139,36 @@ namespace StrategicOperations.Framework
                             }
 
                             ModInit.modLog.LogMessage(
-                                $"Strafing unit {Attacker.DisplayName} attacking target {AllTargets[i].DisplayName} from range {targetDist} and firingAngle {firingAngle}");
+                                $"Strafing unit {Attacker.DisplayName} attacking target {target.DisplayName} from range {targetDist} and firingAngle {firingAngle}");
 
-                            //var attackStackSequence = new AttackStackSequence(Attacker, this.AllTargets[i], Attacker.CurrentPosition,
+                            //var attackStackSequence = new AttackStackSequence(Attacker, target, Attacker.CurrentPosition,
                             //Attacker.CurrentRotation, filteredWeapons, MeleeAttackType.NotSet, 0, -1);
                             //Attacker.Combat.MessageCenter.PublishMessage(new AddSequenceToStackMessage(attackStackSequence));
 
-                            AttackDirector attackDirector = base.Combat.AttackDirector;
-                            AttackDirector.AttackSequence attackSequence = attackDirector.CreateAttackSequence(
-                                base.SequenceGUID, this.Attacker, this.AllTargets[i], this.Attacker.CurrentPosition,
-                                this.Attacker.CurrentRotation, 0, filteredWeapons,
-                                MeleeAttackType.NotSet, 0, false);
-                            this.attackSequences.Add(attackSequence.id);
-                            attackDirector.PerformAttack(attackSequence); 
-                            attackSequence.ResetWeapons();
-
-                            this.AllTargets.RemoveAt(i);
+                            if (true)
+                            {
+                                AttackDirector attackDirector = base.Combat.AttackDirector;
+                                AttackDirector.AttackSequence attackSequence = attackDirector.CreateAttackSequence(
+                                    base.SequenceGUID, this.Attacker, target, this.Attacker.CurrentPosition,
+                                    this.Attacker.CurrentRotation, 0, filteredWeapons,
+                                    MeleeAttackType.NotSet, 0, false);
+                                this.attackSequences.Add(attackSequence.id);
+                                attackDirector.PerformAttack(attackSequence);
+                                attackSequence.ResetWeapons();
+                            }
+                            this.AllTargetGUIDs.Add(target.GUID);
+                            this.CurrentTargets.RemoveAt(i);
                             this._timeSinceLastAttack = 0f;
                             continue;
                         }
 
                         ModInit.modLog.LogMessage(
-                            $"Attacker {Attacker.DisplayName} range to target {AllTargets[0].DisplayName} {targetDist} >= maxWeaponRange {this.MaxWeaponRange}");
+                            $"Attacker {Attacker.DisplayName} range to target {CurrentTargets[0].DisplayName} {targetDist} >= maxWeaponRange {this.MaxWeaponRange}");
 //                    this.AllTargets.RemoveAt(0);
                     }
 
                     ModInit.modLog.LogMessage(
-                        $"We have {this.AllTargets.Count} targets remaining, none that we can attack.");
+                        $"We have {this.CurrentTargets.Count} targets remaining, none that we can attack.");
                     
                 }
                 ModInit.modLog.LogMessage($"There is already an attack sequence active, so we're not doing anything?");
@@ -207,7 +213,7 @@ namespace StrategicOperations.Framework
                 return;
             }
 
-            this.AllTargets = new List<ICombatant>();
+            this.CurrentTargets = new List<ICombatant>();
 
             var allCombatants = new List<ICombatant>(base.Combat.GetAllCombatants());
 
@@ -249,12 +255,12 @@ namespace StrategicOperations.Framework
                 }
                 if (this.IsTarget(allCombatants[i]))
                 {
-                    this.AllTargets.Add(allCombatants[i]);
+                    this.CurrentTargets.Add(allCombatants[i]);
                     ModInit.modLog.LogMessage($"Added target {allCombatants[i].DisplayName}: {allCombatants[i].GUID} to final target list.");
                 }
             }
             Vector3 preStartPos = this.EndPos - this.StartPos * 2f;
-            this.AllTargets.Sort((ICombatant x, ICombatant y) => Vector3.Distance(x.CurrentPosition, preStartPos).CompareTo(Vector3.Distance(y.CurrentPosition, preStartPos)));
+            this.CurrentTargets.Sort((ICombatant x, ICombatant y) => Vector3.Distance(x.CurrentPosition, preStartPos).CompareTo(Vector3.Distance(y.CurrentPosition, preStartPos)));
         }
         private void GetWeaponsForStrafe()
         {
@@ -305,6 +311,23 @@ namespace StrategicOperations.Framework
             foreach (var idx in this.attackSequences)
             {
                 base.Combat.AttackDirector.RemoveAttackSequence(idx);
+            }
+
+            foreach (var targetID in this.AllTargetGUIDs)
+            {
+                var targetCombatant = base.Combat.FindCombatantByGUID(targetID, false);
+                if (targetCombatant != null)
+                {
+                    targetCombatant.HandleDeath(Attacker.GUID);
+                    if (!targetCombatant.IsDead)
+                    {
+                        if (targetCombatant is AbstractActor targetActor)
+                        {
+                            targetActor.CheckForInstability();
+                            targetActor.HandleKnockdown(base.RootSequenceGUID, Attacker.GUID, Vector2.one, null);
+                        }
+                    }
+                }
             }
             Utils.NotifyStrafeSequenceComplete(this.ParentSequenceID, this.TurnEventID);
         }
