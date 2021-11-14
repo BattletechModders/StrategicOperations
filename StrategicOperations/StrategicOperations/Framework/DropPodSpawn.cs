@@ -97,10 +97,10 @@ namespace StrategicOperations.Framework
                 this.TeleportUnitToSpawnPoint();
                 yield return (object) new WaitForSeconds(2f);
                 this.DropProcessing = false;
-                Combat.MessageCenter.PublishMessage(
-                    (MessageCenterMessage) new AddSequenceToStackMessage(this.Unit.DoneWithActor()));
+                //Combat.MessageCenter.PublishMessage((MessageCenterMessage) new AddSequenceToStackMessage(this.Unit.DoneWithActor()));
                 //unitDropPodAnimationComplete();
                 ModInit.modLog.LogTrace($"finish droppod anim");
+                Utils.DeployEvasion(this.Unit);
             }
 
             public void TeleportUnitToSpawnPoint()

@@ -11,6 +11,7 @@ namespace StrategicOperations.Framework
 {
     public class AI_Utils
     {
+
         public static int EvaluateStrafing(AbstractActor actor, out Ability ability, out Vector3 startpoint, out Vector3 endpoint)
         {
             startpoint = default(Vector3);

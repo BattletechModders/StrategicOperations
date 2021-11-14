@@ -9,18 +9,20 @@ using BattleTech.Data;
 using BattleTech.Framework;
 using BattleTech.UI;
 using CustAmmoCategories;
-using CustomAmmoCategoriesLog;
 using CustomAmmoCategoriesPatches;
+using CustomUnits;
 using Harmony;
 using HBS.Collections;
 using UnityEngine;
 using static StrategicOperations.Framework.Classes;
+using Log = CustomAmmoCategoriesLog.Log;
 using Random = UnityEngine.Random;
 
 namespace StrategicOperations.Framework
 {
     public static class Utils
-    { public static Vector3 GetHexFromVector(this Vector3 point)
+    {
+        public static Vector3 GetHexFromVector(this Vector3 point)
         {
             var combat = UnityGameInstance.BattleTechGame.Combat;
             var hex = combat.HexGrid.GetClosestPointOnGrid(point);
@@ -55,10 +57,16 @@ namespace StrategicOperations.Framework
             return null;
         }
 
+        public static float DistanceToClosestDetectedEnemy(this AbstractActor actor, Vector3 loc)
+        {
+            var enemy = actor.GetClosestDetectedEnemy(loc);
+            float magnitude = (enemy.CurrentPosition - loc).magnitude;
+            return magnitude;
+        }
         public static AbstractActor GetClosestDetectedEnemy(this AbstractActor actor, Vector3 loc)
         {
             var enemyUnits = new List<AbstractActor>();
-            enemyUnits.AddRange(actor.team.VisibilityCache.GetAllDetectedEnemies(actor));
+            enemyUnits.AddRange(actor.team.VisibilityCache.GetAllDetectedEnemies(actor).Where(x=>!x.IsDead && !x.IsFlaggedForDeath));
             var num = -1f;
             AbstractActor closestActor = null;
             foreach (var enemy in enemyUnits)
@@ -75,7 +83,7 @@ namespace StrategicOperations.Framework
 
         public static AbstractActor GetClosestDetectedFriendly(Vector3 loc, AbstractActor actor)
         {
-            var friendlyUnits = actor.team.VisibilityCache.GetAllFriendlies(actor);
+            var friendlyUnits = actor.team.VisibilityCache.GetAllFriendlies(actor).Where(x=> !x.IsDead && !x.IsFlaggedForDeath);
             var num = -1f;
             AbstractActor closestActor = null;
             foreach (var friendly in friendlyUnits)
@@ -95,7 +103,7 @@ namespace StrategicOperations.Framework
             var detectedEnemies = new List<AbstractActor>();
             foreach (var enemy in actor.Combat.AllActors)
             {
-                if (cache.CachedVisibilityToTarget(enemy).VisibilityLevel > 0 && actor.team.IsEnemy(enemy.team))
+                if (cache.CachedVisibilityToTarget(enemy).VisibilityLevel > 0 && actor.team.IsEnemy(enemy.team) && !enemy.IsDead && !enemy.IsFlaggedForDeath)
                 {
                     ModInit.modLog.LogTrace($"unit {enemy.DisplayName} is enemy of {actor.DisplayName}.");
                     detectedEnemies.Add(enemy);
@@ -108,7 +116,7 @@ namespace StrategicOperations.Framework
             var friendlyActors = new List<AbstractActor>();
             foreach (var friendly in actor.Combat.AllActors)
             {
-                if (actor.team.IsFriendly(friendly.team))
+                if (actor.team.IsFriendly(friendly.team) && !friendly.IsDead && !friendly.IsFlaggedForDeath)
                 {
                     ModInit.modLog.LogTrace($"unit {friendly.DisplayName} is friendly of {actor.DisplayName}.");
                     friendlyActors.Add(friendly);
@@ -122,7 +130,7 @@ namespace StrategicOperations.Framework
             var enemyActors = new List<AbstractActor>();
             foreach (var enemy in team.Combat.AllActors)
             {
-                if (team.IsEnemy(enemy.team))
+                if (team.IsEnemy(enemy.team) && !enemy.IsDead && !enemy.IsFlaggedForDeath)
                 {
                     ModInit.modLog.LogTrace($"unit {enemy.DisplayName} is enemy of {team.DisplayName}.");
                     enemyActors.Add(enemy);
@@ -383,18 +391,19 @@ namespace StrategicOperations.Framework
         {
             ModInit.modLog.LogMessage($"Adding deploy protection to {actor.DisplayName}.");
             
-                if (actor is Turret turret)
-                {
-                    ModInit.modLog.LogMessage($"{actor.DisplayName} is a turret, skipping.");
-                    return;
-                }
+            if (actor is Turret turret)
+            {
+                ModInit.modLog.LogMessage($"{actor.DisplayName} is a turret, skipping.");
+                return;
+            }
 
-                if (ModInit.modSettings.deployProtection > 0)
-                {
-                    ModInit.modLog.LogMessage($"Adding {ModInit.modSettings.deployProtection} evasion pips");
-                    actor.EvasivePipsCurrent = ModInit.modSettings.deployProtection;
-                    Traverse.Create(actor).Property("EvasivePipsTotal").SetValue(actor.EvasivePipsCurrent);
-                }
+            if (ModInit.modSettings.deployProtection > 0)
+            {
+                ModInit.modLog.LogMessage($"Adding {ModInit.modSettings.deployProtection} evasion pips");
+                actor.EvasivePipsCurrent = ModInit.modSettings.deployProtection;
+                Traverse.Create(actor).Property("EvasivePipsTotal").SetValue(actor.EvasivePipsCurrent);
+                actor.Combat.MessageCenter.PublishMessage(new EvasiveChangedMessage(actor.GUID, actor.EvasivePipsCurrent));
+            }
         }
 
         public static void BA_MountedEvasion(this AbstractActor actor, AbstractActor carrier)

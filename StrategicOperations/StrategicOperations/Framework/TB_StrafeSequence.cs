@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using BattleTech;
 using BattleTech.UI;
+using CustAmmoCategories;
 using CustAmmoCategoriesPatches;
 using CustomAmmoCategoriesPatches;
 using Harmony;
@@ -85,10 +86,24 @@ namespace StrategicOperations.Framework
                         if (AOEPositions.Count > 0)
                         {
                             ModInit.modLog.LogMessage($"{AOEPositions.Count} attack points for AOE remain, creating delegate and performing terrain attack at point {this.AOEPositions[0]}");
+                            Vector3 collisionWorldPos;
+                            var LOFLevel = this.Attacker.Combat.LOFCache.GetLineOfFire(this.Attacker, this.Attacker.CurrentPosition, this.Attacker, this.AOEPositions[0], this.Attacker.CurrentRotation, out collisionWorldPos);
+                            Attacker.addTerrainHitPosition(this.AOEPositions[0], LOFLevel < LineOfFireLevel.LOFObstructed);
+                            
+                            AttackInvocation invocation = new AttackInvocation(this.Attacker, this.Attacker, this.StrafeWeapons, MeleeAttackType.NotSet, 0);
+
+                            ReceiveMessageCenterMessage subscriber = delegate (MessageCenterMessage message)
+                            {
+                                //base.Orders = (message as AddSequenceToStackMessage).sequence;
+                            };
+                            base.Combat.MessageCenter.AddSubscriber(MessageCenterMessageType.AddSequenceToStackMessage, subscriber);
+
                             Combat.AttackDirector.isSequenceIsTerrainAttack(true);
-                            var aoeDeligate = new TerrainAttackDeligate(Attacker, this.HUD, LineOfFireLevel.LOFClear,
-                                Attacker, this.AOEPositions[0], this.StrafeWeapons);
-                            aoeDeligate.PerformAttackStrafe(this);
+                            base.Combat.MessageCenter.PublishMessage(invocation);
+                            base.Combat.MessageCenter.RemoveSubscriber(MessageCenterMessageType.AddSequenceToStackMessage, subscriber);
+
+                            //var aoeDeligate = new TerrainAttackDeligate(Attacker, this.HUD, LineOfFireLevel.LOFClear, Attacker, this.AOEPositions[0], this.StrafeWeapons);
+                            //aoeDeligate.PerformAttackStrafe(this);
                             this.AOEPositions.RemoveAt(0); //sorta working? shitloads of NREs from bulletimpacteffect for some reason. wtf.
                         }
                         return;

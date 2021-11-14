@@ -81,8 +81,8 @@ namespace StrategicOperations.Patches
                 if (unit.HasMountedUnits() ||
                     unit.ComponentAbilities.Any(x => x.Def.Id == ModInit.modSettings.BattleArmorMountAndSwarmID))
                 {
-                    var result = 9001 * (1/AIUtil.DistanceToClosestEnemy(unit, position));
-                    ModInit.modLog.LogTrace($"[PreferFarthestAwayFromClosestHostilePositionFactor] Actor {unit.DisplayName} evaluating position {position}, should return {result}");
+                    var result = 9001 * (1/unit.DistanceToClosestDetectedEnemy(position));
+                    ModInit.modLog.LogDev($"[PreferFarthestAwayFromClosestHostilePositionFactor] Actor {unit.DisplayName} evaluating position {position}, should return {result}");
                     __result = result;
                     return false;
                 }
@@ -100,8 +100,8 @@ namespace StrategicOperations.Patches
                 if (unit.HasMountedUnits() ||
                     unit.ComponentAbilities.Any(x => x.Def.Id == ModInit.modSettings.BattleArmorMountAndSwarmID))
                 {
-                    var result = 9001 * (1 / AIUtil.DistanceToClosestEnemy(unit, position));
-                    ModInit.modLog.LogTrace($"[PreferLowerMovementFactor] Actor {unit.DisplayName} evaluating position {position}, should return {result}");
+                    var result = 9001 * (1 / unit.DistanceToClosestDetectedEnemy(position));
+                    ModInit.modLog.LogDev($"[PreferLowerMovementFactor] Actor {unit.DisplayName} evaluating position {position}, should return {result}");
                     __result = result;
                     return false;
                 }
@@ -119,8 +119,8 @@ namespace StrategicOperations.Patches
                 if (unit.HasMountedUnits() ||
                     unit.ComponentAbilities.Any(x => x.Def.Id == ModInit.modSettings.BattleArmorMountAndSwarmID))
                 {
-                    var result = 9001 * (1 / AIUtil.DistanceToClosestEnemy(unit, position));
-                    ModInit.modLog.LogTrace($"[PreferOptimalDistanceToAllyFactor] Actor {unit.DisplayName} evaluating position {position}, should return {result}");
+                    var result = 9001 * (1 / unit.DistanceToClosestDetectedEnemy(position));
+                    ModInit.modLog.LogDev($"[PreferOptimalDistanceToAllyFactor] Actor {unit.DisplayName} evaluating position {position}, should return {result}");
                     __result = result;
                     return false;
                 }
@@ -138,8 +138,8 @@ namespace StrategicOperations.Patches
                 if (unit.HasMountedUnits() ||
                     unit.ComponentAbilities.Any(x => x.Def.Id == ModInit.modSettings.BattleArmorMountAndSwarmID))
                 {
-                    var result = 9001 * (1 / AIUtil.DistanceToClosestEnemy(unit, position));
-                    ModInit.modLog.LogTrace($"[PreferFarthestAwayFromClosestHostilePositionFactor] Actor {unit.DisplayName} evaluating position {position}, should return {result}");
+                    var result = 9001 * (1 / unit.DistanceToClosestDetectedEnemy(position));
+                    ModInit.modLog.LogDev($"[PreferFarthestAwayFromClosestHostilePositionFactor] Actor {unit.DisplayName} evaluating position {position}, should return {result}");
                     __result = result;
                     return false;
                 }
@@ -157,8 +157,8 @@ namespace StrategicOperations.Patches
                 if (unit.HasMountedUnits() ||
                     unit.ComponentAbilities.Any(x => x.Def.Id == ModInit.modSettings.BattleArmorMountAndSwarmID))
                 {
-                    var result = 9001 * (1 / AIUtil.DistanceToClosestEnemy(unit, position));
-                    ModInit.modLog.LogTrace($"[PreferNoCloserThanMinDistToHostileFactor] Actor {unit.DisplayName} evaluating position {position}, should return {result}");
+                    var result = 9001 * (1 / unit.DistanceToClosestDetectedEnemy(position));
+                    ModInit.modLog.LogDev($"[PreferNoCloserThanMinDistToHostileFactor] Actor {unit.DisplayName} evaluating position {position}, should return {result}");
                     __result = result;
                     return false;
                 }
@@ -176,9 +176,9 @@ namespace StrategicOperations.Patches
                 if (unit.HasMountedUnits() ||
                     unit.ComponentAbilities.Any(x => x.Def.Id == ModInit.modSettings.BattleArmorMountAndSwarmID))
                 {
-                    var result = 9001 * (1 / AIUtil.DistanceToClosestEnemy(unit, position));
+                    var result = 9001 * (1 / unit.DistanceToClosestDetectedEnemy(position));
                     __result = result;
-                    ModInit.modLog.LogTrace($"[PreferOptimalDistanceToHostileFactor] Actor {unit.DisplayName} evaluating position {position}, should return {result}");
+                    ModInit.modLog.LogDev($"[PreferOptimalDistanceToHostileFactor] Actor {unit.DisplayName} evaluating position {position}, should return {result}");
                     return false;
                 }
                 return true;
@@ -413,7 +413,7 @@ namespace StrategicOperations.Patches
                 if (unit.IsSwarmingUnit())
                 {
                     var target = unit.Combat.FindActorByGUID(ModState.PositionLockSwarm[unit.GUID]);
-                    ModInit.modLog.LogTrace($"[AITeam.makeInvocationFromOrders] Actor {unit.DisplayName} has active swarm attack on {target.DisplayName}");
+                    ModInit.modLog.LogMessage($"[AITeam.makeInvocationFromOrders] Actor {unit.DisplayName} has active swarm attack on {target.DisplayName}");
                     foreach (var weapon in unit.Weapons)
                     {
                         weapon.EnableWeapon();
@@ -424,7 +424,7 @@ namespace StrategicOperations.Patches
                     var attackStackSequence = new AttackStackSequence(unit, target, unit.CurrentPosition,
                         unit.CurrentRotation, weps, MeleeAttackType.NotSet, loc, -1);
                     unit.Combat.MessageCenter.PublishMessage(new AddSequenceToStackMessage(attackStackSequence));
-
+                    
                     if (!unit.HasMovedThisRound)
                     {
                         unit.BehaviorTree.IncreaseSprintHysteresisLevel();
@@ -451,8 +451,7 @@ namespace StrategicOperations.Patches
                             unit.BehaviorTree.IncreaseSprintHysteresisLevel();
                         }
 
-                        __result = new ReserveActorInvocation(unit, ReserveActorAction.DONE,
-                            unit.Combat.TurnDirector.CurrentRound);
+                        __result = new ReserveActorInvocation(unit, ReserveActorAction.DONE, unit.Combat.TurnDirector.CurrentRound);
                         ModState.AiBattleArmorAbilityCmds.Remove(unit.GUID);
                         return false;
                     }

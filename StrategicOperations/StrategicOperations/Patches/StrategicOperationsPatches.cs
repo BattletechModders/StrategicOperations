@@ -157,7 +157,7 @@ namespace StrategicOperations.Patches
                         if (targetActor == null) continue;
                         targetActor.TeleportActor(____parentActor.CurrentPosition);
                         targetActor.BA_MountedEvasion(____parentActor);
-                        ModInit.modLog.LogMessage($"PositionLockMount- Setting riding unit {targetActor.DisplayName} position to same as carrier unit {____parentActor.DisplayName}");
+                        ModInit.modLog.LogTrace($"PositionLockMount- Setting riding unit {targetActor.DisplayName} position to same as carrier unit {____parentActor.DisplayName}");
                     }
 
                     if (!ModState.CachedUnitCoordinates.ContainsKey(____parentActor.GUID))
@@ -180,7 +180,7 @@ namespace StrategicOperations.Patches
                         if (targetActor == null) continue;
                         targetActor.TeleportActor(____parentActor.CurrentPosition);
                         targetActor.BA_MountedEvasion(____parentActor);
-                        ModInit.modLog.LogMessage($"PositionLockMount- Setting riding unit {targetActor.DisplayName} position to same as carrier unit {____parentActor.DisplayName}");
+                        ModInit.modLog.LogTrace($"PositionLockMount- Setting riding unit {targetActor.DisplayName} position to same as carrier unit {____parentActor.DisplayName}");
                     }
 
                     if (!ModState.CachedUnitCoordinates.ContainsKey(____parentActor.GUID))
@@ -516,8 +516,8 @@ namespace StrategicOperations.Patches
 
                     supportActorMech.AddToLance(cmdLance);
                     cmdLance.AddUnitGUID(supportActorMech.GUID);
-                    supportActorMech.BehaviorTree = BehaviorTreeFactory.MakeBehaviorTree(
-                        __instance.Combat.BattleTechGame, supportActorMech, BehaviorTreeIDEnum.CoreAITree);
+                    supportActorMech.SetBehaviorTree(BehaviorTreeIDEnum.CoreAITree);
+                    //supportActorMech.BehaviorTree = BehaviorTreeFactory.MakeBehaviorTree(__instance.Combat.BattleTechGame, supportActorMech, BehaviorTreeIDEnum.CoreAITree);
                     //supportActorMech.GameRep.gameObject.SetActive(true);
 
                     supportActorMech.OnPositionUpdate(positionA, quaternion, -1, true, null, false);
@@ -559,7 +559,7 @@ namespace StrategicOperations.Patches
                     
                     //supportActorMech.OnPlayerVisibilityChanged(VisibilityLevel.LOSFull);
 
-                    Utils.DeployEvasion(supportActorMech);
+                    //Utils.DeployEvasion(supportActorMech);
                     ///////////////
 
                     if (team.IsLocalPlayer && (ModInit.modSettings.commandUseCostsMulti > 0 ||
@@ -616,8 +616,8 @@ namespace StrategicOperations.Patches
 
                     supportActorVehicle.AddToLance(cmdLance);
                     cmdLance.AddUnitGUID(supportActorVehicle.GUID);
-                    supportActorVehicle.BehaviorTree = BehaviorTreeFactory.MakeBehaviorTree(
-                        __instance.Combat.BattleTechGame, supportActorVehicle, BehaviorTreeIDEnum.CoreAITree);
+                    supportActorVehicle.SetBehaviorTree(BehaviorTreeIDEnum.CoreAITree);
+                    //supportActorVehicle.BehaviorTree = BehaviorTreeFactory.MakeBehaviorTree(__instance.Combat.BattleTechGame, supportActorVehicle, BehaviorTreeIDEnum.CoreAITree);
                     //supportActorVehicle.GameRep.gameObject.SetActive(true);
 
                     supportActorVehicle.OnPositionUpdate(positionA, quaternion, -1, true, null, false);
@@ -665,7 +665,7 @@ namespace StrategicOperations.Patches
 
                     //supportActorMech.OnPlayerVisibilityChanged(VisibilityLevel.LOSFull);
 
-                    Utils.DeployEvasion(supportActorVehicle);
+                    //Utils.DeployEvasion(supportActorVehicle);
                     ///////////////
 
                     if (team.IsLocalPlayer && (ModInit.modSettings.commandUseCostsMulti > 0 ||
@@ -718,8 +718,8 @@ namespace StrategicOperations.Patches
 
                     turretActor.AddToLance(cmdLance);
                     cmdLance.AddUnitGUID(turretActor.GUID);
-                    turretActor.BehaviorTree = BehaviorTreeFactory.MakeBehaviorTree(__instance.Combat.BattleTechGame,
-                        turretActor, BehaviorTreeIDEnum.CoreAITree);
+                    turretActor.SetBehaviorTree(BehaviorTreeIDEnum.CoreAITree);
+                    //turretActor.BehaviorTree = BehaviorTreeFactory.MakeBehaviorTree(__instance.Combat.BattleTechGame, turretActor, BehaviorTreeIDEnum.CoreAITree);
 
                     turretActor.OnPositionUpdate(positionA, quaternion, -1, true, null, false);
                     turretActor.DynamicUnitRole = UnitRole.Turret;
@@ -728,9 +728,6 @@ namespace StrategicOperations.Patches
 
                     __instance.Combat.MessageCenter.PublishMessage(message);
                     //turretActor.OnPlayerVisibilityChanged(VisibilityLevel.LOSFull);
-
-
-                    ////////////////
 
                     //supportActorMech.PlaceFarAwayFromMap();
                     var underMap = turretActor.CurrentPosition;

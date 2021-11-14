@@ -37,6 +37,15 @@ namespace StrategicOperations.Framework
             }
         }
 
+        public void LogDev(string message)
+        {
+            if (ModInit.modSettings.DEVTEST_Logging)
+            {
+                string ts = DateTime.Now.ToString("s", System.Globalization.CultureInfo.InvariantCulture);
+                logStreamWriter.WriteLine($"TRACE: {ts} - {message}");
+            }
+        }
+
         public void LogError(string message)
         {
             string ts = DateTime.Now.ToString("s", System.Globalization.CultureInfo.InvariantCulture);

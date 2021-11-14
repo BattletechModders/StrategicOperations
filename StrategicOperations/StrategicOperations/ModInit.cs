@@ -45,6 +45,7 @@ namespace StrategicOperations
     class Settings
     {
         public bool DEVTEST_AIPOS = false;
+        public bool DEVTEST_Logging = false;
         public bool debugFlares = false;
         public bool enableLogging = true;
         public bool enableTrace = true;
@@ -83,7 +84,6 @@ namespace StrategicOperations
         public string BattleArmorDeSwarmRoll = "";
         public string BattleArmorDeSwarmSwat = "";
         public List<string> ArmActuatorCategoryIDs = new List<string>();
-
-        
+        public bool AttackOnSwarmSuccess = false;
     }
 }
