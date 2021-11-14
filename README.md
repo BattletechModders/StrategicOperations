@@ -157,7 +157,8 @@ settings in the mod.json:
 		"ClanGhostBear": [
 			"mechdef_ba_is_standard"
 		]
-	}
+	},
+	"AttackOnSwarmSuccess": true
 ```
 
 `enableLogging` - bool, enable logging
@@ -258,6 +259,8 @@ settings in the mod.json:
 		}
 ```
 
+`AttackOnSwarmSuccess` - bool, if true BA will initiate an attack sequence on a successful swarming attempt (rather than needing to wait until the subsequence activation)
+	
 ## Spawns
 
 Spawns are basically what they sound like: spawning reinforcement units at the selected location. These units will be AI-controlled (allied). Exactly <i>what</i> unit gets deployed depends on a few things.
@@ -527,9 +530,9 @@ The AI will also attempt to use Swarm against you. If an AI unit has BA (dictate
 
 All mechs can be given one or two abilities in order to attempt to dislodge swarming BA, using the following settings. The AI will also attempt to dislodge player BA when swarming.
 
-`BattleArmorDeSwarmRoll` - string, ability ID of pilot ability that allows mech to "roll" (forced self-knockdown) in order to dislodge swarming battle armor. Chance of success is 50% + (Piloting skill x 5%), capped at 95%. On a success, there is a 30% chance to smush the Battle Armor in the process. Ability is automatically granted to Mechs at contract start (e.g. does not need to be added manually to pilot).
+`BattleArmorDeSwarmRoll` - string, ability ID of pilot ability that allows mech to "roll" (forced self-knockdown) in order to dislodge swarming battle armor. <b>New in 2.0.1.2, the base success % is now exposed in the ability def</b>, for a final success % of BaseChance + (Piloting skill x 5%), capped at 95%. On a success, there is a 30% chance to smush the Battle Armor squad in the process. Ability is automatically granted to Mechs at contract start (e.g. does not need to be added manually to pilot).
 
-`BattleArmorDeSwarmSwat` - string, ability ID of pilot ability that allows mech to "swat" swarming battle armor (remove using arms). Chance of success is 30% + (Piloting skill x 5%) - 5% for each "missing" arm actuator. An arm actuator is considered "missing" if it is destroyed, or was never mounted in the first place. Shoulder, Upper Arm, Lower Arm, and Hand for both left and right arms; thus a mech missing both arms would suffer a 40% penalty (8 x 5%). Ability is automatically granted to Mechs at contract start (e.g. does not need to be added manually to pilot).
+`BattleArmorDeSwarmSwat` - string, ability ID of pilot ability that allows mech to "swat" swarming battle armor (remove using arms). <b>New in 2.0.1.2, the base success % is now exposed in the ability def</b>, for a final success % of BaseChance + (Piloting skill x 5%) - 5% for each "missing" arm actuator. An arm actuator is considered "missing" if it is destroyed, or was never mounted in the first place. Shoulder, Upper Arm, Lower Arm, and Hand for both left and right arms; thus a mech missing both arms would suffer a 40% penalty (8 x 5%). Ability is automatically granted to Mechs at contract start (e.g. does not need to be added manually to pilot). <b>Also new in 2.0.1.2</b>, the swat ability can deal damage directly to the swarming battle armor if a 2nd successful toll is made, if the statistic `BattleArmorDeSwarmerSwatDamage` is defined in the ability def (as below). If not defined, no damage will be done. To clarify, on activating a swat, a roll against `BaseChance + (Piloting skill x 5%) - 5% for each "missing" arm actuator` is made determine a successful swat. <b>Then</b> a 2nd roll against `BaseChance + (Piloting skill x 5%) - 5% for each "missing" arm actuator` is made to determine if the specified damage is dealt.
 
 The two abilities must have at least the following (StratOps release contains these), although additional effects can certainly be added if developers wish to give Buffs/Debuffs when the ability is activated.
 
@@ -539,7 +542,7 @@ The two abilities must have at least the following (StratOps release contains th
 		"Id": "AbilityDefDeSwarmerRoll",
 		"Name": "Roll",
 		"Details": "ACTION: Unit will roll (self-knockdown) to remove swarming Battle Armor",
-		"Icon": "uixSvgIcon_skullAtlas"
+		"Icon": "rolling-energy"
 	},
 	"ActivationTime": "ConsumedByFiring",
 	"Resource": "ConsumesActivation",
@@ -554,7 +557,7 @@ The two abilities must have at least the following (StratOps release contains th
 			},
 			"targetingData": {
 				"effectTriggerType": "OnActivation",
-                "effectTargetType": "Creator",
+				"effectTargetType": "Creator",
 				"showInStatusPanel": false
 			},
 			"effectType": "StatisticEffect",
@@ -568,15 +571,15 @@ The two abilities must have at least the following (StratOps release contains th
 			"statisticData": {
 				"statName": "BattleArmorDeSwarmerRoll",
 				"operation": "Set",
-				"modValue": "true",
-				"modType": "System.Boolean"
+				"modValue": "0.5555",
+				"modType": "System.Single"
 			}
 		}
 	]
 }
 ```
 
-and 
+and for swats (the 2nd effectdata defining BattleArmorDeSwarmerSwatDamage is optional)
 
 ```
 {
@@ -584,7 +587,7 @@ and
 		"Id": "AbilityDefDeSwarmerSwat",
 		"Name": "Swat",
 		"Details": "ACTION: Unit will attempt to remove swarming Battle Armor with hands/limbs",
-		"Icon": "uixSvgIcon_skullAtlas"
+		"Icon": "hand"
 	},
 	"ActivationTime": "ConsumedByFiring",
 	"Resource": "ConsumesActivation",
@@ -599,7 +602,7 @@ and
 			},
 			"targetingData": {
 				"effectTriggerType": "OnActivation",
-                "effectTargetType": "Creator",
+				"effectTargetType": "Creator",
 				"showInStatusPanel": false
 			},
 			"effectType": "StatisticEffect",
@@ -613,8 +616,33 @@ and
 			"statisticData": {
 				"statName": "BattleArmorDeSwarmerSwat",
 				"operation": "Set",
-				"modValue": "true",
-				"modType": "System.Boolean"
+				"modValue": "0.3333",
+				"modType": "System.Single"
+			}
+		},
+		{
+			"durationData": {
+				"duration": 1,
+				"stackLimit": 1
+			},
+			"targetingData": {
+				"effectTriggerType": "OnActivation",
+				"effectTargetType": "Creator",
+				"showInStatusPanel": false
+			},
+			"effectType": "StatisticEffect",
+			"Description": {
+				"Id": "StatusEffect-DeSwarmSwatDamage",
+				"Name": "Battle Armor DeSwarmer Swat Damage",
+				"Details": "mount",
+				"Icon": "uixSvgIcon_ability_precisionstrike"
+			},
+			"nature": "Buff",
+			"statisticData": {
+				"statName": "BattleArmorDeSwarmerSwatDamage",
+				"operation": "Set",
+				"modValue": "100.0",
+				"modType": "System.Single"
 			}
 		}
 	]
