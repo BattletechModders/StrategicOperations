@@ -24,10 +24,11 @@ namespace StrategicOperations.Patches
                 return AccessTools.Method(type, "Tick");
             }
 
+            static bool Prepare() => ModInit.modSettings.DEVTEST_Logging;
             public static void Postfix(ref BehaviorTreeResults __result, string ___name,
                 AbstractActor ___unit)
             {
-                ModInit.modLog.LogTrace($"[SortMoveCandidatesByInfMapNode Tick] Sorting finished. Actor {___unit.DisplayName} eval'd highest weighted position as {___unit.BehaviorTree.influenceMapEvaluator.WorkspaceEvaluationEntries[0].Position} with weight {___unit.BehaviorTree.influenceMapEvaluator.WorkspaceEvaluationEntries[0].GetHighestAccumulator()}");
+                ModInit.modLog.LogDev($"[SortMoveCandidatesByInfMapNode Tick] Sorting finished. Actor {___unit.DisplayName} eval'd highest weighted position as {___unit.BehaviorTree.influenceMapEvaluator.WorkspaceEvaluationEntries[0].Position} with weight {___unit.BehaviorTree.influenceMapEvaluator.WorkspaceEvaluationEntries[0].GetHighestAccumulator()}");
             }
         }
 
@@ -39,12 +40,12 @@ namespace StrategicOperations.Patches
                 var type = AccessTools.TypeByName("MoveTowardsHighestPriorityMoveCandidateNode");
                 return AccessTools.Method(type, "Tick");
             }
-
+            static bool Prepare() => ModInit.modSettings.DEVTEST_Logging;
             public static void Postfix(ref BehaviorTreeResults __result, string ___name,
                 AbstractActor ___unit)
             {
-                ModInit.modLog.LogTrace($"[MoveTowardsHighestPriorityMoveCandidateNode Tick] Moving towards highest eval'd position: Actor {___unit.DisplayName} eval'd highest weighted position as {___unit.BehaviorTree.influenceMapEvaluator.WorkspaceEvaluationEntries[0].Position} with weight {___unit.BehaviorTree.influenceMapEvaluator.WorkspaceEvaluationEntries[0].GetHighestAccumulator()}");
-                ModInit.modLog.LogTrace($"[MoveTowardsHighestPriorityMoveCandidateNode Tick] Moving towards highest eval'd position: Actor {___unit.DisplayName} eval'd highest weighted position as {___unit.BehaviorTree.influenceMapEvaluator.WorkspaceEvaluationEntries[0].Position} with weight {___unit.BehaviorTree.influenceMapEvaluator.WorkspaceEvaluationEntries[0].GetHighestAccumulator()}");
+                ModInit.modLog.LogDev($"[MoveTowardsHighestPriorityMoveCandidateNode Tick] Moving towards highest eval'd position: Actor {___unit.DisplayName} eval'd highest weighted position as {___unit.BehaviorTree.influenceMapEvaluator.WorkspaceEvaluationEntries[0].Position} with weight {___unit.BehaviorTree.influenceMapEvaluator.WorkspaceEvaluationEntries[0].GetHighestAccumulator()}");
+                ModInit.modLog.LogDev($"[MoveTowardsHighestPriorityMoveCandidateNode Tick] Moving towards highest eval'd position: Actor {___unit.DisplayName} eval'd highest weighted position as {___unit.BehaviorTree.influenceMapEvaluator.WorkspaceEvaluationEntries[0].Position} with weight {___unit.BehaviorTree.influenceMapEvaluator.WorkspaceEvaluationEntries[0].GetHighestAccumulator()}");
             }
         }
     }
