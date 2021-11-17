@@ -255,7 +255,8 @@ namespace StrategicOperations.Patches
                                 creator.FlagForKnockdown();
                                 creator.HandleKnockdown(-1,creator.GUID,Vector2.one, null);
                             }
-                            creator.DoneWithActor();
+                            var sequence = creator.DoneWithActor();
+                            creator.Combat.MessageCenter.PublishMessage(new AddSequenceToStackMessage(sequence));
                             creator.OnActivationEnd(creator.GUID, -1);
                             return;
                         }
@@ -283,7 +284,8 @@ namespace StrategicOperations.Patches
                                 ModState.PositionLockMount.Add(creator.GUID, target.GUID);
                                 ModInit.modLog.LogMessage(
                                     $"[Ability.Activate - BattleArmorMountID] Added PositionLockMount with rider  {creator.DisplayName} {creator.GUID} and carrier {target.DisplayName} {target.GUID}.");
-                                creator.DoneWithActor();//need to to onactivationend too
+                                var sequence = creator.DoneWithActor();
+                                creator.Combat.MessageCenter.PublishMessage(new AddSequenceToStackMessage(sequence));
                                 creator.OnActivationEnd(creator.GUID, -1);
                                 
                             }
@@ -361,7 +363,8 @@ namespace StrategicOperations.Patches
                                         }
                                     }
 
-                                    creator.DoneWithActor();
+                                    var sequence = creator.DoneWithActor();
+                                    creator.Combat.MessageCenter.PublishMessage(new AddSequenceToStackMessage(sequence));
                                     creator.OnActivationEnd(creator.GUID, -1);
                                 }
                                 else
@@ -377,7 +380,8 @@ namespace StrategicOperations.Patches
                                     creator.TeleportActor(target.CurrentPosition);
                                     creator.ResetPathing(false);
                                     creator.Pathing.UpdateCurrentPath(false);
-                                    creator.DoneWithActor();
+                                    var sequence = creator.DoneWithActor();
+                                    creator.Combat.MessageCenter.PublishMessage(new AddSequenceToStackMessage(sequence));
                                     creator.OnActivationEnd(creator.GUID, -1);
                                 }
                             }
@@ -533,11 +537,11 @@ namespace StrategicOperations.Patches
                 var actor = hud.SelectedActor;
                 if (!actor.IsSwarmingUnit())
                 {
-                    ModInit.modLog.LogMessage($"[AbstractActor.DoneWithActor] Actor {actor.DisplayName} is not swarming, ending turn like normal.");
+                    ModInit.modLog.LogMessage($"[CombatHUDButtonBase.OnClick] Actor {actor.DisplayName} is not swarming, ending turn like normal.");
                     return;
                 }
                 var target = actor.Combat.FindActorByGUID(ModState.PositionLockSwarm[actor.GUID]);
-                ModInit.modLog.LogMessage($"[AbstractActor.DoneWithActor] Actor {actor.DisplayName} has active swarm attack on {target.DisplayName}");
+                ModInit.modLog.LogMessage($"[CombatHUDButtonBase.OnClick] Actor {actor.DisplayName} has active swarm attack on {target.DisplayName}");
 
                 var weps = actor.Weapons.Where(x => x.IsEnabled && x.HasAmmo).ToList();
 
