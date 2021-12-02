@@ -530,12 +530,16 @@ The AI will also attempt to use Swarm against you. If an AI unit has BA (dictate
 
 All mechs can be given one or two abilities in order to attempt to dislodge swarming BA, using the following settings. The AI will also attempt to dislodge player BA when swarming.
 
-`BattleArmorDeSwarmRoll` - string, ability ID of pilot ability that allows mech to "roll" (forced self-knockdown) in order to dislodge swarming battle armor. <b>New in 2.0.1.2, the base success % is now exposed in the ability def</b>, for a final success % of BaseChance + (Piloting skill x 5%), capped at 95%. On a success, there is a 30% chance to smush the Battle Armor squad in the process. Ability is automatically granted to Mechs at contract start (e.g. does not need to be added manually to pilot).
+`BattleArmorDeSwarmRoll` - string, ability ID of pilot ability that allows mech to "roll" (forced self-knockdown) in order to dislodge swarming battle armor. <b>New in 2.0.1.2, the base success % is now exposed in the ability def</b>, for a final success % of BaseChance + (Piloting skill x 5%), capped at 95%. On a success, there is a 30% chance to smush the Battle Armor squad in the process. Ability is automatically granted to Mechs at contract start (e.g. does not need to be added manually to pilot). The ability can also set a statistic `BattleArmorDeSwarmerRollInitPenalty` to define an initiative penalty the BA will recieve on a successful deswarm.
 
-`BattleArmorDeSwarmSwat` - string, ability ID of pilot ability that allows mech to "swat" swarming battle armor (remove using arms). <b>New in 2.0.1.2, the base success % is now exposed in the ability def</b>, for a final success % of BaseChance + (Piloting skill x 5%) - 5% for each "missing" arm actuator. An arm actuator is considered "missing" if it is destroyed, or was never mounted in the first place. Shoulder, Upper Arm, Lower Arm, and Hand for both left and right arms; thus a mech missing both arms would suffer a 40% penalty (8 x 5%). Ability is automatically granted to Mechs at contract start (e.g. does not need to be added manually to pilot). <b>Also new in 2.0.1.2</b>, the swat ability can deal damage directly to the swarming battle armor if a 2nd successful toll is made, if the statistic `BattleArmorDeSwarmerSwatDamage` is defined in the ability def (as below). If not defined, no damage will be done. To clarify, on activating a swat, a roll against `BaseChance + (Piloting skill x 5%) - 5% for each "missing" arm actuator` is made determine a successful swat. <b>Then</b> a 2nd roll against `BaseChance + (Piloting skill x 5%) - 5% for each "missing" arm actuator` is made to determine if the specified damage is dealt.
+`BattleArmorDeSwarmSwat` - string, ability ID of pilot ability that allows mech to "swat" swarming battle armor (remove using arms). <b>New in 2.0.1.2, the base success % is now exposed in the ability def</b>, for a final success % of BaseChance + (Piloting skill x 5%) - 5% for each "missing" arm actuator. An arm actuator is considered "missing" if it is destroyed, or was never mounted in the first place. Shoulder, Upper Arm, Lower Arm, and Hand for both left and right arms; thus a mech missing both arms would suffer a 40% penalty (8 x 5%). Ability is automatically granted to Mechs at contract start (e.g. does not need to be added manually to pilot).
+The ability can also set a statistic `BattleArmorDeSwarmerRollInitPenalty` to define an initiative penalty the BA will recieve on a successful deswarm.
+<b>Also new in 2.0.1.2</b>, the swat ability can deal damage directly to the swarming battle armor if a 2nd successful toll is made, if the statistic `BattleArmorDeSwarmerSwatDamage` is defined in the ability def (as below). If not defined, no damage will be done. To clarify, on activating a swat, a roll against `BaseChance + (Piloting skill x 5%) - 5% for each "missing" arm actuator` is made determine a successful swat. <b>Then</b> a 2nd roll against `BaseChance + (Piloting skill x 5%) - 5% for each "missing" arm actuator` is made to determine if the specified damage is dealt.
 
 The two abilities must have at least the following (StratOps release contains these), although additional effects can certainly be added if developers wish to give Buffs/Debuffs when the ability is activated.
 
+For rolls (the 2nd effectdata defining BattleArmorDeSwarmerSwatInitPenalty is optional):
+	
 ```
 {
 	"Description": {
@@ -574,12 +578,37 @@ The two abilities must have at least the following (StratOps release contains th
 				"modValue": "0.5555",
 				"modType": "System.Single"
 			}
+		},
+		{
+			"durationData": {
+				"duration": 1,
+				"stackLimit": 1
+			},
+			"targetingData": {
+				"effectTriggerType": "OnActivation",
+				"effectTargetType": "Creator",
+				"showInStatusPanel": false
+			},
+			"effectType": "StatisticEffect",
+			"Description": {
+				"Id": "StatusEffect-DeSwarmRollInit",
+				"Name": "Battle Armor DeSwarmer Roll",
+				"Details": "mount",
+				"Icon": "uixSvgIcon_ability_precisionstrike"
+			},
+			"nature": "Buff",
+			"statisticData": {
+				"statName": "BattleArmorDeSwarmerRollInitPenalty",
+				"operation": "Set",
+				"modValue": "2",
+				"modType": "System.Int32"
+			}
 		}
 	]
 }
 ```
 
-and for swats (the 2nd effectdata defining BattleArmorDeSwarmerSwatDamage is optional)
+and for swats (the 2nd effectdata defining BattleArmorDeSwarmerSwatInitPenalty and 3rd effectdata defining BattleArmorDeSwarmerSwatDamage are optional)
 
 ```
 {
@@ -618,6 +647,31 @@ and for swats (the 2nd effectdata defining BattleArmorDeSwarmerSwatDamage is opt
 				"operation": "Set",
 				"modValue": "0.3333",
 				"modType": "System.Single"
+			}
+		},
+		{
+			"durationData": {
+				"duration": 1,
+				"stackLimit": 1
+			},
+			"targetingData": {
+				"effectTriggerType": "OnActivation",
+				"effectTargetType": "Creator",
+				"showInStatusPanel": false
+			},
+			"effectType": "StatisticEffect",
+			"Description": {
+				"Id": "StatusEffect-DeSwarmRollInit",
+				"Name": "Battle Armor DeSwarmer Roll",
+				"Details": "mount",
+				"Icon": "uixSvgIcon_ability_precisionstrike"
+			},
+			"nature": "Buff",
+			"statisticData": {
+				"statName": "BattleArmorDeSwarmerSwatInitPenalty",
+				"operation": "Set",
+				"modValue": "1",
+				"modType": "System.Int32"
 			}
 		},
 		{
