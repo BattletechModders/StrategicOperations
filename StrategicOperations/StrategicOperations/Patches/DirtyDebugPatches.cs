@@ -1,6 +1,9 @@
 ﻿using System;
+using System.CodeDom;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection;
+using System.Reflection.Emit;
 using System.Text;
 using System.Threading.Tasks;
 using BattleTech;
@@ -10,11 +13,59 @@ using FogOfWar;
 using Harmony;
 using HBS;
 using UnityEngine;
+using UnityEngine.PostProcessing;
+using ArmorLocation = BattleTech.ArmorLocation;
 
 namespace StrategicOperations.Patches
 {
     class DirtyDebugPatches
     {
+
+        [HarmonyPatch]
+        //[HarmonyPatch(typeof(HitLocation), "GetHitLocation", new Type[] {typeof(Dictionary<ArmorLocation, int>), typeof(float), typeof(ArmorLocation), typeof(float)})]
+        public static class HitLocation_GetHitLocation_MechArmorLoc
+        {
+            public static MethodBase TargetMethod()
+            {
+                var method = AccessTools
+                    .GetDeclaredMethods(typeof(HitLocation)).FirstOrDefault(x => x.Name == "GetHitLocation" && x.GetParameters().Length == 4)?.MakeGenericMethod(typeof(ArmorLocation));
+                return method;
+            }
+            
+            public static void Postfix(Dictionary<ArmorLocation, int> hitTable, float randomRoll, ArmorLocation bonusLocation, float bonusLocationMultiplier, ref ArmorLocation __result)
+            {
+                if (__result == ArmorLocation.None)
+                {
+                    ModInit.modLog.LogMessage($"[HitLocation.GetHitLocation]: Running shitty bypass due to GetHitLocation ArmorLocation.None, defaulting to ArmorLocation.CenterTorso");
+                    __result = ArmorLocation.CenterTorso;
+                }
+                
+            }
+        }
+
+        [HarmonyPatch]
+        //[HarmonyPatch(typeof(HitLocation), "GetHitLocation", new Type[] {typeof(Dictionary<ArmorLocation, int>), typeof(float), typeof(ArmorLocation), typeof(float)})]
+        public static class HitLocation_GetHitLocation_VehicleChassicLoc
+        {
+            public static MethodBase TargetMethod()
+            {
+                var method = AccessTools
+                    .GetDeclaredMethods(typeof(HitLocation)).FirstOrDefault(x => x.Name == "GetHitLocation" && x.GetParameters().Length == 4)?.MakeGenericMethod(typeof(VehicleChassisLocations));
+                return method;
+            }
+
+            public static void Postfix(Dictionary<VehicleChassisLocations, int> hitTable, float randomRoll, VehicleChassisLocations bonusLocation, float bonusLocationMultiplier, ref VehicleChassisLocations __result)
+            {
+                if (__result == VehicleChassisLocations.None)
+                {
+                    ModInit.modLog.LogMessage($"[HitLocation.GetHitLocation]: Running shitty bypass due to GetHitLocation VehicleChassisLocations.None, defaulting to VehicleChassisLocations.Front");
+                    __result = VehicleChassisLocations.Front;
+                }
+
+            }
+        }
+
+
         [HarmonyPatch(typeof(MultiSequence), "RevealRadius", new Type[] {typeof(Vector3), typeof(float), typeof(string)})]
         public static class MultiSequence_RevealRadius_GrossPatchReplacer
         {

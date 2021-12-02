@@ -22,6 +22,7 @@ namespace StrategicOperations
         public const string HarmonyPackage = "us.tbone.StrategicOperations";
         public static void Init(string directory, string settings)
         {
+            
             modDir = directory;
             modLog = new Logger(modDir, "Strategery");
             try
@@ -36,6 +37,7 @@ namespace StrategicOperations
             //HarmonyInstance.DEBUG = true;
             ModInit.modLog.LogMessage($"Initializing StrategicOperations - Version {typeof(Settings).Assembly.GetName().Version}");
             var harmony = HarmonyInstance.Create(HarmonyPackage);
+            //FileLog.Log(HarmonyPackage);
             harmony.PatchAll(Assembly.GetExecutingAssembly());
             ModState.Initialize();
             //dump settings

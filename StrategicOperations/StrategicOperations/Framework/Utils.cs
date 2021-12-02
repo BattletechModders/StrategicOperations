@@ -105,7 +105,7 @@ namespace StrategicOperations.Framework
             {
                 if (cache.CachedVisibilityToTarget(enemy).VisibilityLevel > 0 && actor.team.IsEnemy(enemy.team) && !enemy.IsDead && !enemy.IsFlaggedForDeath)
                 {
-                    ModInit.modLog.LogTrace($"unit {enemy.DisplayName} is enemy of {actor.DisplayName}.");
+                    ModInit.modLog.LogDev($"unit {enemy.DisplayName} is enemy of {actor.DisplayName}.");
                     detectedEnemies.Add(enemy);
                 }
             }
@@ -118,7 +118,7 @@ namespace StrategicOperations.Framework
             {
                 if (actor.team.IsFriendly(friendly.team) && !friendly.IsDead && !friendly.IsFlaggedForDeath)
                 {
-                    ModInit.modLog.LogTrace($"unit {friendly.DisplayName} is friendly of {actor.DisplayName}.");
+                    ModInit.modLog.LogDev($"unit {friendly.DisplayName} is friendly of {actor.DisplayName}.");
                     friendlyActors.Add(friendly);
                 }
             }
@@ -132,7 +132,7 @@ namespace StrategicOperations.Framework
             {
                 if (team.IsEnemy(enemy.team) && !enemy.IsDead && !enemy.IsFlaggedForDeath)
                 {
-                    ModInit.modLog.LogTrace($"unit {enemy.DisplayName} is enemy of {team.DisplayName}.");
+                    ModInit.modLog.LogDev($"unit {enemy.DisplayName} is enemy of {team.DisplayName}.");
                     enemyActors.Add(enemy);
                 }
             }

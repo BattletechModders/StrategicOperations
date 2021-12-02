@@ -339,7 +339,7 @@ namespace StrategicOperations.Patches
                                             creator.Combat.MessageCenter.PublishMessage(
                                                 new AddSequenceToStackMessage(attackStackSequence));
                                             ModInit.modLog.LogMessage(
-                                                $"[Ability.Activate - BattleArmorSwarmID] Creating attack sequence on successful swarm attack.");
+                                                $"[Ability.Activate - BattleArmorSwarmID] Creating attack sequence on successful swarm attack targeting location {loc}.");
                                         }
 
                                         if (false)
