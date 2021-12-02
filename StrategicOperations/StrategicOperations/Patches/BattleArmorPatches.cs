@@ -38,6 +38,8 @@ namespace StrategicOperations.Patches
                 __instance.StatCollection.AddStatistic<bool>("IsBattleArmorHandsy", false);
                 __instance.StatCollection.AddStatistic<bool>("BattleArmorMount", false);
                 __instance.StatCollection.AddStatistic<float>("BattleArmorDeSwarmerSwat", 0.3f);
+                __instance.StatCollection.AddStatistic<int>("BattleArmorDeSwarmerRollInitPenalty", 0);
+                __instance.StatCollection.AddStatistic<int>("BattleArmorDeSwarmerSwatInitPenalty", 0);
                 __instance.StatCollection.AddStatistic<float>("BattleArmorDeSwarmerSwatDamage", 0f);
                 __instance.StatCollection.AddStatistic<float>("BattleArmorDeSwarmerRoll", 0.5f);
             }
@@ -144,6 +146,7 @@ namespace StrategicOperations.Patches
                             if (__instance.Def.Id == ModInit.modSettings.BattleArmorDeSwarmRoll)
                             {
                                 var baseChance = creator.StatCollection.GetValue<float>("BattleArmorDeSwarmerRoll");//0.5f;
+                                var rollInitPenalty = creator.StatCollection.GetValue<int>("BattleArmorDeSwarmerRollInitPenalty");
                                 var pilotSkill = creator.GetPilot().Piloting;
                                 var finalChance = Mathf.Min(baseChance + (0.05f * pilotSkill), 0.95f);
                                 ModInit.modLog.LogMessage($"[Ability.Activate - BattleArmorDeSwarm] Deswarm chance: {finalChance} from baseChance {baseChance} + pilotSkill x 0.05 {0.05f * pilotSkill}, max 0.95.");
@@ -159,11 +162,15 @@ namespace StrategicOperations.Patches
                                         creator.Combat.MessageCenter.PublishMessage(new AddSequenceToStackMessage(
                                             new ShowActorInfoSequence(creator, txt, FloatieMessage.MessageNature.Buff,
                                                 false)));
-                                    var destroyBARoll = ModInit.Random.NextDouble();
+                                        for (int i = 0; i < rollInitPenalty; i++)
+                                        {
+                                            swarmingUnitActor.ForceUnitOnePhaseDown(creator.GUID, -1, false);
+                                        }
+                                        var destroyBARoll = ModInit.Random.NextDouble();
                                         if (destroyBARoll <= .3f)
                                         {
                                             ModInit.modLog.LogMessage(
-                                                $"[Ability.Activate - DestroyBA on Roll] SUCCESS: {destroyBARoll} <=          0.30.");
+                                                $"[Ability.Activate - DestroyBA on Roll] SUCCESS: {destroyBARoll} <= {finalChance}.");
                                             swarmingUnitActor.DismountBA(creator, true);
                                             swarmingUnitActor.FlagForDeath("smooshed",
                                                 DeathMethod.VitalComponentDestroyed, DamageType.Melee, 8, -1,
@@ -173,7 +180,7 @@ namespace StrategicOperations.Patches
                                         else
                                         {
                                             ModInit.modLog.LogMessage(
-                                                $"[Ability.Activate - DestroyBA on Roll] FAILURE: {destroyBARoll} >          0.30.");
+                                                $"[Ability.Activate - DestroyBA on Roll] FAILURE: {destroyBARoll} > {finalChance}.");
                                             swarmingUnitActor.DismountBA(creator, true);
                                         }
                                     }
@@ -184,7 +191,7 @@ namespace StrategicOperations.Patches
                                             new ShowActorInfoSequence(creator, txt, FloatieMessage.MessageNature.Buff,
                                                 false)));
                                     ModInit.modLog.LogMessage(
-                                            $"[Ability.Activate - BattleArmorDeSwarm] Deswarm FAILURE: {roll} >          {finalChance}.");
+                                            $"[Ability.Activate - BattleArmorDeSwarm] Deswarm FAILURE: {roll} > {finalChance}.");
                                     }
                                 }
                             }
@@ -192,6 +199,7 @@ namespace StrategicOperations.Patches
                             else if (__instance.Def.Id == ModInit.modSettings.BattleArmorDeSwarmSwat)
                             {
                                 var baseChance = creator.StatCollection.GetValue<float>("BattleArmorDeSwarmerSwat");//0.5f;//0.3f;
+                                var swatInitPenalty = creator.StatCollection.GetValue<int>("BattleArmorDeSwarmerSwatInitPenalty");
                                 var pilotSkill = creator.GetPilot().Piloting;
                                 var missingActuatorCount = -8; 
                                 foreach (var armComponent in creator.allComponents.Where(x => x.IsFunctional && (x.Location == 2 || x.Location == 32)))
@@ -218,7 +226,10 @@ namespace StrategicOperations.Patches
                                             new ShowActorInfoSequence(creator, txt, FloatieMessage.MessageNature.Buff,
                                                 false))); 
                                         ModInit.modLog.LogMessage($"[Ability.Activate - BattleArmorDeSwarm] Deswarm SUCCESS: {roll} <= {finalChance}.");
-
+                                        for (int i = 0; i < swatInitPenalty; i++)
+                                        {
+                                            swarmingUnitActor.ForceUnitOnePhaseDown(creator.GUID, -1, false);
+                                        }
                                         var dmgRoll = ModInit.Random.NextDouble(); 
                                         if (dmgRoll <= finalChance)
                                         {
