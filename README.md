@@ -477,6 +477,35 @@ In order to mount/be carried, the battle armor must have a component ability suc
 
 The important parts are `"Targeting": "ActorTarget",`, `"TargetFriendlyUnit": "BOTH",`, targetingData be `OnActivation` and `SingleTarget`, and the effect itself must set `BattleArmorMount` to True.
 
+By default, the above ability will only allow the Battle Armor to <i>mount</i> friendly units. In order to be able to <i>swarm</i> hostile units, the Battle Armor must also have a stat effect from equipment that sets a stat `CanSwarm` to True, e.g. the following:
+	
+```
+{
+			"durationData": {
+				"duration": -1,
+				"stackLimit": -1
+			},
+			"targetingData": {
+				"effectTriggerType": "Passive",
+				"effectTargetType": "Creator",
+				"showInTargetPreview": true,
+				"showInStatusPanel": true
+			},
+			"effectType": "StatisticEffect",
+			"Description": {
+				"Id": "CanSwarmStat",
+				"Name": "This Battle Armor can make swarm attacks.",
+				"Details": "This Battle Armor can make swarm attacks."
+			},
+			"statisticData": {
+				"statName": "CanSwarm",
+				"operation": "Set",
+				"modValue": "true",
+				"modType": "System.Boolean"
+			}
+		},	
+```
+	
 In order to have Battle Armor mounted <i>to</i> it, a unit must have either stat effect that sets bool `HasBattleArmorMounts` to true OR must have the integer stat `InternalBattleArmorSquadCap` set to the # of Battle Armor squads that can be carried internally (for APCs and such). For AI units, those are the two stats that further dictate whether BA can be spawned.
 
 On the player-facing side, an additional bool stat, `IsBattleArmorHandsy` can be added to <i>Battle Armor</i> that would allow BA to mount friendly units <i>regardless of</i> `HasBattleArmorMounts`. 
