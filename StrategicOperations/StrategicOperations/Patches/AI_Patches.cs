@@ -79,7 +79,7 @@ namespace StrategicOperations.Patches
             public static bool Prefix(PreferFarthestAwayFromClosestHostilePositionFactor __instance, AbstractActor unit, Vector3 position, float angle, MoveType moveType_unused, PathNode pathNode_unused, ref float __result)
             {
                 if (unit.HasMountedUnits() ||
-                    unit.ComponentAbilities.Any(x => x.Def.Id == ModInit.modSettings.BattleArmorMountAndSwarmID))
+                    unit.ComponentAbilities.Any(x => x.Def.Id == ModInit.modSettings.BattleArmorMountAndSwarmID) && unit.canSwarm())
                 {
                     var result = 9001 * (1/unit.DistanceToClosestDetectedEnemy(position));
                     ModInit.modLog.LogDev($"[PreferFarthestAwayFromClosestHostilePositionFactor] Actor {unit.DisplayName} evaluating position {position}, should return {result}");
@@ -98,7 +98,7 @@ namespace StrategicOperations.Patches
             public static bool Prefix(PreferFarthestAwayFromClosestHostilePositionFactor __instance, AbstractActor unit, Vector3 position, float angle, MoveType moveType_unused, PathNode pathNode_unused, ref float __result)
             {
                 if (unit.HasMountedUnits() ||
-                    unit.ComponentAbilities.Any(x => x.Def.Id == ModInit.modSettings.BattleArmorMountAndSwarmID))
+                    unit.ComponentAbilities.Any(x => x.Def.Id == ModInit.modSettings.BattleArmorMountAndSwarmID) && unit.canSwarm())
                 {
                     var result = 9001 * (1 / unit.DistanceToClosestDetectedEnemy(position));
                     ModInit.modLog.LogDev($"[PreferLowerMovementFactor] Actor {unit.DisplayName} evaluating position {position}, should return {result}");
@@ -117,7 +117,7 @@ namespace StrategicOperations.Patches
             public static bool Prefix(PreferFarthestAwayFromClosestHostilePositionFactor __instance, AbstractActor unit, Vector3 position, float angle, ICombatant allyUnit, ref float __result)
             {
                 if (unit.HasMountedUnits() ||
-                    unit.ComponentAbilities.Any(x => x.Def.Id == ModInit.modSettings.BattleArmorMountAndSwarmID))
+                    unit.ComponentAbilities.Any(x => x.Def.Id == ModInit.modSettings.BattleArmorMountAndSwarmID) && unit.canSwarm())
                 {
                     var result = 9001 * (1 / unit.DistanceToClosestDetectedEnemy(position));
                     ModInit.modLog.LogDev($"[PreferOptimalDistanceToAllyFactor] Actor {unit.DisplayName} evaluating position {position}, should return {result}");
@@ -136,7 +136,7 @@ namespace StrategicOperations.Patches
             public static bool Prefix(PreferFarthestAwayFromClosestHostilePositionFactor __instance, AbstractActor unit, Vector3 position, float angle, MoveType moveType, ICombatant hostileUnit, ref float __result)
             {
                 if (unit.HasMountedUnits() ||
-                    unit.ComponentAbilities.Any(x => x.Def.Id == ModInit.modSettings.BattleArmorMountAndSwarmID))
+                    unit.ComponentAbilities.Any(x => x.Def.Id == ModInit.modSettings.BattleArmorMountAndSwarmID) && unit.canSwarm())
                 {
                     var result = 9001 * (1 / unit.DistanceToClosestDetectedEnemy(position));
                     ModInit.modLog.LogDev($"[PreferFarthestAwayFromClosestHostilePositionFactor] Actor {unit.DisplayName} evaluating position {position}, should return {result}");
@@ -155,7 +155,7 @@ namespace StrategicOperations.Patches
             public static bool Prefix(PreferNoCloserThanMinDistToHostileFactor __instance, AbstractActor unit, Vector3 position, float angle, MoveType moveType, ICombatant hostileUnit, ref float __result)
             {
                 if (unit.HasMountedUnits() ||
-                    unit.ComponentAbilities.Any(x => x.Def.Id == ModInit.modSettings.BattleArmorMountAndSwarmID))
+                    unit.ComponentAbilities.Any(x => x.Def.Id == ModInit.modSettings.BattleArmorMountAndSwarmID) && unit.canSwarm())
                 {
                     var result = 9001 * (1 / unit.DistanceToClosestDetectedEnemy(position));
                     ModInit.modLog.LogDev($"[PreferNoCloserThanMinDistToHostileFactor] Actor {unit.DisplayName} evaluating position {position}, should return {result}");
@@ -174,7 +174,7 @@ namespace StrategicOperations.Patches
             public static bool Prefix(PreferOptimalDistanceToHostileFactor __instance, AbstractActor unit, Vector3 position, float angle, MoveType moveType, ICombatant hostileUnit, ref float __result)
             {
                 if (unit.HasMountedUnits() ||
-                    unit.ComponentAbilities.Any(x => x.Def.Id == ModInit.modSettings.BattleArmorMountAndSwarmID))
+                    unit.ComponentAbilities.Any(x => x.Def.Id == ModInit.modSettings.BattleArmorMountAndSwarmID) && unit.canSwarm())
                 {
                     var result = 9001 * (1 / unit.DistanceToClosestDetectedEnemy(position));
                     __result = result;
@@ -201,7 +201,7 @@ namespace StrategicOperations.Patches
 
                 var battleArmorAbility =
                     ___unit.ComponentAbilities.FirstOrDefault(x => x.Def.Id == ModInit.modSettings.BattleArmorMountAndSwarmID);
-                if (battleArmorAbility != null)
+                if (battleArmorAbility != null && ___unit.canSwarm())
                 {
                     if (battleArmorAbility.IsAvailable)
                     {

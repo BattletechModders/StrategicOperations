@@ -174,6 +174,11 @@ namespace StrategicOperations.Framework
             }
         }
 
+        public static bool canSwarm(this AbstractActor actor)
+        {
+            return actor.StatCollection.GetValue<bool>("CanSwarm");
+        }
+
         public static int getInternalBACap(this AbstractActor actor)
         {
             return actor.StatCollection.GetValue<int>("InternalBattleArmorSquadCap");

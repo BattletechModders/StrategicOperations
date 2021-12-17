@@ -32,6 +32,7 @@ namespace StrategicOperations.Patches
         {
             public static void Postfix(AbstractActor __instance)
             {
+                __instance.StatCollection.AddStatistic<bool>("CanSwarm", false);
                 __instance.StatCollection.AddStatistic<int>("InternalBattleArmorSquadCap", 0);
                 __instance.StatCollection.AddStatistic<int>("InternalBattleArmorSquads", 0);
                 __instance.StatCollection.AddStatistic<bool>("HasBattleArmorMounts", false);
@@ -53,7 +54,7 @@ namespace StrategicOperations.Patches
             {
                 if (potentialTarget is AbstractActor targetActor)
                 {
-                    if (__instance.SelectedActor == targetActor || targetActor is TrooperSquad)
+                    if (__instance.FromButton.Ability.Def.Id == ModInit.modSettings.BattleArmorMountAndSwarmID && (__instance.SelectedActor == targetActor || targetActor is TrooperSquad))
                     {
                         __result = false;
                         return false;
@@ -300,7 +301,7 @@ namespace StrategicOperations.Patches
                                 creator.OnActivationEnd(creator.GUID, -1);
                                 
                             }
-                            else if (__instance.Def.Id == ModInit.modSettings.BattleArmorMountAndSwarmID && target.team.IsEnemy(creator.team) && creator is Mech creatorMech)
+                            else if (__instance.Def.Id == ModInit.modSettings.BattleArmorMountAndSwarmID && target.team.IsEnemy(creator.team) && creator is Mech creatorMech && creatorMech.canSwarm())
                             {
                                 var meleeChance = creator.Combat.ToHit.GetToHitChance(creator, creatorMech.MeleeWeapon, target, creator.CurrentPosition, target.CurrentPosition, 1, MeleeAttackType.Charge, false);
                                 var roll = ModInit.Random.NextDouble();
@@ -395,6 +396,15 @@ namespace StrategicOperations.Patches
                                     creator.Combat.MessageCenter.PublishMessage(new AddSequenceToStackMessage(sequence));
                                     creator.OnActivationEnd(creator.GUID, -1);
                                 }
+                            }
+                            else if (__instance.Def.Id == ModInit.modSettings.BattleArmorMountAndSwarmID &&
+                                     target.team.IsEnemy(creator.team) && creator is Mech creatorMech2 &&
+                                     !creatorMech2.canSwarm())
+                            {
+                                var popup = GenericPopupBuilder.Create(GenericPopupType.Info, $"Unit {creatorMech2.DisplayName} is unable to make swarming attacks!");
+                                popup.AddButton("Confirm", null, true, null);
+                                popup.IsNestedPopupWithBuiltInFader().CancelOnEscape().Render();
+                                return;
                             }
                         }
 
