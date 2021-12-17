@@ -691,7 +691,7 @@ namespace StrategicOperations.Patches
                 if (ability.Def.Id == ModInit.modSettings.BattleArmorDeSwarmRoll ||
                     ability.Def.Id == ModInit.modSettings.BattleArmorDeSwarmSwat)
                 {
-                    if (actor is Vehicle vehicle)
+                    if (actor is Vehicle vehicle || actor.IsCustomUnitVehicle())
                     {
                         button.DisableButton();
                     }

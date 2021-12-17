@@ -52,6 +52,7 @@ namespace StrategicOperations
         public bool enableLogging = true;
         public bool enableTrace = true;
         public string flareResourceID = "vfxPrfPrtl_fireTerrain_smLoop";
+        public string CUVehicleStat = "CUFakeVehicle";
         public bool showStrafeCamera = true;
         public bool strafeEndsActivation = true;
         public bool spawnTurretEndsActivation = true;

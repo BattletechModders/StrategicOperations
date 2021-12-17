@@ -22,6 +22,12 @@ namespace StrategicOperations.Framework
 {
     public static class Utils
     {
+        public static bool IsCustomUnitVehicle(this ICombatant combatant)
+        {
+            if (!combatant.StatCollection.ContainsStatistic("CUFakeVehicle")) return false;
+            return combatant.StatCollection.GetValue<bool>("CUFakeVehicle");
+        }
+
         public static Vector3 GetHexFromVector(this Vector3 point)
         {
             var combat = UnityGameInstance.BattleTechGame.Combat;
