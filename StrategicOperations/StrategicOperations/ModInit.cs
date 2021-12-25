@@ -81,9 +81,7 @@ namespace StrategicOperations
         public List<AI_SpawnBehavior> AI_SpawnBehavior = new List<AI_SpawnBehavior>(); // values can be "AMBUSH", "BRAWLER" (is default if none selected), "REINFORCE"
         public string BattleArmorMountAndSwarmID = "";
         public BA_TargetEffect BATargetEffect = new BA_TargetEffect();
-        public float AI_BattleArmorSpawnChance = 0f;
-        public float AI_BattleArmorSpawnDiffMod = 0f;
-        public Dictionary<string, List<string>> BattleArmorFactionAssociations = new Dictionary<string, List<string>>();
+        public List<BA_FactionAssoc> BattleArmorFactionAssociations = new List<BA_FactionAssoc>();
         public string BattleArmorDeSwarmRoll = "";
         public string BattleArmorDeSwarmSwat = "";
         public List<string> ArmActuatorCategoryIDs = new List<string>();

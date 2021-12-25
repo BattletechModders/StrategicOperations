@@ -24,7 +24,7 @@ namespace StrategicOperations.Patches
             {
                 if (__instance.IsLocalPlayer)
                 {
-                    if (unit is Mech && !(unit is TrooperSquad))
+                    if (unit is Mech && !(unit is TrooperSquad) && !unit.IsCustomUnitVehicle())
                     {
                         if (!string.IsNullOrEmpty(ModInit.modSettings.BattleArmorDeSwarmSwat))
                         {
@@ -213,7 +213,7 @@ namespace StrategicOperations.Patches
                             return false;
                         }
 
-                        var closestEnemy = ___unit.GetClosestDetectedEnemy(___unit.CurrentPosition);
+                        var closestEnemy = ___unit.GetClosestDetectedSwarmTarget(___unit.CurrentPosition);
 
                         var distance = Vector3.Distance(___unit.CurrentPosition, closestEnemy.CurrentPosition);
                         var jumpdist = 0f;

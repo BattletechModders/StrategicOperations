@@ -87,6 +87,27 @@ namespace StrategicOperations.Framework
             return closestActor;
         }
 
+        public static AbstractActor GetClosestDetectedSwarmTarget(this AbstractActor actor, Vector3 loc)
+        {
+            var enemyUnits = new List<AbstractActor>();
+            enemyUnits.AddRange(actor.team.VisibilityCache.GetAllDetectedEnemies(actor).Where(x => !x.IsDead && !x.IsFlaggedForDeath));
+            var num = -1f;
+            AbstractActor closestActor = null;
+            foreach (var enemy in enemyUnits)
+            {
+                if (!enemy.getIsUnSwarmable())
+                {
+                    var magnitude = (loc - enemy.CurrentPosition).magnitude;
+                    if (num < 0f || magnitude < num)
+                    {
+                        num = magnitude;
+                        closestActor = enemy;
+                    }
+                }
+            }
+            return closestActor;
+        }
+
         public static AbstractActor GetClosestDetectedFriendly(Vector3 loc, AbstractActor actor)
         {
             var friendlyUnits = actor.team.VisibilityCache.GetAllFriendlies(actor).Where(x=> !x.IsDead && !x.IsFlaggedForDeath);

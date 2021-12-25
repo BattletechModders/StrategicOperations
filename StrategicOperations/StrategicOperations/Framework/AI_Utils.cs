@@ -35,34 +35,51 @@ namespace StrategicOperations.Framework
             
             ModInit.modLog.LogMessage($"Checking if unit {unit.DisplayName} {unit.GUID} should spawn Battle Armor.");
 
-            if (ModInit.modSettings.BattleArmorFactionAssociations.ContainsKey(unit.team.FactionValue.Name))
+            if (ModInit.modSettings.BattleArmorFactionAssociations.Any(x => x.FactionIDs.Contains(unit.team.FactionValue.Name)))
             {
+                var baConfig = ModInit.modSettings.BattleArmorFactionAssociations.FirstOrDefault(x => x.FactionIDs.Contains(unit.team.FactionValue.Name));
+                if (baConfig == null)
+                {
+                    ModInit.modLog.LogError($"[GenerateAIStrategicAbilities] - something broken trying to process BA Faction Association. baConfig was null.");
+                    return;
+                }
                 ModInit.modLog.LogTrace($"Found config for {unit.team.FactionValue.Name}.");
-                var baDefs = ModInit.modSettings.BattleArmorFactionAssociations[unit.team.FactionValue.Name];
 
                 var baLance = Utils.CreateOrFetchCMDLance(unit.team);
-                var chance = ModInit.modSettings.AI_BattleArmorSpawnChance +
-                             (unit.Combat.ActiveContract.Override.finalDifficulty *
-                              ModInit.modSettings.AI_BattleArmorSpawnDiffMod);
+                var spawnChance = baConfig.SpawnChanceBase +
+                                  (unit.Combat.ActiveContract.Override.finalDifficulty *
+                                   baConfig.SpawnChanceDiffMod);
                 var internalSpace = unit.getAvailableInternalBASpace();
                 if (internalSpace > 0)
                 {
                     ModInit.modLog.LogTrace($"Unit has {internalSpace} internal space.");
                     for (int i = 0; i < internalSpace; i++)
                     {
-                        var chosen = baDefs.GetRandomElement();
-                        var baRollInt = ModInit.Random.NextDouble();
-                        
-                        if (baRollInt <= chance)
+                        var chosenInt = baConfig.ProcessBattleArmorSpawnWeights(unit.team.FactionValue.Name, "InternalBattleArmorWeight");
+                        if (!string.IsNullOrEmpty(chosenInt))
                         {
-                            SpawnUtils.SpawnBattleArmorAtActor(unit, chosen, baLance);
-                            ModInit.modLog.LogMessage(
-                                $"Roll {baRollInt} <= {chance}, adding BA internally.");
+                            var baRollInt = ModInit.Random.NextDouble();
+                            if (baRollInt <= spawnChance)
+                            {
+                                ModInit.modLog.LogMessage($"Roll {baRollInt} <= {spawnChance}, choosing BA from InternalBattleArmorWeight for slot {i} of {internalSpace}.");
+                                if (chosenInt != "BA_EMPTY")
+                                {
+                                    SpawnUtils.SpawnBattleArmorAtActor(unit, chosenInt, baLance);
+                                    ModInit.modLog.LogMessage($"Spawning {chosenInt}.");
+                                }
+                                else
+                                {
+                                    ModInit.modLog.LogMessage($"Chose {chosenInt}.");
+                                }
+                            }
+                            else
+                            {
+                                ModInit.modLog.LogMessage($"Roll {baRollInt} > {spawnChance}, not adding BA internally.");
+                            }
                         }
                         else
                         {
-                            ModInit.modLog.LogMessage(
-                                $"Roll {baRollInt} > {chance}, not adding BA internally.");
+                            ModInit.modLog.LogMessage($"No config for internal BA for faction {unit.team.FactionValue.Name}.");
                         }
                     }
                 }
@@ -74,28 +91,68 @@ namespace StrategicOperations.Framework
                 if (unit.getHasBattleArmorMounts())
                 {
                     ModInit.modLog.LogTrace($"Unit has mounts.");
-                    var baRollExt = ModInit.Random.NextDouble();
-                    if (baRollExt <= chance)
+
+                    var chosenMount = baConfig.ProcessBattleArmorSpawnWeights(unit.team.FactionValue.Name, "MountedBattleArmorWeight");
+                    if (!string.IsNullOrEmpty(chosenMount))
                     {
-                        var chosen = baDefs.GetRandomElement();
-                        SpawnUtils.SpawnBattleArmorAtActor(unit, chosen, baLance);
-                        ModInit.modLog.LogMessage($"Roll {baRollExt} <= {chance}, adding BA externally.");
+                        var baRollMount = ModInit.Random.NextDouble();
+                        if (baRollMount <= spawnChance)
+                        {
+                            ModInit.modLog.LogMessage($"Roll {baRollMount} <= {spawnChance}, choosing BA from MountedBattleArmorWeight.");
+                            if (chosenMount != "BA_EMPTY")
+                            {
+                                SpawnUtils.SpawnBattleArmorAtActor(unit, chosenMount, baLance);
+                                ModInit.modLog.LogMessage($"Spawning {chosenMount}.");
+                            }
+                            else
+                            {
+                                ModInit.modLog.LogMessage($"Chose {chosenMount}.");
+                            }
+                        }
+                        else
+                        {
+                            ModInit.modLog.LogMessage($"Roll {baRollMount} > {spawnChance}, not adding BA to mounts.");
+                        }
                     }
                     else
                     {
-                        ModInit.modLog.LogMessage($"Roll {baRollExt} > {chance}, not adding BA externally.");
+                        ModInit.modLog.LogMessage($"No config for mounted BA for faction {unit.team.FactionValue.Name}.");
                     }
                 }
-
                 else
                 {
                     ModInit.modLog.LogTrace($"Unit dont has mounts.");
+                    var chosenHandsy = baConfig.ProcessBattleArmorSpawnWeights(unit.team.FactionValue.Name, "HandsyBattleArmorWeight");
+                    if (!string.IsNullOrEmpty(chosenHandsy))
+                    {
+                        var baRollHandsy = ModInit.Random.NextDouble();
+                        if (baRollHandsy <= spawnChance)
+                        {
+                            ModInit.modLog.LogMessage($"Roll {baRollHandsy} <= {spawnChance}, choosing BA from HandsyBattleArmorWeight.");
+                            if (chosenHandsy != "BA_EMPTY")
+                            {
+                                SpawnUtils.SpawnBattleArmorAtActor(unit, chosenHandsy, baLance);
+                                ModInit.modLog.LogMessage($"Spawning {chosenHandsy}.");
+                            }
+                            else
+                            {
+                                ModInit.modLog.LogMessage($"Chose {chosenHandsy}.");
+                            }
+                        }
+                        else
+                        {
+                            ModInit.modLog.LogMessage($"Roll {baRollHandsy} > {spawnChance}, not adding handsy BA.");
+                        }
+                    }
+                    else
+                    {
+                        ModInit.modLog.LogMessage($"No config for handsy BA for faction {unit.team.FactionValue.Name}.");
+                    }
                 }
             }
 
-
             //give AI mechs ability to swat or roll
-            if (unit is Mech && !(unit is TrooperSquad))
+            if (unit is Mech && !(unit is TrooperSquad) && !unit.IsCustomUnitVehicle())
             {
                 if (!string.IsNullOrEmpty(ModInit.modSettings.BattleArmorDeSwarmSwat))
                 {

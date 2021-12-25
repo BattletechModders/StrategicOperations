@@ -11,6 +11,15 @@ namespace StrategicOperations.Framework
 {
     public class Classes
     {
+        public class BA_FactionAssoc
+        {
+            public List<string> FactionIDs = new List<string>();
+            public float SpawnChanceBase = 0f;
+            public float SpawnChanceDiffMod = 0f;
+            public Dictionary<string, int> InternalBattleArmorWeight = new Dictionary<string, int>();
+            public Dictionary<string, int> MountedBattleArmorWeight = new Dictionary<string, int>();
+            public Dictionary<string, int> HandsyBattleArmorWeight = new Dictionary<string, int>();
+        }
         public class BA_DamageTracker
         {
             public string TargetGUID = ""; // guid of carrier unit.

@@ -37,6 +37,8 @@ namespace StrategicOperations.Patches
                 __instance.StatCollection.AddStatistic<int>("InternalBattleArmorSquads", 0);
                 __instance.StatCollection.AddStatistic<bool>("HasBattleArmorMounts", false);
                 __instance.StatCollection.AddStatistic<bool>("IsBattleArmorHandsy", false);
+                __instance.StatCollection.AddStatistic<bool>("IsUnmountableBattleArmor", false);
+                __instance.StatCollection.AddStatistic<bool>("IsUnswarmableBattleArmor", false);
                 __instance.StatCollection.AddStatistic<bool>("BattleArmorMount", false);
                 __instance.StatCollection.AddStatistic<float>("BattleArmorDeSwarmerSwat", 0.3f);
                 __instance.StatCollection.AddStatistic<int>("BattleArmorDeSwarmerRollInitPenalty", 0);
@@ -119,8 +121,22 @@ namespace StrategicOperations.Patches
                             __result = false;
                             return false;
                         }
+
+                        if (targetActor.getIsUnMountable())
+                        {
+                            __result = false;
+                            return false;
+                        }
                     }
 
+                    if (potentialTarget.team.IsEnemy(__instance.SelectedActor.team))
+                    {
+                        if (targetActor.getIsUnSwarmable())
+                        {
+                            __result = false;
+                            return false;
+                        }
+                    }
                 }
                 __result = true;
                 return true;

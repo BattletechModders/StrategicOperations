@@ -10,6 +10,7 @@ namespace StrategicOperations.Framework
 {
     public static class ModState
     {
+        public static Dictionary<string, Dictionary<string, List<string>>> CachedFactionAssociations = new Dictionary<string, Dictionary<string, List<string>>>();
 
         public static Dictionary<string, PendingStrafeWave> PendingStrafeWaves =
             new Dictionary<string, PendingStrafeWave>();
