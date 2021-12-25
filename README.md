@@ -151,13 +151,17 @@ settings in the mod.json:
 			}
 		]
 	},
-	"AI_BattleArmorSpawnChance": 1.0,
-	"AI_BattleArmorSpawnDiffMod": 0.05,
-	"BattleArmorFactionAssociations": {
-		"ClanGhostBear": [
-			"mechdef_ba_is_standard"
-		]
-	},
+	"BattleArmorFactionAssociations": [
+		{
+			"FactionID": "ClanGhostBear",
+			"SpawnChanceBase": 1.0,
+			"SpawnChanceDiffMod": 0.1,
+			"BattleArmorWeight": {
+				"mechdef_ba_is_standard": 5,
+				"mechdef_ba_infiltratormkii": 2
+			}
+		}
+	],
 	"AttackOnSwarmSuccess": true
 ```
 
@@ -245,18 +249,33 @@ settings in the mod.json:
 
 `BATargetEffect` - Effect which will be applied to Battle Armor while swarming. Intended use is to improve accuracy and clustering of swarming BA so they always (usually, mostly) hit the same location on the unit they're swarming. Of course you can add whatever else you want here.
 
-`AI_BattleArmorSpawnChance` - float, base probability that AI units that <i>can</i> mount Battle Armor, either mounted externally or internally, will get Battle Armor at contract start. Note that any added Battle Armor is independent of any "support lance" or "extra lance" settings in Mission Control or other mods. Added to AI_BattleArmorSpawnDiffMod for total chance.
+~~`AI_BattleArmorSpawnChance` - float, base probability that AI units that <i>can</i> mount Battle Armor, either mounted externally or internally, will get Battle Armor at contract start. Note that any added Battle Armor is independent of any "support lance" or "extra lance" settings in Mission Control or other mods. Added to AI_BattleArmorSpawnDiffMod for total chance.~~ DEPRECATED, COMBINED INTO BattleArmorFactionAssociations
 
-`AI_BattleArmorSpawnDiffMod` - float, contract difficulty is multiplied by this value and added to AI_BattleArmorSpawnChance to determine probability of AI units spawning BA.
+~~`AI_BattleArmorSpawnDiffMod` - float, contract difficulty is multiplied by this value and added to AI_BattleArmorSpawnChance to determine probability of AI units spawning BA.~~ DEPRECATED, COMBINED INTO BattleArmorFactionAssociations
 
-`BattleArmorFactionAssociations` - Faction information for AI battle armor spawning. If a faction does not have an entry here, it will not spawn Battle Armor. E.g, using the following setting the only faction that would spawn Battle Armor would be ClanGhostBear, and the only battle armor it would spawn is `mechdef_ba_is_standard`.
+`BattleArmorFactionAssociations` - Faction information for AI battle armor spawning. If a faction does not have an entry here, it will not spawn Battle Armor. <b>This has been revamped in v2.0.1.8</b>. Using the following settings, ClanGhostBear has baseline 30% chance to spawn Battle Armor, + 5% per difficulty level, with rolls against that occurring separately for internal mounting space (i.e. APCs), external mounts (i.e. Omnimechs), and for conventional (non-omni) mechs pulling from `HandsyBattleArmorWeight`. For units with internal mounting space, each internal slot is rolled separately. For all "mounting types", an entry `BA_EMPTY` can be used to further tweak the spawn %; if BA_EMTPY is chosen, no BA will spawn for that "mounting type." For example using the below settings a unit without internal storage or BA mounts would have only `0.33 x base%+difficulty%` calculated chance to actually spawn `mechdef_ba_marauder`, while a unit with BA mounts would have `0.7 x base%+difficulty%` calculated chance to spawn battle armor.
 
 ```
-"BattleArmorFactionAssociations": {
-			"ClanGhostBear": [
-				"mechdef_ba_is_standard"
-			]
-		}
+"BattleArmorFactionAssociations": [
+			{
+				"FactionID": "ClanGhostBear",
+				"SpawnChanceBase": 0.3,
+				"SpawnChanceDiffMod": 0.05,
+				"InternalBattleArmorWeight": {
+					"mechdef_ba_is_standard": 5,
+					"mechdef_ba_marauder": 2
+				},
+				"MountedBattleArmorWeight": {
+					"mechdef_ba_is_standard": 5,
+					"mechdef_ba_infiltratormkii": 2,
+					"BA_EMPTY": 3
+				},
+				"HandsyBattleArmorWeight": {
+					"mechdef_ba_marauder": 1,
+					"BA_EMPTY": 2
+				}
+			}
+		],
 ```
 
 `AttackOnSwarmSuccess` - bool, if true BA will initiate an attack sequence on a successful swarming attempt (rather than needing to wait until the subsequence activation)
