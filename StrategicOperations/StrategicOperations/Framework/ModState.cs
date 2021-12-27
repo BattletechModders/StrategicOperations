@@ -10,8 +10,13 @@ namespace StrategicOperations.Framework
 {
     public static class ModState
     {
+        
         public static Dictionary<string, Dictionary<string, List<string>>> CachedFactionAssociations = new Dictionary<string, Dictionary<string, List<string>>>();
 
+        public static Dictionary<string, int> CurrentBattleArmorSquads = new Dictionary<string, int>();
+
+        public static List<AI_FactionCommandAbilitySetting> CurrentFactionSettingsList = new List<AI_FactionCommandAbilitySetting>();
+        public static bool IsStrafeAOE = false;
         public static Dictionary<string, PendingStrafeWave> PendingStrafeWaves =
             new Dictionary<string, PendingStrafeWave>();
         public static List<ArmorLocation> MechArmorMountOrder = new List<ArmorLocation>();
@@ -31,14 +36,14 @@ namespace StrategicOperations.Framework
         public static List<Ability> CommandAbilities = new List<Ability>();
 
         public static List<KeyValuePair<string, Action>>
-            deferredInvokeSpawns = new List<KeyValuePair<string, Action>>();
+            DeferredInvokeSpawns = new List<KeyValuePair<string, Action>>();
 
         public static List<KeyValuePair<string, Action>>
-            deferredInvokeBattleArmor = new List<KeyValuePair<string, Action>>();
+            DeferredInvokeBattleArmor = new List<KeyValuePair<string, Action>>();
 
-        public static string deferredActorResource = "";
-        public static string popupActorResource = "";
-        public static int strafeWaves;
+        public static string DeferredActorResource = "";
+        public static string PopupActorResource = "";
+        public static int StrafeWaves;
         public static string PilotOverride= null;
         public static bool DeferredSpawnerFromDelegate;
         public static bool DeferredBattleArmorSpawnerFromDelegate;
@@ -52,7 +57,7 @@ namespace StrategicOperations.Framework
 
         public static List<CmdUseInfo> CommandUses = new List<CmdUseInfo>();
 
-        public static List<CmdUseStat> deploymentAssetsStats = new List<CmdUseStat>();
+        public static List<CmdUseStat> DeploymentAssetsStats = new List<CmdUseStat>();
 
         public static BA_TargetEffect BAUnhittableEffect = new BA_TargetEffect();
 
@@ -95,21 +100,22 @@ namespace StrategicOperations.Framework
 
         public static void ResetAll()
         {
-            currentFactionSettingsList = new List<AI_FactionCommandAbilitySetting>();
+            CurrentBattleArmorSquads = new Dictionary<string, int>();
+            CurrentFactionSettingsList = new List<AI_FactionCommandAbilitySetting>();
             PendingStrafeWaves = new Dictionary<string, PendingStrafeWave>();
             BADamageTrackers = new Dictionary<string, BA_DamageTracker>(); 
             CommandAbilities = new List<Ability>();
-            deferredInvokeSpawns = new List<KeyValuePair<string, Action>>();
-            deferredInvokeBattleArmor = new List<KeyValuePair<string, Action>>();
+            DeferredInvokeSpawns = new List<KeyValuePair<string, Action>>();
+            DeferredInvokeBattleArmor = new List<KeyValuePair<string, Action>>();
             CommandUses = new List<CmdUseInfo>();
-            deploymentAssetsStats = new List<CmdUseStat>();
+            DeploymentAssetsStats = new List<CmdUseStat>();
             SavedBAScale = new Dictionary<string, Vector3>();
             CachedUnitCoordinates = new Dictionary<string, Vector3>();
             PositionLockMount = new Dictionary<string, string>();
             PositionLockSwarm = new Dictionary<string, string>();
-            deferredActorResource = "";
-            popupActorResource = "";
-            strafeWaves = 0; // this is TBD-> want to make beacons define # of waves.
+            DeferredActorResource = "";
+            PopupActorResource = "";
+            StrafeWaves = 0; // this is TBD-> want to make beacons define # of waves.
             PilotOverride = null;
             DeferredSpawnerFromDelegate = false;
             DeferredBattleArmorSpawnerFromDelegate = false;
@@ -122,21 +128,18 @@ namespace StrategicOperations.Framework
         public static void ResetDelegateInfos()
         {
             DeferredSpawnerFromDelegate = false;
-            deferredActorResource = "";
-            popupActorResource = "";
+            DeferredActorResource = "";
+            PopupActorResource = "";
             PilotOverride = null;
         }
 
         public static void ResetDeferredSpawners()
         {
-            deferredInvokeSpawns = new List<KeyValuePair<string, Action>>();
+            DeferredInvokeSpawns = new List<KeyValuePair<string, Action>>();
         }
         public static void ResetDeferredBASpawners()
         {
-            deferredInvokeBattleArmor = new List<KeyValuePair<string, Action>>();
+            DeferredInvokeBattleArmor = new List<KeyValuePair<string, Action>>();
         }
-
-        public static List<AI_FactionCommandAbilitySetting> currentFactionSettingsList = new List<AI_FactionCommandAbilitySetting>();
-        public static bool IsStrafeAOE = false;
     }
 }

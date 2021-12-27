@@ -37,6 +37,10 @@ namespace StrategicOperations.Framework
 
             if (ModInit.modSettings.BattleArmorFactionAssociations.Any(x => x.FactionIDs.Contains(unit.team.FactionValue.Name)))
             {
+                if (!ModState.CurrentBattleArmorSquads.ContainsKey(unit.team.FactionValue.Name))
+                {
+                    ModState.CurrentBattleArmorSquads.Add(unit.team.FactionValue.Name, 0);
+                }
                 var baConfig = ModInit.modSettings.BattleArmorFactionAssociations.FirstOrDefault(x => x.FactionIDs.Contains(unit.team.FactionValue.Name));
                 if (baConfig == null)
                 {
@@ -64,8 +68,16 @@ namespace StrategicOperations.Framework
                                 ModInit.modLog.LogMessage($"Roll {baRollInt} <= {spawnChance}, choosing BA from InternalBattleArmorWeight for slot {i} of {internalSpace}.");
                                 if (chosenInt != "BA_EMPTY")
                                 {
-                                    SpawnUtils.SpawnBattleArmorAtActor(unit, chosenInt, baLance);
-                                    ModInit.modLog.LogMessage($"Spawning {chosenInt}.");
+                                    if (ModState.CurrentBattleArmorSquads[unit.team.FactionValue.Name] < baConfig.MaxSquadsPerContract)
+                                    {
+                                        SpawnUtils.SpawnBattleArmorAtActor(unit, chosenInt, baLance);
+                                        ModState.CurrentBattleArmorSquads[unit.team.FactionValue.Name] += 1;
+                                        ModInit.modLog.LogMessage($"Spawning {chosenInt}, incrementing CurrentBattleArmorSquads to {ModState.CurrentBattleArmorSquads[unit.team.FactionValue.Name]}.");
+                                    }
+                                    else
+                                    {
+                                        ModInit.modLog.LogMessage($"{ModState.CurrentBattleArmorSquads[unit.team.FactionValue.Name]} is max {baConfig.MaxSquadsPerContract} per contract.");
+                                    }
                                 }
                                 else
                                 {
@@ -101,8 +113,16 @@ namespace StrategicOperations.Framework
                             ModInit.modLog.LogMessage($"Roll {baRollMount} <= {spawnChance}, choosing BA from MountedBattleArmorWeight.");
                             if (chosenMount != "BA_EMPTY")
                             {
-                                SpawnUtils.SpawnBattleArmorAtActor(unit, chosenMount, baLance);
-                                ModInit.modLog.LogMessage($"Spawning {chosenMount}.");
+                                if (ModState.CurrentBattleArmorSquads[unit.team.FactionValue.Name] < baConfig.MaxSquadsPerContract)
+                                {
+                                    SpawnUtils.SpawnBattleArmorAtActor(unit, chosenMount, baLance);
+                                    ModState.CurrentBattleArmorSquads[unit.team.FactionValue.Name] += 1;
+                                    ModInit.modLog.LogMessage($"Spawning {chosenMount}, incrementing CurrentBattleArmorSquads to {ModState.CurrentBattleArmorSquads[unit.team.FactionValue.Name]}.");
+                                }
+                                else
+                                {
+                                    ModInit.modLog.LogMessage($"{ModState.CurrentBattleArmorSquads[unit.team.FactionValue.Name]} is max {baConfig.MaxSquadsPerContract} per contract.");
+                                }
                             }
                             else
                             {
@@ -131,8 +151,17 @@ namespace StrategicOperations.Framework
                             ModInit.modLog.LogMessage($"Roll {baRollHandsy} <= {spawnChance}, choosing BA from HandsyBattleArmorWeight.");
                             if (chosenHandsy != "BA_EMPTY")
                             {
-                                SpawnUtils.SpawnBattleArmorAtActor(unit, chosenHandsy, baLance);
-                                ModInit.modLog.LogMessage($"Spawning {chosenHandsy}.");
+                                if (ModState.CurrentBattleArmorSquads[unit.team.FactionValue.Name] <
+                                    baConfig.MaxSquadsPerContract)
+                                {
+                                    SpawnUtils.SpawnBattleArmorAtActor(unit, chosenHandsy, baLance);
+                                    ModState.CurrentBattleArmorSquads[unit.team.FactionValue.Name] += 1;
+                                    ModInit.modLog.LogMessage($"Spawning {chosenHandsy}, incrementing CurrentBattleArmorSquads to {ModState.CurrentBattleArmorSquads[unit.team.FactionValue.Name]}.");
+                                }
+                                else
+                                {
+                                    ModInit.modLog.LogMessage($"{ModState.CurrentBattleArmorSquads[unit.team.FactionValue.Name]} is max {baConfig.MaxSquadsPerContract} per contract.");
+                                }
                             }
                             else
                             {
@@ -199,7 +228,7 @@ namespace StrategicOperations.Framework
                 return;
             }
 
-            ModState.currentFactionSettingsList = new List<Classes.AI_FactionCommandAbilitySetting>(
+            ModState.CurrentFactionSettingsList = new List<Classes.AI_FactionCommandAbilitySetting>(
                     ModInit.modSettings.commandAbilities_AI[unit.team.FactionValue.Name].OrderBy(x => x.AddChance));
             ModInit.modLog.LogTrace($"Ordering setting dictionary.");
 
@@ -209,7 +238,7 @@ namespace StrategicOperations.Framework
                 if (unit.ComponentAbilities.All(x => x.Def.Resource != AbilityDef.ResourceConsumed.CommandAbility))
                 {
                     ModInit.modLog.LogTrace($"No command abilities on unit from Components.");
-                    foreach (var abilitySetting in ModState.currentFactionSettingsList)
+                    foreach (var abilitySetting in ModState.CurrentFactionSettingsList)
                     {
                         var roll = ModInit.Random.NextDouble();
                         var chance = abilitySetting.AddChance +

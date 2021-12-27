@@ -302,6 +302,12 @@ namespace StrategicOperations.Framework
 
             if (ModState.BADamageTrackers.ContainsKey(actor.GUID))
             {
+                if (ModState.BADamageTrackers[actor.GUID].IsSquadInternal)
+                {
+                    carrier.modifyInternalBASquads(-1);
+                    ModInit.modLog.LogMessage(
+                        $"[DismountBA] Dismounted {actor.DisplayName} from internal capacity. Capacity is now {carrier.getAvailableInternalBASpace()}.");
+                }
                 ModState.BADamageTrackers.Remove(actor.GUID);
             }
 

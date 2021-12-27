@@ -322,15 +322,15 @@ namespace StrategicOperations.Framework
                                 x.StartsWith("StratOpsPilot_"))
                                 ?.Remove(0, 14);
 
-                            if (ModState.deploymentAssetsStats.All(x => x.ID != id))
+                            if (ModState.DeploymentAssetsStats.All(x => x.ID != id))
                             {
                                 var value = sgs.CompanyStats.GetValue<int>(stat);
                                 var newStat = new CmdUseStat(id, stat, consumeOnUse, value, value, pilotID);
-                                ModState.deploymentAssetsStats.Add(newStat);
+                                ModState.DeploymentAssetsStats.Add(newStat);
                                 ModInit.modLog.LogMessage($"Added {id} to deploymentAssetsDict with value {value}.");
                                 beacons.Add(mechComponentRef);
                             }
-                            var assetStatInfo = ModState.deploymentAssetsStats.FirstOrDefault(x => x.ID == id);
+                            var assetStatInfo = ModState.DeploymentAssetsStats.FirstOrDefault(x => x.ID == id);
                             {
                                 if (assetStatInfo != null)
                                 {
@@ -389,15 +389,15 @@ namespace StrategicOperations.Framework
                             var pilotID = mechComponentRef.Def.ComponentTags.FirstOrDefault(x =>
                                     x.StartsWith("StratOpsPilot_"))
                                 ?.Remove(0, 14);
-                            if (ModState.deploymentAssetsStats.All(x => x.ID != id))
+                            if (ModState.DeploymentAssetsStats.All(x => x.ID != id))
                             {
                                 var value = sgs.CompanyStats.GetValue<int>(stat);
                                 var newStat = new CmdUseStat(id, stat, consumeOnUse, value, value, pilotID);
-                                ModState.deploymentAssetsStats.Add(newStat);
+                                ModState.DeploymentAssetsStats.Add(newStat);
                                 ModInit.modLog.LogMessage($"Added {id} to deploymentAssetsDict with value {value}.");
                                 beacons.Add(mechComponentRef);
                             }
-                            var assetStatInfo = ModState.deploymentAssetsStats.FirstOrDefault(x => x.ID == id);
+                            var assetStatInfo = ModState.DeploymentAssetsStats.FirstOrDefault(x => x.ID == id);
                             {
                                 if (assetStatInfo != null)
                                 {

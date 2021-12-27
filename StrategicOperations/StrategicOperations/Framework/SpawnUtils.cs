@@ -24,7 +24,7 @@ namespace StrategicOperations.Framework
 
             if (actor.Combat.TurnDirector.CurrentRound <= 1)
             {
-                if (ModState.deferredInvokeBattleArmor.All(x => x.Key != instanceGUID) && !ModState.DeferredBattleArmorSpawnerFromDelegate)
+                if (ModState.DeferredInvokeBattleArmor.All(x => x.Key != instanceGUID) && !ModState.DeferredBattleArmorSpawnerFromDelegate)
                 {
                     ModInit.modLog.LogMessage(
                         $"Deferred BA Spawner missing, creating delegate and returning. Delegate should spawn {chosenBA}");
@@ -33,8 +33,8 @@ namespace StrategicOperations.Framework
                         SpawnBattleArmorAtActor(actor, chosenBA, baLance);
 
                     var kvp = new KeyValuePair<string, Action>(instanceGUID, DeferredInvokeBASpawn);
-                    ModState.deferredInvokeBattleArmor.Add(kvp);
-                    foreach (var value in ModState.deferredInvokeBattleArmor)
+                    ModState.DeferredInvokeBattleArmor.Add(kvp);
+                    foreach (var value in ModState.DeferredInvokeBattleArmor)
                     {
                         ModInit.modLog.LogTrace(
                             $"there is a delegate {value.Key} here, with value {value.Value}");

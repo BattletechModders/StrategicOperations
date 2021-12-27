@@ -16,6 +16,7 @@ namespace StrategicOperations.Framework
             public List<string> FactionIDs = new List<string>();
             public float SpawnChanceBase = 0f;
             public float SpawnChanceDiffMod = 0f;
+            public int MaxSquadsPerContract = 0;
             public Dictionary<string, int> InternalBattleArmorWeight = new Dictionary<string, int>();
             public Dictionary<string, int> MountedBattleArmorWeight = new Dictionary<string, int>();
             public Dictionary<string, int> HandsyBattleArmorWeight = new Dictionary<string, int>();
