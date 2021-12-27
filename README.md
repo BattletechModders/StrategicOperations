@@ -159,6 +159,7 @@ settings in the mod.json:
 			],
 			"SpawnChanceBase": 0.3,
 			"SpawnChanceDiffMod": 0.05,
+			"MaxSquadsPerContract": 4,
 			"InternalBattleArmorWeight": {
 				"mechdef_ba_is_standard": 5,
 				"mechdef_ba_marauder": 2
@@ -269,7 +270,7 @@ settings in the mod.json:
 	
 FactionIDs is a list of faction IDs for which this particular config will be applied. If a faction is not present in any configs, it will not spawn Battle Armor. If a faction is present in multiple configs, only the first config in the list will be used for that faction.
 	
-Using the following settings, ClanGhostBear and ClanWolf have baseline 30% chance to spawn Battle Armor, + 5% per difficulty level, with rolls against that occurring separately for internal mounting space (i.e. APCs), external mounts (i.e. Omnimechs), and for conventional (non-omni) mechs pulling from `HandsyBattleArmorWeight`. For units with internal mounting space, each internal slot is rolled separately. For all "mounting types", an entry `BA_EMPTY` can be used to further tweak the spawn %; if BA_EMTPY is chosen, no BA will spawn for that "mounting type." For example using the below settings a unit without internal storage or BA mounts would have only `0.33 x base%+difficulty%` calculated chance to actually spawn `mechdef_ba_marauder`, while a unit with BA mounts would have `0.7 x base%+difficulty%` calculated chance to spawn battle armor.
+Using the following settings, ClanGhostBear and ClanWolf have baseline 30% chance to spawn Battle Armor, + 5% per difficulty level, with rolls against that occurring separately for internal mounting space (i.e. APCs), external mounts (i.e. Omnimechs), and for conventional (non-omni) mechs pulling from `HandsyBattleArmorWeight`. For units with internal mounting space, each internal slot is rolled separately. For all "mounting types", an entry `BA_EMPTY` can be used to further tweak the spawn %; if BA_EMTPY is chosen, no BA will spawn for that "mounting type." For example using the below settings a unit without internal storage or BA mounts would have only `0.33 x base%+difficulty%` calculated chance to actually spawn `mechdef_ba_marauder`, while a unit with BA mounts would have `0.7 x base%+difficulty%` calculated chance to spawn battle armor. Lastly, `MaxSquadsPerContract` defines an upper limit for the # of BA squads a given faction can spawn during a contract.
 
 ```
 "BattleArmorFactionAssociations": [
@@ -280,6 +281,7 @@ Using the following settings, ClanGhostBear and ClanWolf have baseline 30% chanc
 				],
 				"SpawnChanceBase": 0.3,
 				"SpawnChanceDiffMod": 0.05,
+				"MaxSquadsPerContract": 4,
 				"InternalBattleArmorWeight": {
 					"mechdef_ba_is_standard": 5,
 					"mechdef_ba_marauder": 2
