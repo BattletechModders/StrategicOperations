@@ -72,6 +72,10 @@ settings in the mod.json:
 		"ArmHandActuator",
 		"OmniHandActuator"
 	],
+	"BPodComponentIDs": [
+		"Gear_B_Pod"
+		],
+	"BPodsAutoActivate": true,
 	"BATargetEffect": {
 		"ID": "BA_AccurateFire",
 		"Name": "Battle Armor - SwarmingAccuracy",
@@ -260,6 +264,10 @@ settings in the mod.json:
 		],
 ```
 
+`BPodComponentIDs` - List of string componenet IDs for CAE gear that, when activated, will function as B-Pods, detonating and damaging only Battle Armor.
+
+`BPodsAutoActivate` - bool, if true BPod Components will auto-activate when the unit carrying them gets swarmed. If false, only BPods mounted on AI-controlled units will auto-activate (players must manually activate BPods using CAE activation).
+	
 `BATargetEffect` - Effect which will be applied to Battle Armor while swarming. Intended use is to improve accuracy and clustering of swarming BA so they always (usually, mostly) hit the same location on the unit they're swarming. Of course you can add whatever else you want here.
 
 <s>`AI_BattleArmorSpawnChance` - float, base probability that AI units that <i>can</i> mount Battle Armor, either mounted externally or internally, will get Battle Armor at contract start. Note that any added Battle Armor is independent of any "support lance" or "extra lance" settings in Mission Control or other mods. Added to AI_BattleArmorSpawnDiffMod for total chance.</s> DEPRECATED, IMPLEMENTED IN BattleArmorFactionAssociations
@@ -600,7 +608,18 @@ The AI will also attempt to use Swarm against you. If an AI unit has BA (dictate
 
 #### Countering Mount/Swarm
 
-All mechs can be given one or two abilities in order to attempt to dislodge swarming BA, using the following settings. The AI will also attempt to dislodge player BA when swarming.
+**B-Pods Added in v2.0.2.0**
+
+Any CAE equipment whose ID is found in `BPodComponentIDs` will function as a B-Pod; when activated it will automatically hit all Battle Armor within the radius defined by the "Range" field within the "Explosion" section of the "ActivatableComponent" portion of the equipment, i.e
+```
+"ActivatableComponent": {
+			"Explosion": {
+				"Range": 150,
+				"Damage": 100,
+```
+All battle armor squads within 150m would then take 100 damage, divided evenly amongst every suit in the squad.
+	
+In addition, to B-Pods, all mechs can be given one or two abilities in order to attempt to dislodge swarming BA, using the following settings. The AI will also attempt to dislodge player BA when swarming.
 
 `BattleArmorDeSwarmRoll` - string, ability ID of pilot ability that allows mech to "roll" (forced self-knockdown) in order to dislodge swarming battle armor. <b>New in 2.0.1.2, the base success % is now exposed in the ability def</b>, for a final success % of BaseChance + (Piloting skill x 5%), capped at 95%. On a success, there is a 30% chance to smush the Battle Armor squad in the process. Ability is automatically granted to Mechs at contract start (e.g. does not need to be added manually to pilot). The ability can also set a statistic `BattleArmorDeSwarmerRollInitPenalty` to define an initiative penalty the BA will recieve on a successful deswarm.
 
