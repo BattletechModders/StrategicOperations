@@ -138,6 +138,24 @@ namespace StrategicOperations.Framework
             }
             return detectedEnemies;
         }
+
+        public static List<AbstractActor> GetAllEnemiesWithinRange(AbstractActor actor, float range)
+        {
+            var detectedEnemies = new List<AbstractActor>();
+            foreach (var enemy in actor.Combat.AllActors)
+            {
+                if (actor.team.IsEnemy(enemy.team) && !enemy.IsDead && !enemy.IsFlaggedForDeath)
+                {
+                    if (Vector3.Distance(actor.CurrentPosition, enemy.CurrentPosition) <= range)
+                    {
+                        ModInit.modLog.LogDev($"unit {enemy.DisplayName} is enemy of {actor.DisplayName}.");
+                        detectedEnemies.Add(enemy);
+                    }
+                }
+            }
+            return detectedEnemies;
+        }
+
         public static List<AbstractActor> GetAllFriendlies (this SharedVisibilityCache cache, AbstractActor actor)
         {
             var friendlyActors = new List<AbstractActor>();

@@ -10,6 +10,9 @@ namespace StrategicOperations.Framework
 {
     public static class ModState
     {
+
+        public static float SwarmSuccessChance = 0f;
+        public static float DeSwarmSuccessChance = 0f;
         
         public static Dictionary<string, Dictionary<string, List<string>>> CachedFactionAssociations = new Dictionary<string, Dictionary<string, List<string>>>();
 
@@ -100,6 +103,8 @@ namespace StrategicOperations.Framework
 
         public static void ResetAll()
         {
+            SwarmSuccessChance = 0f;
+            DeSwarmSuccessChance = 0f;
             CurrentBattleArmorSquads = new Dictionary<string, int>();
             CurrentFactionSettingsList = new List<AI_FactionCommandAbilitySetting>();
             PendingStrafeWaves = new Dictionary<string, PendingStrafeWave>();

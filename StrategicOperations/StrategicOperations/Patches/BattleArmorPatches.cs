@@ -9,6 +9,7 @@ using Abilifier.Patches;
 using BattleTech;
 using BattleTech.UI;
 using CustAmmoCategories;
+using CustomActivatableEquipment;
 using CustomComponents;
 using CustomUnits;
 using Harmony;
@@ -26,6 +27,7 @@ namespace StrategicOperations.Patches
 {
     public class BattleArmorPatches
     {
+
         [HarmonyPatch(typeof(AbstractActor), "InitEffectStats",
             new Type[] {})]
         public static class AbstractActor_InitEffectStats
@@ -45,6 +47,124 @@ namespace StrategicOperations.Patches
                 __instance.StatCollection.AddStatistic<int>("BattleArmorDeSwarmerSwatInitPenalty", 0);
                 __instance.StatCollection.AddStatistic<float>("BattleArmorDeSwarmerSwatDamage", 0f);
                 __instance.StatCollection.AddStatistic<float>("BattleArmorDeSwarmerRoll", 0.5f);
+                //__instance.StatCollection.AddStatistic<float>("SquishumToadsAsplode", 0.0f);
+            }
+        }
+
+        [HarmonyPatch(typeof(ActivatableComponent), "activateComponent", new Type[] {typeof(MechComponent), typeof(bool), typeof(bool)})]
+        public static class ActivatableComponent_activateComponent
+        {
+            public static void Postfix(ActivatableComponent __instance, MechComponent component, bool autoActivate, bool isInital)
+            {
+                if (ModInit.modSettings.BPodComponentIDs.Contains(component.defId))
+                {
+                    ActivatableComponent activatableComponent = component.componentDef.GetComponent<ActivatableComponent>();
+                    var enemyActors = Utils.GetAllEnemiesWithinRange(component.parent, activatableComponent.Explosion.Range);
+                    foreach (var enemyActor in enemyActors)
+                    {
+                        if (enemyActor is TrooperSquad trooperSquad)
+                        {
+                            if (trooperSquad.IsSwarmingUnit() && ModState.PositionLockSwarm[trooperSquad.GUID] == component.parent.GUID)
+                            {
+                                trooperSquad.DismountBA(component.parent, true);
+                            }
+
+                            var baLoc = trooperSquad.GetPossibleHitLocations(component.parent);
+                            var podDmg = activatableComponent.Explosion.Damage;
+                            //var podDmg = component.parent.StatCollection.GetValue<float>("SquishumToadsAsplode");
+                            var divDmg = podDmg / baLoc.Count;
+
+                            for (int i = 0; i < baLoc.Count; i++)
+                            {
+                                ModInit.modLog.LogMessage($"[ActivatableComponent - activateComponent] BA Armor Damage Location {baLoc}: {trooperSquad.GetStringForArmorLocation((ArmorLocation)baLoc[i])} for {divDmg}");
+                                var hitinfo = new WeaponHitInfo(-1, -1, 0, 0, component.parent.GUID, trooperSquad.GUID, 1, new float[1], new float[1], new float[1], new bool[1], new int[baLoc[i]], new int[1], new AttackImpactQuality[1], new AttackDirection[1], new Vector3[1], new string[1], new int[baLoc[i]]);
+                                trooperSquad.TakeWeaponDamage(hitinfo, baLoc[i], trooperSquad.MeleeWeapon, divDmg, 0, 0, DamageType.ComponentExplosion);
+
+                                var vector = trooperSquad.GameRep.GetHitPosition(baLoc[i]);
+                                var message = new FloatieMessage(hitinfo.attackerId, trooperSquad.GUID, $"{(int)Mathf.Max(1f, divDmg)}", trooperSquad.Combat.Constants.CombatUIConstants.floatieSizeMedium, FloatieMessage.MessageNature.ArmorDamage, vector.x, vector.y, vector.z);
+                                trooperSquad.Combat.MessageCenter.PublishMessage(message);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        [HarmonyPatch(typeof(SelectionStateTargetSingleCombatantBase), "ProcessClickedCombatant", new Type[] {typeof(ICombatant)})]
+        public static class SelectionStateTargetSingleCombatantBase_ProcessClickedCombatant
+        {
+            public static void Postfix(SelectionStateTargetSingleCombatantBase __instance, ICombatant combatant)
+            {
+                if (__instance.FromButton.Ability.Def.Id == ModInit.modSettings.BattleArmorMountAndSwarmID)
+                {
+                    var cHUD = Traverse.Create(__instance).Property("HUD").GetValue<CombatHUD>();
+                    var creator = cHUD.SelectedActor;
+                    
+                    if (creator is Mech creatorMech && combatant != null && combatant.team.IsEnemy(creator.team))
+                    {
+                        var chance = creator.Combat.ToHit.GetToHitChance(creator, creatorMech.MeleeWeapon, combatant, creator.CurrentPosition, combatant.CurrentPosition, 1, MeleeAttackType.Charge, false);
+                        ModInit.modLog.LogTrace($"[SelectionState.ShowFireButton - Swarm Success calculated as {chance}, storing in state.");
+                        ModState.SwarmSuccessChance = chance;
+                        var chanceDisplay = (float)Math.Round(chance, 2) * 100;
+                        cHUD.AttackModeSelector.FireButton.FireText.SetText($"{chanceDisplay}% - Confirm", Array.Empty<object>());
+                    }
+                }
+            }
+        }
+
+        [HarmonyPatch(typeof(SelectionStateAbilityInstant), "OnAddToStack", new Type[] {})]
+        public static class SelectionStateAbilityInstant_OnAddToStack
+        {
+            public static void Postfix(SelectionStateAbilityInstant __instance)
+            {
+                var cHUD = Traverse.Create(__instance).Property("HUD").GetValue<CombatHUD>();
+                var creator = cHUD.SelectedActor;
+                if (__instance.FromButton.Ability.Def.Id == ModInit.modSettings.BattleArmorDeSwarmRoll)
+                {
+                    var parsed = float.TryParse(__instance.FromButton.Ability.Def.EffectData
+                        .FirstOrDefault(x => x.statisticData.statName == "BattleArmorDeSwarmerRoll")
+                        ?.statisticData
+                        .modValue, out var baseChance);
+                    if (!parsed) baseChance = 0.55f;
+
+                    var pilotSkill = creator.GetPilot().Piloting;
+                    var finalChance = Mathf.Min(baseChance + (0.05f * pilotSkill), 0.95f);
+                    ModInit.modLog.LogMessage($"[SelectionStateAbilityInstant.OnAddToStack - BattleArmorDeSwarm] Deswarm chance: {finalChance} from baseChance {baseChance} + pilotSkill x 0.05 {0.05f * pilotSkill}, max 0.95., stored in state.");
+                    ModState.DeSwarmSuccessChance = finalChance;
+                    var chanceDisplay = (float)Math.Round(finalChance, 3) * 100;
+                    cHUD.AttackModeSelector.FireButton.FireText.SetText($"{chanceDisplay}% - Confirm", Array.Empty<object>());
+                }
+                else if (__instance.FromButton.Ability.Def.Id == ModInit.modSettings.BattleArmorDeSwarmSwat)
+                {
+                    
+                    var parsed = float.TryParse(__instance.FromButton.Ability.Def.EffectData
+                        .FirstOrDefault(x => x.statisticData.statName == "BattleArmorDeSwarmerSwat")
+                        ?.statisticData
+                        .modValue, out var baseChance);
+                    if (!parsed) baseChance = 0.55f;
+
+                    var pilotSkill = creator.GetPilot().Piloting;
+                    var missingActuatorCount = -8;
+                    foreach (var armComponent in creator.allComponents.Where(x =>
+                                 x.IsFunctional && (x.Location == 2 || x.Location == 32)))
+                    {
+                        foreach (var CategoryID in ModInit.modSettings.ArmActuatorCategoryIDs)
+                        {
+                            if (armComponent.mechComponentRef.IsCategory(CategoryID))
+                            {
+                                missingActuatorCount += 1;
+                                break;
+                            }
+                        }
+                    }
+
+                    var finalChance = baseChance + (0.05f * pilotSkill) - (0.05f * missingActuatorCount);
+                    ModInit.modLog.LogMessage($"[SelectionStateAbilityInstant.OnAddToStack - BattleArmorDeSwarm] Deswarm chance: {finalChance} from baseChance {baseChance} + pilotSkill x 0.05 {0.05f * pilotSkill} - missingActuators x 0.05 {0.05f * missingActuatorCount}, stored in state.");
+                    ModState.DeSwarmSuccessChance = finalChance;
+                    var chanceDisplay = (float)Math.Round(finalChance, 3) * 100;
+                    cHUD.AttackModeSelector.FireButton.FireText.SetText($"{chanceDisplay}% - Confirm", Array.Empty<object>());
+                }
+
             }
         }
 
@@ -162,11 +282,20 @@ namespace StrategicOperations.Patches
 
                             if (__instance.Def.Id == ModInit.modSettings.BattleArmorDeSwarmRoll)
                             {
-                                var baseChance = creator.StatCollection.GetValue<float>("BattleArmorDeSwarmerRoll");//0.5f;
+                                var finalChance = 0f;
                                 var rollInitPenalty = creator.StatCollection.GetValue<int>("BattleArmorDeSwarmerRollInitPenalty");
-                                var pilotSkill = creator.GetPilot().Piloting;
-                                var finalChance = Mathf.Min(baseChance + (0.05f * pilotSkill), 0.95f);
-                                ModInit.modLog.LogMessage($"[Ability.Activate - BattleArmorDeSwarm] Deswarm chance: {finalChance} from baseChance {baseChance} + pilotSkill x 0.05 {0.05f * pilotSkill}, max 0.95.");
+                                if (!creator.team.IsLocalPlayer)
+                                {
+                                    var baseChance = creator.StatCollection.GetValue<float>("BattleArmorDeSwarmerRoll");//0.5f;
+                                    var pilotSkill = creator.GetPilot().Piloting;
+                                    finalChance = Mathf.Min(baseChance + (0.05f * pilotSkill), 0.95f);
+                                    ModInit.modLog.LogMessage($"[Ability.Activate - BattleArmorDeSwarm] Deswarm chance: {finalChance} from baseChance {baseChance} + pilotSkill x 0.05 {0.05f * pilotSkill}, max 0.95.");
+                                }
+                                else
+                                {
+                                    finalChance = ModState.DeSwarmSuccessChance;
+                                    ModInit.modLog.LogMessage($"[Ability.Activate - BattleArmorDeSwarm] restored deswarm roll chance from state: {ModState.DeSwarmSuccessChance}");
+                                }
                                 var roll = ModInit.Random.NextDouble();
                                 foreach (var swarmingUnit in swarmingUnits)
                                 {
@@ -215,23 +344,38 @@ namespace StrategicOperations.Patches
 
                             else if (__instance.Def.Id == ModInit.modSettings.BattleArmorDeSwarmSwat)
                             {
-                                var baseChance = creator.StatCollection.GetValue<float>("BattleArmorDeSwarmerSwat");//0.5f;//0.3f;
-                                var swatInitPenalty = creator.StatCollection.GetValue<int>("BattleArmorDeSwarmerSwatInitPenalty");
-                                var pilotSkill = creator.GetPilot().Piloting;
-                                var missingActuatorCount = -8; 
-                                foreach (var armComponent in creator.allComponents.Where(x => x.IsFunctional && (x.Location == 2 || x.Location == 32)))
+                                var finalChance = 0f;
+                                var swatInitPenalty =
+                                    creator.StatCollection.GetValue<int>("BattleArmorDeSwarmerSwatInitPenalty");
+                                if (!creator.team.IsLocalPlayer)
                                 {
-                                    foreach (var CategoryID in ModInit.modSettings.ArmActuatorCategoryIDs)
+                                    var baseChance =
+                                        creator.StatCollection.GetValue<float>(
+                                            "BattleArmorDeSwarmerSwat"); //0.5f;//0.3f;
+                                    var pilotSkill = creator.GetPilot().Piloting;
+                                    var missingActuatorCount = -8;
+                                    foreach (var armComponent in creator.allComponents.Where(x =>
+                                                 x.IsFunctional && (x.Location == 2 || x.Location == 32)))
                                     {
-                                        if (armComponent.mechComponentRef.IsCategory(CategoryID))
+                                        foreach (var CategoryID in ModInit.modSettings.ArmActuatorCategoryIDs)
                                         {
-                                            missingActuatorCount += 1;
-                                            break;
+                                            if (armComponent.mechComponentRef.IsCategory(CategoryID))
+                                            {
+                                                missingActuatorCount += 1;
+                                                break;
+                                            }
                                         }
                                     }
+
+                                    finalChance = baseChance + (0.05f * pilotSkill) - (0.05f * missingActuatorCount);
+                                    ModInit.modLog.LogMessage(
+                                        $"[Ability.Activate - BattleArmorDeSwarm] Deswarm chance: {finalChance} from baseChance {baseChance} + pilotSkill x 0.05 {0.05f * pilotSkill} - missingActuators x 0.05 {0.05f * missingActuatorCount}.");
                                 }
-                                var finalChance = baseChance + (0.05f * pilotSkill) - (0.05f * missingActuatorCount);
-                                ModInit.modLog.LogMessage($"[Ability.Activate - BattleArmorDeSwarm] Deswarm chance: {finalChance} from baseChance {baseChance} + pilotSkill x 0.05 {0.05f * pilotSkill} - missingActuators x 0.05 {0.05f * missingActuatorCount}.");
+                                else
+                                {
+                                    finalChance = ModState.DeSwarmSuccessChance;
+                                    ModInit.modLog.LogMessage($"[Ability.Activate - BattleArmorDeSwarm] restored deswarm swat chance from state: {ModState.DeSwarmSuccessChance}");
+                                }
                                 var roll = ModInit.Random.NextDouble();
                                 foreach (var swarmingUnit in swarmingUnits)
                                 {
@@ -319,10 +463,16 @@ namespace StrategicOperations.Patches
                             }
                             else if (__instance.Def.Id == ModInit.modSettings.BattleArmorMountAndSwarmID && target.team.IsEnemy(creator.team) && creator is Mech creatorMech && creatorMech.canSwarm())
                             {
-                                var meleeChance = creator.Combat.ToHit.GetToHitChance(creator, creatorMech.MeleeWeapon, target, creator.CurrentPosition, target.CurrentPosition, 1, MeleeAttackType.Charge, false);
+                                targetActor.CheckForBPodAndActivate();
+                                if (creator.IsFlaggedForDeath)
+                                {
+                                    creator.HandleDeath(targetActor.GUID);
+                                    return;
+                                }
+                                var meleeChance = creator.team.IsLocalPlayer ? ModState.SwarmSuccessChance : creator.Combat.ToHit.GetToHitChance(creator, creatorMech.MeleeWeapon, target, creator.CurrentPosition, target.CurrentPosition, 1, MeleeAttackType.Charge, false);
+                                
                                 var roll = ModInit.Random.NextDouble();
-                                ModInit.modLog.LogMessage(
-                                    $"[Ability.Activate - BattleArmorSwarmID] Rolling simplified melee: roll {roll} vs hitChance {meleeChance}.");
+                                ModInit.modLog.LogMessage($"[Ability.Activate - BattleArmorSwarmID] Rolling simplified melee: roll {roll} vs hitChance {meleeChance}; chance in Modstate was {ModState.SwarmSuccessChance}.");
                                 if (roll <= meleeChance)
                                 {
                                     foreach (var effectData in ModState.BAUnhittableEffect.effects)

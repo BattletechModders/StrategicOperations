@@ -413,6 +413,11 @@ namespace StrategicOperations.Patches
                 if (unit.IsSwarmingUnit())
                 {
                     var target = unit.Combat.FindActorByGUID(ModState.PositionLockSwarm[unit.GUID]);
+                    if (unit.IsFlaggedForDeath || unit.IsDead)
+                    {
+                        unit.HandleDeath(target.GUID);
+                        return false;
+                    }
                     ModInit.modLog.LogMessage($"[AITeam.makeInvocationFromOrders] Actor {unit.DisplayName} has active swarm attack on {target.DisplayName}");
                     foreach (var weapon in unit.Weapons)
                     {

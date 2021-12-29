@@ -5,7 +5,10 @@ using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading.Tasks;
 using BattleTech;
+using BattleTech.Data;
 using BattleTech.UI;
+using CustomActivatableEquipment;
+using CustomComponents;
 using Harmony;
 using UnityEngine;
 
@@ -13,7 +16,29 @@ namespace StrategicOperations.Framework
 {
     public static class BattleArmorUtils
     {
-        public static string ProcessBattleArmorSpawnWeights(this Classes.BA_FactionAssoc BaWgts, string factionID, string type)
+        public static void CheckForBPodAndActivate(this AbstractActor actor)
+        {
+            if (!actor.team.IsLocalPlayer || actor.team.IsLocalPlayer && ModInit.modSettings.BPodsAutoActivate)
+            {
+                if (actor is Mech mech)
+                {
+                    foreach (var component in mech.allComponents)
+                    {
+                        if (ModInit.modSettings.BPodComponentIDs.Contains(component.defId))
+                        {
+                            if (ActivatableComponent.getChargesCount(component) > 0)
+                            {
+                                ModInit.modLog.LogMessage($"[CheckForBPodAndActivate] Auto-activating BPod {component.Name} due incoming swarm attempt");
+                                ActivatableComponent.activateComponent(component, true, false);
+                                break;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        public static string ProcessBattleArmorSpawnWeights(this Classes.BA_FactionAssoc BaWgts, DataManager dm, string factionID, string type)
         {
             if (ModState.CachedFactionAssociations.ContainsKey(factionID))
             {
@@ -32,29 +57,48 @@ namespace StrategicOperations.Framework
                     ModState.CachedFactionAssociations[faction].Add("HandsyBattleArmorWeight", new List<string>());
                     foreach (var BaTypeInternal in BaWgts.InternalBattleArmorWeight)
                     {
-                        ModInit.modLog.LogTrace($"[ProcessBattleArmorSpawnWeights - InternalBattleArmorWeight] Processing spawn weights for {BaTypeInternal.Key} and weight {BaTypeInternal.Value}");
-                        for (int i = 0; i < BaTypeInternal.Value; i++)
+                        if (dm.Exists(BattleTechResourceType.MechDef, BaTypeInternal.Key))
                         {
-                            ModState.CachedFactionAssociations[faction]["InternalBattleArmorWeight"].Add(BaTypeInternal.Key);
-                            ModInit.modLog.LogTrace($"[ProcessBattleArmorSpawnWeights - InternalBattleArmorWeight] spawn list has {ModState.CachedFactionAssociations[faction]["InternalBattleArmorWeight"].Count} entries");
+                            ModInit.modLog.LogTrace(
+                                $"[ProcessBattleArmorSpawnWeights - InternalBattleArmorWeight] Processing spawn weights for {BaTypeInternal.Key} and weight {BaTypeInternal.Value}");
+                            for (int i = 0; i < BaTypeInternal.Value; i++)
+                            {
+                                ModState.CachedFactionAssociations[faction]["InternalBattleArmorWeight"]
+                                    .Add(BaTypeInternal.Key);
+                                ModInit.modLog.LogTrace(
+                                    $"[ProcessBattleArmorSpawnWeights - InternalBattleArmorWeight] spawn list has {ModState.CachedFactionAssociations[faction]["InternalBattleArmorWeight"].Count} entries");
+                            }
                         }
                     }
                     foreach (var BaTypeMount in BaWgts.MountedBattleArmorWeight)
                     {
-                        ModInit.modLog.LogTrace($"[ProcessBattleArmorSpawnWeights - MountedBattleArmorWeight] Processing spawn weights for {BaTypeMount.Key} and weight {BaTypeMount.Value}");
-                        for (int i = 0; i < BaTypeMount.Value; i++)
+                        if (dm.Exists(BattleTechResourceType.MechDef, BaTypeMount.Key))
                         {
-                            ModState.CachedFactionAssociations[faction]["MountedBattleArmorWeight"].Add(BaTypeMount.Key);
-                            ModInit.modLog.LogTrace($"[ProcessBattleArmorSpawnWeights - MountedBattleArmorWeight] spawn list has {ModState.CachedFactionAssociations[faction]["MountedBattleArmorWeight"].Count} entries");
+                            ModInit.modLog.LogTrace(
+                                $"[ProcessBattleArmorSpawnWeights - MountedBattleArmorWeight] Processing spawn weights for {BaTypeMount.Key} and weight {BaTypeMount.Value}");
+                            for (int i = 0; i < BaTypeMount.Value; i++)
+                            {
+                                ModState.CachedFactionAssociations[faction]["MountedBattleArmorWeight"]
+                                    .Add(BaTypeMount.Key);
+                                ModInit.modLog.LogTrace(
+                                    $"[ProcessBattleArmorSpawnWeights - MountedBattleArmorWeight] spawn list has {ModState.CachedFactionAssociations[faction]["MountedBattleArmorWeight"].Count} entries");
+                            }
                         }
                     }
+
                     foreach (var BaTypeHandsy in BaWgts.HandsyBattleArmorWeight)
                     {
-                        ModInit.modLog.LogTrace($"[ProcessBattleArmorSpawnWeights - HandsyBattleArmorWeight] Processing spawn weights for {BaTypeHandsy.Key} and weight {BaTypeHandsy.Value}");
-                        for (int i = 0; i < BaTypeHandsy.Value; i++)
+                        if (dm.Exists(BattleTechResourceType.MechDef, BaTypeHandsy.Key))
                         {
-                            ModState.CachedFactionAssociations[faction]["HandsyBattleArmorWeight"].Add(BaTypeHandsy.Key);
-                            ModInit.modLog.LogTrace($"[ProcessBattleArmorSpawnWeights - HandsyBattleArmorWeight] spawn list has {ModState.CachedFactionAssociations[faction]["HandsyBattleArmorWeight"].Count} entries");
+                            ModInit.modLog.LogTrace(
+                                $"[ProcessBattleArmorSpawnWeights - HandsyBattleArmorWeight] Processing spawn weights for {BaTypeHandsy.Key} and weight {BaTypeHandsy.Value}");
+                            for (int i = 0; i < BaTypeHandsy.Value; i++)
+                            {
+                                ModState.CachedFactionAssociations[faction]["HandsyBattleArmorWeight"]
+                                    .Add(BaTypeHandsy.Key);
+                                ModInit.modLog.LogTrace(
+                                    $"[ProcessBattleArmorSpawnWeights - HandsyBattleArmorWeight] spawn list has {ModState.CachedFactionAssociations[faction]["HandsyBattleArmorWeight"].Count} entries");
+                            }
                         }
                     }
                 }

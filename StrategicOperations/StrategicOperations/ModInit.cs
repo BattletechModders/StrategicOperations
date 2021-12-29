@@ -64,7 +64,8 @@ namespace StrategicOperations
         public float strafeAltitudeMin = 75f;
         public float strafeAltitudeMax = 250f;
         public float strafePreDistanceMult = 6f;
-        public int strafeWaves = 1; // strafes will spawn this many units and do successive strafing runs.
+        public int strafeWaves = 1; // strafes will spawn this many units and do
+                                    // ive strafing runs.
         public float timeBetweenAttacks = 0.35f;
         public float strafeMinDistanceToEnd = 10f;
         public float commandUseCostsMulti = 1f;
@@ -84,6 +85,8 @@ namespace StrategicOperations
         public List<BA_FactionAssoc> BattleArmorFactionAssociations = new List<BA_FactionAssoc>();
         public string BattleArmorDeSwarmRoll = "";
         public string BattleArmorDeSwarmSwat = "";
+        public List<string> BPodComponentIDs = new List<string>(); //statistic for dmg will be BPod_DamageDealt
+        public bool BPodsAutoActivate = true; //BPods always auto activate when swarmed for AI, this only controls for player
         public List<string> ArmActuatorCategoryIDs = new List<string>();
         public bool AttackOnSwarmSuccess = false;
     }
