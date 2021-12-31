@@ -11,11 +11,36 @@ using CustomActivatableEquipment;
 using CustomComponents;
 using Harmony;
 using UnityEngine;
+using Random = UnityEngine.Random;
 
 namespace StrategicOperations.Framework
 {
     public static class BattleArmorUtils
     {
+        public static List<float> CreateBPodDmgClusters(List<int> locs, float totalDmg)
+        {
+            var clusters = new List<float>(locs.Count);
+            ModInit.modLog.LogTrace($"[CreateBPodDmgClusters] Generating {locs.Count} clusters of dmg from {totalDmg}");
+            var unapportionedDmg = totalDmg;
+            var idx = 0;
+            while (unapportionedDmg > 0)
+            {
+                var pendingDmg = Random.Range(0f, unapportionedDmg);
+                ModInit.modLog.LogTrace($"[CreateBPodDmgClusters] Current damage for idx {idx} is {clusters[idx]}; {pendingDmg} to be added");
+                clusters[idx] += pendingDmg;
+                unapportionedDmg -= pendingDmg;
+                ModInit.modLog.LogTrace($"[CreateBPodDmgClusters] {unapportionedDmg} remains to be assigned");
+                if (unapportionedDmg < 1f) unapportionedDmg = 0f;
+                idx++;
+                ModInit.modLog.LogTrace($"[CreateBPodDmgClusters] Moving to idx {idx}");
+                if (idx >= clusters.Count)
+                {
+                    ModInit.modLog.LogTrace($"[CreateBPodDmgClusters] idx {idx} out of range, resetting to 0");
+                    idx = 0;
+                }
+            }
+            return clusters;
+        }
         public static void CheckForBPodAndActivate(this AbstractActor actor)
         {
             if (!actor.team.IsLocalPlayer || actor.team.IsLocalPlayer && ModInit.modSettings.BPodsAutoActivate)
@@ -47,6 +72,7 @@ namespace StrategicOperations.Framework
                     return ModState.CachedFactionAssociations[factionID][type].GetRandomElement();
                 }
             }
+
             foreach (var faction in BaWgts.FactionIDs)
             {
                 if (!ModState.CachedFactionAssociations.ContainsKey(faction))
@@ -102,7 +128,6 @@ namespace StrategicOperations.Framework
                         }
                     }
                 }
-
                 if (ModState.CachedFactionAssociations[faction][type].Count > 0)
                 {
                     return ModState.CachedFactionAssociations[faction][type].GetRandomElement();

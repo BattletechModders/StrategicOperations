@@ -110,7 +110,7 @@ namespace StrategicOperations.Patches
                     }
 
                 }
-                loadRequest.ProcessRequests(1000u);
+                loadRequest.ProcessRequests(1000U);
             }
         }
 

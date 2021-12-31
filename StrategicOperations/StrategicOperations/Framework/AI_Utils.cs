@@ -81,7 +81,8 @@ namespace StrategicOperations.Framework
                                         if (ModState.CurrentBattleArmorSquads[unit.team.FactionValue.Name] <
                                             baConfig.MaxSquadsPerContract)
                                         {
-                                            SpawnUtils.SpawnBattleArmorAtActor(unit, chosenInt, baLance);
+                                            var spawner = new Classes.BA_Spawner(unit, chosenInt, baLance);
+                                            spawner.SpawnBattleArmorAtActor();
                                             ModState.CurrentBattleArmorSquads[unit.team.FactionValue.Name] += 1;
                                             ModInit.modLog.LogMessage(
                                                 $"Spawning {chosenInt}, incrementing CurrentBattleArmorSquads to {ModState.CurrentBattleArmorSquads[unit.team.FactionValue.Name]}.");
@@ -133,7 +134,8 @@ namespace StrategicOperations.Framework
                                     if (ModState.CurrentBattleArmorSquads[unit.team.FactionValue.Name] <
                                         baConfig.MaxSquadsPerContract)
                                     {
-                                        SpawnUtils.SpawnBattleArmorAtActor(unit, chosenMount, baLance);
+                                        var spawner = new Classes.BA_Spawner(unit, chosenMount, baLance);
+                                        spawner.SpawnBattleArmorAtActor();
                                         ModState.CurrentBattleArmorSquads[unit.team.FactionValue.Name] += 1;
                                         ModInit.modLog.LogMessage(
                                             $"Spawning {chosenMount}, incrementing CurrentBattleArmorSquads to {ModState.CurrentBattleArmorSquads[unit.team.FactionValue.Name]}.");
@@ -178,7 +180,8 @@ namespace StrategicOperations.Framework
                                     if (ModState.CurrentBattleArmorSquads[unit.team.FactionValue.Name] <
                                         baConfig.MaxSquadsPerContract)
                                     {
-                                        SpawnUtils.SpawnBattleArmorAtActor(unit, chosenHandsy, baLance);
+                                        var spawner = new Classes.BA_Spawner(unit, chosenHandsy, baLance);
+                                        spawner.SpawnBattleArmorAtActor();
                                         ModState.CurrentBattleArmorSquads[unit.team.FactionValue.Name] += 1;
                                         ModInit.modLog.LogMessage(
                                             $"Spawning {chosenHandsy}, incrementing CurrentBattleArmorSquads to {ModState.CurrentBattleArmorSquads[unit.team.FactionValue.Name]}.");
@@ -393,20 +396,20 @@ namespace StrategicOperations.Framework
                 LoadRequest loadRequest = dm.CreateLoadRequest();
                 if (chosen.StartsWith("mechdef_"))
                 {
-                    ModInit.modLog.LogMessage($"Added loadrequest for MechDef: {chosen}");
+                    ModInit.modLog.LogTrace($"Added loadrequest for MechDef: {chosen}");
                     loadRequest.AddBlindLoadRequest(BattleTechResourceType.MechDef, chosen);
                 }
                 else if (chosen.StartsWith("vehicledef_"))
                 {
-                    ModInit.modLog.LogMessage($"Added loadrequest for VehicleDef: {chosen}");
+                    ModInit.modLog.LogTrace($"Added loadrequest for VehicleDef: {chosen}");
                     loadRequest.AddBlindLoadRequest(BattleTechResourceType.VehicleDef, chosen);
                 }
                 else if (chosen.StartsWith("turretdef_"))
                 {
-                    ModInit.modLog.LogMessage($"Added loadrequest for TurretDef: {chosen}");
+                    ModInit.modLog.LogTrace($"Added loadrequest for TurretDef: {chosen}");
                     loadRequest.AddBlindLoadRequest(BattleTechResourceType.TurretDef, chosen);
                 }
-                loadRequest.ProcessRequests(1000u);
+                loadRequest.ProcessRequests(1000U);
 
                 return chosen;
             }

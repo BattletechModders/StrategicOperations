@@ -1,6 +1,9 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
 using BattleTech;
 using BattleTech.Data;
+using HBS.Collections;
 using IRBTModUtils.CustomInfluenceMap;
 using IRBTModUtils.Extension;
 using Newtonsoft.Json;
@@ -11,6 +14,118 @@ namespace StrategicOperations.Framework
 {
     public class Classes
     {
+        public class BA_Spawner
+        {
+            public AbstractActor Actor;
+            public string ChosenBA;
+            public Lance BaLance;
+            public DataManager DM;
+            public MechDef NewBattleArmorDef;
+            public PilotDef NewPilotDef;
+            public Team TeamSelection;
+            public TagSet CustomEncounterTags;
+
+            public BA_Spawner(AbstractActor actor, string chosenBA, Lance BaLance)
+            {
+                this.Actor = actor;
+                this.ChosenBA = chosenBA;
+                this.BaLance = BaLance;
+                this.DM = actor.Combat.DataManager;
+            }
+
+            public void OnBADepsFailed()
+            {
+                ModInit.modLog.LogTrace($"Failed to load BA Dependencies for {ChosenBA}. This shouldnt happen!");
+            }
+            public void OnBADepsLoaded()
+            {
+                var newBattleArmor = ActorFactory.CreateMech(NewBattleArmorDef, NewPilotDef,
+                    CustomEncounterTags, TeamSelection.Combat,
+                    TeamSelection.GetNextSupportUnitGuid(), "", Actor.team.HeraldryDef);
+                newBattleArmor.Init(Actor.CurrentPosition, Actor.CurrentRotation.eulerAngles.y, false);
+                newBattleArmor.InitGameRep(null);
+                TeamSelection.AddUnit(newBattleArmor);
+                newBattleArmor.AddToTeam(TeamSelection);
+                newBattleArmor.AddToLance(BaLance);
+                BaLance.AddUnitGUID(newBattleArmor.GUID);
+                newBattleArmor.BehaviorTree = BehaviorTreeFactory.MakeBehaviorTree(
+                    Actor.Combat.BattleTechGame, newBattleArmor, BehaviorTreeIDEnum.CoreAITree);
+                newBattleArmor.OnPositionUpdate(Actor.CurrentPosition, Actor.CurrentRotation, -1, true, null, false);
+                newBattleArmor.DynamicUnitRole = UnitRole.Brawler;
+                UnitSpawnedMessage message = new UnitSpawnedMessage("FROM_ABILITY", newBattleArmor.GUID);
+                Actor.Combat.MessageCenter.PublishMessage(message);
+
+                Actor.MountBattleArmorToChassis(newBattleArmor);
+                newBattleArmor.TeleportActor(Actor.CurrentPosition);
+
+                ModState.PositionLockMount.Add(newBattleArmor.GUID, Actor.GUID);
+                ModInit.modLog.LogMessage(
+                    $"[SpawnBattleArmorAtActor] Added PositionLockMount with rider  {newBattleArmor.DisplayName} {newBattleArmor.GUID} and carrier {Actor.DisplayName} {Actor.GUID}.");
+            }
+            public void SpawnBattleArmorAtActor()
+            {
+                LoadRequest loadRequest = DM.CreateLoadRequest();
+                loadRequest.AddBlindLoadRequest(BattleTechResourceType.MechDef, ChosenBA);
+                ModInit.modLog.LogMessage($"Added loadrequest for MechDef: {ChosenBA}");
+                loadRequest.ProcessRequests(1000U);
+
+                var instanceGUID =
+                    $"{Actor.Description.Id}_{Actor.team.Name}_{ChosenBA}";
+
+                if (Actor.Combat.TurnDirector.CurrentRound <= 1)
+                {
+                    if (ModState.DeferredInvokeBattleArmor.All(x => x.Key != instanceGUID) && !ModState.DeferredBattleArmorSpawnerFromDelegate)
+                    {
+                        ModInit.modLog.LogTrace(
+                            $"Deferred BA Spawner missing, creating delegate and returning. Delegate should spawn {ChosenBA}");
+
+                        void DeferredInvokeBASpawn() =>
+                            SpawnBattleArmorAtActor();
+
+                        var kvp = new KeyValuePair<string, Action>(instanceGUID, DeferredInvokeBASpawn);
+                        ModState.DeferredInvokeBattleArmor.Add(kvp);
+                        foreach (var value in ModState.DeferredInvokeBattleArmor)
+                        {
+                            ModInit.modLog.LogTrace(
+                                $"there is a delegate {value.Key} here, with value {value.Value}");
+                        }
+                        return;
+                    }
+                }
+
+                TeamSelection = Actor.team;
+                var alliedActors = Actor.Combat.AllMechs.Where(x => x.team == Actor.team);
+                var chosenpilotSourceMech = alliedActors.GetRandomElement();
+                var newPilotDefID = chosenpilotSourceMech.pilot.pilotDef.Description.Id;
+                DM.PilotDefs.TryGet(newPilotDefID, out this.NewPilotDef);
+                ModInit.modLog.LogMessage($"Attempting to spawn {ChosenBA} with pilot {NewPilotDef.Description.Callsign}.");
+                DM.MechDefs.TryGet(ChosenBA, out NewBattleArmorDef);
+                NewBattleArmorDef.Refresh();
+                //var injectedDependencyLoadRequest = new DataManager.InjectedDependencyLoadRequest(dm);
+                //newBattleArmorDef.GatherDependencies(dm, injectedDependencyLoadRequest, 1000U);
+                //newBattleArmorDef.Refresh();
+                CustomEncounterTags = new TagSet(TeamSelection.EncounterTags) {"SpawnedFromAbility"};
+
+                if (!NewBattleArmorDef.DependenciesLoaded(1000U) || !NewPilotDef.DependenciesLoaded(1000U))
+                {
+                    DataManager.InjectedDependencyLoadRequest dependencyLoad = new DataManager.InjectedDependencyLoadRequest(DM);
+                    dependencyLoad.RegisterLoadCompleteCallback(new Action(this.OnBADepsLoaded));
+                    dependencyLoad.RegisterLoadFailedCallback(new Action(this.OnBADepsFailed)); // do failure handling here
+                    DM.InjectDependencyLoader(dependencyLoad, 1000U);
+                    if (!NewBattleArmorDef.DependenciesLoaded(1000U))
+                    {
+                        NewBattleArmorDef.GatherDependencies(DM, dependencyLoad, 1000U);
+                    }
+                    if (!NewPilotDef.DependenciesLoaded(1000U))
+                    {
+                        NewPilotDef.GatherDependencies(DM, dependencyLoad, 1000U);
+                    }
+                    return;
+                }
+                this.OnBADepsLoaded();
+            }
+        }
+        
         public class BA_FactionAssoc
         {
             public List<string> FactionIDs = new List<string>();

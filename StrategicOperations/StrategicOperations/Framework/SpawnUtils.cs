@@ -11,72 +11,7 @@ namespace StrategicOperations.Framework
 {
     public static class SpawnUtils
     {
-        public static void SpawnBattleArmorAtActor(AbstractActor actor, string chosenBA, Lance baLance)
-        {
-            var dm = actor.Combat.DataManager;
-            LoadRequest loadRequest = dm.CreateLoadRequest();
-            loadRequest.AddBlindLoadRequest(BattleTechResourceType.MechDef, chosenBA);
-            ModInit.modLog.LogMessage($"Added loadrequest for MechDef: {chosenBA}");
-            loadRequest.ProcessRequests(1000);
 
-            var instanceGUID =
-                $"{actor.Description.Id}_{actor.team.Name}_{chosenBA}";
-
-            if (actor.Combat.TurnDirector.CurrentRound <= 1)
-            {
-                if (ModState.DeferredInvokeBattleArmor.All(x => x.Key != instanceGUID) && !ModState.DeferredBattleArmorSpawnerFromDelegate)
-                {
-                    ModInit.modLog.LogMessage(
-                        $"Deferred BA Spawner missing, creating delegate and returning. Delegate should spawn {chosenBA}");
-
-                    void DeferredInvokeBASpawn() =>
-                        SpawnBattleArmorAtActor(actor, chosenBA, baLance);
-
-                    var kvp = new KeyValuePair<string, Action>(instanceGUID, DeferredInvokeBASpawn);
-                    ModState.DeferredInvokeBattleArmor.Add(kvp);
-                    foreach (var value in ModState.DeferredInvokeBattleArmor)
-                    {
-                        ModInit.modLog.LogTrace(
-                            $"there is a delegate {value.Key} here, with value {value.Value}");
-                    }
-                    return;
-                }
-            }
-
-            var teamSelection = actor.team;
-            var alliedActors = actor.Combat.AllMechs.Where(x => x.team == actor.team);
-            var chosenpilotSourceMech = alliedActors.GetRandomElement();
-            var newPilotDefID = chosenpilotSourceMech.pilot.pilotDef.Description.Id;
-            dm.PilotDefs.TryGet(newPilotDefID, out var newPilotDef);
-            ModInit.modLog.LogMessage($"Attempting to spawn {chosenBA} with pilot {newPilotDef.Description.Callsign}.");
-            dm.MechDefs.TryGet(chosenBA, out var newBattleArmorDef);
-            newBattleArmorDef.Refresh();
-            var customEncounterTags = new TagSet(teamSelection.EncounterTags);
-            customEncounterTags.Add("SpawnedFromAbility");
-            var newBattleArmor = ActorFactory.CreateMech(newBattleArmorDef, newPilotDef,
-                customEncounterTags, teamSelection.Combat,
-                teamSelection.GetNextSupportUnitGuid(), "", actor.team.HeraldryDef);
-            newBattleArmor.Init(actor.CurrentPosition, actor.CurrentRotation.eulerAngles.y, false);
-            newBattleArmor.InitGameRep(null);
-            teamSelection.AddUnit(newBattleArmor);
-            newBattleArmor.AddToTeam(teamSelection);
-            newBattleArmor.AddToLance(baLance);
-            baLance.AddUnitGUID(newBattleArmor.GUID);
-            newBattleArmor.BehaviorTree = BehaviorTreeFactory.MakeBehaviorTree(
-                actor.Combat.BattleTechGame, newBattleArmor, BehaviorTreeIDEnum.CoreAITree);
-            newBattleArmor.OnPositionUpdate(actor.CurrentPosition, actor.CurrentRotation, -1, true, null, false);
-            newBattleArmor.DynamicUnitRole = UnitRole.Brawler;
-            UnitSpawnedMessage message = new UnitSpawnedMessage("FROM_ABILITY", newBattleArmor.GUID);
-            actor.Combat.MessageCenter.PublishMessage(message);
-
-            actor.MountBattleArmorToChassis(newBattleArmor);
-            //newBattleArmor.GameRep.IsTargetable = false;
-            newBattleArmor.TeleportActor(actor.CurrentPosition);
-
-            ModState.PositionLockMount.Add(newBattleArmor.GUID, actor.GUID);
-            ModInit.modLog.LogMessage(
-                $"[SpawnBattleArmorAtActor] Added PositionLockMount with rider  {newBattleArmor.DisplayName} {newBattleArmor.GUID} and carrier {actor.DisplayName} {actor.GUID}.");
-        }
 
         public static Vector3 FindValidSpawn(AbstractActor target, AbstractActor source, int minRange, int maxRange)
         {

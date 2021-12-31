@@ -68,20 +68,22 @@ namespace StrategicOperations.Patches
                             {
                                 trooperSquad.DismountBA(component.parent, true);
                             }
-
+                            
                             var baLoc = trooperSquad.GetPossibleHitLocations(component.parent);
                             var podDmg = activatableComponent.Explosion.Damage;
                             //var podDmg = component.parent.StatCollection.GetValue<float>("SquishumToadsAsplode");
-                            var divDmg = podDmg / baLoc.Count;
+                            //var divDmg = podDmg / baLoc.Count;
 
-                            for (int i = 0; i < baLoc.Count; i++)
+                            var clusters = BattleArmorUtils.CreateBPodDmgClusters(baLoc, podDmg);
+
+                            for (int i = 0; i < clusters.Count; i++)
                             {
-                                ModInit.modLog.LogMessage($"[ActivatableComponent - activateComponent] BA Armor Damage Location {baLoc}: {trooperSquad.GetStringForArmorLocation((ArmorLocation)baLoc[i])} for {divDmg}");
+                                ModInit.modLog.LogMessage($"[ActivatableComponent - activateComponent] BA Armor Damage Location {baLoc}: {trooperSquad.GetStringForArmorLocation((ArmorLocation)baLoc[i])} for {clusters[i]}");
                                 var hitinfo = new WeaponHitInfo(-1, -1, 0, 0, component.parent.GUID, trooperSquad.GUID, 1, new float[1], new float[1], new float[1], new bool[1], new int[baLoc[i]], new int[1], new AttackImpactQuality[1], new AttackDirection[1], new Vector3[1], new string[1], new int[baLoc[i]]);
-                                trooperSquad.TakeWeaponDamage(hitinfo, baLoc[i], trooperSquad.MeleeWeapon, divDmg, 0, 0, DamageType.ComponentExplosion);
+                                trooperSquad.TakeWeaponDamage(hitinfo, baLoc[i], trooperSquad.MeleeWeapon, clusters[i], 0, 0, DamageType.ComponentExplosion);
 
                                 var vector = trooperSquad.GameRep.GetHitPosition(baLoc[i]);
-                                var message = new FloatieMessage(hitinfo.attackerId, trooperSquad.GUID, $"{(int)Mathf.Max(1f, divDmg)}", trooperSquad.Combat.Constants.CombatUIConstants.floatieSizeMedium, FloatieMessage.MessageNature.ArmorDamage, vector.x, vector.y, vector.z);
+                                var message = new FloatieMessage(hitinfo.attackerId, trooperSquad.GUID, $"{(int)Mathf.Max(1f, clusters[i])}", trooperSquad.Combat.Constants.CombatUIConstants.floatieSizeMedium, FloatieMessage.MessageNature.ArmorDamage, vector.x, vector.y, vector.z);
                                 trooperSquad.Combat.MessageCenter.PublishMessage(message);
                             }
                         }
