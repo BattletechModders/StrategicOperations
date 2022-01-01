@@ -83,7 +83,7 @@ namespace StrategicOperations.Framework
                     ModState.CachedFactionAssociations[faction].Add("HandsyBattleArmorWeight", new List<string>());
                     foreach (var BaTypeInternal in BaWgts.InternalBattleArmorWeight)
                     {
-                        if (dm.Exists(BattleTechResourceType.MechDef, BaTypeInternal.Key))
+                        if (dm.Exists(BattleTechResourceType.MechDef, BaTypeInternal.Key) || BaTypeInternal.Key == "BA_EMPTY")
                         {
                             ModInit.modLog.LogTrace(
                                 $"[ProcessBattleArmorSpawnWeights - InternalBattleArmorWeight] Processing spawn weights for {BaTypeInternal.Key} and weight {BaTypeInternal.Value}");
@@ -98,7 +98,7 @@ namespace StrategicOperations.Framework
                     }
                     foreach (var BaTypeMount in BaWgts.MountedBattleArmorWeight)
                     {
-                        if (dm.Exists(BattleTechResourceType.MechDef, BaTypeMount.Key))
+                        if (dm.Exists(BattleTechResourceType.MechDef, BaTypeMount.Key) || BaTypeMount.Key == "BA_EMPTY")
                         {
                             ModInit.modLog.LogTrace(
                                 $"[ProcessBattleArmorSpawnWeights - MountedBattleArmorWeight] Processing spawn weights for {BaTypeMount.Key} and weight {BaTypeMount.Value}");
@@ -114,7 +114,7 @@ namespace StrategicOperations.Framework
 
                     foreach (var BaTypeHandsy in BaWgts.HandsyBattleArmorWeight)
                     {
-                        if (dm.Exists(BattleTechResourceType.MechDef, BaTypeHandsy.Key))
+                        if (dm.Exists(BattleTechResourceType.MechDef, BaTypeHandsy.Key) || BaTypeHandsy.Key == "BA_EMPTY")
                         {
                             ModInit.modLog.LogTrace(
                                 $"[ProcessBattleArmorSpawnWeights - HandsyBattleArmorWeight] Processing spawn weights for {BaTypeHandsy.Key} and weight {BaTypeHandsy.Value}");
