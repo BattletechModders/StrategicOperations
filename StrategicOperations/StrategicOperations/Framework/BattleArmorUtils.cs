@@ -368,7 +368,6 @@ namespace StrategicOperations.Framework
 
         public static void DismountBA (this AbstractActor actor, AbstractActor carrier, bool calledFromDeswarm = false, bool calledFromHandleDeath = false)
         {
-
             if (ModState.BADamageTrackers.ContainsKey(actor.GUID))
             {
                 if (ModState.BADamageTrackers[actor.GUID].IsSquadInternal)

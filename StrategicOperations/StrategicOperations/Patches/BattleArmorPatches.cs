@@ -429,10 +429,12 @@ namespace StrategicOperations.Patches
                                 creator.FlagForKnockdown();
                                 creator.HandleKnockdown(-1,creator.GUID,Vector2.one, null);
                             }
-
-                            var sequence = creator.DoneWithActor();
-                            creator.Combat.MessageCenter.PublishMessage(new AddSequenceToStackMessage(sequence));
-                            creator.OnActivationEnd(creator.GUID, -1);
+                            if (creator.team.IsLocalPlayer)
+                            {
+                                var sequence = creator.DoneWithActor();
+                                creator.Combat.MessageCenter.PublishMessage(new AddSequenceToStackMessage(sequence));
+                                creator.OnActivationEnd(creator.GUID, -1);
+                            }
                             return;
                         }
 
@@ -459,10 +461,13 @@ namespace StrategicOperations.Patches
                                 ModState.PositionLockMount.Add(creator.GUID, target.GUID);
                                 ModInit.modLog.LogMessage(
                                     $"[Ability.Activate - BattleArmorMountID] Added PositionLockMount with rider  {creator.DisplayName} {creator.GUID} and carrier {target.DisplayName} {target.GUID}.");
-                                var sequence = creator.DoneWithActor();
-                                creator.Combat.MessageCenter.PublishMessage(new AddSequenceToStackMessage(sequence));
-                                creator.OnActivationEnd(creator.GUID, -1);
-                                
+
+                                if (creator.team.IsLocalPlayer)
+                                {
+                                    var sequence = creator.DoneWithActor();
+                                    creator.Combat.MessageCenter.PublishMessage(new AddSequenceToStackMessage(sequence));
+                                    creator.OnActivationEnd(creator.GUID, -1);
+                                }
                             }
                             else if (__instance.Def.Id == ModInit.modSettings.BattleArmorMountAndSwarmID && target.team.IsEnemy(creator.team) && creator is Mech creatorMech && creatorMech.canSwarm())
                             {
@@ -543,10 +548,12 @@ namespace StrategicOperations.Patches
                                             //creator.Combat.MessageCenter.PublishMessage(attackInvocation);
                                         }
                                     }
-
-                                    var sequence = creator.DoneWithActor();
-                                    creator.Combat.MessageCenter.PublishMessage(new AddSequenceToStackMessage(sequence));
-                                    creator.OnActivationEnd(creator.GUID, -1);
+                                    if (creator.team.IsLocalPlayer)
+                                    {
+                                        var sequence = creator.DoneWithActor();
+                                        creator.Combat.MessageCenter.PublishMessage(new AddSequenceToStackMessage(sequence));
+                                        creator.OnActivationEnd(creator.GUID, -1);
+                                    }
                                 }
                                 else
                                 {
@@ -561,9 +568,12 @@ namespace StrategicOperations.Patches
                                     creator.TeleportActor(target.CurrentPosition);
                                     creator.ResetPathing(false);
                                     creator.Pathing.UpdateCurrentPath(false);
-                                    var sequence = creator.DoneWithActor();
-                                    creator.Combat.MessageCenter.PublishMessage(new AddSequenceToStackMessage(sequence));
-                                    creator.OnActivationEnd(creator.GUID, -1);
+                                    if (creator.team.IsLocalPlayer)
+                                    {
+                                        var sequence = creator.DoneWithActor();
+                                        creator.Combat.MessageCenter.PublishMessage(new AddSequenceToStackMessage(sequence));
+                                        creator.OnActivationEnd(creator.GUID, -1);
+                                    }
                                 }
                             }
                             else if (__instance.Def.Id == ModInit.modSettings.BattleArmorMountAndSwarmID &&

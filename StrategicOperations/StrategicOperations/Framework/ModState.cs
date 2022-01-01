@@ -10,6 +10,7 @@ namespace StrategicOperations.Framework
 {
     public static class ModState
     {
+        public static List<BA_Spawner> CurrentContractBASpawners = new List<BA_Spawner>();
 
         public static float SwarmSuccessChance = 0f;
         public static float DeSwarmSuccessChance = 0f;
@@ -103,6 +104,7 @@ namespace StrategicOperations.Framework
 
         public static void ResetAll()
         {
+            CurrentContractBASpawners = new List<BA_Spawner>();
             SwarmSuccessChance = 0f;
             DeSwarmSuccessChance = 0f;
             CurrentBattleArmorSquads = new Dictionary<string, int>();

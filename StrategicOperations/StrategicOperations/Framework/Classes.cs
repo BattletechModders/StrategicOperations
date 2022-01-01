@@ -30,7 +30,7 @@ namespace StrategicOperations.Framework
                 this.Actor = actor;
                 this.ChosenBA = chosenBA;
                 this.BaLance = BaLance;
-                this.DM = actor.Combat.DataManager;
+                this.DM = UnityGameInstance.BattleTechGame.DataManager;
             }
 
             public void OnBADepsFailed()
@@ -111,7 +111,6 @@ namespace StrategicOperations.Framework
                     DataManager.InjectedDependencyLoadRequest dependencyLoad = new DataManager.InjectedDependencyLoadRequest(DM);
                     dependencyLoad.RegisterLoadCompleteCallback(new Action(this.OnBADepsLoaded));
                     dependencyLoad.RegisterLoadFailedCallback(new Action(this.OnBADepsFailed)); // do failure handling here
-                    DM.InjectDependencyLoader(dependencyLoad, 1000U);
                     if (!NewBattleArmorDef.DependenciesLoaded(1000U))
                     {
                         NewBattleArmorDef.GatherDependencies(DM, dependencyLoad, 1000U);
@@ -120,6 +119,7 @@ namespace StrategicOperations.Framework
                     {
                         NewPilotDef.GatherDependencies(DM, dependencyLoad, 1000U);
                     }
+                    DM.InjectDependencyLoader(dependencyLoad, 1000U);
                     return;
                 }
                 this.OnBADepsLoaded();
