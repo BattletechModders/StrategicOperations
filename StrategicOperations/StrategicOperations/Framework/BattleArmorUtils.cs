@@ -19,7 +19,11 @@ namespace StrategicOperations.Framework
     {
         public static List<float> CreateBPodDmgClusters(List<int> locs, float totalDmg)
         {
-            var clusters = new List<float>(locs.Count);
+            var clusters = new List<float>();
+            for (int i = 0; i < locs.Count; i++)
+            {
+                clusters.Add(0f);
+            }
             ModInit.modLog.LogTrace($"[CreateBPodDmgClusters] Generating {locs.Count} clusters of dmg from {totalDmg}");
             var unapportionedDmg = totalDmg;
             var idx = 0;
