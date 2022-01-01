@@ -429,6 +429,7 @@ namespace StrategicOperations.Patches
                                 creator.FlagForKnockdown();
                                 creator.HandleKnockdown(-1,creator.GUID,Vector2.one, null);
                             }
+
                             var sequence = creator.DoneWithActor();
                             creator.Combat.MessageCenter.PublishMessage(new AddSequenceToStackMessage(sequence));
                             creator.OnActivationEnd(creator.GUID, -1);
@@ -811,7 +812,7 @@ namespace StrategicOperations.Patches
             {
                 if (__instance.HasSwarmingUnits())
                 {
-                    var swarmingUnits = ModState.PositionLockSwarm.Where(x => x.Value == __instance.GUID).ToList();
+                    var swarmingUnits = new List<KeyValuePair<string, string>>(ModState.PositionLockSwarm.Where(x => x.Value == __instance.GUID).ToList());
                     var wereSwarmingUnitsResponsible = swarmingUnits.Any(x => x.Key == attackerGUID);
                     foreach (var swarmingUnit in swarmingUnits)
                     {
@@ -830,7 +831,7 @@ namespace StrategicOperations.Patches
 
                 if (__instance.HasMountedUnits())
                 {
-                    var mountedUnits = ModState.PositionLockMount.Where(x => x.Value == __instance.GUID);
+                    var mountedUnits = new List<KeyValuePair<string,string>>(ModState.PositionLockMount.Where(x => x.Value == __instance.GUID).ToList());
                     foreach (var mountedUnit in mountedUnits)
                     {
                         var actor = __instance.Combat.FindActorByGUID(mountedUnit.Key);
