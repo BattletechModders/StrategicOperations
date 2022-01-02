@@ -50,15 +50,16 @@ namespace StrategicOperations.Framework
                 BaLance.AddUnitGUID(newBattleArmor.GUID);
                 newBattleArmor.BehaviorTree = BehaviorTreeFactory.MakeBehaviorTree(
                     Actor.Combat.BattleTechGame, newBattleArmor, BehaviorTreeIDEnum.CoreAITree);
+                newBattleArmor.OnPlayerVisibilityChanged(VisibilityLevel.None);
                 newBattleArmor.OnPositionUpdate(Actor.CurrentPosition, Actor.CurrentRotation, -1, true, null, false);
                 newBattleArmor.DynamicUnitRole = UnitRole.Brawler;
                 UnitSpawnedMessage message = new UnitSpawnedMessage("FROM_ABILITY", newBattleArmor.GUID);
                 Actor.Combat.MessageCenter.PublishMessage(message);
-
                 Actor.MountBattleArmorToChassis(newBattleArmor);
                 newBattleArmor.TeleportActor(Actor.CurrentPosition);
-
                 ModState.PositionLockMount.Add(newBattleArmor.GUID, Actor.GUID);
+                Actor.Combat.ItemRegistry.AddItem(newBattleArmor);
+                Actor.Combat.RebuildAllLists();
                 ModInit.modLog.LogMessage(
                     $"[SpawnBattleArmorAtActor] Added PositionLockMount with rider  {newBattleArmor.DisplayName} {newBattleArmor.GUID} and carrier {Actor.DisplayName} {Actor.GUID}.");
             }

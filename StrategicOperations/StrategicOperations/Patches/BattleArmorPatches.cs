@@ -302,6 +302,7 @@ namespace StrategicOperations.Patches
                                 foreach (var swarmingUnit in swarmingUnits)
                                 {
                                     var swarmingUnitActor = __instance.Combat.FindActorByGUID(swarmingUnit.Key);
+                                    var swarmingUnitSquad = swarmingUnitActor as TrooperSquad;
                                     if (roll <= finalChance)
                                     {
                                         ModInit.modLog.LogMessage(
@@ -319,11 +320,13 @@ namespace StrategicOperations.Patches
                                         {
                                             ModInit.modLog.LogMessage(
                                                 $"[Ability.Activate - DestroyBA on Roll] SUCCESS: {destroyBARoll} <= {finalChance}.");
-                                            swarmingUnitActor.DismountBA(creator, true);
-                                            swarmingUnitActor.FlagForDeath("smooshed",
-                                                DeathMethod.VitalComponentDestroyed, DamageType.Melee, 8, -1,
-                                                creator.GUID, false);
-                                            swarmingUnitActor.HandleDeath(creator.GUID);
+                                            var trooperLocs = swarmingUnitActor.GetPossibleHitLocations(creator);
+                                            for (int i = 0; i < trooperLocs.Count; i++)
+                                            {
+                                                var cLoc = (ChassisLocations)trooperLocs[i];
+                                                var hitinfo = new WeaponHitInfo(-1, -1, 0, 0, creator.GUID, swarmingUnitActor.GUID, 1, new float[1], new float[1], new float[1], new bool[1], new int[trooperLocs[i]], new int[1], new AttackImpactQuality[1], new AttackDirection[1], new Vector3[1], new string[1], new int[trooperLocs[i]]);
+                                                swarmingUnitSquad?.NukeStructureLocation(hitinfo, trooperLocs[i], cLoc, Vector3.up, DamageType.ComponentExplosion);
+                                            }
                                         }
                                         else
                                         {
@@ -827,14 +830,19 @@ namespace StrategicOperations.Patches
                     foreach (var swarmingUnit in swarmingUnits)
                     {
                         var actor = __instance.Combat.FindActorByGUID(swarmingUnit.Key);
-
+                        var squad = actor as TrooperSquad;
                         if (ModInit.Random.NextDouble() <= (double)1 / 3 && !wereSwarmingUnitsResponsible)
                         {
-                            actor.FlagForDeath("MountDestroyed", DeathMethod.VitalComponentDestroyed, DamageType.Combat, 1, -1, attackerGUID, false);
-                            actor.HandleDeath(attackerGUID);
+                            var trooperLocs = squad.GetPossibleHitLocations(__instance);
+                            for (int i = 0; i < trooperLocs.Count; i++)
+                            {
+                                var cLoc = (ChassisLocations)trooperLocs[i];
+                                var hitinfo = new WeaponHitInfo(-1, -1, 0, 0, __instance.GUID, squad.GUID, 1, new float[1], new float[1], new float[1], new bool[1], new int[trooperLocs[i]], new int[1], new AttackImpactQuality[1], new AttackDirection[1], new Vector3[1], new string[1], new int[trooperLocs[i]]);
+                                squad.NukeStructureLocation(hitinfo, trooperLocs[i], cLoc, Vector3.up, DamageType.ComponentExplosion);
+                            }
                             continue;
                         }
-
+                        ModInit.modLog.LogTrace($"[AbstractActor.HandleDeath] Swarmed unit {__instance.DisplayName} destroyed, calling dismount.");
                         actor.DismountBA(__instance, false, true);
                     }
                 }
@@ -845,13 +853,19 @@ namespace StrategicOperations.Patches
                     foreach (var mountedUnit in mountedUnits)
                     {
                         var actor = __instance.Combat.FindActorByGUID(mountedUnit.Key);
-
+                        var squad = actor as TrooperSquad;
                         if (ModInit.Random.NextDouble() <= (double)1 / 3)
                         {
-                            actor.FlagForDeath("MountDestroyed", DeathMethod.VitalComponentDestroyed, DamageType.Combat, 1, -1, attackerGUID, false);
-                            actor.HandleDeath(attackerGUID);
+                            var trooperLocs = squad.GetPossibleHitLocations(__instance);
+                            for (int i = 0; i < trooperLocs.Count; i++)
+                            {
+                                var cLoc = (ChassisLocations)trooperLocs[i];
+                                var hitinfo = new WeaponHitInfo(-1, -1, 0, 0, __instance.GUID, squad.GUID, 1, new float[1], new float[1], new float[1], new bool[1], new int[trooperLocs[i]], new int[1], new AttackImpactQuality[1], new AttackDirection[1], new Vector3[1], new string[1], new int[trooperLocs[i]]);
+                                squad.NukeStructureLocation(hitinfo, trooperLocs[i], cLoc, Vector3.up, DamageType.ComponentExplosion);
+                            }
                             continue;
                         }
+                        ModInit.modLog.LogTrace($"[AbstractActor.HandleDeath] Mount {__instance.DisplayName} destroyed, calling dismount.");
                         actor.DismountBA(__instance, false, true);
                     }
                 }

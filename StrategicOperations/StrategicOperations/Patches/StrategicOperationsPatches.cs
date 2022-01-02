@@ -871,10 +871,10 @@ namespace StrategicOperations.Patches
             }
         }
 
-        [HarmonyPatch(typeof(TurnActor), "OnRoundBegin")]
+        [HarmonyPatch(typeof(Team), "OnRoundBegin")]
         public static class TurnActor_OnRoundBegin
         {
-            public static void Postfix(TurnActor __instance)
+            public static void Postfix(Team __instance)
             {
                 if (__instance.Combat.ActiveContract.ContractTypeValue.IsSkirmish) return;
                 foreach (var ability in ModState.CommandAbilities)
@@ -882,17 +882,16 @@ namespace StrategicOperations.Patches
                     ability.OnNewRound();
                 }
 
-                var team = __instance as Team;
+                //var team = __instance as Team;
 
-                if (team?.units != null)
-                    foreach (var unit in team?.units)
+                if (__instance?.units != null)
+                    foreach (var unit in __instance?.units)
                     {
                         var rep = unit.GameRep as PilotableActorRepresentation;
-                        rep.ClearForcedPlayerVisibilityLevel(__instance.Combat.GetAllLivingCombatants());
+                        rep?.ClearForcedPlayerVisibilityLevel(__instance.Combat.GetAllLivingCombatants());
                     }
-
                 //                team?.ResetUnitVisibilityLevels();
-                team?.RebuildVisibilityCacheAllUnits(__instance.Combat.GetAllLivingCombatants());
+                __instance?.RebuildVisibilityCacheAllUnits(__instance.Combat.GetAllLivingCombatants());
 
             }
         }
