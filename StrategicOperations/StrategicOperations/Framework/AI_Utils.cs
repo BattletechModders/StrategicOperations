@@ -163,7 +163,7 @@ namespace StrategicOperations.Framework
                                 $"No config for mounted BA for faction {unit.team.FactionValue.Name}.");
                         }
                     }
-                    else
+                    else if (!(unit is TrooperSquad))
                     {
                         ModInit.modLog.LogTrace($"Unit dont has mounts.");
                         var chosenHandsy = baConfig.ProcessBattleArmorSpawnWeights(dm, unit.team.FactionValue.Name,
