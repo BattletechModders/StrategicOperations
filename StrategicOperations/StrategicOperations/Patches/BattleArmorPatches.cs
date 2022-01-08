@@ -35,6 +35,7 @@ namespace StrategicOperations.Patches
             public static void Postfix(AbstractActor __instance)
             {
                 __instance.StatCollection.AddStatistic<bool>("CanSwarm", false);
+                __instance.StatCollection.AddStatistic<bool>("BattleArmorInternalMountsOnly", false);
                 __instance.StatCollection.AddStatistic<int>("InternalBattleArmorSquadCap", 0);
                 __instance.StatCollection.AddStatistic<int>("InternalBattleArmorSquads", 0);
                 __instance.StatCollection.AddStatistic<bool>("HasBattleArmorMounts", false);
@@ -176,6 +177,10 @@ namespace StrategicOperations.Patches
         {
             public static bool Prefix(AbilityExtensions.SelectionStateMWTargetSingle __instance, ICombatant potentialTarget, ref bool __result)
             {
+                if (__instance.FromButton.Ability.Def.Id != ModInit.modSettings.BattleArmorMountAndSwarmID)
+                {
+                    return true;
+                }
                 if (potentialTarget is AbstractActor targetActor)
                 {
                     if (__instance.FromButton.Ability.Def.Id == ModInit.modSettings.BattleArmorMountAndSwarmID && (__instance.SelectedActor == targetActor || targetActor is TrooperSquad))
@@ -184,62 +189,15 @@ namespace StrategicOperations.Patches
                         return false;
                     }
 
-                    if (__instance.SelectedActor.IsMountedUnit() && targetActor.HasMountedUnits())
+                    if (__instance.SelectedActor.team.IsFriendly(targetActor.team))
                     {
-                        if (ModState.PositionLockMount[__instance.SelectedActor.GUID] == targetActor.GUID)
+                        if (__instance.SelectedActor.IsMountedUnit() && targetActor.HasMountedUnits())
                         {
-                            __result = true;
-                            return false;
-                        }
-                        __result = false;
-                        return false;
-                    }
-
-                    if (__instance.SelectedActor.IsMountedUnit() && !targetActor.HasMountedUnits())
-                    {
-                        __result = false;
-                        return false;
-                    }
-
-                    if (!__instance.SelectedActor.IsMountedUnit() && targetActor.HasMountedUnits())
-                    {
-                        if (targetActor.getAvailableInternalBASpace() > 0)
-                        {
-                            __result = true;
-                            return false;
-                        }
-                        // figure out carrying capacity here and set true
-                        __result = false;
-                        return false;
-                    }
-
-                    if (__instance.SelectedActor.IsSwarmingUnit() && targetActor.HasSwarmingUnits())
-                    {
-                        if (ModState.PositionLockSwarm[__instance.SelectedActor.GUID] == targetActor.GUID)
-                        {
-                            __result = true;
-                            return false;
-                        }
-                        __result = false;
-                        return false;
-                    }
-
-                    if (__instance.SelectedActor.IsSwarmingUnit() && !targetActor.HasSwarmingUnits())
-                    {
-                        __result = false;
-                        return false;
-                    }
-
-                    if (!__instance.SelectedActor.IsSwarmingUnit() && targetActor.HasSwarmingUnits())
-                    {
-                        __result = true;
-                        return false;
-                    }
-
-                    if (potentialTarget.team.IsFriendly(__instance.SelectedActor.team))
-                    {
-                        if (!__instance.SelectedActor.getIsBattleArmorHandsy() && !targetActor.getHasBattleArmorMounts() && targetActor.getAvailableInternalBASpace() <= 0)
-                        {
+                            if (ModState.PositionLockMount[__instance.SelectedActor.GUID] == targetActor.GUID)
+                            {
+                                __result = true;
+                                return false;
+                            }
                             __result = false;
                             return false;
                         }
@@ -249,18 +207,74 @@ namespace StrategicOperations.Patches
                             __result = false;
                             return false;
                         }
-                    }
 
-                    if (potentialTarget.team.IsEnemy(__instance.SelectedActor.team))
-                    {
-                        if (targetActor.getIsUnSwarmable())
+                        if (!__instance.SelectedActor.getIsBattleArmorHandsy() && !targetActor.getHasBattleArmorMounts() && targetActor.getAvailableInternalBASpace() <= 0)
                         {
                             __result = false;
                             return false;
                         }
+
+                        if (__instance.SelectedActor.IsMountedUnit() && !targetActor.HasMountedUnits())
+                        {
+                            __result = false;
+                            return false;
+                        }
+
+                        if (!__instance.SelectedActor.IsMountedUnit() && __instance.SelectedActor.canRideInternalOnly() && targetActor.getAvailableInternalBASpace() <= 0)
+                        {
+                            __result = false;
+                            return false;
+                        }
+
+                        if (!__instance.SelectedActor.IsMountedUnit())
+                        {
+                            if (targetActor.getAvailableInternalBASpace() > 0 || !targetActor.HasMountedUnits())
+                            {
+                                __result = true;
+                                return false;
+                            }
+                            // figure out carrying capacity here and set true
+                            __result = false;
+                            return false;
+                        }
+                        __result = true;
+                        return false;
+                    }
+
+                    if (__instance.SelectedActor.team.IsEnemy(targetActor.team))
+                    {
+                        if (__instance.SelectedActor.IsSwarmingUnit() && targetActor.HasSwarmingUnits())
+                        {
+                            if (ModState.PositionLockSwarm[__instance.SelectedActor.GUID] == targetActor.GUID)
+                            {
+                                __result = true;
+                                return false;
+                            }
+                            __result = false;
+                            return false;
+                        }
+
+                        if (targetActor.getIsUnSwarmable() || !__instance.SelectedActor.canSwarm())
+                        {
+                            __result = false;
+                            return false;
+                        }
+
+                        if (__instance.SelectedActor.IsSwarmingUnit() && !targetActor.HasSwarmingUnits())
+                        {
+                            __result = false;
+                            return false;
+                        }
+
+                        if (!__instance.SelectedActor.IsSwarmingUnit())
+                        {
+                            __result = true;
+                            return false;
+                        }
+                        __result = true;
+                        return false;
                     }
                 }
-                __result = true;
                 return true;
             }
         }
@@ -436,7 +450,7 @@ namespace StrategicOperations.Patches
                             {
                                 var sequence = creator.DoneWithActor();
                                 creator.Combat.MessageCenter.PublishMessage(new AddSequenceToStackMessage(sequence));
-                                creator.OnActivationEnd(creator.GUID, -1);
+                                //creator.OnActivationEnd(creator.GUID, -1);
                             }
                             return;
                         }
@@ -469,7 +483,7 @@ namespace StrategicOperations.Patches
                                 {
                                     var sequence = creator.DoneWithActor();
                                     creator.Combat.MessageCenter.PublishMessage(new AddSequenceToStackMessage(sequence));
-                                    creator.OnActivationEnd(creator.GUID, -1);
+                                    //creator.OnActivationEnd(creator.GUID, -1);
                                 }
                             }
                             else if (__instance.Def.Id == ModInit.modSettings.BattleArmorMountAndSwarmID && target.team.IsEnemy(creator.team) && creator is Mech creatorMech && creatorMech.canSwarm())
@@ -555,7 +569,7 @@ namespace StrategicOperations.Patches
                                     {
                                         var sequence = creator.DoneWithActor();
                                         creator.Combat.MessageCenter.PublishMessage(new AddSequenceToStackMessage(sequence));
-                                        creator.OnActivationEnd(creator.GUID, -1);
+                                        //creator.OnActivationEnd(creator.GUID, -1);
                                     }
                                 }
                                 else
@@ -575,7 +589,7 @@ namespace StrategicOperations.Patches
                                     {
                                         var sequence = creator.DoneWithActor();
                                         creator.Combat.MessageCenter.PublishMessage(new AddSequenceToStackMessage(sequence));
-                                        creator.OnActivationEnd(creator.GUID, -1);
+                                        //creator.OnActivationEnd(creator.GUID, -1);
                                     }
                                 }
                             }

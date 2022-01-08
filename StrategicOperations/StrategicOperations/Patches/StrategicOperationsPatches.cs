@@ -1019,8 +1019,9 @@ namespace StrategicOperations.Patches
                         mech.GenerateAndPublishHeatSequence(-1, true, false, theActor.GUID);
                     }
 
-                    theActor.DoneWithActor();
-                    theActor.OnActivationEnd(theActor.GUID, __instance.GetInstanceID());
+                    var sequence = theActor.DoneWithActor();
+                    theActor.Combat.MessageCenter.PublishMessage(new AddSequenceToStackMessage(sequence));
+                    //theActor.OnActivationEnd(theActor.GUID, __instance.GetInstanceID());
                     return;
                 }
 
@@ -1031,9 +1032,9 @@ namespace StrategicOperations.Patches
                     {
                         mech.GenerateAndPublishHeatSequence(-1, true, false, theActor.GUID);
                     }
-
-                    theActor.DoneWithActor();
-                    theActor.OnActivationEnd(theActor.GUID, __instance.GetInstanceID());
+                    var sequence = theActor.DoneWithActor();
+                    theActor.Combat.MessageCenter.PublishMessage(new AddSequenceToStackMessage(sequence));
+                    //theActor.OnActivationEnd(theActor.GUID, __instance.GetInstanceID());
                 }
                 //need to make sure proccing from equipment button also ends turn?
             }
@@ -1086,8 +1087,9 @@ namespace StrategicOperations.Patches
                         mech.GenerateAndPublishHeatSequence(-1, true, false, theActor.GUID);
                     }
 
-                    theActor.DoneWithActor();
-                    theActor.OnActivationEnd(theActor.GUID, __instance.GetInstanceID());
+                    var sequence = theActor.DoneWithActor();
+                    theActor.Combat.MessageCenter.PublishMessage(new AddSequenceToStackMessage(sequence));
+                    //theActor.OnActivationEnd(theActor.GUID, __instance.GetInstanceID());
                     return;
                 }
 
@@ -1098,9 +1100,9 @@ namespace StrategicOperations.Patches
                     {
                         mech.GenerateAndPublishHeatSequence(-1, true, false, theActor.GUID);
                     }
-
-                    theActor.DoneWithActor();
-                    theActor.OnActivationEnd(theActor.GUID, __instance.GetInstanceID());
+                    var sequence = theActor.DoneWithActor();
+                    theActor.Combat.MessageCenter.PublishMessage(new AddSequenceToStackMessage(sequence));
+                    //theActor.OnActivationEnd(theActor.GUID, __instance.GetInstanceID());
                 }
             }
         }

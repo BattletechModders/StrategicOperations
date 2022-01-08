@@ -307,6 +307,11 @@ namespace StrategicOperations.Framework
             return actor.StatCollection.GetValue<bool>("CanSwarm");
         }
 
+        public static bool canRideInternalOnly(this AbstractActor actor)
+        {
+            return actor.StatCollection.GetValue<bool>("BattleArmorInternalMountsOnly");
+        }
+
         public static int getInternalBACap(this AbstractActor actor)
         {
             return actor.StatCollection.GetValue<int>("InternalBattleArmorSquadCap");
@@ -420,8 +425,10 @@ namespace StrategicOperations.Framework
             {
                 ModInit.modLog.LogMessage(
                     $"[DismountBA] Called from handledeath? {calledFromHandleDeath} or Deswarm? {calledFromDeswarm}, forcing end of activation.");
-                actor.DoneWithActor();
-                actor.OnActivationEnd(actor.GUID, -1);
+
+                var sequence = actor.DoneWithActor();
+                actor.Combat.MessageCenter.PublishMessage(new AddSequenceToStackMessage(sequence));
+                //actor.OnActivationEnd(actor.GUID, -1);
             }
             ModInit.modLog.LogMessage(
                 $"[DismountBA] Removing PositionLock with rider  {actor.DisplayName} {actor.GUID} and carrier {carrier.DisplayName} {carrier.GUID}.");
