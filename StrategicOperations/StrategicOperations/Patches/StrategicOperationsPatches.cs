@@ -1183,8 +1183,11 @@ namespace StrategicOperations.Patches
                 var dm = __instance.FromButton.Ability.Combat.DataManager;
                 var hk = Input.GetKey(KeyCode.LeftShift) || Input.GetKey(KeyCode.RightShift);
                 var actorResource = __instance.FromButton.Ability.Def.ActorResource;
-                //ModState.popupActorResource = actorResource;
-                if (hk && string.IsNullOrEmpty(ModState.DeferredActorResource) && ___numPositionsLocked < 1 &&
+                if (___numPositionsLocked < 1)
+                {
+                    ModState.PopupActorResource = actorResource;
+                }
+                if (hk && string.IsNullOrEmpty(ModState.DeferredActorResource) &&
                     !ModState.OutOfRange)
                 {
                     var beaconDescs = "";
