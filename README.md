@@ -555,9 +555,11 @@ By default, the above ability will only allow the Battle Armor to <i>mount</i> f
 ```
 	
 In order to have Battle Armor mounted <i>to</i> it, a unit must have either stat effect that sets bool `HasBattleArmorMounts` to true OR must have the integer stat `InternalBattleArmorSquadCap` set to the # of Battle Armor squads that can be carried internally (for APCs and such). For AI units, those are the two stats that further dictate whether BA can be spawned.
+	- Battle Armor with AbstractActor statistic bool `BattleArmorInternalMountsOnly` can only mount internally (i.e. inside vehicles) and cannot use conventional Battle Armor omni mounts.
 
 On the player-facing side, an additional bool stat, `IsBattleArmorHandsy` can be added to <i>Battle Armor</i> that would allow BA to mount friendly units <i>regardless of</i> `HasBattleArmorMounts`. 
 This was added to allow Battle Armor such as the Marauder BA that canonically have Magnetic Clamps to allow them to ride on <i>any</i> friendly unit.
+
 
 - Units with AbstractActor statistic `IsUnmountableBattleArmor` are <i>never</i> mountable, even by BA with `IsBattleArmorHandsy`.
 - Units with AbstractActor statistic `IsUnswarmableBattleArmor` are <i>never</i> swarmable (i.e, LAMs in LAM mode, or VTOLs)
