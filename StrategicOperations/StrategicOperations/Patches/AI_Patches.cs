@@ -488,5 +488,21 @@ namespace StrategicOperations.Patches
 
             }
         }
+
+        [HarmonyPatch(typeof(AIUtil), "UnitHasVisibilityToTargetFromCurrentPosition")] //need to add optionally depends on lowvis to make this work for RT
+        public static class AIUtil_UnitHasVisibilityToTargetFromCurrentPosition
+        {
+            public static void Postfix(AbstractActor attacker, ICombatant target, ref bool __result)
+            {
+                if (target is AbstractActor actor)
+                {
+                    if (actor.IsSwarmingUnit() || actor.IsMountedUnit())
+                    {
+                        ModInit.modLog.LogTrace($"[AIUtil.UnitHasVisibilityToTargetFromCurrentPosition] DUMP: Target {target.DisplayName} is either mounted or swarming, forcing AI visibility to zero for this node.");
+                        __result = false;
+                    }
+                }
+            }
+        }
     }
 }

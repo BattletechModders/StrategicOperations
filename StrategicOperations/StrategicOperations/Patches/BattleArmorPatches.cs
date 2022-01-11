@@ -693,7 +693,7 @@ namespace StrategicOperations.Patches
             new Type[] { typeof(ICombatant), typeof(float), typeof(Vector3), typeof(Quaternion), typeof(Vector3), typeof(Quaternion), typeof(bool) })]
         public static class AbstractActor_HasLOFToTargetUnitAtTargetPosition_Patch
         {
-            static bool Prepare() => false; //disabled for now
+            static bool Prepare() => true; //disabled for now. why?
             // make sure units doing swarming or riding cannot be targeted.
             public static void Postfix(AbstractActor __instance, ICombatant targetUnit, float maxRange, Vector3 attackPosition, Quaternion attackRotation, Vector3 targetPosition, Quaternion targetRotation, bool isIndirectFireCapable, ref bool __result)
             {
@@ -714,11 +714,19 @@ namespace StrategicOperations.Patches
         {
             public static void Postfix(AbstractActor __instance, Vector3 attackPosition, Quaternion attackRotation, ICombatant targetUnit, bool enabledWeaponsOnly, ref bool __result)
             {
-                if (__instance.IsSwarmingUnit() && targetUnit is AbstractActor targetActor)
+                if (targetUnit is AbstractActor targetActor)
                 {
-                    if (ModState.PositionLockSwarm[__instance.GUID] == targetActor.GUID)
+                    if (__instance.IsSwarmingUnit())
                     {
+                        if (ModState.PositionLockSwarm[__instance.GUID] == targetActor.GUID)
+                        {
 //                        ModInit.modLog.LogTrace($"[AbstractActor.HasIndirectLOFToTargetUnit] {__instance.DisplayName} is swarming {targetActor.DisplayName}, forcing direct LOS for weapons");
+                            __result = false;
+                        }
+                    }
+
+                    if (targetActor.IsSwarmingUnit() || targetActor.IsMountedUnit())
+                    {
                         __result = false;
                     }
                 }
@@ -1356,6 +1364,12 @@ namespace StrategicOperations.Patches
                     return true;
                 }
 
+                if (actorTarget.IsSwarmingUnit() || actorTarget.IsMountedUnit())
+                {
+                    __result = LineOfFireLevel.NotSet; // added 1/11 to block all LOF to swarming/mounted units. NotSet, or should it be LOS.Blocked?
+                    return false;
+                }
+
                 if (!actorTarget.HasSwarmingUnits() && !actorTarget.HasMountedUnits())
                 {
                     return true;
@@ -1488,6 +1502,16 @@ namespace StrategicOperations.Patches
                 }
                 __result = LineOfFireLevel.LOFBlocked;
                 return false;
+            }
+        }
+
+        [HarmonyPatch(typeof(FiringPreviewManager), "AllPossibleTargets", MethodType.Getter)]
+        public static class FiringPreviewManager_AllPossibleTargets
+        {
+            static bool Prepare() => false; //disabled for now. why?
+            public static void Postfix(FiringPreviewManager __instance, Dictionary<ICombatant, FiringPreviewManager.PreviewInfo> ___fireInfo, ref List<ICombatant> __result)
+            {
+                //alter result to remove currently swarming units from firinglines (this might not be the best place to do it)
             }
         }
     }

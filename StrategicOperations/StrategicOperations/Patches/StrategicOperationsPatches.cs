@@ -168,9 +168,9 @@ namespace StrategicOperations.Patches
                     {
                         ModState.CachedUnitCoordinates[____parentActor.GUID] = ____parentActor.CurrentPosition;
                     }
-                    return;
                 }
-                else if (____parentActor.HasSwarmingUnits())
+                // removed return/else so swarming units are locked to carrier even if carrier has mounted units. derp.
+                if (____parentActor.HasSwarmingUnits())
                 {
                     var combat = ____parentActor.Combat;
                     var targetActorGUIDs = ModState.PositionLockSwarm.Where(x => x.Value == ____parentActor.GUID);
