@@ -179,7 +179,17 @@ settings in the mod.json:
 			}
 		}
 	],
-	"AttackOnSwarmSuccess": true
+	"AttackOnSwarmSuccess": true,
+	"AI_BattleArmorExcludedContractTypes": [
+			"DuoDuel",
+			"SoloDuel"
+		],
+	"AI_BattleArmorExcludedContractIDs": [],
+	"BeaconExcludedContractTypes": [
+			"DuoDuel",
+			"SoloDuel"
+		],
+	"BeaconExcludedContractIDs": []
 ```
 
 `enableLogging` - bool, enable logging
@@ -308,6 +318,14 @@ Using the following settings, ClanGhostBear and ClanWolf have baseline 30% chanc
 ```
 
 `AttackOnSwarmSuccess` - bool, if true BA will initiate an attack sequence on a successful swarming attempt (rather than needing to wait until the subsequence activation)
+
+`AI_BattleArmorExcludedContractTypes` - List of ContractTypes where AI is not allowed to spawn mounted Battle Armor
+
+`AI_BattleArmorExcludedContractIDs` - List of contract IDs where AI is not allowed to spawn mounted Battle Armor
+	
+`BeaconExcludedContractTypes` - List of ContractTypes where deployment or strafing beacons are not allowed to be used
+
+`BeaconExcludedContractIDs` - List of contract IDs where deployment or strafing beacons are not allowed to be used
 	
 ## Spawns
 
