@@ -34,7 +34,7 @@ namespace StrategicOperations.Framework
             //check for BA equipment. if present, we're going to spawn BA and mount it to AI
             ModInit.modLog.LogMessage($"Checking if unit {unit.DisplayName} {unit.GUID} should spawn Battle Armor.");
 
-            if (!ModInit.modSettings.AI_BattleArmorExcludedContractNames.Contains(unit.Combat.ActiveContract.Override
+            if (!ModInit.modSettings.AI_BattleArmorExcludedContractIDs.Contains(unit.Combat.ActiveContract.Override
                     .ID) && !ModInit.modSettings.AI_BattleArmorExcludedContractTypes.Contains(unit.Combat.ActiveContract
                     .ContractTypeValue.Name))
             {
@@ -260,7 +260,7 @@ namespace StrategicOperations.Framework
             }
 
             //do we want to generate AI abilities if they already have BA? unsure.
-            if (ModInit.modSettings.BeaconExcludedContractNames.Contains(unit.Combat.ActiveContract.Override
+            if (ModInit.modSettings.BeaconExcludedContractIDs.Contains(unit.Combat.ActiveContract.Override
                     .ID) || ModInit.modSettings.BeaconExcludedContractTypes.Contains(unit.Combat.ActiveContract
                     .ContractTypeValue.Name))
             {
