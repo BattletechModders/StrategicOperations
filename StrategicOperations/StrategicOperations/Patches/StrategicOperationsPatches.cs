@@ -300,6 +300,15 @@ namespace StrategicOperations.Patches
                     return true;
                 }
 
+                if (ModInit.modSettings.BeaconExcludedContractNames.Contains(__instance.Combat.ActiveContract.Override.ID) || ModInit.modSettings.BeaconExcludedContractTypes.Contains(__instance.Combat.ActiveContract.ContractTypeValue.Name))
+                {
+                    var popup = GenericPopupBuilder.Create(GenericPopupType.Info, $"Ability {__instance.Def.Description.Name} is unavailable during this contract!");
+                    popup.AddButton("Confirm", null, true, null);
+                    popup.IsNestedPopupWithBuiltInFader().CancelOnEscape().Render();
+                    ModInit.modLog.LogMessage($"Ability {__instance.Def.Description.Name} unavailable due to exclusion settings. Aborting.");
+                    return false;
+                }
+
                 AbilityDef.SpecialRules specialRules = __instance.Def.specialRules;
                 if (specialRules == AbilityDef.SpecialRules.Strafe)
                 {

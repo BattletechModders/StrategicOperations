@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Reflection;
+using BattleTech;
 using Harmony;
 using Localize;
 using Newtonsoft.Json;
@@ -89,5 +90,10 @@ namespace StrategicOperations
         public bool BPodsAutoActivate = true; //BPods always auto activate when swarmed for AI, this only controls for player
         public List<string> ArmActuatorCategoryIDs = new List<string>();
         public bool AttackOnSwarmSuccess = false;
+        public List<string> AI_BattleArmorExcludedContractTypes = new List<string>();
+        public List<string> AI_BattleArmorExcludedContractNames = new List<string>();
+
+        public List<string> BeaconExcludedContractTypes = new List<string>();
+        public List<string> BeaconExcludedContractNames = new List<string>();
     }
 }

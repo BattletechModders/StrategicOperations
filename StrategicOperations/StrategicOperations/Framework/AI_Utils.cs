@@ -32,60 +32,117 @@ namespace StrategicOperations.Framework
             var dm = unit.Combat.DataManager;
 
             //check for BA equipment. if present, we're going to spawn BA and mount it to AI
-            
             ModInit.modLog.LogMessage($"Checking if unit {unit.DisplayName} {unit.GUID} should spawn Battle Armor.");
-            if (!unit.getIsUnMountable())
+
+            if (!ModInit.modSettings.AI_BattleArmorExcludedContractNames.Contains(unit.Combat.ActiveContract.Override
+                    .ID) && !ModInit.modSettings.AI_BattleArmorExcludedContractTypes.Contains(unit.Combat.ActiveContract
+                    .ContractTypeValue.Name))
             {
-
-                if (ModInit.modSettings.BattleArmorFactionAssociations.Any(x =>
-                        x.FactionIDs.Contains(unit.team.FactionValue.Name)))
+                if (!unit.getIsUnMountable())
                 {
-                    if (!ModState.CurrentBattleArmorSquads.ContainsKey(unit.team.FactionValue.Name))
-                    {
-                        ModState.CurrentBattleArmorSquads.Add(unit.team.FactionValue.Name, 0);
-                    }
 
-                    var baConfig =
-                        ModInit.modSettings.BattleArmorFactionAssociations.FirstOrDefault(x =>
-                            x.FactionIDs.Contains(unit.team.FactionValue.Name));
-                    if (baConfig == null)
+                    if (ModInit.modSettings.BattleArmorFactionAssociations.Any(x =>
+                            x.FactionIDs.Contains(unit.team.FactionValue.Name)))
                     {
-                        ModInit.modLog.LogError(
-                            $"[GenerateAIStrategicAbilities] - something broken trying to process BA Faction Association. baConfig was null.");
-                        return;
-                    }
-
-                    ModInit.modLog.LogTrace($"Found config for {unit.team.FactionValue.Name}.");
-
-                    var baLance = Utils.CreateOrFetchCMDLance(unit.team);
-                    var spawnChance = baConfig.SpawnChanceBase +
-                                      (unit.Combat.ActiveContract.Override.finalDifficulty *
-                                       baConfig.SpawnChanceDiffMod);
-                    var internalSpace = unit.getAvailableInternalBASpace();
-                    if (internalSpace > 0)
-                    {
-                        ModInit.modLog.LogTrace($"Unit has {internalSpace} internal space.");
-                        for (int i = 0; i < internalSpace; i++)
+                        if (!ModState.CurrentBattleArmorSquads.ContainsKey(unit.team.FactionValue.Name))
                         {
-                            var chosenInt = baConfig.ProcessBattleArmorSpawnWeights(dm, unit.team.FactionValue.Name,
-                                "InternalBattleArmorWeight");
-                            if (!string.IsNullOrEmpty(chosenInt))
+                            ModState.CurrentBattleArmorSquads.Add(unit.team.FactionValue.Name, 0);
+                        }
+
+                        var baConfig =
+                            ModInit.modSettings.BattleArmorFactionAssociations.FirstOrDefault(x =>
+                                x.FactionIDs.Contains(unit.team.FactionValue.Name));
+                        if (baConfig == null)
+                        {
+                            ModInit.modLog.LogError(
+                                $"[GenerateAIStrategicAbilities] - something broken trying to process BA Faction Association. baConfig was null.");
+                            return;
+                        }
+
+                        ModInit.modLog.LogTrace($"Found config for {unit.team.FactionValue.Name}.");
+
+                        var baLance = Utils.CreateOrFetchCMDLance(unit.team);
+                        var spawnChance = baConfig.SpawnChanceBase +
+                                          (unit.Combat.ActiveContract.Override.finalDifficulty *
+                                           baConfig.SpawnChanceDiffMod);
+                        var internalSpace = unit.getAvailableInternalBASpace();
+                        if (internalSpace > 0)
+                        {
+                            ModInit.modLog.LogTrace($"Unit has {internalSpace} internal space.");
+                            for (int i = 0; i < internalSpace; i++)
                             {
-                                var baRollInt = ModInit.Random.NextDouble();
-                                if (baRollInt <= spawnChance)
+                                var chosenInt = baConfig.ProcessBattleArmorSpawnWeights(dm, unit.team.FactionValue.Name,
+                                    "InternalBattleArmorWeight");
+                                if (!string.IsNullOrEmpty(chosenInt))
+                                {
+                                    var baRollInt = ModInit.Random.NextDouble();
+                                    if (baRollInt <= spawnChance)
+                                    {
+                                        ModInit.modLog.LogMessage(
+                                            $"Roll {baRollInt} <= {spawnChance}, choosing BA from InternalBattleArmorWeight for slot {i} of {internalSpace}.");
+                                        if (chosenInt != "BA_EMPTY")
+                                        {
+                                            if (ModState.CurrentBattleArmorSquads[unit.team.FactionValue.Name] <
+                                                baConfig.MaxSquadsPerContract)
+                                            {
+                                                var spawner = new Classes.BA_Spawner(unit, chosenInt, baLance);
+                                                spawner.SpawnBattleArmorAtActor();
+                                                ModState.CurrentBattleArmorSquads[unit.team.FactionValue.Name] += 1;
+                                                ModInit.modLog.LogMessage(
+                                                    $"Spawning {chosenInt}, incrementing CurrentBattleArmorSquads to {ModState.CurrentBattleArmorSquads[unit.team.FactionValue.Name]}.");
+                                            }
+                                            else
+                                            {
+                                                ModInit.modLog.LogMessage(
+                                                    $"{ModState.CurrentBattleArmorSquads[unit.team.FactionValue.Name]} is max {baConfig.MaxSquadsPerContract} per contract.");
+                                            }
+                                        }
+                                        else
+                                        {
+                                            ModInit.modLog.LogMessage($"Chose {chosenInt}.");
+                                        }
+                                    }
+                                    else
+                                    {
+                                        ModInit.modLog.LogMessage(
+                                            $"Roll {baRollInt} > {spawnChance}, not adding BA internally.");
+                                    }
+                                }
+                                else
                                 {
                                     ModInit.modLog.LogMessage(
-                                        $"Roll {baRollInt} <= {spawnChance}, choosing BA from InternalBattleArmorWeight for slot {i} of {internalSpace}.");
-                                    if (chosenInt != "BA_EMPTY")
+                                        $"No config for internal BA for faction {unit.team.FactionValue.Name}.");
+                                }
+                            }
+                        }
+                        else
+                        {
+                            ModInit.modLog.LogTrace($"Unit dont has internal space.");
+                        }
+
+                        if (unit.getHasBattleArmorMounts())
+                        {
+                            ModInit.modLog.LogTrace($"Unit has mounts.");
+
+                            var chosenMount = baConfig.ProcessBattleArmorSpawnWeights(dm, unit.team.FactionValue.Name,
+                                "MountedBattleArmorWeight");
+                            if (!string.IsNullOrEmpty(chosenMount))
+                            {
+                                var baRollMount = ModInit.Random.NextDouble();
+                                if (baRollMount <= spawnChance)
+                                {
+                                    ModInit.modLog.LogMessage(
+                                        $"Roll {baRollMount} <= {spawnChance}, choosing BA from MountedBattleArmorWeight.");
+                                    if (chosenMount != "BA_EMPTY")
                                     {
                                         if (ModState.CurrentBattleArmorSquads[unit.team.FactionValue.Name] <
                                             baConfig.MaxSquadsPerContract)
                                         {
-                                            var spawner = new Classes.BA_Spawner(unit, chosenInt, baLance);
+                                            var spawner = new Classes.BA_Spawner(unit, chosenMount, baLance);
                                             spawner.SpawnBattleArmorAtActor();
                                             ModState.CurrentBattleArmorSquads[unit.team.FactionValue.Name] += 1;
                                             ModInit.modLog.LogMessage(
-                                                $"Spawning {chosenInt}, incrementing CurrentBattleArmorSquads to {ModState.CurrentBattleArmorSquads[unit.team.FactionValue.Name]}.");
+                                                $"Spawning {chosenMount}, incrementing CurrentBattleArmorSquads to {ModState.CurrentBattleArmorSquads[unit.team.FactionValue.Name]}.");
                                         }
                                         else
                                         {
@@ -95,121 +152,73 @@ namespace StrategicOperations.Framework
                                     }
                                     else
                                     {
-                                        ModInit.modLog.LogMessage($"Chose {chosenInt}.");
+                                        ModInit.modLog.LogMessage($"Chose {chosenMount}.");
                                     }
                                 }
                                 else
                                 {
                                     ModInit.modLog.LogMessage(
-                                        $"Roll {baRollInt} > {spawnChance}, not adding BA internally.");
+                                        $"Roll {baRollMount} > {spawnChance}, not adding BA to mounts.");
                                 }
                             }
                             else
                             {
                                 ModInit.modLog.LogMessage(
-                                    $"No config for internal BA for faction {unit.team.FactionValue.Name}.");
+                                    $"No config for mounted BA for faction {unit.team.FactionValue.Name}.");
                             }
                         }
-                    }
-                    else
-                    {
-                        ModInit.modLog.LogTrace($"Unit dont has internal space.");
-                    }
-
-                    if (unit.getHasBattleArmorMounts())
-                    {
-                        ModInit.modLog.LogTrace($"Unit has mounts.");
-
-                        var chosenMount = baConfig.ProcessBattleArmorSpawnWeights(dm, unit.team.FactionValue.Name,
-                            "MountedBattleArmorWeight");
-                        if (!string.IsNullOrEmpty(chosenMount))
+                        else if (!(unit is TrooperSquad))
                         {
-                            var baRollMount = ModInit.Random.NextDouble();
-                            if (baRollMount <= spawnChance)
+                            ModInit.modLog.LogTrace($"Unit dont has mounts.");
+                            var chosenHandsy = baConfig.ProcessBattleArmorSpawnWeights(dm, unit.team.FactionValue.Name,
+                                "HandsyBattleArmorWeight");
+                            if (!string.IsNullOrEmpty(chosenHandsy))
                             {
-                                ModInit.modLog.LogMessage(
-                                    $"Roll {baRollMount} <= {spawnChance}, choosing BA from MountedBattleArmorWeight.");
-                                if (chosenMount != "BA_EMPTY")
+                                var baRollHandsy = ModInit.Random.NextDouble();
+                                if (baRollHandsy <= spawnChance)
                                 {
-                                    if (ModState.CurrentBattleArmorSquads[unit.team.FactionValue.Name] <
-                                        baConfig.MaxSquadsPerContract)
+                                    ModInit.modLog.LogMessage(
+                                        $"Roll {baRollHandsy} <= {spawnChance}, choosing BA from HandsyBattleArmorWeight.");
+                                    if (chosenHandsy != "BA_EMPTY")
                                     {
-                                        var spawner = new Classes.BA_Spawner(unit, chosenMount, baLance);
-                                        spawner.SpawnBattleArmorAtActor();
-                                        ModState.CurrentBattleArmorSquads[unit.team.FactionValue.Name] += 1;
-                                        ModInit.modLog.LogMessage(
-                                            $"Spawning {chosenMount}, incrementing CurrentBattleArmorSquads to {ModState.CurrentBattleArmorSquads[unit.team.FactionValue.Name]}.");
+                                        if (ModState.CurrentBattleArmorSquads[unit.team.FactionValue.Name] <
+                                            baConfig.MaxSquadsPerContract)
+                                        {
+                                            var spawner = new Classes.BA_Spawner(unit, chosenHandsy, baLance);
+                                            spawner.SpawnBattleArmorAtActor();
+                                            ModState.CurrentBattleArmorSquads[unit.team.FactionValue.Name] += 1;
+                                            ModInit.modLog.LogMessage(
+                                                $"Spawning {chosenHandsy}, incrementing CurrentBattleArmorSquads to {ModState.CurrentBattleArmorSquads[unit.team.FactionValue.Name]}.");
+                                        }
+                                        else
+                                        {
+                                            ModInit.modLog.LogMessage(
+                                                $"{ModState.CurrentBattleArmorSquads[unit.team.FactionValue.Name]} is max {baConfig.MaxSquadsPerContract} per contract.");
+                                        }
                                     }
                                     else
                                     {
-                                        ModInit.modLog.LogMessage(
-                                            $"{ModState.CurrentBattleArmorSquads[unit.team.FactionValue.Name]} is max {baConfig.MaxSquadsPerContract} per contract.");
+                                        ModInit.modLog.LogMessage($"Chose {chosenHandsy}.");
                                     }
                                 }
                                 else
                                 {
-                                    ModInit.modLog.LogMessage($"Chose {chosenMount}.");
+                                    ModInit.modLog.LogMessage(
+                                        $"Roll {baRollHandsy} > {spawnChance}, not adding handsy BA.");
                                 }
                             }
                             else
                             {
                                 ModInit.modLog.LogMessage(
-                                    $"Roll {baRollMount} > {spawnChance}, not adding BA to mounts.");
+                                    $"No config for handsy BA for faction {unit.team.FactionValue.Name}.");
                             }
-                        }
-                        else
-                        {
-                            ModInit.modLog.LogMessage(
-                                $"No config for mounted BA for faction {unit.team.FactionValue.Name}.");
-                        }
-                    }
-                    else if (!(unit is TrooperSquad))
-                    {
-                        ModInit.modLog.LogTrace($"Unit dont has mounts.");
-                        var chosenHandsy = baConfig.ProcessBattleArmorSpawnWeights(dm, unit.team.FactionValue.Name,
-                            "HandsyBattleArmorWeight");
-                        if (!string.IsNullOrEmpty(chosenHandsy))
-                        {
-                            var baRollHandsy = ModInit.Random.NextDouble();
-                            if (baRollHandsy <= spawnChance)
-                            {
-                                ModInit.modLog.LogMessage(
-                                    $"Roll {baRollHandsy} <= {spawnChance}, choosing BA from HandsyBattleArmorWeight.");
-                                if (chosenHandsy != "BA_EMPTY")
-                                {
-                                    if (ModState.CurrentBattleArmorSquads[unit.team.FactionValue.Name] <
-                                        baConfig.MaxSquadsPerContract)
-                                    {
-                                        var spawner = new Classes.BA_Spawner(unit, chosenHandsy, baLance);
-                                        spawner.SpawnBattleArmorAtActor();
-                                        ModState.CurrentBattleArmorSquads[unit.team.FactionValue.Name] += 1;
-                                        ModInit.modLog.LogMessage(
-                                            $"Spawning {chosenHandsy}, incrementing CurrentBattleArmorSquads to {ModState.CurrentBattleArmorSquads[unit.team.FactionValue.Name]}.");
-                                    }
-                                    else
-                                    {
-                                        ModInit.modLog.LogMessage(
-                                            $"{ModState.CurrentBattleArmorSquads[unit.team.FactionValue.Name]} is max {baConfig.MaxSquadsPerContract} per contract.");
-                                    }
-                                }
-                                else
-                                {
-                                    ModInit.modLog.LogMessage($"Chose {chosenHandsy}.");
-                                }
-                            }
-                            else
-                            {
-                                ModInit.modLog.LogMessage(
-                                    $"Roll {baRollHandsy} > {spawnChance}, not adding handsy BA.");
-                            }
-                        }
-                        else
-                        {
-                            ModInit.modLog.LogMessage(
-                                $"No config for handsy BA for faction {unit.team.FactionValue.Name}.");
                         }
                     }
                 }
+            }
+            else
+            {
+                ModInit.modLog.LogMessage($"Contract ID {unit.Combat.ActiveContract.Override.ID} or Type {unit.Combat.ActiveContract.ContractTypeValue.Name} found in AI Battle Armor spawn exclusion list.");
             }
 
             //give AI mechs ability to swat or roll
@@ -248,12 +257,19 @@ namespace StrategicOperations.Framework
                         unit.GetPilot().ActiveAbilities.Add(ability);
                     }
                 }
-                
             }
 
             //do we want to generate AI abilities if they already have BA? unsure.
+            if (ModInit.modSettings.BeaconExcludedContractNames.Contains(unit.Combat.ActiveContract.Override
+                    .ID) || ModInit.modSettings.BeaconExcludedContractTypes.Contains(unit.Combat.ActiveContract
+                    .ContractTypeValue.Name))
+            {
+                ModInit.modLog.LogMessage($"Contract ID {unit.Combat.ActiveContract.Override.ID} or Type {unit.Combat.ActiveContract.ContractTypeValue.Name} found in command ability exclusion list.");
+                return;
+            }
             if (unit.Combat.TurnDirector.CurrentRound > 1) return; // don't give abilities to reinforcements?
-            if (unit.team.GUID != "be77cadd-e245-4240-a93e-b99cc98902a5") return; // TargetTeam is only team that gets cmdAbilities 
+            if (unit.team.GUID != "be77cadd-e245-4240-a93e-b99cc98902a5") return; // TargetTeam is only team that gets cmdAbilities
+                                                                                  // 
             if (!ModInit.modSettings.commandAbilities_AI.ContainsKey(unit.team.FactionValue.Name))
             {
                 ModInit.modLog.LogMessage($"No settings for command abilities for {unit.team.FactionValue.Name}, skipping.");

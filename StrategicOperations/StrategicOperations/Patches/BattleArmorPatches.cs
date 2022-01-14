@@ -1505,13 +1505,22 @@ namespace StrategicOperations.Patches
             }
         }
 
-        [HarmonyPatch(typeof(FiringPreviewManager), "AllPossibleTargets", MethodType.Getter)]
+        [HarmonyPatch(typeof(WeaponRangeIndicators), "DrawLine")]
         public static class FiringPreviewManager_AllPossibleTargets
         {
-            static bool Prepare() => false; //disabled for now. why?
-            public static void Postfix(FiringPreviewManager __instance, Dictionary<ICombatant, FiringPreviewManager.PreviewInfo> ___fireInfo, ref List<ICombatant> __result)
+            static bool Prepare() => false; //disabled for now. might not be needed?
+            public static bool Prefix(WeaponRangeIndicators __instance, Vector3 position, Quaternion rotation, bool isPositionLocked, AbstractActor selectedActor, ICombatant target, bool usingMultifire, bool isLocked, bool isMelee)
             {
+                if (target is AbstractActor targetActor && targetActor.IsSwarmingUnit())
+                {
+                    if (ModState.PositionLockSwarm.ContainsKey(targetActor.GUID) &&
+                        ModState.PositionLockSwarm[targetActor.GUID] == selectedActor.GUID)
+                    {
+                        return false;
+                    }
+                }
                 //alter result to remove currently swarming units from firinglines (this might not be the best place to do it)
+                return true;
             }
         }
     }
