@@ -529,7 +529,7 @@ namespace StrategicOperations.Patches
                                     creator.ResetPathing(false);
                                     creator.Pathing.UpdateCurrentPath(false);
 
-                                    if (ModInit.modSettings.AttackOnSwarmSuccess)
+                                    if (ModInit.modSettings.AttackOnSwarmSuccess && creator.team.IsLocalPlayer)
                                     {
                                         var weps = creator.Weapons.Where(x => x.IsEnabled && x.HasAmmo).ToList();
                                         var loc = ModState.BADamageTrackers[creator.GUID].BA_MountedLocations.Values

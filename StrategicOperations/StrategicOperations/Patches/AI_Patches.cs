@@ -389,9 +389,6 @@ namespace StrategicOperations.Patches
                     ModInit.modLog.LogMessage(
                         $"activated {ModState.AiDealWithBattleArmorCmds[unit.GUID].ability.Def.Description.Id} on actor {unit.DisplayName} {unit.GUID}");
 
-                   // ModInit.modLog.LogMessage(
-                   //     $"activated {ModState.AiDealWithBattleArmorCmds[unit.GUID].ability.Def.Description.Id} on actor {ModState.AiDealWithBattleArmorCmds[unit.GUID].targetActor.DisplayName} {ModState.AiDealWithBattleArmorCmds[unit.GUID].targetActor.GUID}");
-
                     if (!unit.HasMovedThisRound)
                     {
                         unit.BehaviorTree.IncreaseSprintHysteresisLevel();
@@ -426,15 +423,16 @@ namespace StrategicOperations.Patches
                     var weps = unit.Weapons.Where(x => x.IsEnabled && x.HasAmmo).ToList();
 
                     var loc = ModState.BADamageTrackers[unit.GUID].BA_MountedLocations.Values.GetRandomElement();
-                    var attackStackSequence = new AttackStackSequence(unit, target, unit.CurrentPosition,
-                        unit.CurrentRotation, weps, MeleeAttackType.NotSet, loc, -1);
-                    unit.Combat.MessageCenter.PublishMessage(new AddSequenceToStackMessage(attackStackSequence));
-                    
-                    if (!unit.HasMovedThisRound)
-                    {
-                        unit.BehaviorTree.IncreaseSprintHysteresisLevel();
-                    }
-                    __result = new ReserveActorInvocation(unit, ReserveActorAction.DONE, unit.Combat.TurnDirector.CurrentRound);
+                    //var attackStackSequence = new AttackStackSequence(unit, target, unit.CurrentPosition, unit.CurrentRotation, weps, MeleeAttackType.NotSet, loc, -1);
+                    //unit.Combat.MessageCenter.PublishMessage(new AddSequenceToStackMessage(attackStackSequence));
+                    var vent = unit.HasVentCoolantAbility && unit.CanVentCoolant;
+                    __result = new AttackInvocation(unit, target, weps, MeleeAttackType.NotSet, loc){ventHeatBeforeAttack = vent}; // making a regular attack invocation here, instead of stacksequence + reserve
+
+                    //if (!unit.HasMovedThisRound)
+                    //{
+                    //    unit.BehaviorTree.IncreaseSprintHysteresisLevel();
+                    //}
+                    //__result = new ReserveActorInvocation(unit, ReserveActorAction.DONE, unit.Combat.TurnDirector.CurrentRound);
                     return false;
                 }
                 if (ModState.AiBattleArmorAbilityCmds.ContainsKey(unit.GUID))
@@ -451,12 +449,32 @@ namespace StrategicOperations.Patches
                         ModInit.modLog.LogMessage(
                             $"activated {ModState.AiBattleArmorAbilityCmds[unit.GUID].ability.Def.Description.Id} on actor {ModState.AiBattleArmorAbilityCmds[unit.GUID].targetActor.DisplayName} {ModState.AiBattleArmorAbilityCmds[unit.GUID].targetActor.GUID}");
 
-                        if (!unit.HasMovedThisRound)
+                        if (unit.IsSwarmingUnit() && ModInit.modSettings.AttackOnSwarmSuccess)
                         {
-                            unit.BehaviorTree.IncreaseSprintHysteresisLevel();
+                            ModInit.modLog.LogTrace($"[makeInvocationFromOrders] - found freshly swarmed unit; trying to make attack invocation for same round. Fingies crossed!");
+                            var target = unit.Combat.FindActorByGUID(ModState.PositionLockSwarm[unit.GUID]);
+                            foreach (var weapon in unit.Weapons)
+                            {
+                                weapon.EnableWeapon();
+                            }
+                            var weps = unit.Weapons.Where(x => x.IsEnabled && x.HasAmmo).ToList();
+
+                            var loc = ModState.BADamageTrackers[unit.GUID].BA_MountedLocations.Values.GetRandomElement();
+                            //var attackStackSequence = new AttackStackSequence(unit, target, unit.CurrentPosition, unit.CurrentRotation, weps, MeleeAttackType.NotSet, loc, -1);
+                            //unit.Combat.MessageCenter.PublishMessage(new AddSequenceToStackMessage(attackStackSequence));
+                            var vent = unit.HasVentCoolantAbility && unit.CanVentCoolant;
+                            __result = new AttackInvocation(unit, target, weps, MeleeAttackType.NotSet, loc) { ventHeatBeforeAttack = vent }; // making a regular attack invocation here, instead of stacksequence + reserve
                         }
 
-                        __result = new ReserveActorInvocation(unit, ReserveActorAction.DONE, unit.Combat.TurnDirector.CurrentRound);
+                        else
+                        {
+                            if (!unit.HasMovedThisRound)
+                            {
+                                unit.BehaviorTree.IncreaseSprintHysteresisLevel();
+                            }
+                            __result = new ReserveActorInvocation(unit, ReserveActorAction.DONE, unit.Combat.TurnDirector.CurrentRound);
+                        }
+
                         ModState.AiBattleArmorAbilityCmds.Remove(unit.GUID);
                         return false;
                     }
