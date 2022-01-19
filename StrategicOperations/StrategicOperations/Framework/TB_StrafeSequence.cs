@@ -31,7 +31,7 @@ namespace StrategicOperations.Framework
         private float Radius { get; set; }
         private Vector3 StartPos { get; set; }
         private float StrafeLength { get; set; }
-        private List<Weapon> StrafeWeapons { get; set; }
+//        private List<Weapon> StrafeWeapons { get; set; }
         private Vector3 Velocity { get; set; }
         private const float HorizMultiplier = 4f;
 //        private float speed = 150f;
@@ -90,7 +90,7 @@ namespace StrategicOperations.Framework
                             var LOFLevel = this.Attacker.Combat.LOFCache.GetLineOfFire(this.Attacker, this.Attacker.CurrentPosition, this.Attacker, this.AOEPositions[0], this.Attacker.CurrentRotation, out collisionWorldPos);
                             Attacker.addTerrainHitPosition(this.AOEPositions[0], LOFLevel < LineOfFireLevel.LOFObstructed);
                             
-                            AttackInvocation invocation = new AttackInvocation(this.Attacker, this.Attacker, this.StrafeWeapons, MeleeAttackType.NotSet, 0);
+                            AttackInvocation invocation = new AttackInvocation(this.Attacker, this.Attacker, this.Attacker.Weapons, MeleeAttackType.NotSet, 0);
 
                             ReceiveMessageCenterMessage subscriber = delegate (MessageCenterMessage message)
                             {
@@ -134,11 +134,12 @@ namespace StrategicOperations.Framework
                         {
                             var filteredWeapons =
                                 new List<Weapon>();
-                            foreach (var weapon in this.StrafeWeapons)
+                            foreach (var weapon in this.Attacker.Weapons)
                             {
                                 if (this.Attacker.HasLOFToTargetUnit(target, weapon) &&
                                     weapon.MaxRange > targetDist)
                                 {
+                                    weapon.EnableWeapon();
                                     weapon.ResetWeapon();
                                     filteredWeapons.Add(weapon);
                                     ModInit.modLog.LogMessage(
@@ -160,8 +161,9 @@ namespace StrategicOperations.Framework
                             //Attacker.CurrentRotation, filteredWeapons, MeleeAttackType.NotSet, 0, -1);
                             //Attacker.Combat.MessageCenter.PublishMessage(new AddSequenceToStackMessage(attackStackSequence));
 
-                            if (true)
+                            if (false) //disable maybe broken one? why does it not prefire and complete...
                             {
+
                                 AttackDirector attackDirector = base.Combat.AttackDirector;
                                 AttackDirector.AttackSequence attackSequence = attackDirector.CreateAttackSequence(
                                     base.SequenceGUID, this.Attacker, target, this.Attacker.CurrentPosition,
@@ -169,8 +171,15 @@ namespace StrategicOperations.Framework
                                     MeleeAttackType.NotSet, 0, false);
                                 this.attackSequences.Add(attackSequence.id);
                                 attackDirector.PerformAttack(attackSequence);
-                                attackSequence.ResetWeapons();
+                                //attackSequence.ResetWeapons();
                             }
+
+                            if (true) //this processes correctly, but pauses animations.
+                            {
+                                var invocation = new AttackInvocation(this.Attacker, target, filteredWeapons, MeleeAttackType.NotSet, 0);
+                                base.Combat.MessageCenter.PublishMessage(invocation);
+                            }
+
                             this.AllTargetGUIDs.Add(target.GUID);
                             this.CurrentTargets.RemoveAt(i);
                             this._timeSinceLastAttack = 0f;
@@ -193,9 +202,9 @@ namespace StrategicOperations.Framework
         private Vector3 CalcStartPos()
         {
             this.MaxWeaponRange = 400;
-            if (this.StrafeWeapons.Count != 0)
+            if (this.Attacker.Weapons.Count != 0)
             {
-                this.MaxWeaponRange = this.StrafeWeapons.FirstOrDefault().MaxRange;
+                this.MaxWeaponRange = this.Attacker.Weapons.FirstOrDefault().MaxRange;
             }
             Vector3 result = this.StartPos - this.Velocity * ModInit.modSettings.strafePreDistanceMult;
             this.HeightOffset = Mathf.Clamp(this.MaxWeaponRange/4, ModInit.modSettings.strafeAltitudeMin,
@@ -279,14 +288,14 @@ namespace StrategicOperations.Framework
         }
         private void GetWeaponsForStrafe()
         {
-            this.StrafeWeapons = new List<Weapon>(this.Attacker.Weapons);
-            if (this.StrafeWeapons.Count == 0)
+            //this.StrafeWeapons = this.Attacker.Weapons; //new List<Weapon>(this.Attacker.Weapons);
+            if (this.Attacker.Weapons.Count == 0)
             {
                 ModInit.modLog.LogMessage($"No weapons found for strafing run.");
                 return;
             }
-            this.StrafeWeapons.Sort((Weapon x, Weapon y) => y.MaxRange.CompareTo(x.MaxRange));
-            ModInit.modLog.LogMessage($"First strafe weapon will be {StrafeWeapons[0].Name} with range {StrafeWeapons[0].MaxRange}");
+            this.Attacker.Weapons.Sort((Weapon x, Weapon y) => y.MaxRange.CompareTo(x.MaxRange));
+            ModInit.modLog.LogMessage($"First strafe weapon will be {Attacker.Weapons[0].Name} with range {Attacker.Weapons[0].MaxRange}");
         }
 
         //maybe need to refresh weapons on attacker instead of in sequence?
@@ -321,8 +330,9 @@ namespace StrategicOperations.Framework
         {
             base.OnComplete();
 
-            var msg = new DespawnActorMessage(EncounterLayerData.MapLogicGuid, this.Attacker.GUID, (DeathMethod) DespawnFloatieMessage.Escaped);
-            Utils._despawnActorMethod.Invoke(this.Attacker, new object[] {msg});
+            ModState.DeferredDespawnersFromStrafe.Add(Attacker.GUID, Attacker);
+            this.Attacker.PlaceFarAwayFromMap();
+
             foreach (var idx in this.attackSequences)
             {
                 base.Combat.AttackDirector.RemoveAttackSequence(idx);

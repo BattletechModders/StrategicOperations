@@ -45,6 +45,9 @@ namespace StrategicOperations.Framework
         public static List<KeyValuePair<string, Action>>
             DeferredInvokeBattleArmor = new List<KeyValuePair<string, Action>>();
 
+        public static Dictionary<string, AbstractActor> DeferredDespawnersFromStrafe =
+            new Dictionary<string, AbstractActor>();
+
         public static string DeferredActorResource = "";
         public static string PopupActorResource = "";
         public static int StrafeWaves;
@@ -114,6 +117,7 @@ namespace StrategicOperations.Framework
             CommandAbilities = new List<Ability>();
             DeferredInvokeSpawns = new List<KeyValuePair<string, Action>>();
             DeferredInvokeBattleArmor = new List<KeyValuePair<string, Action>>();
+            DeferredDespawnersFromStrafe = new Dictionary<string, AbstractActor>();
             CommandUses = new List<CmdUseInfo>();
             DeploymentAssetsStats = new List<CmdUseStat>();
             SavedBAScale = new Dictionary<string, Vector3>();

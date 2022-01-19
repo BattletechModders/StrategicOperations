@@ -891,6 +891,12 @@ namespace StrategicOperations.Patches
                     ability.OnNewRound();
                 }
 
+                foreach (var despawn in ModState.DeferredDespawnersFromStrafe)
+                {
+                    var msg = new DespawnActorMessage(EncounterLayerData.MapLogicGuid, despawn.Key, (DeathMethod)DespawnFloatieMessage.Escaped);
+                    Utils._despawnActorMethod.Invoke(despawn.Value, new object[] { msg });
+                }
+                
                 //var team = __instance as Team;
 
                 if (__instance?.units != null)

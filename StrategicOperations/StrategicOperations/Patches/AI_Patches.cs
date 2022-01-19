@@ -33,7 +33,8 @@ namespace StrategicOperations.Patches
                                 unit.ComponentAbilities.All(y =>
                                     y.Def.Id != ModInit.modSettings.BattleArmorDeSwarmSwat))
                             {
-                                unit.Combat.DataManager.AbilityDefs.TryGet(ModInit.modSettings.BattleArmorDeSwarmSwat, out var def);
+                                unit.Combat.DataManager.AbilityDefs.TryGet(ModInit.modSettings.BattleArmorDeSwarmSwat,
+                                    out var def);
                                 var ability = new Ability(def);
                                 ModInit.modLog.LogTrace(
                                     $"Adding {ability.Def?.Description?.Id} to {unit.Description?.Name}.");
@@ -50,7 +51,8 @@ namespace StrategicOperations.Patches
                                 unit.ComponentAbilities.All(y =>
                                     y.Def.Id != ModInit.modSettings.BattleArmorDeSwarmRoll))
                             {
-                                unit.Combat.DataManager.AbilityDefs.TryGet(ModInit.modSettings.BattleArmorDeSwarmRoll, out var def);
+                                unit.Combat.DataManager.AbilityDefs.TryGet(ModInit.modSettings.BattleArmorDeSwarmRoll,
+                                    out var def);
                                 var ability = new Ability(def);
                                 ModInit.modLog.LogTrace(
                                     $"Adding {ability.Def?.Description?.Id} to {unit.Description?.Name}.");
@@ -61,6 +63,7 @@ namespace StrategicOperations.Patches
                         }
 
                     }
+
                     return;
                 }
 
@@ -68,21 +71,27 @@ namespace StrategicOperations.Patches
                 {
                     if (mech.EncounterTags.Contains("SpawnedFromAbility")) return;
                 }
+
                 AI_Utils.GenerateAIStrategicAbilities(unit);
             }
         }
 
-        [HarmonyPatch(typeof(PreferFarthestAwayFromClosestHostilePositionFactor), "EvaluateInfluenceMapFactorAtPosition",
-        new Type[] {typeof(AbstractActor), typeof(Vector3), typeof(float), typeof(MoveType), typeof(PathNode) })]
-        public static class PreferFarthestAwayFromClosestHostilePositionFactor_EvaluateInfluenceMapFactorAtPosition_BattleArmor
+        [HarmonyPatch(typeof(PreferFarthestAwayFromClosestHostilePositionFactor),
+            "EvaluateInfluenceMapFactorAtPosition",
+            new Type[] {typeof(AbstractActor), typeof(Vector3), typeof(float), typeof(MoveType), typeof(PathNode)})]
+        public static class
+            PreferFarthestAwayFromClosestHostilePositionFactor_EvaluateInfluenceMapFactorAtPosition_BattleArmor
         {
-            public static bool Prefix(PreferFarthestAwayFromClosestHostilePositionFactor __instance, AbstractActor unit, Vector3 position, float angle, MoveType moveType_unused, PathNode pathNode_unused, ref float __result)
+            public static bool Prefix(PreferFarthestAwayFromClosestHostilePositionFactor __instance, AbstractActor unit,
+                Vector3 position, float angle, MoveType moveType_unused, PathNode pathNode_unused, ref float __result)
             {
                 if (unit.HasMountedUnits() ||
-                    unit.ComponentAbilities.Any(x => x.Def.Id == ModInit.modSettings.BattleArmorMountAndSwarmID) && unit.canSwarm())
+                    unit.ComponentAbilities.Any(x => x.Def.Id == ModInit.modSettings.BattleArmorMountAndSwarmID) &&
+                    unit.canSwarm())
                 {
-                    var result = 9001 * (1/unit.DistanceToClosestDetectedEnemy(position));
-                    ModInit.modLog.LogDev($"[PreferFarthestAwayFromClosestHostilePositionFactor] Actor {unit.DisplayName} evaluating position {position}, should return {result}");
+                    var result = 9001 * (1 / unit.DistanceToClosestDetectedEnemy(position));
+                    ModInit.modLog.LogDev(
+                        $"[PreferFarthestAwayFromClosestHostilePositionFactor] Actor {unit.DisplayName} evaluating position {position}, should return {result}");
                     __result = result;
                     return false;
                 }
@@ -92,16 +101,19 @@ namespace StrategicOperations.Patches
         }
 
         [HarmonyPatch(typeof(PreferLowerMovementFactor), "EvaluateInfluenceMapFactorAtPosition",
-            new Type[] { typeof(AbstractActor), typeof(Vector3), typeof(float), typeof(MoveType), typeof(PathNode) })]
+            new Type[] {typeof(AbstractActor), typeof(Vector3), typeof(float), typeof(MoveType), typeof(PathNode)})]
         public static class PreferLowerMovementFactor_EvaluateInfluenceMapFactorAtPosition_BattleArmor
         {
-            public static bool Prefix(PreferFarthestAwayFromClosestHostilePositionFactor __instance, AbstractActor unit, Vector3 position, float angle, MoveType moveType_unused, PathNode pathNode_unused, ref float __result)
+            public static bool Prefix(PreferFarthestAwayFromClosestHostilePositionFactor __instance, AbstractActor unit,
+                Vector3 position, float angle, MoveType moveType_unused, PathNode pathNode_unused, ref float __result)
             {
                 if (unit.HasMountedUnits() ||
-                    unit.ComponentAbilities.Any(x => x.Def.Id == ModInit.modSettings.BattleArmorMountAndSwarmID) && unit.canSwarm())
+                    unit.ComponentAbilities.Any(x => x.Def.Id == ModInit.modSettings.BattleArmorMountAndSwarmID) &&
+                    unit.canSwarm())
                 {
                     var result = 9001 * (1 / unit.DistanceToClosestDetectedEnemy(position));
-                    ModInit.modLog.LogDev($"[PreferLowerMovementFactor] Actor {unit.DisplayName} evaluating position {position}, should return {result}");
+                    ModInit.modLog.LogDev(
+                        $"[PreferLowerMovementFactor] Actor {unit.DisplayName} evaluating position {position}, should return {result}");
                     __result = result;
                     return false;
                 }
@@ -111,16 +123,19 @@ namespace StrategicOperations.Patches
         }
 
         [HarmonyPatch(typeof(PreferOptimalDistanceToAllyFactor), "EvaluateInfluenceMapFactorAtPositionWithAlly",
-            new Type[] { typeof(AbstractActor), typeof(Vector3), typeof(float), typeof(ICombatant)})]
+            new Type[] {typeof(AbstractActor), typeof(Vector3), typeof(float), typeof(ICombatant)})]
         public static class PreferOptimalDistanceToAllyFactor_EvaluateInfluenceMapFactorAtPosition_BattleArmor
         {
-            public static bool Prefix(PreferFarthestAwayFromClosestHostilePositionFactor __instance, AbstractActor unit, Vector3 position, float angle, ICombatant allyUnit, ref float __result)
+            public static bool Prefix(PreferFarthestAwayFromClosestHostilePositionFactor __instance, AbstractActor unit,
+                Vector3 position, float angle, ICombatant allyUnit, ref float __result)
             {
                 if (unit.HasMountedUnits() ||
-                    unit.ComponentAbilities.Any(x => x.Def.Id == ModInit.modSettings.BattleArmorMountAndSwarmID) && unit.canSwarm())
+                    unit.ComponentAbilities.Any(x => x.Def.Id == ModInit.modSettings.BattleArmorMountAndSwarmID) &&
+                    unit.canSwarm())
                 {
                     var result = 9001 * (1 / unit.DistanceToClosestDetectedEnemy(position));
-                    ModInit.modLog.LogDev($"[PreferOptimalDistanceToAllyFactor] Actor {unit.DisplayName} evaluating position {position}, should return {result}");
+                    ModInit.modLog.LogDev(
+                        $"[PreferOptimalDistanceToAllyFactor] Actor {unit.DisplayName} evaluating position {position}, should return {result}");
                     __result = result;
                     return false;
                 }
@@ -129,17 +144,21 @@ namespace StrategicOperations.Patches
             }
         }
 
-        [HarmonyPatch(typeof(PreferHigherExpectedDamageToHostileFactor), "EvaluateInfluenceMapFactorAtPositionWithHostile",
-            new Type[] { typeof(AbstractActor), typeof(Vector3), typeof(float), typeof(MoveType), typeof(ICombatant) })]
+        [HarmonyPatch(typeof(PreferHigherExpectedDamageToHostileFactor),
+            "EvaluateInfluenceMapFactorAtPositionWithHostile",
+            new Type[] {typeof(AbstractActor), typeof(Vector3), typeof(float), typeof(MoveType), typeof(ICombatant)})]
         public static class PreferHigherExpectedDamageToHostileFactor_EvaluateInfluenceMapFactorAtPosition_BattleArmor
         {
-            public static bool Prefix(PreferFarthestAwayFromClosestHostilePositionFactor __instance, AbstractActor unit, Vector3 position, float angle, MoveType moveType, ICombatant hostileUnit, ref float __result)
+            public static bool Prefix(PreferFarthestAwayFromClosestHostilePositionFactor __instance, AbstractActor unit,
+                Vector3 position, float angle, MoveType moveType, ICombatant hostileUnit, ref float __result)
             {
                 if (unit.HasMountedUnits() ||
-                    unit.ComponentAbilities.Any(x => x.Def.Id == ModInit.modSettings.BattleArmorMountAndSwarmID) && unit.canSwarm())
+                    unit.ComponentAbilities.Any(x => x.Def.Id == ModInit.modSettings.BattleArmorMountAndSwarmID) &&
+                    unit.canSwarm())
                 {
                     var result = 9001 * (1 / unit.DistanceToClosestDetectedEnemy(position));
-                    ModInit.modLog.LogDev($"[PreferFarthestAwayFromClosestHostilePositionFactor] Actor {unit.DisplayName} evaluating position {position}, should return {result}");
+                    ModInit.modLog.LogDev(
+                        $"[PreferFarthestAwayFromClosestHostilePositionFactor] Actor {unit.DisplayName} evaluating position {position}, should return {result}");
                     __result = result;
                     return false;
                 }
@@ -148,17 +167,21 @@ namespace StrategicOperations.Patches
             }
         }
 
-        [HarmonyPatch(typeof(PreferNoCloserThanMinDistToHostileFactor), "EvaluateInfluenceMapFactorAtPositionWithHostile",
-            new Type[] { typeof(AbstractActor), typeof(Vector3), typeof(float), typeof(MoveType), typeof(ICombatant) })]
+        [HarmonyPatch(typeof(PreferNoCloserThanMinDistToHostileFactor),
+            "EvaluateInfluenceMapFactorAtPositionWithHostile",
+            new Type[] {typeof(AbstractActor), typeof(Vector3), typeof(float), typeof(MoveType), typeof(ICombatant)})]
         public static class PreferNoCloserThanMinDistToHostileFactor_EvaluateInfluenceMapFactorAtPosition_BattleArmor
         {
-            public static bool Prefix(PreferNoCloserThanMinDistToHostileFactor __instance, AbstractActor unit, Vector3 position, float angle, MoveType moveType, ICombatant hostileUnit, ref float __result)
+            public static bool Prefix(PreferNoCloserThanMinDistToHostileFactor __instance, AbstractActor unit,
+                Vector3 position, float angle, MoveType moveType, ICombatant hostileUnit, ref float __result)
             {
                 if (unit.HasMountedUnits() ||
-                    unit.ComponentAbilities.Any(x => x.Def.Id == ModInit.modSettings.BattleArmorMountAndSwarmID) && unit.canSwarm())
+                    unit.ComponentAbilities.Any(x => x.Def.Id == ModInit.modSettings.BattleArmorMountAndSwarmID) &&
+                    unit.canSwarm())
                 {
                     var result = 9001 * (1 / unit.DistanceToClosestDetectedEnemy(position));
-                    ModInit.modLog.LogDev($"[PreferNoCloserThanMinDistToHostileFactor] Actor {unit.DisplayName} evaluating position {position}, should return {result}");
+                    ModInit.modLog.LogDev(
+                        $"[PreferNoCloserThanMinDistToHostileFactor] Actor {unit.DisplayName} evaluating position {position}, should return {result}");
                     __result = result;
                     return false;
                 }
@@ -168,46 +191,53 @@ namespace StrategicOperations.Patches
         }
 
         [HarmonyPatch(typeof(PreferOptimalDistanceToHostileFactor), "EvaluateInfluenceMapFactorAtPositionWithHostile",
-            new Type[] { typeof(AbstractActor), typeof(Vector3), typeof(float), typeof(MoveType), typeof(ICombatant) })]
+            new Type[] {typeof(AbstractActor), typeof(Vector3), typeof(float), typeof(MoveType), typeof(ICombatant)})]
         public static class PreferOptimalDistanceToHostileFactor_EvaluateInfluenceMapFactorAtPosition_BattleArmor
         {
-            public static bool Prefix(PreferOptimalDistanceToHostileFactor __instance, AbstractActor unit, Vector3 position, float angle, MoveType moveType, ICombatant hostileUnit, ref float __result)
+            public static bool Prefix(PreferOptimalDistanceToHostileFactor __instance, AbstractActor unit,
+                Vector3 position, float angle, MoveType moveType, ICombatant hostileUnit, ref float __result)
             {
                 if (unit.HasMountedUnits() ||
-                    unit.ComponentAbilities.Any(x => x.Def.Id == ModInit.modSettings.BattleArmorMountAndSwarmID) && unit.canSwarm())
+                    unit.ComponentAbilities.Any(x => x.Def.Id == ModInit.modSettings.BattleArmorMountAndSwarmID) &&
+                    unit.canSwarm())
                 {
                     var result = 9001 * (1 / unit.DistanceToClosestDetectedEnemy(position));
                     __result = result;
-                    ModInit.modLog.LogDev($"[PreferOptimalDistanceToHostileFactor] Actor {unit.DisplayName} evaluating position {position}, should return {result}");
+                    ModInit.modLog.LogDev(
+                        $"[PreferOptimalDistanceToHostileFactor] Actor {unit.DisplayName} evaluating position {position}, should return {result}");
                     return false;
                 }
+
                 return true;
             }
         }
 
         [HarmonyPatch]
-        public static class CanMoveAndShootWithoutOverheatingNode_Tick_Patch  // may need to be CanMoveAndShootWithoutOverheatingNode. was IsMovementAvailableForUnitNode
+        public static class
+            CanMoveAndShootWithoutOverheatingNode_Tick_Patch // may need to be CanMoveAndShootWithoutOverheatingNode. was IsMovementAvailableForUnitNode
         {
             public static MethodBase TargetMethod()
             {
                 var type = AccessTools.TypeByName("CanMoveAndShootWithoutOverheatingNode");
                 return AccessTools.Method(type, "Tick");
             }
-            
+
             public static bool Prefix(ref BehaviorTreeResults __result, string ___name,
                 AbstractActor ___unit)
             {
                 if (!___unit.Combat.TurnDirector.IsInterleaved) return true;
 
                 var battleArmorAbility =
-                    ___unit.ComponentAbilities.FirstOrDefault(x => x.Def.Id == ModInit.modSettings.BattleArmorMountAndSwarmID);
+                    ___unit.ComponentAbilities.FirstOrDefault(x =>
+                        x.Def.Id == ModInit.modSettings.BattleArmorMountAndSwarmID);
                 if (battleArmorAbility != null && ___unit.canSwarm())
                 {
                     if (battleArmorAbility.IsAvailable)
                     {
                         if (___unit.IsSwarmingUnit())
                         {
-                            ModInit.modLog.LogTrace($"[CanMoveAndShootWithoutOverheatingNode] Actor {___unit.DisplayName} is currently swarming. Doing nothing.");
+                            ModInit.modLog.LogTrace(
+                                $"[CanMoveAndShootWithoutOverheatingNode] Actor {___unit.DisplayName} is currently swarming. Doing nothing.");
                             //if currently swarming, dont do anything else.
                             __result = new BehaviorTreeResults(BehaviorNodeState.Failure);
                             return false;
@@ -230,12 +260,17 @@ namespace StrategicOperations.Patches
                             battleArmorAbility.Def.IntParam2
                         }.Max();
 
+                        ModInit.modLog.LogTrace(
+                            $"[CanMoveAndShootWithoutOverheatingNode] Actor {___unit.DisplayName} maxRange to be used is {maxRange}, largest of: MaxWalkDistance - {___unit.MaxWalkDistance}, MaxSprintDistance - {___unit.MaxSprintDistance}, JumpDistance - {jumpdist}, and Ability Override {battleArmorAbility.Def.IntParam2}");
+
                         if (___unit.IsMountedUnit())
                         {
-                            ModInit.modLog.LogTrace($"[CanMoveAndShootWithoutOverheatingNode] Actor {___unit.DisplayName} is currently mounted. Evaluating range to nearest enemy.");
+                            ModInit.modLog.LogTrace(
+                                $"[CanMoveAndShootWithoutOverheatingNode] Actor {___unit.DisplayName} is currently mounted. Evaluating range to nearest enemy.");
                             if (distance <= 1.25 * maxRange)
                             {
-                                ModInit.modLog.LogTrace($"[CanMoveAndShootWithoutOverheatingNode] Actor {___unit.DisplayName} is {distance} from nearest enemy, maxrange was {maxRange} * 1.25.");
+                                ModInit.modLog.LogTrace(
+                                    $"[CanMoveAndShootWithoutOverheatingNode] Actor {___unit.DisplayName} is {distance} from nearest enemy, maxrange was {maxRange} * 1.25.");
                                 var carrier = ___unit.Combat.FindActorByGUID(ModState.PositionLockMount[___unit.GUID]);
                                 if (ModState.AiBattleArmorAbilityCmds.ContainsKey(___unit.GUID))
                                 {
@@ -266,7 +301,8 @@ namespace StrategicOperations.Patches
                         //if it isnt mounted, its on the ground and should try to swarm.
                         if (distance <= maxRange && !(closestEnemy is TrooperSquad))
                         {
-                            ModInit.modLog.LogTrace($"[CanMoveAndShootWithoutOverheatingNode] Actor {___unit.DisplayName} is on the ground, trying to swarm at {distance} from nearest enemy, maxrange was {maxRange} * 1.25.");
+                            ModInit.modLog.LogTrace(
+                                $"[CanMoveAndShootWithoutOverheatingNode] Actor {___unit.DisplayName} is on the ground, trying to swarm at {distance} from nearest enemy, maxrange was {maxRange} * 1.25.");
                             if (ModState.AiBattleArmorAbilityCmds.ContainsKey(___unit.GUID))
                             {
                                 if (ModState.AiBattleArmorAbilityCmds[___unit.GUID].active)
@@ -340,6 +376,7 @@ namespace StrategicOperations.Patches
                         __result = new BehaviorTreeResults(BehaviorNodeState.Failure);
                         return false;
                     }
+
                     if (strafeVal > ModInit.modSettings.AI_InvokeStrafeThreshold && strafeVal >= spawnVal)
                     {
                         var info = new AI_CmdInvocation(abilityStrafe, vector1Strafe, vector2Strafe, true);
@@ -363,6 +400,7 @@ namespace StrategicOperations.Patches
                         __result = new BehaviorTreeResults(BehaviorNodeState.Failure);
                         return false;
                     }
+
                     strafe:
                     if (strafeVal >= ModInit.modSettings.AI_InvokeStrafeThreshold)
                     {
@@ -372,6 +410,7 @@ namespace StrategicOperations.Patches
                         return false;
                     }
                 }
+
                 return true;
             }
         }
@@ -379,7 +418,8 @@ namespace StrategicOperations.Patches
         [HarmonyPatch(typeof(AITeam), "makeInvocationFromOrders")]
         public static class AITeam_makeInvocationFromOrders_patch
         {
-            public static bool Prefix(AITeam __instance, AbstractActor unit, OrderInfo order, ref InvocationMessage __result)
+            public static bool Prefix(AITeam __instance, AbstractActor unit, OrderInfo order,
+                ref InvocationMessage __result)
             {
                 if (unit.HasSwarmingUnits() && ModState.AiDealWithBattleArmorCmds.ContainsKey(unit.GUID))
                 {
@@ -415,18 +455,24 @@ namespace StrategicOperations.Patches
                         unit.HandleDeath(target.GUID);
                         return false;
                     }
-                    ModInit.modLog.LogMessage($"[AITeam.makeInvocationFromOrders] Actor {unit.DisplayName} has active swarm attack on {target.DisplayName}");
+
+                    ModInit.modLog.LogMessage(
+                        $"[AITeam.makeInvocationFromOrders] Actor {unit.DisplayName} has active swarm attack on {target.DisplayName}");
                     foreach (var weapon in unit.Weapons)
                     {
                         weapon.EnableWeapon();
                     }
+
                     var weps = unit.Weapons.Where(x => x.IsEnabled && x.HasAmmo).ToList();
 
                     var loc = ModState.BADamageTrackers[unit.GUID].BA_MountedLocations.Values.GetRandomElement();
                     //var attackStackSequence = new AttackStackSequence(unit, target, unit.CurrentPosition, unit.CurrentRotation, weps, MeleeAttackType.NotSet, loc, -1);
                     //unit.Combat.MessageCenter.PublishMessage(new AddSequenceToStackMessage(attackStackSequence));
                     var vent = unit.HasVentCoolantAbility && unit.CanVentCoolant;
-                    __result = new AttackInvocation(unit, target, weps, MeleeAttackType.NotSet, loc){ventHeatBeforeAttack = vent}; // making a regular attack invocation here, instead of stacksequence + reserve
+                    __result = new AttackInvocation(unit, target, weps, MeleeAttackType.NotSet, loc)
+                    {
+                        ventHeatBeforeAttack = vent
+                    }; // making a regular attack invocation here, instead of stacksequence + reserve
 
                     //if (!unit.HasMovedThisRound)
                     //{
@@ -435,6 +481,7 @@ namespace StrategicOperations.Patches
                     //__result = new ReserveActorInvocation(unit, ReserveActorAction.DONE, unit.Combat.TurnDirector.CurrentRound);
                     return false;
                 }
+
                 if (ModState.AiBattleArmorAbilityCmds.ContainsKey(unit.GUID))
                 {
                     if (ModState.AiBattleArmorAbilityCmds[unit.GUID].active)
@@ -451,19 +498,25 @@ namespace StrategicOperations.Patches
 
                         if (unit.IsSwarmingUnit() && ModInit.modSettings.AttackOnSwarmSuccess)
                         {
-                            ModInit.modLog.LogTrace($"[makeInvocationFromOrders] - found freshly swarmed unit; trying to make attack invocation for same round. Fingies crossed!");
+                            ModInit.modLog.LogTrace(
+                                $"[makeInvocationFromOrders] - found freshly swarmed unit; trying to make attack invocation for same round. Fingies crossed!");
                             var target = unit.Combat.FindActorByGUID(ModState.PositionLockSwarm[unit.GUID]);
                             foreach (var weapon in unit.Weapons)
                             {
                                 weapon.EnableWeapon();
                             }
+
                             var weps = unit.Weapons.Where(x => x.IsEnabled && x.HasAmmo).ToList();
 
-                            var loc = ModState.BADamageTrackers[unit.GUID].BA_MountedLocations.Values.GetRandomElement();
+                            var loc = ModState.BADamageTrackers[unit.GUID].BA_MountedLocations.Values
+                                .GetRandomElement();
                             //var attackStackSequence = new AttackStackSequence(unit, target, unit.CurrentPosition, unit.CurrentRotation, weps, MeleeAttackType.NotSet, loc, -1);
                             //unit.Combat.MessageCenter.PublishMessage(new AddSequenceToStackMessage(attackStackSequence));
                             var vent = unit.HasVentCoolantAbility && unit.CanVentCoolant;
-                            __result = new AttackInvocation(unit, target, weps, MeleeAttackType.NotSet, loc) { ventHeatBeforeAttack = vent }; // making a regular attack invocation here, instead of stacksequence + reserve
+                            __result = new AttackInvocation(unit, target, weps, MeleeAttackType.NotSet, loc)
+                            {
+                                ventHeatBeforeAttack = vent
+                            }; // making a regular attack invocation here, instead of stacksequence + reserve
                         }
 
                         else
@@ -472,7 +525,9 @@ namespace StrategicOperations.Patches
                             {
                                 unit.BehaviorTree.IncreaseSprintHysteresisLevel();
                             }
-                            __result = new ReserveActorInvocation(unit, ReserveActorAction.DONE, unit.Combat.TurnDirector.CurrentRound);
+
+                            __result = new ReserveActorInvocation(unit, ReserveActorAction.DONE,
+                                unit.Combat.TurnDirector.CurrentRound);
                         }
 
                         ModState.AiBattleArmorAbilityCmds.Remove(unit.GUID);
@@ -483,12 +538,15 @@ namespace StrategicOperations.Patches
                 if (!ModState.AiCmds.ContainsKey(unit.GUID)) return true;
                 if (!ModState.AiCmds[unit.GUID].active) return true;
                 ModState.PopupActorResource =
-                    AI_Utils.AssignRandomSpawnAsset(ModState.AiCmds[unit.GUID].ability, unit.team.FactionValue.Name, out var waves);
+                    AI_Utils.AssignRandomSpawnAsset(ModState.AiCmds[unit.GUID].ability, unit.team.FactionValue.Name,
+                        out var waves);
                 ModState.StrafeWaves = waves;
                 //assign waves here if needed
 
-                ModInit.modLog.LogTrace($"AICMD DUMP: {ModState.AiCmds[unit.GUID].active}, {ModState.AiCmds[unit.GUID].vectorOne}, {ModState.AiCmds[unit.GUID].vectorTwo}.");
-                ModInit.modLog.LogTrace($"CMD Ability DUMP: {ModState.AiCmds[unit.GUID].ability} { ModState.AiCmds[unit.GUID].ability.Def.Id}, Combat is not null? {ModState.AiCmds[unit.GUID].ability.Combat != null}");
+                ModInit.modLog.LogTrace(
+                    $"AICMD DUMP: {ModState.AiCmds[unit.GUID].active}, {ModState.AiCmds[unit.GUID].vectorOne}, {ModState.AiCmds[unit.GUID].vectorTwo}.");
+                ModInit.modLog.LogTrace(
+                    $"CMD Ability DUMP: {ModState.AiCmds[unit.GUID].ability} {ModState.AiCmds[unit.GUID].ability.Def.Id}, Combat is not null? {ModState.AiCmds[unit.GUID].ability.Combat != null}");
 
                 ModState.AiCmds[unit.GUID].ability.Activate(unit, ModState.AiCmds[unit.GUID].vectorOne,
                     ModState.AiCmds[unit.GUID].vectorTwo);
@@ -499,7 +557,9 @@ namespace StrategicOperations.Patches
                 {
                     unit.BehaviorTree.IncreaseSprintHysteresisLevel();
                 }
-                __result = new ReserveActorInvocation(unit, ReserveActorAction.DONE, unit.Combat.TurnDirector.CurrentRound);
+
+                __result = new ReserveActorInvocation(unit, ReserveActorAction.DONE,
+                    unit.Combat.TurnDirector.CurrentRound);
                 ModState.AiCmds.Remove(unit.GUID); //somehow spawned BA doesn't always reserve on correct round?
                 return false;
                 // invoke ability from modstate and then create/use a Brace/Reserve order.
@@ -507,7 +567,8 @@ namespace StrategicOperations.Patches
             }
         }
 
-        [HarmonyPatch(typeof(AIUtil), "UnitHasVisibilityToTargetFromCurrentPosition")] //need to add optionally depends on lowvis to make this work for RT
+        [HarmonyPatch(typeof(AIUtil),
+            "UnitHasVisibilityToTargetFromCurrentPosition")] //need to add optionally depends on lowvis to make this work for RT
         public static class AIUtil_UnitHasVisibilityToTargetFromCurrentPosition
         {
             public static void Postfix(AbstractActor attacker, ICombatant target, ref bool __result)
@@ -516,11 +577,45 @@ namespace StrategicOperations.Patches
                 {
                     if (actor.IsSwarmingUnit() || actor.IsMountedUnit())
                     {
-                        ModInit.modLog.LogTrace($"[AIUtil.UnitHasVisibilityToTargetFromCurrentPosition] DUMP: Target {target.DisplayName} is either mounted or swarming, forcing AI visibility to zero for this node.");
+                        ModInit.modLog.LogTrace(
+                            $"[AIUtil.UnitHasVisibilityToTargetFromCurrentPosition] DUMP: Target {target.DisplayName} is either mounted or swarming, forcing AI visibility to zero for this node.");
                         __result = false;
                     }
                 }
             }
         }
+        
+        [HarmonyPatch()]
+        public static class Mech_CanEngageTarget
+        {
+            public static MethodBase TargetMethod()
+            {
+                var methods = AccessTools.GetDeclaredMethods(typeof(Mech));
+                foreach (MethodInfo info in methods)
+                {
+                    if (info.Name == "CanEngageTarget")
+                    {
+                        var paramInfo = info.GetParameters();
+                        
+                        if (paramInfo.Length == 2)
+                        {
+                            return info;
+                        }
+                    }
+                }
+                return null;
+            }
+            public static void Postfix(Mech __instance, ICombatant target, ref string debugMsg, ref bool __result)
+            {
+                //debugMsg = default(string);
+                if (target is AbstractActor actor)
+                {
+                    if (actor.IsSwarmingUnit() || actor.IsMountedUnit())
+                    {
+                        __result = false;
+                    }
+                }
+            }
+            }
     }
 }
