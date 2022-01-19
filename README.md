@@ -637,7 +637,7 @@ Any CAE equipment whose ID is found in `BPodComponentIDs` will function as a B-P
 				"Range": 150,
 				"Damage": 100,
 ```
-All battle armor squads within 150m would then take 100 damage, divided randomly amongst the suits in the squad.
+All battle armor squads within 150m would then take 100 damage, divided randomly amongst the suits in the squad, and any enemy battle armor squads within that radius that are currently swarming will be forcibly dismounted.
 	
 In addition, to B-Pods, all mechs can be given one or two abilities in order to attempt to dislodge swarming BA, using the following settings. The AI will also attempt to dislodge player BA when swarming.
 
