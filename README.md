@@ -48,7 +48,7 @@ settings in the mod.json:
 	"commandAbilities_AI": {
 		"ClanGhostBear": [
 			{
-				"AbilityID": "AbilityDefCMD_Strafe_AI",
+				"AbilityDefID": "AbilityDefCMD_Strafe_AI",
 				"AddChance": 0.2,
 				"DiffMod": 0.0
 			}
