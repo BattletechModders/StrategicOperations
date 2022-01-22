@@ -176,13 +176,43 @@ namespace StrategicOperations.Framework
             return ability.CurrentCooldown < 1 && (ability.Def.NumberOfUses < 1 || ability.NumUsesLeft > 0) && flag;
         }// need to redo Ability.Activate from start, completely override for BA? Or just put ability on hidden componenet and ignore this shit.
 
+        internal class DetachFromCarrierDelegate
+        {
+            public TrooperSquad squad { get; set; }
+            public CustomMech detachTarget { get; set; }
+            public float detachTargetDownSpeed = -20f;
+            public float detachTargetUpSpeed = 5f;
 
+            public DetachFromCarrierDelegate(TrooperSquad squad, CustomMech target)
+            {
+                this.squad = squad;
+                this.detachTarget = target;
+            }
 
+            public void OnRestoreHeightControl()
+            {
+                detachTarget.custGameRep.HeightController.UpSpeed = detachTargetUpSpeed;
+                detachTarget.custGameRep.HeightController.DownSpeed = detachTargetDownSpeed;
+            }
+            public void OnLandDetach()
+            {
+                squad.GameRep.transform.localScale = new Vector3(1f, 1f, 1f);
+                squad.GameRep.ToggleHeadlights(true);
+                //ModState.SavedBAScale[squad.GUID];
+                //if (ModState.SavedBAScale.ContainsKey(squad.GUID))
+                //{
+                //    squad.GameRep.transform.localScale = ModState.SavedBAScale[squad.GUID];
+                //    ModState.SavedBAScale.Remove(squad.GUID);
+                //}
+            }
+        }
 
         internal class AttachToCarrierDelegate
         {
             public TrooperSquad squad { get; set; }
             public CustomMech attachTarget { get; set; }
+            public float attachTargetDownSpeed = -20f;
+            public float attachTargetUpSpeed = 5f;
 
             public AttachToCarrierDelegate(TrooperSquad squad, CustomMech target)
             {
@@ -193,12 +223,14 @@ namespace StrategicOperations.Framework
             public void OnLandAttach()
             {
                 //HIDE SQUAD REPRESENTATION
-                attachTarget.HideBattleArmorOnChassis(squad);
+                attachTarget.MountBattleArmorToChassis(squad, true);
+                //attachTarget.HideBattleArmorOnChassis(squad);
             }
-            public void OnLandDetach()
+
+            public void OnRestoreHeightControl()
             {
-                //HIDE SQUAD REPRESENTATION
-                attachTarget.ShowBattleArmorOnChassis(squad);
+                attachTarget.custGameRep.HeightController.UpSpeed = attachTargetUpSpeed;
+                attachTarget.custGameRep.HeightController.DownSpeed = attachTargetDownSpeed;
             }
         }
 
@@ -206,21 +238,29 @@ namespace StrategicOperations.Framework
         {
             if (attachTarget is CustomMech custMech && attachTarget.team.IsFriendly(squad.team))
             {
+                ModInit.modLog.LogTrace($"AttachToCarrier processing on friendly.");
                 if (custMech.FlyingHeight() > 1.5f)
                 {
                     //Check if actually flying unit
                     //CALL ATTACH CODE BUT WITHOUT SQUAD REPRESENTATION HIDING
-                    custMech.MountBattleArmorToChassis(squad, false);
-                    custMech.DropOffAnimation(new AttachToCarrierDelegate(squad, custMech).OnLandAttach);
+                    //custMech.MountBattleArmorToChassis(squad, false);
+
+                    custMech.custGameRep.HeightController.UpSpeed = 50f;
+                    custMech.custGameRep.HeightController.DownSpeed = -50f;
+
+                    var attachDel = new AttachToCarrierDelegate(squad, custMech);
+                    custMech.DropOffAnimation(attachDel.OnLandAttach, attachDel.OnRestoreHeightControl);
                 }
                 else
                 {
+                    ModInit.modLog.LogTrace($"AttachToCarrier call mount.");
                     //CALL DEFAULT ATTACH CODE
                     custMech.MountBattleArmorToChassis(squad, true);
                 }
             }
             else
             {
+                ModInit.modLog.LogTrace($"AttachToCarrier call mount.");
                 //CALL DEFAULT ATTACH CODE
                 attachTarget.MountBattleArmorToChassis(squad, true);
             }
@@ -228,48 +268,33 @@ namespace StrategicOperations.Framework
 
         public static void DetachFromCarrier(this TrooperSquad squad, AbstractActor attachTarget)
         {
+            ModState.PositionLockMount.Remove(squad.GUID);
             if (attachTarget is CustomMech custMech && attachTarget.team.IsFriendly(squad.team))
             {
+                ModInit.modLog.LogTrace($"DetachFromCarrier processing on friendly.");
                 if (custMech.FlyingHeight() > 1.5f)
                 {
                     //Check if actually flying unit
                     //CALL ATTACH CODE BUT WITHOUT SQUAD REPRESENTATION HIDING
-                    custMech.DismountBA(squad, false, false, false);
-                    custMech.DropOffAnimation(new AttachToCarrierDelegate(squad, custMech).OnLandDetach);
+                    //custMech.DismountBA(squad, false, false, false);
+                    custMech.custGameRep.HeightController.UpSpeed = 50f;
+                    custMech.custGameRep.HeightController.DownSpeed = -50f;
+
+                    var detachDel = new DetachFromCarrierDelegate(squad, custMech);
+                    custMech.DropOffAnimation(detachDel.OnLandDetach, detachDel.OnRestoreHeightControl);
                 }
                 else
                 {
+                    ModInit.modLog.LogTrace($"DetachFromCarrier call dismount.");
                     //CALL DEFAULT ATTACH CODE
-                    custMech.DismountBA(squad, false, false, true);
+                    squad.DismountBA(custMech, false, false, true);
                 }
             }
             else
             {
+                ModInit.modLog.LogTrace($"DetachFromCarrier call dismount.");
                 //CALL DEFAULT ATTACH CODE
-                attachTarget.DismountBA(squad, false, false, true);
-            }
-        }
-
-        public static void HideBattleArmorOnChassis(this AbstractActor carrier, AbstractActor battleArmor)
-        {
-            if (!ModState.SavedBAScale.ContainsKey(battleArmor.GUID))
-            {
-                var baseScale = battleArmor.GameRep.transform.localScale;
-                ModState.SavedBAScale.Add(battleArmor.GUID, baseScale);
-                battleArmor.GameRep.transform.localScale = new Vector3(.01f, .01f, .01f);
-            }
-            else
-            {
-                ModInit.modLog.LogMessage($"[HideBattleArmorOnChassis] squad {battleArmor.DisplayName} {battleArmor.GUID} already has saved scale and should already be hidden");
-            }
-        }
-
-        public static void ShowBattleArmorOnChassis(this AbstractActor carrier, AbstractActor battleArmor)
-        {
-            if (ModState.SavedBAScale.ContainsKey(battleArmor.GUID))
-            {
-                battleArmor.GameRep.transform.localScale = ModState.SavedBAScale[battleArmor.GUID];
-                ModState.SavedBAScale.Remove(battleArmor.GUID);
+                squad.DismountBA(attachTarget, false, false, true);
             }
         }
 
@@ -279,9 +304,10 @@ namespace StrategicOperations.Framework
             {
                 if (shrinkRep)
                 {
-                    var baseScale = battleArmor.GameRep.transform.localScale;
-                    ModState.SavedBAScale.Add(battleArmor.GUID, baseScale);
+                    //var baseScale = battleArmor.GameRep.transform.localScale;
+                    //ModState.SavedBAScale.Add(battleArmor.GUID, baseScale);
                     battleArmor.GameRep.transform.localScale = new Vector3(.01f, .01f, .01f);
+                    battleArmorAsMech.GameRep.ToggleHeadlights(false);
                 }
 
                 if (!ModState.BADamageTrackers.ContainsKey(battleArmorAsMech.GUID))
@@ -305,6 +331,8 @@ namespace StrategicOperations.Framework
                         ModInit.modLog.LogMessage($"[MountBattleArmorToChassis] - target unit {carrier.DisplayName} has internal BA capacity of {internalCap}. Currently used: {currentInternalSquads}, mounting squad internally.");
                         carrier.modifyInternalBASquads(1);
                         tracker.IsSquadInternal = true;
+                        // try and set firing arc to 360?
+                        //battleArmor.FiringArc(360f);
                         return;
                     }
                 }
@@ -500,19 +528,22 @@ namespace StrategicOperations.Framework
             }
             var hud = Traverse.Create(CameraControl.Instance).Property("HUD").GetValue<CombatHUD>();
             //actor.GameRep.IsTargetable = true;
-            if (ModState.SavedBAScale.ContainsKey(actor.GUID) && unShrinkRep)
+
+            ModState.PositionLockMount.Remove(actor.GUID);
+            ModState.PositionLockSwarm.Remove(actor.GUID);
+            ModState.CachedUnitCoordinates.Remove(carrier.GUID);
+
+            if (unShrinkRep && actor is Mech baMech)
             {
-                actor.GameRep.transform.localScale = ModState.SavedBAScale[actor.GUID];
-                ModState.SavedBAScale.Remove(actor.GUID);
+                actor.GameRep.transform.localScale = new Vector3(1f, 1f, 1f);
+                //actor.GameRep.transform.localScale = ModState.SavedBAScale[actor.GUID];
+                //ModState.SavedBAScale.Remove(actor.GUID);
+                baMech.GameRep.ToggleHeadlights(true);
             }
 
             var point = carrier.CurrentPosition;
             point.y = actor.Combat.MapMetaData.GetLerpedHeightAt(point, false);
             actor.TeleportActor(point);
-
-            ModState.PositionLockMount.Remove(actor.GUID);
-            ModState.PositionLockSwarm.Remove(actor.GUID);
-            ModState.CachedUnitCoordinates.Remove(carrier.GUID);
 
             if (!calledFromHandleDeath && !calledFromDeswarm)
             {

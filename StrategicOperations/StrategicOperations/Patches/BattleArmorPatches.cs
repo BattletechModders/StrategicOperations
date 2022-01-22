@@ -467,10 +467,7 @@ namespace StrategicOperations.Patches
                                     creator.Combat.EffectManager.CreateEffect(effectData, ModState.BAUnhittableEffect.ID,
                                         -1, creator, creator, default(WeaponHitInfo), 1);
                                 }
-                                if (creator is TrooperSquad squad)
-                                {
-                                    squad.AttachToCarrier(targetActor);
-                                }
+                                
                                 //creator.GameRep.IsTargetable = false;
                                 creator.TeleportActor(targetActor.CurrentPosition);
 
@@ -482,6 +479,11 @@ namespace StrategicOperations.Patches
                                 //CombatMovementReticle.Instance.RefreshActor(creator); // or just end activation completely? definitely on use.
                                 
                                 ModState.PositionLockMount.Add(creator.GUID, targetActor.GUID);
+                                if (creator is TrooperSquad squad)
+                                {
+                                    squad.AttachToCarrier(targetActor);
+                                    ModInit.modLog.LogTrace($"[Ability.Activate - BattleArmorMountID] Called AttachToCarrier.");
+                                }
                                 ModInit.modLog.LogMessage(
                                     $"[Ability.Activate - BattleArmorMountID] Added PositionLockMount with rider  {creator.DisplayName} {creator.GUID} and carrier {targetActor.DisplayName} {targetActor.GUID}.");
 
@@ -519,10 +521,7 @@ namespace StrategicOperations.Patches
 
                                     ModInit.modLog.LogMessage(
                                         $"[Ability.Activate - BattleArmorSwarmID] Cleaning up dummy attacksequence.");
-                                    if (creator is TrooperSquad squad)
-                                    {
-                                        squad.AttachToCarrier(targetActor);
-                                    }
+                                    
                                     //creator.GameRep.IsTargetable = false;
                                     creator.TeleportActor(target.CurrentPosition);
 
@@ -533,6 +532,11 @@ namespace StrategicOperations.Patches
                                     //CombatMovementReticle.Instance.RefreshActor(creator);
 
                                     ModState.PositionLockSwarm.Add(creator.GUID, target.GUID);
+                                    if (creator is TrooperSquad squad)
+                                    {
+                                        squad.AttachToCarrier(targetActor);
+                                        ModInit.modLog.LogTrace($"[Ability.Activate - BattleArmorMountID] Called AttachToCarrier.");
+                                    }
                                     ModInit.modLog.LogMessage(
                                         $"[Ability.Activate - BattleArmorSwarmID] Added PositionLockSwarm with rider  {creator.DisplayName} {creator.GUID} and carrier {target.DisplayName} {target.GUID}.");
                                     creator.ResetPathing(false);
@@ -626,6 +630,8 @@ namespace StrategicOperations.Patches
                             {
                                 if (creator is TrooperSquad squad)
                                 {
+                                    //ModInit.modLog.LogTrace($"[Ability.Activate] Called DetachFromCarrier.");
+                                    squad.DismountBA(targetActor, false, false, false);
                                     squad.DetachFromCarrier(targetActor);
                                 }
                                 //creator.DismountBA(targetActor);
@@ -649,7 +655,7 @@ namespace StrategicOperations.Patches
                 {
                     ModInit.modLog.LogTrace(
                         $"[CombatHUDMechwarriorTray.ResetMechwarriorButtons] Actor {actor.DisplayName} {actor.GUID} found in PositionLockMount. Disabling buttons.");
-                    __instance.FireButton.DisableButton();
+                    //__instance.FireButton.DisableButton();
                     __instance.MoveButton.DisableButton();
                     __instance.SprintButton.DisableButton();
                     __instance.JumpButton.DisableButton();
@@ -1546,6 +1552,29 @@ namespace StrategicOperations.Patches
                 }
                 //alter result to remove currently swarming units from firinglines (this might not be the best place to do it)
                 return true;
+            }
+        }
+
+        [HarmonyPatch(typeof(MechRepresentation), "ToggleHeadlights")]
+        public static class MechRepresentation_ToggleHeadlights
+        {
+            public static void Postfix(MechRepresentation __instance, bool headlightsActive, List<GameObject> ___headlightReps)
+            {
+                if (__instance.parentActor.IsSwarmingUnit() || __instance.parentActor.IsMountedUnit())
+                {
+                    var customRep = __instance as CustomMechRepresentation;
+                    if (customRep != null)
+                    {
+                        customRep._ToggleHeadlights(false);
+                    }
+                    else
+                    {
+                        for (int i = 0; i < ___headlightReps.Count; i++)
+                        {
+                            ___headlightReps[i].SetActive(false);
+                        }
+                    }
+                }
             }
         }
     }

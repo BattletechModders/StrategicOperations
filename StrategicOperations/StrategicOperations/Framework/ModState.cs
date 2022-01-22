@@ -34,7 +34,7 @@ namespace StrategicOperations.Framework
         public static Dictionary<string, BA_DamageTracker> 
             BADamageTrackers = new Dictionary<string, BA_DamageTracker>(); // key is GUID of BA squad
 
-        public static Dictionary<string, Vector3> SavedBAScale = new Dictionary<string, Vector3>();
+        //public static Dictionary<string, Vector3> SavedBAScale = new Dictionary<string, Vector3>(); // should always be 1,1,1
 
         public static Dictionary<string, Vector3> CachedUnitCoordinates = new Dictionary<string, Vector3>();
         public static Dictionary<string, string> PositionLockMount = new Dictionary<string, string>(); // key is mounted unit, value is carrier
@@ -123,7 +123,7 @@ namespace StrategicOperations.Framework
             DeferredDespawnersFromStrafe = new Dictionary<string, AbstractActor>();
             CommandUses = new List<CmdUseInfo>();
             DeploymentAssetsStats = new List<CmdUseStat>();
-            SavedBAScale = new Dictionary<string, Vector3>();
+            //SavedBAScale = new Dictionary<string, Vector3>();
             CachedUnitCoordinates = new Dictionary<string, Vector3>();
             PositionLockMount = new Dictionary<string, string>();
             PositionLockSwarm = new Dictionary<string, string>();

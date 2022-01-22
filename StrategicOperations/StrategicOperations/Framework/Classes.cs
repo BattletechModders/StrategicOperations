@@ -57,12 +57,13 @@ namespace StrategicOperations.Framework
                 newBattleArmor.DynamicUnitRole = UnitRole.Brawler;
                 UnitSpawnedMessage message = new UnitSpawnedMessage("FROM_ABILITY", newBattleArmor.GUID);
                 Actor.Combat.MessageCenter.PublishMessage(message);
+                
+                newBattleArmor.TeleportActor(Actor.CurrentPosition);
+                ModState.PositionLockMount.Add(newBattleArmor.GUID, Actor.GUID);
                 if (newBattleArmor is TrooperSquad squad)
                 {
                     squad.AttachToCarrier(Actor);
                 }
-                newBattleArmor.TeleportActor(Actor.CurrentPosition);
-                ModState.PositionLockMount.Add(newBattleArmor.GUID, Actor.GUID);
                 Actor.Combat.ItemRegistry.AddItem(newBattleArmor);
                 Actor.Combat.RebuildAllLists();
                 ModInit.modLog.LogMessage(
