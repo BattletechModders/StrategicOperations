@@ -294,7 +294,7 @@ namespace StrategicOperations.Framework
                 ModInit.modLog.LogMessage($"No weapons found for strafing run.");
                 return;
             }
-            this.Attacker.Weapons.Sort((Weapon x, Weapon y) => y.MaxRange.CompareTo(x.MaxRange));
+            this.Attacker.Weapons.Sort((Weapon x, Weapon y) => x.MaxRange.CompareTo(y.MaxRange));
             ModInit.modLog.LogMessage($"First strafe weapon will be {Attacker.Weapons[0].Name} with range {Attacker.Weapons[0].MaxRange}");
         }
 
@@ -331,7 +331,7 @@ namespace StrategicOperations.Framework
             base.OnComplete();
 
             ModState.DeferredDespawnersFromStrafe.Add(Attacker.GUID, Attacker);
-            this.Attacker.PlaceFarAwayFromMap();
+            //this.Attacker.PlaceFarAwayFromMap();
 
             foreach (var idx in this.attackSequences)
             {

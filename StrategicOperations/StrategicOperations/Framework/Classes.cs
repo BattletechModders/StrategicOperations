@@ -126,7 +126,22 @@ namespace StrategicOperations.Framework
                 this.OnBADepsLoaded();
             }
         }
-        
+
+        public class AI_FactionCommandAbilitySetting
+        {
+            public string AbilityDefID = "";
+            public List<string> FactionIDs = new List<string>();
+            public float AddChance = 0f;
+            public float DiffMod = 0f;
+            public int MaxUsersAddedPerContract = 0;
+            public List<AI_BeaconProxyInfo> AvailableBeacons = new List<AI_BeaconProxyInfo>();
+        }
+        public class AI_BeaconProxyInfo
+        {
+            public string UnitDefID = "";
+            public int Weight = 0;
+            public int StrafeWaves = 0;
+        }
         public class BA_FactionAssoc
         {
             public List<string> FactionIDs = new List<string>();
@@ -310,12 +325,6 @@ namespace StrategicOperations.Framework
                 Behavior = "DEFAULT";
                 MinRange = 50;
             }
-        }
-        public class AI_FactionCommandAbilitySetting
-        {
-            public string AbilityDefID;
-            public float AddChance;
-            public float DiffMod;
         }
 
         public class PendingStrafeWave

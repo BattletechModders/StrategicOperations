@@ -430,8 +430,11 @@ namespace StrategicOperations.Framework
                 actor.Combat.MessageCenter.PublishMessage(new AddSequenceToStackMessage(sequence));
                 //actor.OnActivationEnd(actor.GUID, -1);
             }
+
+            actor.VisibilityCache.UpdateCacheReciprocal(actor.Combat.GetAllLivingCombatants());
+
             ModInit.modLog.LogMessage(
-                $"[DismountBA] Removing PositionLock with rider  {actor.DisplayName} {actor.GUID} and carrier {carrier.DisplayName} {carrier.GUID}.");
+                $"[DismountBA] Removing PositionLock with rider  {actor.DisplayName} {actor.GUID} and carrier {carrier.DisplayName} {carrier.GUID} and rebuilding visibility cache.");
         }
 
         public static Ability GetDeswarmerAbility(this AbstractActor actor)

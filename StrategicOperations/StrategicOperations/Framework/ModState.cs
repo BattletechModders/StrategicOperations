@@ -16,10 +16,13 @@ namespace StrategicOperations.Framework
         public static float DeSwarmSuccessChance = 0f;
         
         public static Dictionary<string, Dictionary<string, List<string>>> CachedFactionAssociations = new Dictionary<string, Dictionary<string, List<string>>>();
+        public static Dictionary<string, Dictionary<string, List<AI_BeaconProxyInfo>>> CachedFactionCommandBeacons = new Dictionary<string, Dictionary<string, List<AI_BeaconProxyInfo>>>(); // key1 is abilityID, key2 is faction name
 
         public static Dictionary<string, int> CurrentBattleArmorSquads = new Dictionary<string, int>();
+        public static Dictionary<string, Dictionary<string,int>> CurrentCommandUnits = new Dictionary<string, Dictionary<string, int>>();
 
         public static List<AI_FactionCommandAbilitySetting> CurrentFactionSettingsList = new List<AI_FactionCommandAbilitySetting>();
+
         public static bool IsStrafeAOE = false;
         public static Dictionary<string, PendingStrafeWave> PendingStrafeWaves =
             new Dictionary<string, PendingStrafeWave>();

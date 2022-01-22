@@ -4,13 +4,63 @@ using System.Linq;
 using Abilifier;
 using BattleTech;
 using BattleTech.Data;
+using BattleTech.UI;
 using CustomUnits;
 using UnityEngine;
 
 namespace StrategicOperations.Framework
 {
-    public class AI_Utils
+    public static class AI_Utils
     {
+        public static void ProcessAIBeaconWeights(this Classes.AI_FactionCommandAbilitySetting BeaconWeights, DataManager dm,
+            string factionID, string abilityName)
+        {
+            foreach (var beaconType in BeaconWeights.AvailableBeacons)
+            {
+                if (beaconType.UnitDefID.StartsWith("mechdef_"))
+                {
+                    if (dm.Exists(BattleTechResourceType.MechDef, beaconType.UnitDefID) || beaconType.UnitDefID == "BEACON_EMPTY")
+                    {
+                        ModInit.modLog.LogTrace(
+                            $"[ProcessAIBeaconWeights - MechDef] Processing spawn weights for {beaconType.UnitDefID} and weight {beaconType.Weight}");
+                        for (int i = 0; i < beaconType.Weight; i++)
+                        {
+                            ModState.CachedFactionCommandBeacons[BeaconWeights.AbilityDefID][factionID].Add(beaconType);
+                            ModInit.modLog.LogTrace(
+                                $"[ProcessAIBeaconWeights - MechDef] spawn list has {ModState.CachedFactionCommandBeacons[BeaconWeights.AbilityDefID][factionID].Count} entries");
+                        }
+                    }
+                }
+                if (beaconType.UnitDefID.StartsWith("vehicledef_"))
+                {
+                    if (dm.Exists(BattleTechResourceType.VehicleDef, beaconType.UnitDefID) || beaconType.UnitDefID == "BEACON_EMPTY")
+                    {
+                        ModInit.modLog.LogTrace(
+                            $"[ProcessAIBeaconWeights - VehicleDef] Processing spawn weights for {beaconType.UnitDefID} and weight {beaconType.Weight}");
+                        for (int i = 0; i < beaconType.Weight; i++)
+                        {
+                            ModState.CachedFactionCommandBeacons[BeaconWeights.AbilityDefID][factionID].Add(beaconType);
+                            ModInit.modLog.LogTrace(
+                                $"[ProcessAIBeaconWeights - VehicleDef] spawn list has {ModState.CachedFactionCommandBeacons[BeaconWeights.AbilityDefID][factionID].Count} entries");
+                        }
+                    }
+                }
+                if (beaconType.UnitDefID.StartsWith("turretdef_"))
+                {
+                    if (dm.Exists(BattleTechResourceType.TurretDef, beaconType.UnitDefID) || beaconType.UnitDefID == "BEACON_EMPTY")
+                    {
+                        ModInit.modLog.LogTrace(
+                            $"[ProcessAIBeaconWeights - TurretDef] Processing spawn weights for {beaconType.UnitDefID} and weight {beaconType.Weight}");
+                        for (int i = 0; i < beaconType.Weight; i++)
+                        {
+                            ModState.CachedFactionCommandBeacons[BeaconWeights.AbilityDefID][factionID].Add(beaconType);
+                            ModInit.modLog.LogTrace(
+                                $"[ProcessAIBeaconWeights - TurretDef] spawn list has {ModState.CachedFactionCommandBeacons[BeaconWeights.AbilityDefID][factionID].Count} entries");
+                        }
+                    }
+                }
+            }
+        }
 
         public static int EvaluateStrafing(AbstractActor actor, out Ability ability, out Vector3 startpoint, out Vector3 endpoint)
         {
@@ -270,14 +320,14 @@ namespace StrategicOperations.Framework
             if (unit.Combat.TurnDirector.CurrentRound > 1) return; // don't give abilities to reinforcements?
             if (unit.team.GUID != "be77cadd-e245-4240-a93e-b99cc98902a5") return; // TargetTeam is only team that gets cmdAbilities
                                                                                   // 
-            if (!ModInit.modSettings.commandAbilities_AI.ContainsKey(unit.team.FactionValue.Name))
+            if (!ModInit.modSettings.commandAbilities_AI.Any(x=>x.FactionIDs.Contains(unit.team.FactionValue.Name)))
             {
                 ModInit.modLog.LogMessage($"No settings for command abilities for {unit.team.FactionValue.Name}, skipping.");
                 return;
             }
 
-            ModState.CurrentFactionSettingsList = new List<Classes.AI_FactionCommandAbilitySetting>(
-                    ModInit.modSettings.commandAbilities_AI[unit.team.FactionValue.Name].OrderBy(x => x.AddChance));
+            ModState.CurrentFactionSettingsList = new List<Classes.AI_FactionCommandAbilitySetting>(new List<Classes.AI_FactionCommandAbilitySetting>(
+                ModInit.modSettings.commandAbilities_AI.Where(x=>x.FactionIDs.Contains(unit.team.FactionValue.Name))).OrderBy(y=>y.AddChance));
             ModInit.modLog.LogTrace($"Ordering setting dictionary.");
 
             if (unit.GetPilot().Abilities.All(x => x.Def.Resource != AbilityDef.ResourceConsumed.CommandAbility))
@@ -288,16 +338,53 @@ namespace StrategicOperations.Framework
                     ModInit.modLog.LogTrace($"No command abilities on unit from Components.");
                     foreach (var abilitySetting in ModState.CurrentFactionSettingsList)
                     {
+                        if (!ModState.CurrentCommandUnits.ContainsKey(abilitySetting.AbilityDefID))
+                        {
+                            ModState.CurrentCommandUnits.Add(abilitySetting.AbilityDefID, new Dictionary<string, int>());
+                            ModState.CurrentCommandUnits[abilitySetting.AbilityDefID].Add(unit.team.FactionValue.Name, 0);
+                            ModState.CachedFactionCommandBeacons.Add(abilitySetting.AbilityDefID, new Dictionary<string, List<Classes.AI_BeaconProxyInfo>>());
+                            ModState.CachedFactionCommandBeacons[abilitySetting.AbilityDefID].Add(unit.team.FactionValue.Name, new List<Classes.AI_BeaconProxyInfo>());
+
+                            abilitySetting.ProcessAIBeaconWeights(dm, unit.team.FactionValue.Name, abilitySetting.AbilityDefID);
+
+                        }
+                        else
+                        {
+                            if (!ModState.CurrentCommandUnits[abilitySetting.AbilityDefID]
+                                    .ContainsKey(unit.team.FactionValue.Name))
+                            {
+                                ModState.CurrentCommandUnits[abilitySetting.AbilityDefID]
+                                    .Add(unit.team.FactionValue.Name, 0);
+                                ModState.CachedFactionCommandBeacons[abilitySetting.AbilityDefID].Add(unit.team.FactionValue.Name, new List<Classes.AI_BeaconProxyInfo>());
+                                abilitySetting.ProcessAIBeaconWeights(dm, unit.team.FactionValue.Name, abilitySetting.AbilityDefID);
+                            }
+                        }
+
+                        if (ModState.CurrentCommandUnits[abilitySetting.AbilityDefID][unit.team.FactionValue.Name] >=
+                            abilitySetting.MaxUsersAddedPerContract) return;
                         var roll = ModInit.Random.NextDouble();
                         var chance = abilitySetting.AddChance +
                                      (abilitySetting.DiffMod * unit.Combat.ActiveContract.Override.finalDifficulty);
                         if (roll <= chance)
                         {
                             ModInit.modLog.LogTrace($"Rolled {roll}, < {chance}.");
-                            if (!dm.AbilityDefs.TryGet(abilitySetting.AbilityDefID, out var def)) return;
+
+
+                            if (!dm.AbilityDefs.TryGet(abilitySetting.AbilityDefID, out var def))
+                            {
+                                LoadRequest loadRequest = dm.CreateLoadRequest();
+                                loadRequest.AddBlindLoadRequest(BattleTechResourceType.AbilityDef, abilitySetting.AbilityDefID);
+                                loadRequest.ProcessRequests(1000U);
+                                if (!dm.AbilityDefs.TryGet(abilitySetting.AbilityDefID, out def))
+                                {
+                                    ModInit.modLog.LogMessage($"couldnt find {abilitySetting.AbilityDefID} in DataManager after loadrequest.");
+                                    return;
+                                }
+                            };
                             var ability = new Ability(def);
                             ModInit.modLog.LogMessage(
                                 $"Adding {ability.Def?.Description?.Id} to {unit.Description?.Name}.");
+                            ModState.CurrentCommandUnits[abilitySetting.AbilityDefID][unit.team.FactionValue.Name] += 1;
                             ability.Init(unit.Combat);
                             unit.ComponentAbilities.Add(ability);
                             return;
@@ -309,127 +396,51 @@ namespace StrategicOperations.Framework
 
         public static string AssignRandomSpawnAsset(Ability ability, string factionName, out int waves)
         {
-            var sgs = UnityGameInstance.BattleTechGame.Simulation;
             var dm = UnityGameInstance.BattleTechGame.DataManager;
-            var potentialAssetsForAI = new List<string> {ability.Def.ActorResource};
-            var potentialAssetsForAIWaves = new List<int> {ModInit.modSettings.strafeWaves};
-            var isAOE = new List<bool>{false};
 
             if (!string.IsNullOrEmpty(ability.Def.ActorResource))
             {
-                string type;
-                if (ability.Def.ActorResource.StartsWith("mechdef_"))
+                if (ModState.CachedFactionCommandBeacons.ContainsKey(ability.Def.Id))
                 {
-                    type = "mechdef_";
-                }
-
-                else if (ability.Def.ActorResource.StartsWith("vehicledef_"))
-                {
-                    type = "vehicledef_";
-                }
-                else if (ability.Def.ActorResource.StartsWith("turretdef_"))
-                {
-                    type = "turretdef_";
-                }
-                else
-                {
-                    ModInit.modLog.LogTrace($"Something fucked in the ability {ability.Def.Description.Id}");
-                    waves = 0;
-                    return "";
-                }
-                var allowedUnitTags = ability.Def.StringParam2;
-
-                var beaconsToCheck = new List<string>();
-
-                if (ModInit.modSettings.AI_FactionBeacons.ContainsKey(factionName))
-                {
-                    beaconsToCheck = ModInit.modSettings.AI_FactionBeacons[factionName];
-                }
-                else
-                {
-                    ModInit.modLog.LogTrace($"No setting in AI_FactionBeacons for {factionName}, using only default {ability.Def.ActorResource}");
-                    goto choose;
-                }
-
-                foreach (var stat in beaconsToCheck)
-                {
-                    string[] array = stat.Split(new char[]
+                    if (ModState.CachedFactionCommandBeacons[ability.Def.Id].ContainsKey(factionName))
                     {
-                        '.'
-                    });
-                    if (string.CompareOrdinal(array[1], "MECHPART") != 0)
-                    {
-                        BattleTechResourceType battleTechResourceType =
-                            (BattleTechResourceType) Enum.Parse(typeof(BattleTechResourceType), array[1]);
-                        if (battleTechResourceType != BattleTechResourceType.MechDef &&
-                            dm.Exists(battleTechResourceType, array[2]))
+                        var beaconsToCheck =
+                            ModState.CachedFactionCommandBeacons[ability.Def.Id]
+                                [factionName];
+                        var chosen = beaconsToCheck.GetRandomElement();
+                        waves = chosen.StrafeWaves;
+                        ModInit.modLog.LogTrace($"Chose {chosen} for this activation.");
+
+                        LoadRequest loadRequest = dm.CreateLoadRequest();
+                        if (chosen.UnitDefID.StartsWith("mechdef_"))
                         {
-                            bool flag = array.Length > 3 &&
-                                        string.Compare(array[3], "DAMAGED", StringComparison.Ordinal) == 0;
-                            MechComponentDef componentDef = sgs.GetComponentDef(battleTechResourceType, array[2]);
-                            MechComponentRef mechComponentRef = new MechComponentRef(componentDef.Description.Id,
-                                sgs.GenerateSimGameUID(), componentDef.ComponentType, ChassisLocations.None, -1,
-                                flag ? ComponentDamageLevel.NonFunctional : ComponentDamageLevel.Functional, false);
-                            mechComponentRef.SetComponentDef(componentDef);
-
-                            if (mechComponentRef.Def.ComponentTags.All(x => x != "CanSpawnTurret" && ability.Def.specialRules == AbilityDef.SpecialRules.SpawnTurret))
-                                continue;
-                            if (mechComponentRef.Def.ComponentTags.All(x => x != "CanStrafe" && ability.Def.specialRules == AbilityDef.SpecialRules.Strafe))
-                                continue;
-                            var id = mechComponentRef.Def.ComponentTags.FirstOrDefault(x =>
-                                x.StartsWith("mechdef_") || x.StartsWith("vehicledef_") ||
-                                x.StartsWith("turretdef_"));
-
-
-                            if (!id.StartsWith(type))
-                            {
-                                ModInit.modLog.LogTrace($"{id} != {type}, ignoring.");
-                                continue;
-                            }
-
-                            if (!string.IsNullOrEmpty(allowedUnitTags) &&
-                                mechComponentRef.Def.ComponentTags.All(x => x != allowedUnitTags))
-                            {
-                                continue;
-                            }
-                            var waveString = mechComponentRef.Def.ComponentTags.FirstOrDefault(x => x.StartsWith("StrafeWaves_"));
-                            int.TryParse(waveString?.Substring(11), out waves);
-                            potentialAssetsForAI.Add(id);
-                            potentialAssetsForAIWaves.Add(waves);
-                            isAOE.Add(mechComponentRef.IsAOEStrafe(ability.Def.specialRules == AbilityDef.SpecialRules.Strafe));
-                            ModInit.modLog.LogTrace($"Added {id} to potential AI assets.");
+                            ModInit.modLog.LogTrace($"Added loadrequest for MechDef: {chosen.UnitDefID}");
+                            loadRequest.AddBlindLoadRequest(BattleTechResourceType.MechDef, chosen.UnitDefID);
                         }
+                        else if (chosen.UnitDefID.StartsWith("vehicledef_"))
+                        {
+                            ModInit.modLog.LogTrace($"Added loadrequest for VehicleDef: {chosen.UnitDefID}");
+                            loadRequest.AddBlindLoadRequest(BattleTechResourceType.VehicleDef, chosen.UnitDefID);
+                        }
+                        else if (chosen.UnitDefID.StartsWith("turretdef_"))
+                        {
+                            ModInit.modLog.LogTrace($"Added loadrequest for TurretDef: {chosen.UnitDefID}");
+                            loadRequest.AddBlindLoadRequest(BattleTechResourceType.TurretDef, chosen.UnitDefID);
+                        }
+                        loadRequest.ProcessRequests(1000U);
+
+                        return chosen.UnitDefID;
                     }
+
+                    ModInit.modLog.LogTrace($"No setting in AI_FactionBeacons for {ability.Def.Id} and {factionName}, using only default {ability.Def.ActorResource}");
+                    waves = ModInit.modSettings.strafeWaves;
+                    return ability.Def.ActorResource;
                 }
 
-                choose:
-                var idx = potentialAssetsForAI.GetRandomIndex();
-                var chosen = potentialAssetsForAI[idx];
-                waves = potentialAssetsForAIWaves[idx];
-                ModState.IsStrafeAOE = isAOE[idx];
-                ModInit.modLog.LogTrace($"Chose {chosen} for this activation.");
-
-                LoadRequest loadRequest = dm.CreateLoadRequest();
-                if (chosen.StartsWith("mechdef_"))
-                {
-                    ModInit.modLog.LogTrace($"Added loadrequest for MechDef: {chosen}");
-                    loadRequest.AddBlindLoadRequest(BattleTechResourceType.MechDef, chosen);
-                }
-                else if (chosen.StartsWith("vehicledef_"))
-                {
-                    ModInit.modLog.LogTrace($"Added loadrequest for VehicleDef: {chosen}");
-                    loadRequest.AddBlindLoadRequest(BattleTechResourceType.VehicleDef, chosen);
-                }
-                else if (chosen.StartsWith("turretdef_"))
-                {
-                    ModInit.modLog.LogTrace($"Added loadrequest for TurretDef: {chosen}");
-                    loadRequest.AddBlindLoadRequest(BattleTechResourceType.TurretDef, chosen);
-                }
-                loadRequest.ProcessRequests(1000U);
-
-                return chosen;
+                ModInit.modLog.LogTrace($"No setting in AI_FactionBeacons for {ability.Def.Id} and {factionName}, using only default {ability.Def.ActorResource}");
+                waves = ModInit.modSettings.strafeWaves;
+                return ability.Def.ActorResource;
             }
-
             waves = 0;
             return "";
         }
