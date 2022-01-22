@@ -447,7 +447,7 @@ namespace StrategicOperations.Patches
                     return false;
                 }
 
-                if (unit.IsSwarmingUnit())
+                if (unit.IsSwarmingUnit() && !unit.HasFiredThisRound)
                 {
                     var target = unit.Combat.FindActorByGUID(ModState.PositionLockSwarm[unit.GUID]);
                     if (unit.IsFlaggedForDeath || unit.IsDead)
@@ -496,7 +496,7 @@ namespace StrategicOperations.Patches
                         ModInit.modLog.LogMessage(
                             $"activated {ModState.AiBattleArmorAbilityCmds[unit.GUID].ability.Def.Description.Id} on actor {ModState.AiBattleArmorAbilityCmds[unit.GUID].targetActor.DisplayName} {ModState.AiBattleArmorAbilityCmds[unit.GUID].targetActor.GUID}");
 
-                        if (unit.IsSwarmingUnit() && ModInit.modSettings.AttackOnSwarmSuccess)
+                        if (unit.IsSwarmingUnit() && ModInit.modSettings.AttackOnSwarmSuccess && !unit.HasFiredThisRound)
                         {
                             ModInit.modLog.LogTrace(
                                 $"[makeInvocationFromOrders] - found freshly swarmed unit; trying to make attack invocation for same round. Fingies crossed!");

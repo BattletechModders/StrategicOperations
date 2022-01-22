@@ -176,6 +176,7 @@ namespace StrategicOperations.Framework
 
         public static void MountBattleArmorToChassis(this AbstractActor carrier, AbstractActor battleArmor)
         {
+
             if (battleArmor is Mech battleArmorAsMech)
             {
                 var baseScale = battleArmor.GameRep.transform.localScale;
