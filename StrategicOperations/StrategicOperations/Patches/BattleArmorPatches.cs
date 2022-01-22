@@ -22,6 +22,7 @@ using UnityEngine.UI;
 using MechStructureRules = BattleTech.MechStructureRules;
 using Random = System.Random;
 using Text = Localize.Text;
+using TrooperSquad = CustomUnits.TrooperSquad;
 
 namespace StrategicOperations.Patches
 {
@@ -466,9 +467,12 @@ namespace StrategicOperations.Patches
                                     creator.Combat.EffectManager.CreateEffect(effectData, ModState.BAUnhittableEffect.ID,
                                         -1, creator, creator, default(WeaponHitInfo), 1);
                                 }
-                                targetActor.MountBattleArmorToChassis(creator);
+                                if (creator is TrooperSquad squad)
+                                {
+                                    squad.AttachToCarrier(targetActor);
+                                }
                                 //creator.GameRep.IsTargetable = false;
-                                creator.TeleportActor(target.CurrentPosition);
+                                creator.TeleportActor(targetActor.CurrentPosition);
 
                                 //creator.GameRep.enabled = false;
                                 //creator.GameRep.gameObject.SetActive(false);
@@ -477,9 +481,9 @@ namespace StrategicOperations.Patches
 
                                 //CombatMovementReticle.Instance.RefreshActor(creator); // or just end activation completely? definitely on use.
                                 
-                                ModState.PositionLockMount.Add(creator.GUID, target.GUID);
+                                ModState.PositionLockMount.Add(creator.GUID, targetActor.GUID);
                                 ModInit.modLog.LogMessage(
-                                    $"[Ability.Activate - BattleArmorMountID] Added PositionLockMount with rider  {creator.DisplayName} {creator.GUID} and carrier {target.DisplayName} {target.GUID}.");
+                                    $"[Ability.Activate - BattleArmorMountID] Added PositionLockMount with rider  {creator.DisplayName} {creator.GUID} and carrier {targetActor.DisplayName} {targetActor.GUID}.");
 
                                 if (creator.team.IsLocalPlayer)
                                 {
@@ -496,7 +500,7 @@ namespace StrategicOperations.Patches
                                     creator.HandleDeath(targetActor.GUID);
                                     return;
                                 }
-                                var meleeChance = creator.team.IsLocalPlayer ? ModState.SwarmSuccessChance : creator.Combat.ToHit.GetToHitChance(creator, creatorMech.MeleeWeapon, target, creator.CurrentPosition, target.CurrentPosition, 1, MeleeAttackType.Charge, false);
+                                var meleeChance = creator.team.IsLocalPlayer ? ModState.SwarmSuccessChance : creator.Combat.ToHit.GetToHitChance(creator, creatorMech.MeleeWeapon, targetActor, creator.CurrentPosition, target.CurrentPosition, 1, MeleeAttackType.Charge, false);
                                 
                                 var roll = ModInit.Random.NextDouble();
                                 ModInit.modLog.LogMessage($"[Ability.Activate - BattleArmorSwarmID] Rolling simplified melee: roll {roll} vs hitChance {meleeChance}; chance in Modstate was {ModState.SwarmSuccessChance}.");
@@ -515,7 +519,10 @@ namespace StrategicOperations.Patches
 
                                     ModInit.modLog.LogMessage(
                                         $"[Ability.Activate - BattleArmorSwarmID] Cleaning up dummy attacksequence.");
-                                    targetActor.MountBattleArmorToChassis(creator);
+                                    if (creator is TrooperSquad squad)
+                                    {
+                                        squad.AttachToCarrier(targetActor);
+                                    }
                                     //creator.GameRep.IsTargetable = false;
                                     creator.TeleportActor(target.CurrentPosition);
 
@@ -606,11 +613,22 @@ namespace StrategicOperations.Patches
                             }
                         }
 
-                        else if (creator.IsSwarmingUnit() || creator.IsMountedUnit())
+                        else if (creator.IsSwarmingUnit())
                         {
                             if (__instance.Def.Id == ModInit.modSettings.BattleArmorMountAndSwarmID)
                             {
                                 creator.DismountBA(targetActor);
+                            }
+                        }
+                        else if (creator.IsMountedUnit())
+                        {
+                            if (__instance.Def.Id == ModInit.modSettings.BattleArmorMountAndSwarmID)
+                            {
+                                if (creator is TrooperSquad squad)
+                                {
+                                    squad.DetachFromCarrier(targetActor);
+                                }
+                                //creator.DismountBA(targetActor);
                             }
                         }
                     }

@@ -4,6 +4,7 @@ using System.Linq;
 using BattleTech;
 using BattleTech.Data;
 using CustAmmoCategories;
+using CustomUnits;
 using HBS.Collections;
 using IRBTModUtils.CustomInfluenceMap;
 using IRBTModUtils.Extension;
@@ -56,7 +57,10 @@ namespace StrategicOperations.Framework
                 newBattleArmor.DynamicUnitRole = UnitRole.Brawler;
                 UnitSpawnedMessage message = new UnitSpawnedMessage("FROM_ABILITY", newBattleArmor.GUID);
                 Actor.Combat.MessageCenter.PublishMessage(message);
-                Actor.MountBattleArmorToChassis(newBattleArmor);
+                if (newBattleArmor is TrooperSquad squad)
+                {
+                    squad.AttachToCarrier(Actor);
+                }
                 newBattleArmor.TeleportActor(Actor.CurrentPosition);
                 ModState.PositionLockMount.Add(newBattleArmor.GUID, Actor.GUID);
                 Actor.Combat.ItemRegistry.AddItem(newBattleArmor);

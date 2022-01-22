@@ -7,8 +7,10 @@ using System.Threading.Tasks;
 using BattleTech;
 using BattleTech.Data;
 using BattleTech.UI;
+using CustAmmoCategories;
 using CustomActivatableEquipment;
 using CustomComponents;
+using CustomUnits;
 using Harmony;
 using UnityEngine;
 using Random = UnityEngine.Random;
@@ -174,14 +176,113 @@ namespace StrategicOperations.Framework
             return ability.CurrentCooldown < 1 && (ability.Def.NumberOfUses < 1 || ability.NumUsesLeft > 0) && flag;
         }// need to redo Ability.Activate from start, completely override for BA? Or just put ability on hidden componenet and ignore this shit.
 
-        public static void MountBattleArmorToChassis(this AbstractActor carrier, AbstractActor battleArmor)
-        {
 
-            if (battleArmor is Mech battleArmorAsMech)
+
+
+        internal class AttachToCarrierDelegate
+        {
+            public TrooperSquad squad { get; set; }
+            public CustomMech attachTarget { get; set; }
+
+            public AttachToCarrierDelegate(TrooperSquad squad, CustomMech target)
+            {
+                this.squad = squad;
+                this.attachTarget = target;
+            }
+
+            public void OnLandAttach()
+            {
+                //HIDE SQUAD REPRESENTATION
+                attachTarget.HideBattleArmorOnChassis(squad);
+            }
+            public void OnLandDetach()
+            {
+                //HIDE SQUAD REPRESENTATION
+                attachTarget.ShowBattleArmorOnChassis(squad);
+            }
+        }
+
+        public static void AttachToCarrier(this TrooperSquad squad, AbstractActor attachTarget)
+        {
+            if (attachTarget is CustomMech custMech && attachTarget.team.IsFriendly(squad.team))
+            {
+                if (custMech.FlyingHeight() > 1.5f)
+                {
+                    //Check if actually flying unit
+                    //CALL ATTACH CODE BUT WITHOUT SQUAD REPRESENTATION HIDING
+                    custMech.MountBattleArmorToChassis(squad, false);
+                    custMech.DropOffAnimation(new AttachToCarrierDelegate(squad, custMech).OnLandAttach);
+                }
+                else
+                {
+                    //CALL DEFAULT ATTACH CODE
+                    custMech.MountBattleArmorToChassis(squad, true);
+                }
+            }
+            else
+            {
+                //CALL DEFAULT ATTACH CODE
+                attachTarget.MountBattleArmorToChassis(squad, true);
+            }
+        }
+
+        public static void DetachFromCarrier(this TrooperSquad squad, AbstractActor attachTarget)
+        {
+            if (attachTarget is CustomMech custMech && attachTarget.team.IsFriendly(squad.team))
+            {
+                if (custMech.FlyingHeight() > 1.5f)
+                {
+                    //Check if actually flying unit
+                    //CALL ATTACH CODE BUT WITHOUT SQUAD REPRESENTATION HIDING
+                    custMech.DismountBA(squad, false, false, false);
+                    custMech.DropOffAnimation(new AttachToCarrierDelegate(squad, custMech).OnLandDetach);
+                }
+                else
+                {
+                    //CALL DEFAULT ATTACH CODE
+                    custMech.DismountBA(squad, false, false, true);
+                }
+            }
+            else
+            {
+                //CALL DEFAULT ATTACH CODE
+                attachTarget.DismountBA(squad, false, false, true);
+            }
+        }
+
+        public static void HideBattleArmorOnChassis(this AbstractActor carrier, AbstractActor battleArmor)
+        {
+            if (!ModState.SavedBAScale.ContainsKey(battleArmor.GUID))
             {
                 var baseScale = battleArmor.GameRep.transform.localScale;
                 ModState.SavedBAScale.Add(battleArmor.GUID, baseScale);
                 battleArmor.GameRep.transform.localScale = new Vector3(.01f, .01f, .01f);
+            }
+            else
+            {
+                ModInit.modLog.LogMessage($"[HideBattleArmorOnChassis] squad {battleArmor.DisplayName} {battleArmor.GUID} already has saved scale and should already be hidden");
+            }
+        }
+
+        public static void ShowBattleArmorOnChassis(this AbstractActor carrier, AbstractActor battleArmor)
+        {
+            if (ModState.SavedBAScale.ContainsKey(battleArmor.GUID))
+            {
+                battleArmor.GameRep.transform.localScale = ModState.SavedBAScale[battleArmor.GUID];
+                ModState.SavedBAScale.Remove(battleArmor.GUID);
+            }
+        }
+
+        public static void MountBattleArmorToChassis(this AbstractActor carrier, AbstractActor battleArmor, bool shrinkRep)
+        {
+            if (battleArmor is Mech battleArmorAsMech)
+            {
+                if (shrinkRep)
+                {
+                    var baseScale = battleArmor.GameRep.transform.localScale;
+                    ModState.SavedBAScale.Add(battleArmor.GUID, baseScale);
+                    battleArmor.GameRep.transform.localScale = new Vector3(.01f, .01f, .01f);
+                }
 
                 if (!ModState.BADamageTrackers.ContainsKey(battleArmorAsMech.GUID))
                 {
@@ -376,7 +477,7 @@ namespace StrategicOperations.Framework
             return point;
         }
 
-        public static void DismountBA (this AbstractActor actor, AbstractActor carrier, bool calledFromDeswarm = false, bool calledFromHandleDeath = false)
+        public static void DismountBA (this AbstractActor actor, AbstractActor carrier, bool calledFromDeswarm = false, bool calledFromHandleDeath = false, bool unShrinkRep = true)
         {
             if (ModState.BADamageTrackers.ContainsKey(actor.GUID))
             {
@@ -399,11 +500,15 @@ namespace StrategicOperations.Framework
             }
             var hud = Traverse.Create(CameraControl.Instance).Property("HUD").GetValue<CombatHUD>();
             //actor.GameRep.IsTargetable = true;
-            if (ModState.SavedBAScale.ContainsKey(actor.GUID))
+            if (ModState.SavedBAScale.ContainsKey(actor.GUID) && unShrinkRep)
             {
                 actor.GameRep.transform.localScale = ModState.SavedBAScale[actor.GUID];
                 ModState.SavedBAScale.Remove(actor.GUID);
             }
+
+            var point = carrier.CurrentPosition;
+            point.y = actor.Combat.MapMetaData.GetLerpedHeightAt(point, false);
+            actor.TeleportActor(point);
 
             ModState.PositionLockMount.Remove(actor.GUID);
             ModState.PositionLockSwarm.Remove(actor.GUID);
