@@ -49,6 +49,7 @@ namespace StrategicOperations.Patches
                 __instance.StatCollection.AddStatistic<int>("BattleArmorDeSwarmerSwatInitPenalty", 0);
                 __instance.StatCollection.AddStatistic<float>("BattleArmorDeSwarmerSwatDamage", 0f);
                 __instance.StatCollection.AddStatistic<float>("BattleArmorDeSwarmerRoll", 0.5f);
+                __instance.StatCollection.AddStatistic<bool>("HasFiringPorts",false);
                 //__instance.StatCollection.AddStatistic<float>("SquishumToadsAsplode", 0.0f);
             }
         }
@@ -462,14 +463,17 @@ namespace StrategicOperations.Patches
                         {
                             if (__instance.Def.Id == ModInit.modSettings.BattleArmorMountAndSwarmID && target.team.IsFriendly(creator.team))
                             {
-                                foreach (var effectData in ModState.BAUnhittableEffect.effects)
-                                {
-                                    creator.Combat.EffectManager.CreateEffect(effectData, ModState.BAUnhittableEffect.ID,
-                                        -1, creator, creator, default(WeaponHitInfo), 1);
-                                }
-                                
+                                //foreach (var effectData in ModState.BAUnhittableEffect.effects)
+                                //{
+                                //    creator.Combat.EffectManager.CreateEffect(effectData, ModState.BAUnhittableEffect.ID,
+                                //        -1, creator, creator, default(WeaponHitInfo), 1);
+                                //}
+
                                 //creator.GameRep.IsTargetable = false;
+
+                                
                                 creator.TeleportActor(targetActor.CurrentPosition);
+                                
 
                                 //creator.GameRep.enabled = false;
                                 //creator.GameRep.gameObject.SetActive(false);
@@ -481,6 +485,7 @@ namespace StrategicOperations.Patches
                                 ModState.PositionLockMount.Add(creator.GUID, targetActor.GUID);
                                 if (creator is TrooperSquad squad)
                                 {
+                                    squad.GameRep.transform.localScale = new Vector3(.01f, .01f, .01f);
                                     squad.AttachToCarrier(targetActor);
                                     ModInit.modLog.LogTrace($"[Ability.Activate - BattleArmorMountID] Called AttachToCarrier.");
                                 }
@@ -991,7 +996,7 @@ namespace StrategicOperations.Patches
         {
             public static bool Prefix(CombatSelectionHandler __instance, AbstractActor actor)
             {
-                if (actor.IsMountedUnit() || actor.IsSwarmingUnit())
+                if ( true)//actor.IsMountedUnit() || actor.IsSwarmingUnit())
                 {
                     ModInit.modLog.LogTrace($"[CombatSelectionHandler.AddMoveState] Actor {actor.DisplayName}: Disabling AddMoveState");
                     var SelectionStack = Traverse.Create(__instance).Property("SelectionStack").GetValue<List<SelectionState>>();
@@ -1433,6 +1438,16 @@ namespace StrategicOperations.Patches
                 {
                     text = target.GUID;
                 }
+
+                if (source.IsMountedUnit())
+                {
+                    var carrier = source.Combat.FindActorByGUID(ModState.PositionLockMount[source.GUID]);
+                    if (carrier.hasFiringPorts())
+                    {
+                        list.Remove(source.Combat.FindActorByGUID(ModState.PositionLockMount[source.GUID])); // remove mound from LOS blocking (i have no idea if this will work or is even needed)
+                    }
+                }
+
                 LineSegment lineSegment = new LineSegment(sourcePosition, targetPosition);
                 list.Sort((AbstractActor x, AbstractActor y) => Vector3.SqrMagnitude(x.CurrentPosition - sourcePosition).CompareTo(Vector3.SqrMagnitude(y.CurrentPosition - sourcePosition)));
                 float num = Vector3.SqrMagnitude(sourcePosition - targetPosition);
@@ -1552,6 +1567,27 @@ namespace StrategicOperations.Patches
                 }
                 //alter result to remove currently swarming units from firinglines (this might not be the best place to do it)
                 return true;
+            }
+        }
+
+        [HarmonyPatch(typeof(LOFCache), "GetLineOfFire")]
+        public static class LOFCache_GetLineOfFire
+        {
+            //static bool Prepare() => false;
+            public static void Postfix(LOFCache __instance, AbstractActor source, Vector3 sourcePosition, ICombatant target, Vector3 targetPosition, Quaternion targetRotation, out Vector3 collisionWorldPos, ref LineOfFireLevel __result)
+            {
+                collisionWorldPos = targetPosition;
+                if (source.IsMountedUnit())
+                {
+                    var carrier = source.Combat.FindActorByGUID(ModState.PositionLockMount[source.GUID]);
+                    if (carrier.hasFiringPorts())
+                    {
+                        __result = source.Combat.LOFCache.GetLineOfFire(carrier, carrier.CurrentPosition, target,
+                            targetPosition, targetRotation, out collisionWorldPos);
+                        //ModInit.modLog.LogDev($"[LOFCache.GetLineOfFire] returning LOF {__result} from carrier {carrier.DisplayName} for squad {source.DisplayName}");
+                    }
+                }
+                //__result = LineOfFireLevel.LOFClear;
             }
         }
 

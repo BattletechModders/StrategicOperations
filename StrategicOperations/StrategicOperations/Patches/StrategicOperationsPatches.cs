@@ -6,6 +6,7 @@ using BattleTech;
 using BattleTech.Data;
 using BattleTech.Rendering;
 using BattleTech.UI;
+using CustomUnits;
 using Harmony;
 using HBS;
 using HBS.Collections;
@@ -155,7 +156,17 @@ namespace StrategicOperations.Patches
                     {
                         var targetActor = combat.FindActorByGUID(targetActorGUID.Key);
                         if (targetActor == null) continue;
-                        targetActor.TeleportActor(____parentActor.CurrentPosition);
+                        if (____parentActor is CustomMech mech)
+                        {
+                            var pos = ____parentActor.CurrentPosition +
+                                      Vector3.up * mech.custGameRep.HeightController.CurrentHeight;
+                            targetActor.TeleportActor(pos);
+                            
+                        }
+                        else
+                        {
+                            targetActor.TeleportActor(____parentActor.CurrentPosition);
+                        }
                         targetActor.BA_MountedEvasion(____parentActor);
                         ModInit.modLog.LogTrace($"PositionLockMount- Setting riding unit {targetActor.DisplayName} position to same as carrier unit {____parentActor.DisplayName}");
                     }

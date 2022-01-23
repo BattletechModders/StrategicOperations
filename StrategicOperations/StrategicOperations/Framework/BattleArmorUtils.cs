@@ -231,6 +231,9 @@ namespace StrategicOperations.Framework
             {
                 attachTarget.custGameRep.HeightController.UpSpeed = attachTargetUpSpeed;
                 attachTarget.custGameRep.HeightController.DownSpeed = attachTargetDownSpeed;
+                var pos = attachTarget.CurrentPosition +
+                          Vector3.up * attachTarget.custGameRep.HeightController.CurrentHeight;
+                squad.TeleportActor(pos);
             }
         }
 
@@ -302,6 +305,14 @@ namespace StrategicOperations.Framework
         {
             if (battleArmor is Mech battleArmorAsMech)
             {
+                //add irbtu immobile tag?
+                //Statistic irbtmu_immobile_unit = battleArmor.StatCollection.GetStatistic("irbtmu_immobile_unit");
+                if (!battleArmor.StatCollection.ContainsStatistic("irbtmu_immobile_unit"))
+                {
+                    battleArmor.StatCollection.AddStatistic<bool>("irbtmu_immobile_unit", false);
+                }
+
+                battleArmor.StatCollection.Set("irbtmu_immobile_unit", true);
                 if (shrinkRep)
                 {
                     //var baseScale = battleArmor.GameRep.transform.localScale;
@@ -332,7 +343,7 @@ namespace StrategicOperations.Framework
                         carrier.modifyInternalBASquads(1);
                         tracker.IsSquadInternal = true;
                         // try and set firing arc to 360?
-                        //battleArmor.FiringArc(360f);
+                        battleArmor.FiringArc(360f);
                         return;
                     }
                 }
@@ -432,6 +443,11 @@ namespace StrategicOperations.Framework
             }
         }
 
+        public static bool hasFiringPorts(this AbstractActor actor)
+        {
+            return actor.StatCollection.GetValue<bool>("HasFiringPorts");
+        }
+
         public static bool canSwarm(this AbstractActor actor)
         {
             return actor.StatCollection.GetValue<bool>("CanSwarm");
@@ -505,73 +521,81 @@ namespace StrategicOperations.Framework
             return point;
         }
 
-        public static void DismountBA (this AbstractActor actor, AbstractActor carrier, bool calledFromDeswarm = false, bool calledFromHandleDeath = false, bool unShrinkRep = true)
+        public static void DismountBA(this AbstractActor actor, AbstractActor carrier, bool calledFromDeswarm = false,
+            bool calledFromHandleDeath = false, bool unShrinkRep = true)
         {
-            if (ModState.BADamageTrackers.ContainsKey(actor.GUID))
+            if (actor is TrooperSquad squad)
             {
-                if (ModState.BADamageTrackers[actor.GUID].IsSquadInternal)
+                if (squad.StatCollection.ContainsStatistic("irbtmu_immobile_unit")) squad.StatCollection.Set("irbtmu_immobile_unit", false);
+                if (ModState.BADamageTrackers.ContainsKey(actor.GUID))
                 {
-                    carrier.modifyInternalBASquads(-1);
-                    ModInit.modLog.LogMessage(
-                        $"[DismountBA] Dismounted {actor.DisplayName} from internal capacity. Capacity is now {carrier.getAvailableInternalBASpace()}.");
+                    if (ModState.BADamageTrackers[actor.GUID].IsSquadInternal)
+                    {
+                        carrier.modifyInternalBASquads(-1);
+                        ModInit.modLog.LogMessage(
+                            $"[DismountBA] Dismounted {actor.DisplayName} from internal capacity. Capacity is now {carrier.getAvailableInternalBASpace()}.");
+                        squad.FiringArc(90f);//reset to 90?
+                    }
+
+                    ModState.BADamageTrackers.Remove(actor.GUID);
                 }
-                ModState.BADamageTrackers.Remove(actor.GUID);
-            }
 
-            var em = actor.Combat.EffectManager;
-            var effects = em.GetAllEffectsTargetingWithUniqueID(actor, ModState.BAUnhittableEffect.ID);
-            for (int i = effects.Count - 1; i >= 0; i--)
-            {
+                var em = actor.Combat.EffectManager;
+                var effects = em.GetAllEffectsTargetingWithUniqueID(actor, ModState.BAUnhittableEffect.ID);
+                for (int i = effects.Count - 1; i >= 0; i--)
+                {
+                    ModInit.modLog.LogMessage(
+                        $"[DismountBA] Cancelling effect on {actor.DisplayName}: {effects[i].EffectData.Description.Name}.");
+                    em.CancelEffect(effects[i]);
+                }
+
+                var hud = Traverse.Create(CameraControl.Instance).Property("HUD").GetValue<CombatHUD>();
+                //actor.GameRep.IsTargetable = true;
+
+                ModState.PositionLockMount.Remove(actor.GUID);
+                ModState.PositionLockSwarm.Remove(actor.GUID);
+                ModState.CachedUnitCoordinates.Remove(carrier.GUID);
+
+                if (unShrinkRep)
+                {
+                    actor.GameRep.transform.localScale = new Vector3(1f, 1f, 1f);
+                    //actor.GameRep.transform.localScale = ModState.SavedBAScale[actor.GUID];
+                    //ModState.SavedBAScale.Remove(actor.GUID);
+                    squad.GameRep.ToggleHeadlights(true);
+                }
+
+                var point = carrier.CurrentPosition;
+                point.y = actor.Combat.MapMetaData.GetLerpedHeightAt(point, false);
+                actor.TeleportActor(point);
+
+                if (!calledFromHandleDeath && !calledFromDeswarm)
+                {
+                    ModInit.modLog.LogMessage(
+                        $"[DismountBA] Not called from HandleDeath or Deswarm, resetting buttons and pathing.");
+                    hud.MechWarriorTray.JumpButton.ResetButtonIfNotActive(actor);
+                    hud.MechWarriorTray.SprintButton.ResetButtonIfNotActive(actor);
+                    hud.MechWarriorTray.MoveButton.ResetButtonIfNotActive(actor);
+                    hud.SelectionHandler.AddJumpState(actor);
+                    hud.SelectionHandler.AddSprintState(actor);
+                    hud.SelectionHandler.AddMoveState(actor);
+                    actor.ResetPathing(false);
+                    actor.Pathing.UpdateCurrentPath(false);
+                }
+                else // if (actor.HasBegunActivation)
+                {
+                    ModInit.modLog.LogMessage(
+                        $"[DismountBA] Called from handledeath? {calledFromHandleDeath} or Deswarm? {calledFromDeswarm}, forcing end of activation.");
+
+                    var sequence = actor.DoneWithActor();
+                    actor.Combat.MessageCenter.PublishMessage(new AddSequenceToStackMessage(sequence));
+                    //actor.OnActivationEnd(actor.GUID, -1);
+                }
+
+                actor.VisibilityCache.UpdateCacheReciprocal(actor.Combat.GetAllLivingCombatants());
+
                 ModInit.modLog.LogMessage(
-                    $"[DismountBA] Cancelling effect on {actor.DisplayName}: {effects[i].EffectData.Description.Name}.");
-                em.CancelEffect(effects[i]);
+                    $"[DismountBA] Removing PositionLock with rider  {actor.DisplayName} {actor.GUID} and carrier {carrier.DisplayName} {carrier.GUID} and rebuilding visibility cache.");
             }
-            var hud = Traverse.Create(CameraControl.Instance).Property("HUD").GetValue<CombatHUD>();
-            //actor.GameRep.IsTargetable = true;
-
-            ModState.PositionLockMount.Remove(actor.GUID);
-            ModState.PositionLockSwarm.Remove(actor.GUID);
-            ModState.CachedUnitCoordinates.Remove(carrier.GUID);
-
-            if (unShrinkRep && actor is Mech baMech)
-            {
-                actor.GameRep.transform.localScale = new Vector3(1f, 1f, 1f);
-                //actor.GameRep.transform.localScale = ModState.SavedBAScale[actor.GUID];
-                //ModState.SavedBAScale.Remove(actor.GUID);
-                baMech.GameRep.ToggleHeadlights(true);
-            }
-
-            var point = carrier.CurrentPosition;
-            point.y = actor.Combat.MapMetaData.GetLerpedHeightAt(point, false);
-            actor.TeleportActor(point);
-
-            if (!calledFromHandleDeath && !calledFromDeswarm)
-            {
-                ModInit.modLog.LogMessage(
-                    $"[DismountBA] Not called from HandleDeath or Deswarm, resetting buttons and pathing.");
-                hud.MechWarriorTray.JumpButton.ResetButtonIfNotActive(actor);
-                hud.MechWarriorTray.SprintButton.ResetButtonIfNotActive(actor);
-                hud.MechWarriorTray.MoveButton.ResetButtonIfNotActive(actor);
-                hud.SelectionHandler.AddJumpState(actor);
-                hud.SelectionHandler.AddSprintState(actor);
-                hud.SelectionHandler.AddMoveState(actor);
-                actor.ResetPathing(false);
-                actor.Pathing.UpdateCurrentPath(false);
-            }
-            else// if (actor.HasBegunActivation)
-            {
-                ModInit.modLog.LogMessage(
-                    $"[DismountBA] Called from handledeath? {calledFromHandleDeath} or Deswarm? {calledFromDeswarm}, forcing end of activation.");
-
-                var sequence = actor.DoneWithActor();
-                actor.Combat.MessageCenter.PublishMessage(new AddSequenceToStackMessage(sequence));
-                //actor.OnActivationEnd(actor.GUID, -1);
-            }
-
-            actor.VisibilityCache.UpdateCacheReciprocal(actor.Combat.GetAllLivingCombatants());
-
-            ModInit.modLog.LogMessage(
-                $"[DismountBA] Removing PositionLock with rider  {actor.DisplayName} {actor.GUID} and carrier {carrier.DisplayName} {carrier.GUID} and rebuilding visibility cache.");
         }
 
         public static Ability GetDeswarmerAbility(this AbstractActor actor)
