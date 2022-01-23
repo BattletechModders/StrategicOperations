@@ -217,7 +217,7 @@ settings in the mod.json:
 
 `strafeSensorFactor` - float, multiplier of strafing units base sensor range for revealing sensor blips of hostiles as it flies over them.
 
-`strafeVelocityDefault` - float, default velocity of strafing unit <i>while strafing</i>. The faster the unit moves, the fewer targets it will be able to hit during a strafe. If MaxSpeed is > 0 in the strafing unit, then that speed will override this value.
+`strafeVelocityDefault` - float, default velocity of strafing unit <i>while strafing</i>. <s>The faster the unit moves, the fewer targets it will be able to hit during a strafe.</s> If MaxSpeed is > 0 in the strafing unit, then that speed will override this value.
 
 `strafeAltitudeMin` and `strafeAltitudeMax` - float. The altitide of the strafing unit is the maximum weapon range of the strafing unit divided by 4, but is clamped between these two values.
 
