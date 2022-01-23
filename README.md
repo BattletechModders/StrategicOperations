@@ -643,6 +643,10 @@ Once BA is swarming an enemy, they cannot do any other actions on their activati
 
 The AI will also attempt to use Swarm against you. If an AI unit has BA (dictated by `AI_BattleArmorSpawnChance`, `BattleArmorFactionAssociations` and the unit has either HasBattleArmorMounts or InternalBattleArmorSquadCap > 0), some very ugly AI behavior patches should <i>try</i> to get the AI to move closer to your units. Once within a certain range, the AI BA will dismount from its carrier and attempt to swarm you if you're within range. If not, it'll just attack like a normal unit.
 
+#### Firing Ports
+
+Carrier units with actor bool statistic `HasFiringPorts` set to true will allow mounted BA to fire at enemies within range <i>while they are mounted</i>. Units so mounted will have the same LOF level as the carrier unit.
+	
 #### Countering Mount/Swarm
 
 **B-Pods Added in v2.0.2.0**
