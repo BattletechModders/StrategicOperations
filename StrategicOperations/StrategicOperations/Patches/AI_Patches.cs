@@ -250,6 +250,7 @@ namespace StrategicOperations.Patches
                         if (___unit is Mech mech)
                         {
                             jumpdist = mech.JumpDistance;
+                            if (float.IsNaN(jumpdist)) jumpdist = 0f;
                         }
 
                         var maxRange = new List<float>()

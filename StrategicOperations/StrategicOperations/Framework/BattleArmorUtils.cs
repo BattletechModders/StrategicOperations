@@ -307,12 +307,12 @@ namespace StrategicOperations.Framework
             {
                 //add irbtu immobile tag?
                 //Statistic irbtmu_immobile_unit = battleArmor.StatCollection.GetStatistic("irbtmu_immobile_unit");
-                if (!battleArmor.StatCollection.ContainsStatistic("irbtmu_immobile_unit"))
-                {
-                    battleArmor.StatCollection.AddStatistic<bool>("irbtmu_immobile_unit", false);
-                }
+                //if (!battleArmor.StatCollection.ContainsStatistic("irbtmu_immobile_unit"))
+                //{
+                //    battleArmor.StatCollection.AddStatistic<bool>("irbtmu_immobile_unit", false);
+                //}
 
-                battleArmor.StatCollection.Set("irbtmu_immobile_unit", true);
+                //battleArmor.StatCollection.Set("irbtmu_immobile_unit", true);
                 if (shrinkRep)
                 {
                     //var baseScale = battleArmor.GameRep.transform.localScale;

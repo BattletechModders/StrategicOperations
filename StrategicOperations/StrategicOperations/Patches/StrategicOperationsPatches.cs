@@ -6,6 +6,7 @@ using BattleTech;
 using BattleTech.Data;
 using BattleTech.Rendering;
 using BattleTech.UI;
+using CustomActivatableEquipment;
 using CustomUnits;
 using Harmony;
 using HBS;
@@ -1149,17 +1150,29 @@ namespace StrategicOperations.Patches
                 if (theActor == null) return true;
                 var distance = Mathf.RoundToInt(Vector3.Distance(theActor.CurrentPosition, worldPos));
                 var maxRange = Mathf.RoundToInt(__instance.FromButton.Ability.Def.IntParam2);
+                CombatTargetingReticle.Instance.ShowRangeIndicators(theActor.CurrentPosition, 0f, maxRange, true, true);
+                CombatTargetingReticle.Instance.ShowReticle();
                 if (__instance.FromButton.Ability.Def.specialRules == AbilityDef.SpecialRules.SpawnTurret &&
                     distance > maxRange && ___numPositionsLocked == 0)
                 {
                     ModState.OutOfRange = true;
                     CombatSpawningReticle.Instance.HideReticle();
-//                    ModInit.modLog.LogMessage($"Cannot spawn turret with coordinates farther than __instance.Ability.Def.IntParam2: {__instance.FromButton.Ability.Def.IntParam2}");
+                    CombatTargetingReticle.Instance.HideReticle();
+                    //                    ModInit.modLog.LogMessage($"Cannot spawn turret with coordinates farther than __instance.Ability.Def.IntParam2: {__instance.FromButton.Ability.Def.IntParam2}");
                     return false;
                 }
 
                 ModState.OutOfRange = false;
                 return true;
+            }
+        }
+
+        [HarmonyPatch(typeof(SelectionStateCommandSpawnTarget), "OnInactivate")]
+        public static class SelectionStateCommandSpawnTarget_OnInactivate
+        {
+            public static void Postfix(SelectionStateCommandSpawnTarget __instance)
+            {
+                CombatTargetingReticle.Instance.HideReticle();
             }
         }
 
@@ -1184,6 +1197,7 @@ namespace StrategicOperations.Patches
                 var maxRange = Mathf.RoundToInt(__instance.FromButton.Ability.Def.IntParam2);
                 var radius = __instance.FromButton.Ability.Def.FloatParam1;
                 CombatTargetingReticle.Instance.UpdateReticle(positionA, positionB, radius, false);
+                CombatTargetingReticle.Instance.ShowRangeIndicators(theActor.CurrentPosition, 0f, maxRange, true, true);
                 if (__instance.FromButton.Ability.Def.specialRules == AbilityDef.SpecialRules.Strafe &&
                     (distance > maxRange && ___numPositionsLocked == 0) ||
                     (distanceToA > maxRange && ___numPositionsLocked == 1))
@@ -1550,6 +1564,36 @@ namespace StrategicOperations.Patches
                         decal.DecalMaterial.color = Color.green;
                     }
                 }
+            }
+        }
+
+        [HarmonyPatch(typeof(CombatAuraReticle), "RefreshActiveProbeRange")]
+        public static class CombatAuraReticle_RefreshActiveProbeRange
+        {
+            public static void Postfix(CombatAuraReticle __instance, bool showActiveProbe, AbstractActor ___owner, ref float ___currentAPRange)
+            {
+                if (!showActiveProbe || __instance.AuraBubble() != null) return;
+
+                float num = 0f;
+                if (___owner.ComponentAbilities.Count > 0)
+                {
+                    for (int i = 0; i < ___owner.ComponentAbilities.Count; i++)
+                    {
+                        if (___owner.ComponentAbilities[i].Def.Targeting == AbilityDef.TargetingType.ActiveProbe)
+                        {
+                            num = ___owner.ComponentAbilities[i].Def.FloatParam1;
+                            break;
+                        }
+                    }
+                }
+                if (!Mathf.Approximately(num, ___currentAPRange))
+                {
+                    var apObject = Traverse.Create(__instance).Property("activeProbeRangeScaledObject")
+                        .GetValue<GameObject>();
+                    apObject.transform.localScale = new Vector3(num * 2f, 1f, num * 2f);
+                }
+                ___currentAPRange = num;
+
             }
         }
     }

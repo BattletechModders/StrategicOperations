@@ -660,7 +660,8 @@ namespace StrategicOperations.Patches
                 {
                     ModInit.modLog.LogTrace(
                         $"[CombatHUDMechwarriorTray.ResetMechwarriorButtons] Actor {actor.DisplayName} {actor.GUID} found in PositionLockMount. Disabling buttons.");
-                    //__instance.FireButton.DisableButton();
+                    var carrier = actor.Combat.FindActorByGUID(ModState.PositionLockMount[actor.GUID]);
+                    if (!carrier.hasFiringPorts()) __instance.FireButton.DisableButton();
                     __instance.MoveButton.DisableButton();
                     __instance.SprintButton.DisableButton();
                     __instance.JumpButton.DisableButton();
@@ -996,7 +997,7 @@ namespace StrategicOperations.Patches
         {
             public static bool Prefix(CombatSelectionHandler __instance, AbstractActor actor)
             {
-                if ( true)//actor.IsMountedUnit() || actor.IsSwarmingUnit())
+                if (actor.IsSwarmingUnit() || actor.IsMountedUnit())
                 {
                     ModInit.modLog.LogTrace($"[CombatSelectionHandler.AddMoveState] Actor {actor.DisplayName}: Disabling AddMoveState");
                     var SelectionStack = Traverse.Create(__instance).Property("SelectionStack").GetValue<List<SelectionState>>();

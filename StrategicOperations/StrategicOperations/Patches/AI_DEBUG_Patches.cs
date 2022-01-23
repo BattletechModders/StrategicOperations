@@ -57,9 +57,9 @@ namespace StrategicOperations.Patches
         }
 
         [HarmonyPatch(typeof(Mech), "JumpDistance", MethodType.Getter)]
-
         public static class Mech_JumpDistance
         {
+            static bool Prepare() => ModInit.modSettings.DEVTEST_Logging;
             public static void Prefix(Mech __instance, ref float __result)
             {
                 if (__instance is TrooperSquad squad)
