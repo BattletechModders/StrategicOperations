@@ -346,6 +346,8 @@ namespace StrategicOperations.Framework
                         battleArmor.FiringArc(360f);
                         return;
                     }
+
+                    carrier.setHasExternalMountedBattleArmor(true);
                 }
 
                 foreach (ChassisLocations BattleArmorChassisLoc in Enum.GetValues(typeof(ChassisLocations)))
@@ -481,6 +483,17 @@ namespace StrategicOperations.Framework
         {
             return actor.StatCollection.GetValue<bool>("HasBattleArmorMounts");
         }
+
+        public static bool getHasExternalMountedBattleArmor(this AbstractActor actor)
+        {
+            return actor.StatCollection.GetValue<bool>("HasExternalMountedBattleArmor");
+        }
+
+        public static void setHasExternalMountedBattleArmor(this AbstractActor actor, bool value)
+        {
+            actor.StatCollection.ModifyStat("BAMountDismount", -1, "HasExternalMountedBattleArmor", StatCollection.StatOperation.Set, value);
+        }
+
         public static bool getIsBattleArmorHandsy(this AbstractActor actor)
         {
             return actor.StatCollection.GetValue<bool>("IsBattleArmorHandsy");
@@ -526,15 +539,19 @@ namespace StrategicOperations.Framework
         {
             if (actor is TrooperSquad squad)
             {
-                if (squad.StatCollection.ContainsStatistic("irbtmu_immobile_unit")) squad.StatCollection.Set("irbtmu_immobile_unit", false);
+                //if (squad.StatCollection.ContainsStatistic("irbtmu_immobile_unit")) squad.StatCollection.Set("irbtmu_immobile_unit", false);
                 if (ModState.BADamageTrackers.ContainsKey(actor.GUID))
                 {
-                    if (ModState.BADamageTrackers[actor.GUID].IsSquadInternal)
+                    if (squad.team.IsFriendly(carrier.team))
                     {
-                        carrier.modifyInternalBASquads(-1);
-                        ModInit.modLog.LogMessage(
-                            $"[DismountBA] Dismounted {actor.DisplayName} from internal capacity. Capacity is now {carrier.getAvailableInternalBASpace()}.");
-                        squad.FiringArc(90f);//reset to 90?
+                        if (ModState.BADamageTrackers[actor.GUID].IsSquadInternal)
+                        {
+                            carrier.modifyInternalBASquads(-1);
+                            ModInit.modLog.LogMessage(
+                                $"[DismountBA] Dismounted {actor.DisplayName} from internal capacity. Capacity is now {carrier.getAvailableInternalBASpace()}.");
+                            squad.FiringArc(90f); //reset to 90?
+                        }
+                        else carrier.setHasExternalMountedBattleArmor(false);
                     }
 
                     ModState.BADamageTrackers.Remove(actor.GUID);

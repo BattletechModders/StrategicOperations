@@ -3,11 +3,8 @@ using System.Collections.Generic;
 using System.Linq;
 using BattleTech;
 using BattleTech.Data;
-using CustAmmoCategories;
 using CustomUnits;
 using HBS.Collections;
-using IRBTModUtils.CustomInfluenceMap;
-using IRBTModUtils.Extension;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using UnityEngine;
@@ -16,6 +13,7 @@ namespace StrategicOperations.Framework
 {
     public class Classes
     {
+
         public class BA_Spawner
         {
             public AbstractActor Actor;
@@ -27,11 +25,11 @@ namespace StrategicOperations.Framework
             public Team TeamSelection;
             public TagSet CustomEncounterTags;
 
-            public BA_Spawner(AbstractActor actor, string chosenBA, Lance BaLance)
+            public BA_Spawner(AbstractActor actor, string chosenBA, Lance baLance)
             {
                 this.Actor = actor;
                 this.ChosenBA = chosenBA;
-                this.BaLance = BaLance;
+                this.BaLance = baLance;
                 this.DM = UnityGameInstance.BattleTechGame.DataManager;
             }
 

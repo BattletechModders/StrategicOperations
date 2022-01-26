@@ -40,6 +40,7 @@ namespace StrategicOperations.Patches
                 __instance.StatCollection.AddStatistic<int>("InternalBattleArmorSquadCap", 0);
                 __instance.StatCollection.AddStatistic<int>("InternalBattleArmorSquads", 0);
                 __instance.StatCollection.AddStatistic<bool>("HasBattleArmorMounts", false);
+                __instance.StatCollection.AddStatistic<bool>("HasExternalMountedBattleArmor", false);
                 __instance.StatCollection.AddStatistic<bool>("IsBattleArmorHandsy", false);
                 __instance.StatCollection.AddStatistic<bool>("IsUnmountableBattleArmor", false);
                 __instance.StatCollection.AddStatistic<bool>("IsUnswarmableBattleArmor", false);
@@ -230,7 +231,7 @@ namespace StrategicOperations.Patches
 
                         if (!__instance.SelectedActor.IsMountedUnit())
                         {
-                            if (targetActor.getAvailableInternalBASpace() > 0 || !targetActor.HasMountedUnits())
+                            if (!targetActor.HasMountedUnits() || targetActor.getAvailableInternalBASpace() > 0 || (targetActor.getHasBattleArmorMounts() && !targetActor.getHasExternalMountedBattleArmor()))
                             {
                                 __result = true;
                                 return false;
