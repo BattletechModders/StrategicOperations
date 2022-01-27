@@ -1144,7 +1144,7 @@ namespace StrategicOperations.Patches
                 int ___numPositionsLocked)
             {
                 if (UnityGameInstance.BattleTechGame.Combat.ActiveContract.ContractTypeValue.IsSkirmish) return true;
-                CombatSpawningReticle.Instance.ShowReticle();
+                //CombatSpawningReticle.Instance.ShowReticle();
                 var HUD = Traverse.Create(__instance).Property("HUD").GetValue<CombatHUD>();
                 var theActor = HUD.SelectedActor;
                 if (theActor == null) return true;
@@ -1183,7 +1183,7 @@ namespace StrategicOperations.Patches
                 int ___numPositionsLocked)
             {
                 if (UnityGameInstance.BattleTechGame.Combat.ActiveContract.ContractTypeValue.IsSkirmish) return true;
-                CombatTargetingReticle.Instance.ShowReticle();
+                
                 var HUD = Traverse.Create(__instance).Property("HUD").GetValue<CombatHUD>();
                 var positionA = Traverse.Create(__instance).Property("positionA").GetValue<Vector3>();
                 var positionB = Traverse.Create(__instance).Property("positionB").GetValue<Vector3>();
@@ -1198,6 +1198,7 @@ namespace StrategicOperations.Patches
                 var radius = __instance.FromButton.Ability.Def.FloatParam1;
                 CombatTargetingReticle.Instance.UpdateReticle(positionA, positionB, radius, false);
                 CombatTargetingReticle.Instance.ShowRangeIndicators(theActor.CurrentPosition, 0f, maxRange, true, true);
+                CombatTargetingReticle.Instance.ShowReticle();
                 if (__instance.FromButton.Ability.Def.specialRules == AbilityDef.SpecialRules.Strafe &&
                     (distance > maxRange && ___numPositionsLocked == 0) ||
                     (distanceToA > maxRange && ___numPositionsLocked == 1))

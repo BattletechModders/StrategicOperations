@@ -26,9 +26,100 @@ using TrooperSquad = CustomUnits.TrooperSquad;
 
 namespace StrategicOperations.Patches
 {
+    public class BattleArmorSelection
+    {
+        public class SelectionStateMWTargetSingle_BA : AbilityExtensions.SelectionStateMWTargetSingle
+        {
+            public SelectionStateMWTargetSingle_BA(CombatGameState Combat, CombatHUD HUD,
+                CombatHUDActionButton FromButton) : base(Combat, HUD, FromButton)
+            {
+            }
+            public override bool ProcessClickedCombatant(ICombatant combatant)
+            {
+
+                var sourcePos = this.HUD.SelectedActor.CurrentPosition;
+                sourcePos.y = 0f;
+                var targetPos = combatant.CurrentPosition;
+                targetPos.y = 0f;
+                var distance = Mathf.RoundToInt(Vector3.Distance(sourcePos, targetPos));
+
+                var jumpdist = 0f;
+                if (this.HUD.SelectedActor is Mech mech)
+                {
+                    jumpdist = mech.JumpDistance;
+                    if (float.IsNaN(jumpdist)) jumpdist = 0f;
+                }
+
+                var ranges = new List<float>()
+                {
+                    this.HUD.SelectedActor.MaxWalkDistance,
+                    this.HUD.SelectedActor.MaxSprintDistance,
+                    jumpdist,
+                    this.FromButton.Ability.Def.IntParam2
+                };
+                var maxRange = ranges.Max();
+                if (distance > maxRange)
+                {
+                    return false;
+                }
+                return base.ProcessClickedCombatant(combatant);
+            }
+
+            public override void ProcessMousePos(Vector3 worldPos)
+            {
+                base.ProcessMousePos(worldPos);
+                var jumpdist = 0f;
+                if (this.HUD.SelectedActor is Mech mech)
+                {
+                    jumpdist = mech.JumpDistance;
+                    if (float.IsNaN(jumpdist)) jumpdist = 0f;
+                }
+
+                var ranges = new List<float>()
+                {
+                    this.HUD.SelectedActor.MaxWalkDistance,
+                    this.HUD.SelectedActor.MaxSprintDistance,
+                    jumpdist,
+                    this.FromButton.Ability.Def.IntParam2
+                };
+                var maxRange = ranges.Max();
+                CombatTargetingReticle.Instance.ShowRangeIndicators(this.HUD.SelectedActor.CurrentPosition, 0f, maxRange, true, true);
+                CombatTargetingReticle.Instance.ShowReticle();
+            }
+
+            public override void OnInactivate()
+            {
+                base.OnInactivate();
+                CombatTargetingReticle.Instance.HideReticle();
+            }
+
+
+            [HarmonyPatch(typeof(SelectionState), "GetNewSelectionStateByType",
+                new Type[]
+                {
+                    typeof(SelectionType), typeof(CombatGameState), typeof(CombatHUD), typeof(CombatHUDActionButton),
+                    typeof(AbstractActor)
+                })]
+            public static class SelectionState_GetNewSelectionStateByType
+            {
+                public static void Postfix(SelectionState __instance, SelectionType type, CombatGameState Combat,
+                    CombatHUD HUD, CombatHUDActionButton FromButton, AbstractActor actor, ref SelectionState __result)
+                {
+                    if (!FromButton || FromButton.Ability == null) return;
+                    if (__result is AbilityExtensions.SelectionStateMWTargetSingle selectState)
+                    {
+                        if (FromButton.Ability.Def.Id == ModInit.modSettings.BattleArmorMountAndSwarmID)
+                        {
+                            __result = new SelectionStateMWTargetSingle_BA(Combat, HUD, FromButton);
+                            return;
+                        }
+                    }
+                }
+            }
+        }
+    }
     public class BattleArmorPatches
     {
-
         [HarmonyPatch(typeof(AbstractActor), "InitEffectStats",
             new Type[] {})]
         public static class AbstractActor_InitEffectStats
