@@ -62,11 +62,18 @@ namespace StrategicOperations.Patches
             static bool Prepare() => true; //turned back on to see if caching in CU works.
             public static void Prefix(Mech __instance, ref float __result)
             {
-                if (__instance is TrooperSquad squad)
+                try
                 {
-                    var hasWorkingJets = squad.isHasWorkingJumpjets();
-                    var countJets = squad.workingJumpsLocations().Count;
-                    ModInit.modLog.LogTrace($"[Mech_JumpDistance PREFIX] value from mech {squad.DisplayName} - {squad.Description.Id} before calcs was {__result}, has working jets?: {hasWorkingJets}, count: {countJets} ");
+                    if (__instance is TrooperSquad squad)
+                    {
+                        var countJets = squad.workingJumpsLocations().Count;
+                        ModInit.modLog.LogTrace(
+                            $"[Mech_JumpDistance PREFIX] value from mech {squad.DisplayName} - {squad.Description.Id} before calcs was {__result}, jets count: {countJets} ");
+                    }
+                }
+                catch (Exception ex)
+                {
+                    ModInit.modLog.LogError(ex.ToString());
                 }
             }
 
@@ -74,12 +81,19 @@ namespace StrategicOperations.Patches
             {
                 if (__instance is TrooperSquad squad)
                 {
-                    var hasWorkingJets = squad.isHasWorkingJumpjets();
-                    var countJets = squad.workingJumpsLocations().Count;
-                    ModInit.modLog.LogTrace($"[Mech_JumpDistance POSTFIX] value from mech {squad.DisplayName} - {squad.Description.Id} after calcs was {__result}, has working jets?: {hasWorkingJets}, count: {countJets} ");
-                    if (float.IsPositiveInfinity(__result))
+                    try
                     {
-                        ModInit.modLog.LogTrace($"[Mech_JumpDistance POSTFIX] INFINITY STONES!");
+                        var countJets = squad.workingJumpsLocations().Count;
+                        ModInit.modLog.LogTrace(
+                            $"[Mech_JumpDistance POSTFIX] value from mech {squad.DisplayName} - {squad.Description.Id} before calcs was {__result}, jets count: {countJets} ");
+                        if (float.IsPositiveInfinity(__result))
+                        {
+                            ModInit.modLog.LogTrace($"[Mech_JumpDistance POSTFIX] INFINITY STONES!");
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        ModInit.modLog.LogError(ex.ToString());
                     }
                 }
             }
