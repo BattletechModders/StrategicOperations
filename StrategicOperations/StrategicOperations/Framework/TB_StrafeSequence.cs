@@ -437,10 +437,18 @@ namespace StrategicOperations.Framework
         private void Update()
         {
             this._timeInCurrentState += Time.deltaTime;
+            var curPos_2D = this.Attacker.CurrentPosition;
+            curPos_2D.y = 0f;
+            var endPos_2D = this.EndPos;
+            endPos_2D.y = 0f;
+            var startPos_2D = this.StartPos;
+            startPos_2D.y = 0f;
+            var fromEnd = Vector3.Distance(curPos_2D, endPos_2D);
+            var fromStart = Vector3.Distance(curPos_2D, startPos_2D);
             switch (this._state)
             {
                 case TB_StrafeSequence.SequenceState.Incoming:
-                    if (Vector3.Distance(this.Attacker.CurrentPosition, this.StartPos) < this.MaxWeaponRange)
+                    if (fromStart < this.MaxWeaponRange) //set some kind of safety in case of weapon range fuckup.
                     {
                         ModInit.modLog.LogMessage($"Setting Strafe SequenceState to Strafing!");
                         this.SetState(TB_StrafeSequence.SequenceState.Strafing);
@@ -448,16 +456,8 @@ namespace StrategicOperations.Framework
                     break;
                 case TB_StrafeSequence.SequenceState.Strafing:
                     //var endpoint = this.StartPos + (this.EndPos - this.StartPos).normalized * Vector3.Distance(this.StartPos, this.EndPos);
-                    var curPos_2D = this.Attacker.CurrentPosition;
-                    curPos_2D.y = 0f;
-                    var endPos_2D = this.EndPos;
-                    endPos_2D.y = 0f;
-                    var startPos_2D = this.StartPos;
-                    startPos_2D.y = 0f;
-                    var fromEnd = Vector3.Distance(curPos_2D, endPos_2D);
-                    var fromStart = Vector3.Distance(curPos_2D, startPos_2D);
-                    var angle = Vector3.Angle(this.EndPos, this.Attacker.CurrentPosition);
-                    ModInit.modLog.LogMessage($"Strafing unit {fromEnd}m in 2D space from endpoint! Angle to endPoint: {angle}");
+                    //var angle = Vector3.Angle(this.EndPos, this.Attacker.CurrentPosition);
+                    ModInit.modLog.LogMessage($"Strafing unit {fromEnd}m in 2D space from endpoint!");// Angle to endPoint: {angle}");
                     if (fromEnd < ModInit.modSettings.strafeMinDistanceToEnd || (fromEnd <= fromStart && fromEnd > this.StrafeLength))
                     {
                         ModInit.modLog.LogMessage($"Setting Strafe SequenceState to Finished!");

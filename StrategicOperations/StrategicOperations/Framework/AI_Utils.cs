@@ -135,7 +135,7 @@ namespace StrategicOperations.Framework
                                             if (ModState.CurrentBattleArmorSquads[unit.team.FactionValue.Name] <
                                                 baConfig.MaxSquadsPerContract)
                                             {
-                                                var spawner = new Classes.BA_Spawner(unit, chosenInt, baLance);
+                                                var spawner = new Classes.CustomSpawner(unit, chosenInt, baLance);
                                                 spawner.SpawnBattleArmorAtActor();
                                                 ModState.CurrentBattleArmorSquads[unit.team.FactionValue.Name] += 1;
                                                 ModInit.modLog.LogMessage(
@@ -188,7 +188,7 @@ namespace StrategicOperations.Framework
                                         if (ModState.CurrentBattleArmorSquads[unit.team.FactionValue.Name] <
                                             baConfig.MaxSquadsPerContract)
                                         {
-                                            var spawner = new Classes.BA_Spawner(unit, chosenMount, baLance);
+                                            var spawner = new Classes.CustomSpawner(unit, chosenMount, baLance);
                                             spawner.SpawnBattleArmorAtActor();
                                             ModState.CurrentBattleArmorSquads[unit.team.FactionValue.Name] += 1;
                                             ModInit.modLog.LogMessage(
@@ -234,7 +234,7 @@ namespace StrategicOperations.Framework
                                         if (ModState.CurrentBattleArmorSquads[unit.team.FactionValue.Name] <
                                             baConfig.MaxSquadsPerContract)
                                         {
-                                            var spawner = new Classes.BA_Spawner(unit, chosenHandsy, baLance);
+                                            var spawner = new Classes.CustomSpawner(unit, chosenHandsy, baLance);
                                             spawner.SpawnBattleArmorAtActor();
                                             ModState.CurrentBattleArmorSquads[unit.team.FactionValue.Name] += 1;
                                             ModInit.modLog.LogMessage(
@@ -308,6 +308,25 @@ namespace StrategicOperations.Framework
                     }
                 }
             }
+
+            if (!string.IsNullOrEmpty(ModInit.modSettings.BattleArmorDeSwarmMovement))
+            {
+                if (unit.GetPilot().Abilities
+                        .All(x => x.Def.Id != ModInit.modSettings.BattleArmorDeSwarmMovement) &&
+                    unit.ComponentAbilities.All(y =>
+                        y.Def.Id != ModInit.modSettings.BattleArmorDeSwarmMovement))
+                {
+                    unit.Combat.DataManager.AbilityDefs.TryGet(ModInit.modSettings.BattleArmorDeSwarmMovement,
+                        out var def);
+                    var ability = new Ability(def);
+                    ModInit.modLog.LogTrace(
+                        $"Adding {ability.Def?.Description?.Id} to {unit.Description?.Name}.");
+                    ability.Init(unit.Combat);
+                    unit.GetPilot().Abilities.Add(ability);
+                    unit.GetPilot().ActiveAbilities.Add(ability);
+                }
+            }
+            
 
             //do we want to generate AI abilities if they already have BA? unsure.
             if (ModInit.modSettings.BeaconExcludedContractIDs.Contains(unit.Combat.ActiveContract.Override
@@ -559,6 +578,7 @@ namespace StrategicOperations.Framework
                     }
                     else
                     {
+                        ModInit.modLog.LogTrace($"[TargetsForStrafe] Unit #{k} {enemyCombatants[k].DisplayName} > {maxRange} from starting unit, can't use as starting position.");
                         continue;
                     }
 
@@ -566,19 +586,23 @@ namespace StrategicOperations.Framework
                     var currentSavedEndVector = new Vector3();
                     var currentSavedStartVector = new Vector3();
                     var currentMaxCount = 0;
-                    
-                    foreach (var vector in vectors)
+                    ModInit.modLog.LogTrace($"[TargetsForStrafe] Evaluating strafe start position at combatant #{k} {enemyCombatants[k].DisplayName} pos {possibleStart}.");
+                    for (var index = 0; index < vectors.Length; index++)
                     {
+                        var vector = vectors[index];
                         var targetCount = 0;
                         var rectangles = Utils.MakeRectangle(possibleStart, vector, ability.Def.FloatParam1);
-                        foreach (var rectangle in rectangles)
+                        for (var i = 0; i < rectangles.Length; i++)
                         {
+                            var rectangle = rectangles[i];
                             for (int l = 0; l < enemyCombatants.Count; l++)
                             {
                                 if (!(enemyCombatants[l] is AbstractActor newTarget)) continue;
                                 if (rectangle.Contains(newTarget.CurrentPosition))
                                 {
                                     targetCount += 1;
+                                    ModInit.modLog.LogTrace(
+                                        $"[TargetsForStrafe] Unit #{k}, Vector {index}: Current highest target count is {currentMaxCount} from start {currentSavedStartVector} and end {currentSavedEndVector}.");
                                 }
                             }
                         }
@@ -588,7 +612,8 @@ namespace StrategicOperations.Framework
                             currentMaxCount = targetCount;
                             currentSavedEndVector = vector;
                             currentSavedStartVector = possibleStart;
-
+                            ModInit.modLog.LogTrace(
+                                $"TargetsForStrafe] Unit #{k}, Vector {index}: Current highest target count in vector {index} is {currentMaxCount} from start {currentSavedStartVector} and end {currentSavedEndVector}.");
                         }
                     }
 
@@ -597,14 +622,16 @@ namespace StrategicOperations.Framework
                         maxCount = currentMaxCount;
                         savedEndVector = currentSavedEndVector;
                         savedStartVector = currentSavedStartVector;
+                        ModInit.modLog.LogTrace($"[TargetsForStrafe] Unit #{k}:  Current highest target count is {maxCount} from start {savedStartVector} and end {savedEndVector}.");
                     }
                 }
                 // should probably try to evaluate how many allied units it could hit and offset?
 
                 startPos = savedStartVector;
                 endPos = savedEndVector;
-               // ModState.selectedAIVectors.Add(savedStartVector);
-               // ModState.selectedAIVectors.Add(savedEndVector);
+                // ModState.selectedAIVectors.Add(savedStartVector);
+                // ModState.selectedAIVectors.Add(savedEndVector);
+                ModInit.modLog.LogTrace($"[TargetsForStrafe] Final highest target count is {maxCount} from start {startPos} and end {endPos}.");
                 return maxCount;
             }
 

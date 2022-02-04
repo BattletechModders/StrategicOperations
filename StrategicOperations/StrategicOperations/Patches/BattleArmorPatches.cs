@@ -142,7 +142,10 @@ namespace StrategicOperations.Patches
                 __instance.StatCollection.AddStatistic<float>("BattleArmorDeSwarmerSwatDamage", 0f);
                 __instance.StatCollection.AddStatistic<float>("BattleArmorDeSwarmerRoll", 0.5f);
                 __instance.StatCollection.AddStatistic<bool>("HasFiringPorts",false);
-                //__instance.StatCollection.AddStatistic<float>("SquishumToadsAsplode", 0.0f);
+                __instance.StatCollection.AddStatistic<float>("MovementDeSwarmMinChance", 0.0f);
+                __instance.StatCollection.AddStatistic<float>("MovementDeSwarmMaxChance", 1.0f);
+                __instance.StatCollection.AddStatistic<float>("MovementDeSwarmEvasivePipsFactor", 0f);
+                __instance.StatCollection.AddStatistic<float>("MovementDeSwarmEvasiveJumpMovementMultiplier", 1.0f);
             }
         }
 
@@ -161,7 +164,8 @@ namespace StrategicOperations.Patches
                         {
                             if (trooperSquad.IsSwarmingUnit() && ModState.PositionLockSwarm[trooperSquad.GUID] == component.parent.GUID)
                             {
-                                trooperSquad.DismountBA(component.parent, true);
+                                var loc = Vector3.zero;
+                                trooperSquad.DismountBA(component.parent, loc, true);
                             }
                             
                             var baLoc = trooperSquad.GetPossibleHitLocations(component.parent);
@@ -388,149 +392,24 @@ namespace StrategicOperations.Patches
                     {
                         if (creator.HasSwarmingUnits() && creator.GUID == targetActor.GUID)
                         {
+                            ModInit.modLog.LogTrace($"[Ability.Activate - Unit has sawemers].");
                             var swarmingUnits = ModState.PositionLockSwarm.Where(x => x.Value == creator.GUID).ToList();
 
                             if (__instance.Def.Id == ModInit.modSettings.BattleArmorDeSwarmRoll)
                             {
-                                var finalChance = 0f;
-                                var rollInitPenalty = creator.StatCollection.GetValue<int>("BattleArmorDeSwarmerRollInitPenalty");
-                                if (!creator.team.IsLocalPlayer)
-                                {
-                                    var baseChance = creator.StatCollection.GetValue<float>("BattleArmorDeSwarmerRoll");//0.5f;
-                                    var pilotSkill = creator.GetPilot().Piloting;
-                                    finalChance = Mathf.Min(baseChance + (0.05f * pilotSkill), 0.95f);
-                                    ModInit.modLog.LogMessage($"[Ability.Activate - BattleArmorDeSwarm] Deswarm chance: {finalChance} from baseChance {baseChance} + pilotSkill x 0.05 {0.05f * pilotSkill}, max 0.95.");
-                                }
-                                else
-                                {
-                                    finalChance = ModState.DeSwarmSuccessChance;
-                                    ModInit.modLog.LogMessage($"[Ability.Activate - BattleArmorDeSwarm] restored deswarm roll chance from state: {ModState.DeSwarmSuccessChance}");
-                                }
-                                var roll = ModInit.Random.NextDouble();
-                                foreach (var swarmingUnit in swarmingUnits)
-                                {
-                                    var swarmingUnitActor = __instance.Combat.FindActorByGUID(swarmingUnit.Key);
-                                    var swarmingUnitSquad = swarmingUnitActor as TrooperSquad;
-                                    if (roll <= finalChance)
-                                    {
-                                        ModInit.modLog.LogMessage(
-                                            $"[Ability.Activate - BattleArmorDeSwarm] Deswarm SUCCESS: {roll} <= {finalChance}.");
-                                        var txt = new Text("Remove Swarming Battle Armor: SUCCESS");
-                                        creator.Combat.MessageCenter.PublishMessage(new AddSequenceToStackMessage(
-                                            new ShowActorInfoSequence(creator, txt, FloatieMessage.MessageNature.Buff,
-                                                false)));
-                                        for (int i = 0; i < rollInitPenalty; i++)
-                                        {
-                                            swarmingUnitActor.ForceUnitOnePhaseDown(creator.GUID, -1, false);
-                                        }
-                                        var destroyBARoll = ModInit.Random.NextDouble();
-                                        if (destroyBARoll <= .3f)
-                                        {
-                                            ModInit.modLog.LogMessage(
-                                                $"[Ability.Activate - DestroyBA on Roll] SUCCESS: {destroyBARoll} <= {finalChance}.");
-                                            var trooperLocs = swarmingUnitActor.GetPossibleHitLocations(creator);
-                                            for (int i = 0; i < trooperLocs.Count; i++)
-                                            {
-                                                var cLoc = (ChassisLocations)trooperLocs[i];
-                                                var hitinfo = new WeaponHitInfo(-1, -1, 0, 0, creator.GUID, swarmingUnitActor.GUID, 1, new float[1], new float[1], new float[1], new bool[1], new int[trooperLocs[i]], new int[1], new AttackImpactQuality[1], new AttackDirection[1], new Vector3[1], new string[1], new int[trooperLocs[i]]);
-                                                swarmingUnitSquad?.NukeStructureLocation(hitinfo, trooperLocs[i], cLoc, Vector3.up, DamageType.ComponentExplosion);
-                                            }
-                                            swarmingUnitActor.FlagForDeath("Squished", DeathMethod.VitalComponentDestroyed, DamageType.Melee, 0, -1, creator.GUID, false);
-                                            swarmingUnitActor.HandleDeath(creator.GUID);
-                                        }
-                                        else
-                                        {
-                                            ModInit.modLog.LogMessage(
-                                                $"[Ability.Activate - DestroyBA on Roll] FAILURE: {destroyBARoll} > {finalChance}.");
-                                            swarmingUnitActor.DismountBA(creator, true);
-                                        }
-                                    }
-                                    else
-                                    {
-                                        var txt = new Text("Remove Swarming Battle Armor: FAILURE");
-                                        creator.Combat.MessageCenter.PublishMessage(new AddSequenceToStackMessage(
-                                            new ShowActorInfoSequence(creator, txt, FloatieMessage.MessageNature.Buff,
-                                                false)));
-                                    ModInit.modLog.LogMessage(
-                                            $"[Ability.Activate - BattleArmorDeSwarm] Deswarm FAILURE: {roll} > {finalChance}.");
-                                    }
-                                }
+                                creator.ProcessDeswarmRoll(swarmingUnits);
                             }
 
                             else if (__instance.Def.Id == ModInit.modSettings.BattleArmorDeSwarmSwat)
                             {
-                                var finalChance = 0f;
-                                var swatInitPenalty =
-                                    creator.StatCollection.GetValue<int>("BattleArmorDeSwarmerSwatInitPenalty");
-                                if (!creator.team.IsLocalPlayer)
-                                {
-                                    var baseChance =
-                                        creator.StatCollection.GetValue<float>(
-                                            "BattleArmorDeSwarmerSwat"); //0.5f;//0.3f;
-                                    var pilotSkill = creator.GetPilot().Piloting;
-                                    var missingActuatorCount = -8;
-                                    foreach (var armComponent in creator.allComponents.Where(x =>
-                                                 x.IsFunctional && (x.Location == 2 || x.Location == 32)))
-                                    {
-                                        foreach (var CategoryID in ModInit.modSettings.ArmActuatorCategoryIDs)
-                                        {
-                                            if (armComponent.mechComponentRef.IsCategory(CategoryID))
-                                            {
-                                                missingActuatorCount += 1;
-                                                break;
-                                            }
-                                        }
-                                    }
+                                creator.ProcessDeswarmSwat(swarmingUnits);
+                            }
 
-                                    finalChance = baseChance + (0.05f * pilotSkill) - (0.05f * missingActuatorCount);
-                                    ModInit.modLog.LogMessage(
-                                        $"[Ability.Activate - BattleArmorDeSwarm] Deswarm chance: {finalChance} from baseChance {baseChance} + pilotSkill x 0.05 {0.05f * pilotSkill} - missingActuators x 0.05 {0.05f * missingActuatorCount}.");
-                                }
-                                else
-                                {
-                                    finalChance = ModState.DeSwarmSuccessChance;
-                                    ModInit.modLog.LogMessage($"[Ability.Activate - BattleArmorDeSwarm] restored deswarm swat chance from state: {ModState.DeSwarmSuccessChance}");
-                                }
-                                var roll = ModInit.Random.NextDouble();
-                                foreach (var swarmingUnit in swarmingUnits)
-                                {
-                                    var swarmingUnitActor = __instance.Combat.FindActorByGUID(swarmingUnit.Key);
-                                    if (roll <= finalChance)
-                                    {
-                                        var txt = new Text("Remove Swarming Battle Armor: SUCCESS");
-                                        creator.Combat.MessageCenter.PublishMessage(new AddSequenceToStackMessage(
-                                            new ShowActorInfoSequence(creator, txt, FloatieMessage.MessageNature.Buff,
-                                                false))); 
-                                        ModInit.modLog.LogMessage($"[Ability.Activate - BattleArmorDeSwarm] Deswarm SUCCESS: {roll} <= {finalChance}.");
-                                        for (int i = 0; i < swatInitPenalty; i++)
-                                        {
-                                            swarmingUnitActor.ForceUnitOnePhaseDown(creator.GUID, -1, false);
-                                        }
-                                        var dmgRoll = ModInit.Random.NextDouble(); 
-                                        if (dmgRoll <= finalChance)
-                                        {
-                                            if (swarmingUnitActor is TrooperSquad swarmingUnitAsSquad)
-                                            {
-                                                var baLoc = swarmingUnitAsSquad.GetPossibleHitLocations(creator).GetRandomElement();
-                                                ModInit.modLog.LogMessage($"[Ability.Activate - BattleArmorDeSwarm] BA Armor Damage Location {baLoc}: {swarmingUnitAsSquad.GetStringForArmorLocation((ArmorLocation)baLoc)}");
-                                                var swatDmg = creator.StatCollection.GetValue<float>("BattleArmorDeSwarmerSwatDamage");
-                                                var hitinfo = new WeaponHitInfo(-1, -1, 0, 0, creator.GUID, swarmingUnitActor.GUID, 1, new float[1], new float[1], new float[1], new bool[1], new int[baLoc], new int[1], new AttackImpactQuality[1], new AttackDirection[1], new Vector3[1], new string[1], new int[baLoc]);
-
-                                                swarmingUnitActor.TakeWeaponDamage(hitinfo, baLoc, swarmingUnitAsSquad.MeleeWeapon, swatDmg, 0, 0, DamageType.Melee);
-                                            }
-                                        }
-                                        swarmingUnitActor.DismountBA(creator, true);
-                                    }
-                                    else
-                                    {
-                                        var txt = new Text("Remove Swarming Battle Armor: FAILURE");
-                                        creator.Combat.MessageCenter.PublishMessage(new AddSequenceToStackMessage(
-                                            new ShowActorInfoSequence(creator, txt, FloatieMessage.MessageNature.Buff,
-                                                false)));
-                                        ModInit.modLog.LogMessage(
-                                            $"[Ability.Activate - BattleArmorDeSwarm] Deswarm FAILURE: {roll} > {finalChance}. Doing nothing and ending turn!");
-                                    }
-                                }
+                            else if (__instance.Def.Id == ModInit.modSettings.BattleArmorDeSwarmMovement)
+                            {
+                                ModInit.modLog.LogTrace($"[Ability.Activate - BattleArmorDeSwarm Movement].");
+                                creator.ProcessDeswarmMovement(swarmingUnits); // need to patch ActorMovementSequence complete AND JumpSequence complete AND DFASequencecomplete, and then do magic logic in there. or just do it on
+                                return; //return to avoid ending turn for player below. making AI use this properly is gonna suck hind tit.
                             }
 
                             if (creator is Mech mech)
@@ -555,162 +434,12 @@ namespace StrategicOperations.Patches
                         {
                             if (__instance.Def.Id == ModInit.modSettings.BattleArmorMountAndSwarmID && target.team.IsFriendly(creator.team))
                             {
-                                //foreach (var effectData in ModState.BAUnhittableEffect.effects)
-                                //{
-                                //    creator.Combat.EffectManager.CreateEffect(effectData, ModState.BAUnhittableEffect.ID,
-                                //        -1, creator, creator, default(WeaponHitInfo), 1);
-                                //}
-
-                                //creator.GameRep.IsTargetable = false;
-
-                                
-                                creator.TeleportActor(targetActor.CurrentPosition);
-                                
-
-                                //creator.GameRep.enabled = false;
-                                //creator.GameRep.gameObject.SetActive(false);
-                                //creator.GameRep.gameObject.Despawn();
-                                //UnityEngine.Object.Destroy(creator.GameRep.gameObject);
-
-                                //CombatMovementReticle.Instance.RefreshActor(creator); // or just end activation completely? definitely on use.
-                                
-                                ModState.PositionLockMount.Add(creator.GUID, targetActor.GUID);
-                                if (creator is TrooperSquad squad)
-                                {
-                                    squad.GameRep.transform.localScale = new Vector3(.01f, .01f, .01f);
-                                    squad.AttachToCarrier(targetActor);
-                                    ModInit.modLog.LogTrace($"[Ability.Activate - BattleArmorMountID] Called AttachToCarrier.");
-                                }
-                                ModInit.modLog.LogMessage(
-                                    $"[Ability.Activate - BattleArmorMountID] Added PositionLockMount with rider  {creator.DisplayName} {creator.GUID} and carrier {targetActor.DisplayName} {targetActor.GUID}.");
-
-                                if (creator.team.IsLocalPlayer)
-                                {
-                                    var sequence = creator.DoneWithActor();
-                                    creator.Combat.MessageCenter.PublishMessage(new AddSequenceToStackMessage(sequence));
-                                    //creator.OnActivationEnd(creator.GUID, -1);
-                                }
+                                creator.ProcessMountFriendly(targetActor);
                             }
+
                             else if (__instance.Def.Id == ModInit.modSettings.BattleArmorMountAndSwarmID && target.team.IsEnemy(creator.team) && creator is Mech creatorMech && creatorMech.canSwarm())
                             {
-                                targetActor.CheckForBPodAndActivate();
-                                if (creator.IsFlaggedForDeath)
-                                {
-                                    creator.HandleDeath(targetActor.GUID);
-                                    return;
-                                }
-                                var meleeChance = creator.team.IsLocalPlayer ? ModState.SwarmSuccessChance : creator.Combat.ToHit.GetToHitChance(creator, creatorMech.MeleeWeapon, targetActor, creator.CurrentPosition, target.CurrentPosition, 1, MeleeAttackType.Charge, false);
-                                
-                                var roll = ModInit.Random.NextDouble();
-                                ModInit.modLog.LogMessage($"[Ability.Activate - BattleArmorSwarmID] Rolling simplified melee: roll {roll} vs hitChance {meleeChance}; chance in Modstate was {ModState.SwarmSuccessChance}.");
-                                if (roll <= meleeChance)
-                                {
-                                    foreach (var effectData in ModState.BAUnhittableEffect.effects)
-                                    {
-                                        creator.Combat.EffectManager.CreateEffect(effectData, ModState.BAUnhittableEffect.ID,
-                                            -1, creator, creator, default(WeaponHitInfo), 1);
-                                    }
-
-                                    var txt = new Text("Swarm Attack: SUCCESS");
-                                    creator.Combat.MessageCenter.PublishMessage(new AddSequenceToStackMessage(
-                                        new ShowActorInfoSequence(creator, txt, FloatieMessage.MessageNature.Buff,
-                                            false)));
-
-                                    ModInit.modLog.LogMessage(
-                                        $"[Ability.Activate - BattleArmorSwarmID] Cleaning up dummy attacksequence.");
-                                    
-                                    //creator.GameRep.IsTargetable = false;
-                                    creator.TeleportActor(target.CurrentPosition);
-
-                                    //creator.GameRep.enabled = false;
-                                    //creator.GameRep.gameObject.SetActive(false); //this might be the problem with attacking.
-                                    //creator.GameRep.gameObject.Despawn();
-                                    //UnityEngine.Object.Destroy(creator.GameRep.gameObject);
-                                    //CombatMovementReticle.Instance.RefreshActor(creator);
-
-                                    ModState.PositionLockSwarm.Add(creator.GUID, target.GUID);
-                                    if (creator is TrooperSquad squad)
-                                    {
-                                        squad.AttachToCarrier(targetActor);
-                                        ModInit.modLog.LogTrace($"[Ability.Activate - BattleArmorMountID] Called AttachToCarrier.");
-                                    }
-                                    ModInit.modLog.LogMessage(
-                                        $"[Ability.Activate - BattleArmorSwarmID] Added PositionLockSwarm with rider  {creator.DisplayName} {creator.GUID} and carrier {target.DisplayName} {target.GUID}.");
-                                    creator.ResetPathing(false);
-                                    creator.Pathing.UpdateCurrentPath(false);
-
-                                    if (ModInit.modSettings.AttackOnSwarmSuccess && creator.team.IsLocalPlayer)
-                                    {
-                                        var weps = creator.Weapons.Where(x => x.IsEnabled && x.HasAmmo).ToList();
-                                        var loc = ModState.BADamageTrackers[creator.GUID].BA_MountedLocations.Values
-                                            .GetRandomElement();
-                                        if (true)
-                                        {
-                                            var attackStackSequence = new AttackStackSequence(creator, target,
-                                                creator.CurrentPosition,
-                                                creator.CurrentRotation, weps, MeleeAttackType.NotSet, loc, -1);
-                                            creator.Combat.MessageCenter.PublishMessage(
-                                                new AddSequenceToStackMessage(attackStackSequence));
-                                            ModInit.modLog.LogMessage(
-                                                $"[Ability.Activate - BattleArmorSwarmID] Creating attack sequence on successful swarm attack targeting location {loc}.");
-                                        }
-
-                                        if (false)
-                                        {
-                                            var attackInvocationMsg = new AttackInvocation(creator, target, weps,
-                                                MeleeAttackType.NotSet, loc);
-
-                                            ReceiveMessageCenterMessage subscriber =
-                                                delegate(MessageCenterMessage message)
-                                                {
-                                                    AddSequenceToStackMessage addSequenceToStackMessage =
-                                                        message as AddSequenceToStackMessage;
-                                                    //creator.Combat..Orders = addSequenceToStackMessage.sequence;
-                                                };
-                                            creator.Combat.MessageCenter.AddSubscriber(
-                                                MessageCenterMessageType.AddSequenceToStackMessage, subscriber);
-                                            creator.Combat.MessageCenter.PublishMessage(attackInvocationMsg);
-                                            creator.Combat.MessageCenter.RemoveSubscriber(
-                                                MessageCenterMessageType.AddSequenceToStackMessage, subscriber);
-                                            //creator.Combat.MessageCenter.PublishMessage(attackInvocation);
-                                        }
-                                    }
-                                    if (creator.team.IsLocalPlayer)
-                                    {
-                                        var sequence = creator.DoneWithActor();
-                                        creator.Combat.MessageCenter.PublishMessage(new AddSequenceToStackMessage(sequence));
-                                        //creator.OnActivationEnd(creator.GUID, -1);
-                                    }
-                                }
-                                else
-                                {
-                                    var txt = new Text("Swarm Attack: FAILURE");
-                                    creator.Combat.MessageCenter.PublishMessage(new AddSequenceToStackMessage(
-                                        new ShowActorInfoSequence(creator, txt, FloatieMessage.MessageNature.Buff,
-                                            false)));
-                                    ModInit.modLog.LogMessage(
-                                        $"[Ability.Activate - BattleArmorSwarmID] Cleaning up dummy attacksequence.");
-                                    ModInit.modLog.LogMessage(
-                                        $"[Ability.Activate - BattleArmorSwarmID] No hits in HitInfo, plonking unit at target hex.");
-                                    creator.TeleportActor(target.CurrentPosition);
-                                    creator.ResetPathing(false);
-                                    creator.Pathing.UpdateCurrentPath(false);
-                                    if (creator.team.IsLocalPlayer)
-                                    {
-                                        var sequence = creator.DoneWithActor();
-                                        creator.Combat.MessageCenter.PublishMessage(new AddSequenceToStackMessage(sequence));
-                                        //creator.OnActivationEnd(creator.GUID, -1);
-                                    }
-                                }
-                            }
-                            else if (__instance.Def.Id == ModInit.modSettings.BattleArmorMountAndSwarmID &&
-                                     target.team.IsEnemy(creator.team) && creator is Mech creatorMech2 &&
-                                     !creatorMech2.canSwarm())
-                            {
-                                var popup = GenericPopupBuilder.Create(GenericPopupType.Info, $"Unit {creatorMech2.DisplayName} is unable to make swarming attacks!");
-                                popup.AddButton("Confirm", null, true, null);
-                                popup.IsNestedPopupWithBuiltInFader().CancelOnEscape().Render();
-                                return;
+                                creatorMech.ProcessSwarmEnemy(targetActor);
                             }
                         }
 
@@ -718,7 +447,8 @@ namespace StrategicOperations.Patches
                         {
                             if (__instance.Def.Id == ModInit.modSettings.BattleArmorMountAndSwarmID)
                             {
-                                creator.DismountBA(targetActor);
+                                var loc = Vector3.zero;
+                                creator.DismountBA(targetActor, loc);
                             }
                         }
                         else if (creator.IsMountedUnit())
@@ -727,12 +457,74 @@ namespace StrategicOperations.Patches
                             {
                                 if (creator is TrooperSquad squad)
                                 {
+                                    var loc = Vector3.zero;
                                     //ModInit.modLog.LogTrace($"[Ability.Activate] Called DetachFromCarrier.");
-                                    squad.DismountBA(targetActor, false, false, false);
+                                    squad.DismountBA(targetActor, loc, false, false, false);
                                     squad.DetachFromCarrier(targetActor);
                                 }
                                 //creator.DismountBA(targetActor);
                             }
+                        }
+                    }
+                }
+            }
+        }
+
+        [HarmonyPatch(typeof(ActorMovementSequence), "CompleteOrders")]
+        public static class ActorMovementSequence_CompleteOrders
+        {
+            public static void Postfix(ActorMovementSequence __instance)
+            {
+                if (ModState.DeSwarmMovementInfo.Carrier.GUID == __instance.OwningActor.GUID)
+                {
+                    var baseChance = __instance.owningActor.getMovementDeSwarmMinChance();
+                    var chanceFromPips = __instance.owningActor.EvasivePipsCurrent *
+                                         __instance.owningActor.getMovementDeSwarmEvasivePipsFactor();
+                    var finalChance = Mathf.Min(baseChance + chanceFromPips,
+                        __instance.owningActor.getMovementDeSwarmMaxChance());
+                    var roll = ModInit.Random.NextDouble();
+                    ModInit.modLog.LogMessage($"[ActorMovementSequence.CompleteOrders] Found DeSwarmMovementInfo for unit {__instance.owningActor.DisplayName} {__instance.owningActor.GUID}. Rolled {roll} vs finalChance {finalChance} from baseChance {baseChance} and evasive chance {chanceFromPips}");
+                    if (roll <= finalChance)
+                    {
+                        var waypoints = Traverse.Create(__instance).Property("Waypoints").GetValue<List<WayPoint>>();
+                        foreach (var swarmingUnit in ModState.DeSwarmMovementInfo.SwarmingUnits)
+                        {
+                            var selectedWaypoint = waypoints.GetRandomElement();
+                            ModInit.modLog.LogMessage(
+                                $"[ActorMovementSequence.CompleteOrders] Roll succeeded, plonking {swarmingUnit.DisplayName} at {selectedWaypoint.Position}");
+                            swarmingUnit.DismountBA(__instance.owningActor, selectedWaypoint.Position);
+                        }
+                    }
+                }
+            }
+        }
+
+        [HarmonyPatch(typeof(MechJumpSequence), "CompleteOrders")]
+        public static class MechJumpSequence_CompleteOrders
+        {
+            public static void Postfix(MechJumpSequence __instance)
+            {
+                if (ModState.DeSwarmMovementInfo.Carrier.GUID == __instance.OwningMech.GUID)
+                {
+                    var baseChance = __instance.owningActor.getMovementDeSwarmMinChance();
+                    var chanceFromPips = __instance.owningActor.EvasivePipsCurrent *
+                                         __instance.owningActor.getMovementDeSwarmEvasivePipsFactor();
+                    var finalChance = Mathf.Min((baseChance + chanceFromPips) * __instance.owningActor.getMovementDeSwarmEvasiveJumpMovementMultiplier(),
+                        __instance.owningActor.getMovementDeSwarmMaxChance());
+                    var roll = ModInit.Random.NextDouble();
+                    ModInit.modLog.LogMessage($"[ActorMovementSequence.CompleteOrders] Found DeSwarmMovementInfo for unit {__instance.owningActor.DisplayName} {__instance.owningActor.GUID}. Rolled {roll} vs finalChance {finalChance} from (baseChance {baseChance} + evasive chance {chanceFromPips}) x JumpMovementMulti {__instance.owningActor.getMovementDeSwarmEvasiveJumpMovementMultiplier()}");
+                    if (roll <= finalChance)
+                    {
+                        var baseDistance = Vector3.Distance(__instance.StartPos, __instance.FinalPos);
+
+                        foreach (var swarmingUnit in ModState.DeSwarmMovementInfo.SwarmingUnits)
+                        {
+                            var finalDist = (float)(baseDistance * ModInit.Random.NextDouble());
+                            var finalDestination =
+                                Utils.LerpByDistance(__instance.StartPos, __instance.FinalPos, finalDist);
+                            ModInit.modLog.LogMessage(
+                                $"[ActorMovementSequence.CompleteOrders] Roll succeeded, plonking {swarmingUnit.DisplayName} at {finalDestination}");
+                            swarmingUnit.DismountBA(__instance.owningActor, finalDestination);
                         }
                     }
                 }
@@ -991,8 +783,9 @@ namespace StrategicOperations.Patches
                             actor.HandleDeath(__instance.GUID);
                             continue;
                         }
+                        var loc = Vector3.zero;
                         ModInit.modLog.LogTrace($"[AbstractActor.HandleDeath] Swarmed unit {__instance.DisplayName} destroyed, calling dismount.");
-                        actor.DismountBA(__instance, false, true);
+                        actor.DismountBA(__instance, loc, false, true);
                     }
                 }
 
@@ -1016,8 +809,9 @@ namespace StrategicOperations.Patches
                             actor.HandleDeath(__instance.GUID);
                             continue;
                         }
+                        var loc = Vector3.zero;
                         ModInit.modLog.LogTrace($"[AbstractActor.HandleDeath] Mount {__instance.DisplayName} destroyed, calling dismount.");
-                        actor.DismountBA(__instance, false, true);
+                        actor.DismountBA(__instance, loc, false, true);
                     }
                 }
             }

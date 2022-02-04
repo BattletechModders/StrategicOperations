@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using Abilifier.Patches;
 using BattleTech;
 using BattleTech.Data;
 using CustomUnits;
@@ -13,29 +14,34 @@ namespace StrategicOperations.Framework
 {
     public class Classes
     {
-
-        public class BA_Spawner
+        public enum BA_TargetEffectType
+        {
+            MOUNT,
+            SWARM,
+            BOTH
+        }
+        public class CustomSpawner
         {
             public AbstractActor Actor;
-            public string ChosenBA;
-            public Lance BaLance;
+            public string ChosenUnit;
+            public Lance CustomLance;
             public DataManager DM;
             public MechDef NewBattleArmorDef;
             public PilotDef NewPilotDef;
             public Team TeamSelection;
             public TagSet CustomEncounterTags;
 
-            public BA_Spawner(AbstractActor actor, string chosenBA, Lance baLance)
+            public CustomSpawner(AbstractActor actor, string chosen, Lance custLance)
             {
                 this.Actor = actor;
-                this.ChosenBA = chosenBA;
-                this.BaLance = baLance;
+                this.ChosenUnit = chosen;
+                this.CustomLance = custLance;
                 this.DM = UnityGameInstance.BattleTechGame.DataManager;
             }
 
-            public void OnBADepsFailed()
+            public void OnStratOpsDepsFailed()
             {
-                ModInit.modLog.LogTrace($"Failed to load BA Dependencies for {ChosenBA}. This shouldnt happen!");
+                ModInit.modLog.LogTrace($"Failed to load BA Dependencies for {ChosenUnit}. This shouldnt happen!");
             }
             public void OnBADepsLoaded()
             {
@@ -46,8 +52,8 @@ namespace StrategicOperations.Framework
                 newBattleArmor.InitGameRep(null);
                 TeamSelection.AddUnit(newBattleArmor);
                 newBattleArmor.AddToTeam(TeamSelection);
-                newBattleArmor.AddToLance(BaLance);
-                BaLance.AddUnitGUID(newBattleArmor.GUID);
+                newBattleArmor.AddToLance(CustomLance);
+                CustomLance.AddUnitGUID(newBattleArmor.GUID);
                 newBattleArmor.BehaviorTree = BehaviorTreeFactory.MakeBehaviorTree(
                     Actor.Combat.BattleTechGame, newBattleArmor, BehaviorTreeIDEnum.CoreAITree);
                 newBattleArmor.OnPlayerVisibilityChanged(VisibilityLevel.None);
@@ -70,19 +76,19 @@ namespace StrategicOperations.Framework
             public void SpawnBattleArmorAtActor()
             {
                 LoadRequest loadRequest = DM.CreateLoadRequest();
-                loadRequest.AddBlindLoadRequest(BattleTechResourceType.MechDef, ChosenBA);
-                ModInit.modLog.LogMessage($"Added loadrequest for MechDef: {ChosenBA}");
+                loadRequest.AddBlindLoadRequest(BattleTechResourceType.MechDef, ChosenUnit);
+                ModInit.modLog.LogMessage($"Added loadrequest for MechDef: {ChosenUnit}");
                 loadRequest.ProcessRequests(1000U);
 
                 var instanceGUID =
-                    $"{Actor.Description.Id}_{Actor.team.Name}_{ChosenBA}";
+                    $"{Actor.Description.Id}_{Actor.team.Name}_{ChosenUnit}";
 
                 if (Actor.Combat.TurnDirector.CurrentRound <= 1)
                 {
                     if (ModState.DeferredInvokeBattleArmor.All(x => x.Key != instanceGUID) && !ModState.DeferredBattleArmorSpawnerFromDelegate)
                     {
                         ModInit.modLog.LogTrace(
-                            $"Deferred BA Spawner missing, creating delegate and returning. Delegate should spawn {ChosenBA}");
+                            $"Deferred BA Spawner missing, creating delegate and returning. Delegate should spawn {ChosenUnit}");
 
                         void DeferredInvokeBASpawn() =>
                             SpawnBattleArmorAtActor();
@@ -103,8 +109,8 @@ namespace StrategicOperations.Framework
                 var chosenpilotSourceMech = alliedActors.GetRandomElement();
                 var newPilotDefID = chosenpilotSourceMech.pilot.pilotDef.Description.Id;
                 DM.PilotDefs.TryGet(newPilotDefID, out this.NewPilotDef);
-                ModInit.modLog.LogMessage($"Attempting to spawn {ChosenBA} with pilot {NewPilotDef.Description.Callsign}.");
-                DM.MechDefs.TryGet(ChosenBA, out NewBattleArmorDef);
+                ModInit.modLog.LogMessage($"Attempting to spawn {ChosenUnit} with pilot {NewPilotDef.Description.Callsign}.");
+                DM.MechDefs.TryGet(ChosenUnit, out NewBattleArmorDef);
                 NewBattleArmorDef.Refresh();
                 //var injectedDependencyLoadRequest = new DataManager.InjectedDependencyLoadRequest(dm);
                 //newBattleArmorDef.GatherDependencies(dm, injectedDependencyLoadRequest, 1000U);
@@ -115,7 +121,7 @@ namespace StrategicOperations.Framework
                 {
                     DataManager.InjectedDependencyLoadRequest dependencyLoad = new DataManager.InjectedDependencyLoadRequest(DM);
                     dependencyLoad.RegisterLoadCompleteCallback(new Action(this.OnBADepsLoaded));
-                    dependencyLoad.RegisterLoadFailedCallback(new Action(this.OnBADepsFailed)); // do failure handling here
+                    dependencyLoad.RegisterLoadFailedCallback(new Action(this.OnStratOpsDepsFailed)); // do failure handling here
                     if (!NewBattleArmorDef.DependenciesLoaded(1000U))
                     {
                         NewBattleArmorDef.GatherDependencies(DM, dependencyLoad, 1000U);
@@ -180,6 +186,7 @@ namespace StrategicOperations.Framework
         public class BA_TargetEffect
         {
             public string ID = "";
+            public BA_TargetEffectType TargetEffectType = BA_TargetEffectType.BOTH;
             public string Name = "";
             public string Description = "";
 
@@ -249,6 +256,23 @@ namespace StrategicOperations.Framework
                 this.UseCost = useCost;
                 this.AbilityUseCost = abilityUseCost;
                 this.UseCount = 1;
+            }
+        }
+
+        public class BA_DeswarmMovementInfo
+        {
+            public AbstractActor Carrier;
+            public List<AbstractActor> SwarmingUnits;
+
+            public BA_DeswarmMovementInfo()
+            {
+                this.Carrier = null;
+                this.SwarmingUnits = new List<AbstractActor>();
+            }
+            public BA_DeswarmMovementInfo(AbstractActor carrier, List<AbstractActor> swarmingUnits)
+            {
+                this.Carrier = carrier;
+                this.SwarmingUnits = swarmingUnits;
             }
         }
 

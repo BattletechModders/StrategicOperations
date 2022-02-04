@@ -80,10 +80,11 @@ namespace StrategicOperations
         public int AI_InvokeSpawnThreshold = 1;
         public List<AI_SpawnBehavior> AI_SpawnBehavior = new List<AI_SpawnBehavior>(); // values can be "AMBUSH", "BRAWLER" (is default if none selected), "REINFORCE"
         public string BattleArmorMountAndSwarmID = "";
-        public BA_TargetEffect BATargetEffect = new BA_TargetEffect();
+        public List<BA_TargetEffect> BATargetEffects = new List<BA_TargetEffect>();
         public List<BA_FactionAssoc> BattleArmorFactionAssociations = new List<BA_FactionAssoc>();
         public string BattleArmorDeSwarmRoll = "";
         public string BattleArmorDeSwarmSwat = "";
+        public string BattleArmorDeSwarmMovement = "";
         public List<string> BPodComponentIDs = new List<string>(); //statistic for dmg will be BPod_DamageDealt
         public bool BPodsAutoActivate = true; //BPods always auto activate when swarmed for AI, this only controls for player
         public List<string> ArmActuatorCategoryIDs = new List<string>();

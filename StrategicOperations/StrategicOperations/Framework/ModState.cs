@@ -10,7 +10,7 @@ namespace StrategicOperations.Framework
 {
     public static class ModState
     {
-        public static List<BA_Spawner> CurrentContractBASpawners = new List<BA_Spawner>();
+        public static List<CustomSpawner> CurrentContractBASpawners = new List<CustomSpawner>();
 
         public static float SwarmSuccessChance = 0f;
         public static float DeSwarmSuccessChance = 0f;
@@ -69,7 +69,9 @@ namespace StrategicOperations.Framework
 
         public static List<CmdUseStat> DeploymentAssetsStats = new List<CmdUseStat>();
 
-        public static BA_TargetEffect BAUnhittableEffect = new BA_TargetEffect();
+        public static List<BA_TargetEffect> BA_MountSwarmEffects = new List<BA_TargetEffect>();
+
+        public static BA_DeswarmMovementInfo DeSwarmMovementInfo = new BA_DeswarmMovementInfo();
 
         public static void Initialize()
         {
@@ -99,18 +101,24 @@ namespace StrategicOperations.Framework
             VehicleMountOrder.Add(VehicleChassisLocations.Turret);
 
 
-            BAUnhittableEffect = ModInit.modSettings.BATargetEffect;
-            foreach (var jObject in ModInit.modSettings.BATargetEffect.effectDataJO)
+            BA_MountSwarmEffects = new List<BA_TargetEffect>();
+            foreach (var BA_Effect in ModInit.modSettings.BATargetEffects)
             {
-                var effectData = new EffectData();
-                effectData.FromJSON(jObject.ToString());
-                BAUnhittableEffect.effects.Add(effectData);
+                ModInit.modLog.LogTrace($"[Initializing] Adding effects for {BA_Effect.ID}!");
+                foreach (var jObject in BA_Effect.effectDataJO)
+                {
+                    var effectData = new EffectData();
+                    effectData.FromJSON(jObject.ToString());
+                    BA_Effect.effects.Add(effectData);
+                    ModInit.modLog.LogTrace($"EffectData statname: {effectData?.statisticData?.statName}");
+                }
+                BA_MountSwarmEffects.Add(BA_Effect);
             }
         }
 
         public static void ResetAll()
         {
-            CurrentContractBASpawners = new List<BA_Spawner>();
+            CurrentContractBASpawners = new List<CustomSpawner>();
             SwarmSuccessChance = 0f;
             DeSwarmSuccessChance = 0f;
             CurrentBattleArmorSquads = new Dictionary<string, int>();

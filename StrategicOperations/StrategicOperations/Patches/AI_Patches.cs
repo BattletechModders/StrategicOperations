@@ -64,6 +64,25 @@ namespace StrategicOperations.Patches
 
                     }
 
+                    if (!string.IsNullOrEmpty(ModInit.modSettings.BattleArmorDeSwarmMovement))
+                    {
+                        if (unit.GetPilot().Abilities
+                                .All(x => x.Def.Id != ModInit.modSettings.BattleArmorDeSwarmMovement) &&
+                            unit.ComponentAbilities.All(y =>
+                                y.Def.Id != ModInit.modSettings.BattleArmorDeSwarmMovement))
+                        {
+                            unit.Combat.DataManager.AbilityDefs.TryGet(ModInit.modSettings.BattleArmorDeSwarmMovement,
+                                out var def);
+                            var ability = new Ability(def);
+                            ModInit.modLog.LogTrace(
+                                $"Adding {ability.Def?.Description?.Id} to {unit.Description?.Name}.");
+                            ability.Init(unit.Combat);
+                            unit.GetPilot().Abilities.Add(ability);
+                            unit.GetPilot().ActiveAbilities.Add(ability);
+                        }
+                    }
+                    
+
                     return;
                 }
 
@@ -330,7 +349,7 @@ namespace StrategicOperations.Patches
 
                 if (___unit.HasSwarmingUnits())
                 {
-                    var deswarm = ___unit.GetDeswarmerAbility();
+                    var deswarm = ___unit.GetDeswarmerAbilityForAI();
                     if (deswarm?.Def?.Description?.Id != null)
                     {
                         if (ModState.AiDealWithBattleArmorCmds.ContainsKey(___unit.GUID))
@@ -422,30 +441,48 @@ namespace StrategicOperations.Patches
             public static bool Prefix(AITeam __instance, AbstractActor unit, OrderInfo order,
                 ref InvocationMessage __result)
             {
-                if (unit.HasSwarmingUnits() && ModState.AiDealWithBattleArmorCmds.ContainsKey(unit.GUID))
-                {
-                    ModState.AiDealWithBattleArmorCmds[unit.GUID].ability.Activate(unit, unit);
-                    //     ModState.AiDealWithBattleArmorCmds[unit.GUID].targetActor);
+                if (unit.HasSwarmingUnits()){
 
-                    ModInit.modLog.LogMessage(
-                        $"activated {ModState.AiDealWithBattleArmorCmds[unit.GUID].ability.Def.Description.Id} on actor {unit.DisplayName} {unit.GUID}");
-
-                    if (!unit.HasMovedThisRound)
+                    if (unit is FakeVehicleMech && !unit.HasMovedThisRound && order.OrderType == OrderType.Move || order.OrderType == OrderType.JumpMove || order.OrderType == OrderType.SprintMove)
                     {
-                        unit.BehaviorTree.IncreaseSprintHysteresisLevel();
+                        var ability = unit.GetDeswarmerAbilityForAI(true);
+                        if (ability.IsAvailable && !ability.IsActive)
+                        {
+                            ability.Activate(unit, unit);
+                            ModInit.modLog.LogMessage($"{unit.DisplayName} {unit.GUID} is vehicle being swarmed. Found movement order, activating erratic maneuvers ability.");
+                            return true;
+                        }
                     }
 
-                    __result = new ReserveActorInvocation(unit, ReserveActorAction.DONE,
-                        unit.Combat.TurnDirector.CurrentRound);
-                    ModState.AiDealWithBattleArmorCmds.Remove(unit.GUID);
-                    return false;
+                    if (ModState.AiDealWithBattleArmorCmds.ContainsKey(unit.GUID))
+                    {
+                        ModState.AiDealWithBattleArmorCmds[unit.GUID].ability.Activate(unit, unit);
+                        //     ModState.AiDealWithBattleArmorCmds[unit.GUID].targetActor);
+
+                        ModInit.modLog.LogMessage(
+                            $"activated {ModState.AiDealWithBattleArmorCmds[unit.GUID].ability.Def.Description.Id} on actor {unit.DisplayName} {unit.GUID}");
+
+                        if (!unit.HasMovedThisRound)
+                        {
+                            unit.BehaviorTree.IncreaseSprintHysteresisLevel();
+                        }
+
+                        __result = new ReserveActorInvocation(unit, ReserveActorAction.DONE,
+                            unit.Combat.TurnDirector.CurrentRound);
+                        ModState.AiDealWithBattleArmorCmds.Remove(unit.GUID);
+                        return false;
+                    }
                 }
 
                 if (unit.IsMountedUnit() && !ModState.AiBattleArmorAbilityCmds.ContainsKey(unit.GUID))
                 {
-                    __result = new ReserveActorInvocation(unit, ReserveActorAction.DONE,
-                        unit.Combat.TurnDirector.CurrentRound);
-                    return false;
+                    if (unit.CanDeferUnit)
+                    {
+                        __result = new ReserveActorInvocation(unit, ReserveActorAction.DEFER, unit.Combat.TurnDirector.CurrentRound);
+                        return false; // changed to defer to get BA to reserve down?
+                    }
+                    __result = new ReserveActorInvocation(unit, ReserveActorAction.DONE, unit.Combat.TurnDirector.CurrentRound);
+                    return false; // changed to defer to get BA to reserve down?
                 }
 
                 if (unit.IsSwarmingUnit() && !unit.HasFiredThisRound)
