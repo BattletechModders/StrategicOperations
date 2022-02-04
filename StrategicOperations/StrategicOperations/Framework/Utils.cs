@@ -586,136 +586,150 @@ namespace StrategicOperations.Framework
             
         public static void InitiateStrafe(string parentSequenceID, PendingStrafeWave wave)
         {
-            if (wave.ActorResource.StartsWith("mechdef_"))
+
+            if (wave.ActorResource.StartsWith("mechdef_") || wave.ActorResource.StartsWith("vehicledef_"))
             {
-                wave.DM.MechDefs.TryGet(wave.ActorResource, out var supportActorMechDef);
-                supportActorMechDef.Refresh();
-                var customEncounterTags = new TagSet(wave.NeutralTeam.EncounterTags);
-                customEncounterTags.Add("SpawnedFromwave.Ability");
-                var supportActorMech = ActorFactory.CreateMech(supportActorMechDef,
-                    wave.SupportPilotDef, customEncounterTags, wave.NeutralTeam.Combat,
-                    wave.NeutralTeam.GetNextSupportUnitGuid(), "", wave.SupportHeraldryDef);
-                supportActorMech.Init(wave.NeutralTeam.OffScreenPosition, 0f, false);
-                supportActorMech.InitGameRep(null);
-                wave.NeutralTeam.AddUnit(supportActorMech);
-                supportActorMech.AddToTeam(wave.NeutralTeam);
-                supportActorMech.AddToLance(wave.CmdLance);
-                wave.CmdLance.AddUnitGUID(supportActorMech.GUID);
-                supportActorMech.GameRep.gameObject.SetActive(true);
-                supportActorMech.BehaviorTree = BehaviorTreeFactory.MakeBehaviorTree(
-                    wave.Ability.Combat.BattleTechGame, supportActorMech,
-                    BehaviorTreeIDEnum.DoNothingTree);
-                var eventID = Guid.NewGuid().ToString();
-                ModInit.modLog.LogMessage($"Initializing Strafing Run (wave) with id {eventID}!");
-                TB_StrafeSequence eventSequence =
-                    new TB_StrafeSequence(parentSequenceID, eventID, supportActorMech, wave.PositionA, wave.PositionB, wave.Radius, wave.Team, ModState.IsStrafeAOE, wave.Ability.Def.IntParam1);
-                TurnEvent tEvent = new TurnEvent(eventID, wave.Ability.Combat,
-                    wave.Ability.Def.ActivationETA, null, eventSequence, wave.Ability.Def, false);
-                wave.Ability.Combat.TurnDirector.AddTurnEvent(tEvent);
-                
+                var customSpawner = new CustomSpawner(parentSequenceID, wave);
+                customSpawner.SpawnStrafingUnit();
+            }
 
-                if (wave.Team.IsLocalPlayer && (ModInit.modSettings.commandUseCostsMulti > 0 ||
-                                           wave.Ability.Def.getAbilityDefExtension().CBillCost > 0))
+            if (false)
+            {
+
+
+                if (wave.ActorResource.StartsWith("mechdef_"))
                 {
-                    var unitName = "";
-                    var unitCost = 0;
-                    var unitID = "";
-                    unitName = supportActorMechDef.Description.UIName;
-                    unitID = supportActorMechDef.Description.Id;
-                    unitCost = supportActorMechDef.Chassis.Description.Cost;
-                    ModInit.modLog.LogMessage($"Usage cost will be {unitCost}");
+                    wave.DM.MechDefs.TryGet(wave.ActorResource, out var supportActorMechDef);
+                    supportActorMechDef.Refresh();
+                    var customEncounterTags = new TagSet(wave.NeutralTeam.EncounterTags);
+                    customEncounterTags.Add("SpawnedFromAbility");
+                    var supportActorMech = ActorFactory.CreateMech(supportActorMechDef,
+                        wave.SupportPilotDef, customEncounterTags, wave.NeutralTeam.Combat,
+                        wave.NeutralTeam.GetNextSupportUnitGuid(), "", wave.SupportHeraldryDef);
+                    supportActorMech.Init(wave.NeutralTeam.OffScreenPosition, 0f, false);
+                    supportActorMech.InitGameRep(null);
+                    wave.NeutralTeam.AddUnit(supportActorMech);
+                    supportActorMech.AddToTeam(wave.NeutralTeam);
+                    supportActorMech.AddToLance(wave.CmdLance);
+                    wave.CmdLance.AddUnitGUID(supportActorMech.GUID);
+                    supportActorMech.GameRep.gameObject.SetActive(true);
+                    supportActorMech.BehaviorTree = BehaviorTreeFactory.MakeBehaviorTree(
+                        wave.Ability.Combat.BattleTechGame, supportActorMech,
+                        BehaviorTreeIDEnum.DoNothingTree);
+                    var eventID = Guid.NewGuid().ToString();
+                    ModInit.modLog.LogMessage($"Initializing Strafing Run (wave) with id {eventID}!");
+                    TB_StrafeSequence eventSequence =
+                        new TB_StrafeSequence(parentSequenceID, eventID, supportActorMech, wave.PositionA,
+                            wave.PositionB, wave.Radius, wave.Team, ModState.IsStrafeAOE, wave.Ability.Def.IntParam1);
+                    TurnEvent tEvent = new TurnEvent(eventID, wave.Ability.Combat,
+                        wave.Ability.Def.ActivationETA, null, eventSequence, wave.Ability.Def, false);
+                    wave.Ability.Combat.TurnDirector.AddTurnEvent(tEvent);
 
-                    if (ModState.CommandUses.All(x => x.UnitID != wave.ActorResource))
+
+                    if (wave.Team.IsLocalPlayer && (ModInit.modSettings.commandUseCostsMulti > 0 ||
+                                                    wave.Ability.Def.getAbilityDefExtension().CBillCost > 0))
                     {
+                        var unitName = "";
+                        var unitCost = 0;
+                        var unitID = "";
+                        unitName = supportActorMechDef.Description.UIName;
+                        unitID = supportActorMechDef.Description.Id;
+                        unitCost = supportActorMechDef.Chassis.Description.Cost;
+                        ModInit.modLog.LogMessage($"Usage cost will be {unitCost}");
 
-                        var commandUse = new CmdUseInfo(unitID, wave.Ability.Def.Description.Name, unitName,
-                            unitCost, wave.Ability.Def.getAbilityDefExtension().CBillCost);
-
-                        ModState.CommandUses.Add(commandUse);
-                        ModInit.modLog.LogMessage(
-                            $"Added usage cost for {commandUse.CommandName} - {commandUse.UnitName}");
-                    }
-                    else
-                    {
-                        var cmdUse = ModState.CommandUses.FirstOrDefault(x => x.UnitID == wave.ActorResource);
-                        if (cmdUse == null)
+                        if (ModState.CommandUses.All(x => x.UnitID != wave.ActorResource))
                         {
-                            ModInit.modLog.LogMessage($"ERROR: cmdUseInfo was null");
+
+                            var commandUse = new CmdUseInfo(unitID, wave.Ability.Def.Description.Name, unitName,
+                                unitCost, wave.Ability.Def.getAbilityDefExtension().CBillCost);
+
+                            ModState.CommandUses.Add(commandUse);
+                            ModInit.modLog.LogMessage(
+                                $"Added usage cost for {commandUse.CommandName} - {commandUse.UnitName}");
                         }
                         else
                         {
-                            cmdUse.UseCount += 1;
-                            ModInit.modLog.LogMessage(
-                                $"Added usage cost for {cmdUse.CommandName} - {cmdUse.UnitName}, used {cmdUse.UseCount} times");
+                            var cmdUse = ModState.CommandUses.FirstOrDefault(x => x.UnitID == wave.ActorResource);
+                            if (cmdUse == null)
+                            {
+                                ModInit.modLog.LogMessage($"ERROR: cmdUseInfo was null");
+                            }
+                            else
+                            {
+                                cmdUse.UseCount += 1;
+                                ModInit.modLog.LogMessage(
+                                    $"Added usage cost for {cmdUse.CommandName} - {cmdUse.UnitName}, used {cmdUse.UseCount} times");
+                            }
                         }
                     }
                 }
-            }
 
-            else if (wave.ActorResource.StartsWith("vehicledef_"))
-            {
-                wave.DM.VehicleDefs.TryGet(wave.ActorResource, out var supportActorVehicleDef);
-                supportActorVehicleDef.Refresh();
-                var customEncounterTags = new TagSet(wave.NeutralTeam.EncounterTags);
-                customEncounterTags.Add("SpawnedFromwave.Ability");
-                var supportActorVehicle = ActorFactory.CreateVehicle(supportActorVehicleDef,
-                    wave.SupportPilotDef, customEncounterTags, wave.NeutralTeam.Combat,
-                    wave.NeutralTeam.GetNextSupportUnitGuid(), "", wave.SupportHeraldryDef);
-                supportActorVehicle.Init(wave.NeutralTeam.OffScreenPosition, 0f, false);
-                supportActorVehicle.InitGameRep(null);
-                wave.NeutralTeam.AddUnit(supportActorVehicle);
-                supportActorVehicle.AddToTeam(wave.NeutralTeam);
-                supportActorVehicle.AddToLance(wave.CmdLance);
-                wave.CmdLance.AddUnitGUID(supportActorVehicle.GUID);
-                supportActorVehicle.GameRep.gameObject.SetActive(true);
-                supportActorVehicle.BehaviorTree = BehaviorTreeFactory.MakeBehaviorTree(
-                    wave.Ability.Combat.BattleTechGame, supportActorVehicle,
-                    BehaviorTreeIDEnum.DoNothingTree);
-
-                var eventID = Guid.NewGuid().ToString();
-                ModInit.modLog.LogMessage($"Initializing Strafing Run (wave) with id {eventID}!");
-                TB_StrafeSequence eventSequence =
-                    new TB_StrafeSequence(parentSequenceID, eventID, supportActorVehicle, wave.PositionA, wave.PositionB, wave.Radius, wave.Team, ModState.IsStrafeAOE, wave.Ability.Def.IntParam1);
-                TurnEvent tEvent = new TurnEvent(eventID, wave.Ability.Combat,
-                    wave.Ability.Def.ActivationETA, null, eventSequence, wave.Ability.Def, false);
-                wave.Ability.Combat.TurnDirector.AddTurnEvent(tEvent);
-
-                if (wave.Team.IsLocalPlayer && (ModInit.modSettings.commandUseCostsMulti > 0 ||
-                                                wave.Ability.Def.getAbilityDefExtension().CBillCost > 0))
+                else if (wave.ActorResource.StartsWith("vehicledef_"))
                 {
-                    var unitName = "";
-                    var unitCost = 0;
-                    var unitID = "";
+                    wave.DM.VehicleDefs.TryGet(wave.ActorResource, out var supportActorVehicleDef);
+                    supportActorVehicleDef.Refresh();
+                    var customEncounterTags = new TagSet(wave.NeutralTeam.EncounterTags);
+                    customEncounterTags.Add("SpawnedFromAbility");
+                    var supportActorVehicle = ActorFactory.CreateVehicle(supportActorVehicleDef,
+                        wave.SupportPilotDef, customEncounterTags, wave.NeutralTeam.Combat,
+                        wave.NeutralTeam.GetNextSupportUnitGuid(), "", wave.SupportHeraldryDef);
+                    supportActorVehicle.Init(wave.NeutralTeam.OffScreenPosition, 0f, false);
+                    supportActorVehicle.InitGameRep(null);
+                    wave.NeutralTeam.AddUnit(supportActorVehicle);
+                    supportActorVehicle.AddToTeam(wave.NeutralTeam);
+                    supportActorVehicle.AddToLance(wave.CmdLance);
+                    wave.CmdLance.AddUnitGUID(supportActorVehicle.GUID);
+                    supportActorVehicle.GameRep.gameObject.SetActive(true);
+                    supportActorVehicle.BehaviorTree = BehaviorTreeFactory.MakeBehaviorTree(
+                        wave.Ability.Combat.BattleTechGame, supportActorVehicle,
+                        BehaviorTreeIDEnum.DoNothingTree);
 
-                    unitName = supportActorVehicleDef.Description.UIName;
-                    unitID = supportActorVehicleDef.Description.Id;
-                    unitCost = supportActorVehicleDef.Chassis.Description.Cost;
-                    ModInit.modLog.LogMessage(
-                        $"Usage cost will be {unitCost} + {wave.Ability.Def.getAbilityDefExtension().CBillCost}");
+                    var eventID = Guid.NewGuid().ToString();
+                    ModInit.modLog.LogMessage($"Initializing Strafing Run (wave) with id {eventID}!");
+                    TB_StrafeSequence eventSequence =
+                        new TB_StrafeSequence(parentSequenceID, eventID, supportActorVehicle, wave.PositionA,
+                            wave.PositionB, wave.Radius, wave.Team, ModState.IsStrafeAOE, wave.Ability.Def.IntParam1);
+                    TurnEvent tEvent = new TurnEvent(eventID, wave.Ability.Combat,
+                        wave.Ability.Def.ActivationETA, null, eventSequence, wave.Ability.Def, false);
+                    wave.Ability.Combat.TurnDirector.AddTurnEvent(tEvent);
 
-
-                    if (ModState.CommandUses.All(x => x.UnitID != wave.ActorResource))
+                    if (wave.Team.IsLocalPlayer && (ModInit.modSettings.commandUseCostsMulti > 0 ||
+                                                    wave.Ability.Def.getAbilityDefExtension().CBillCost > 0))
                     {
+                        var unitName = "";
+                        var unitCost = 0;
+                        var unitID = "";
 
-                        var commandUse = new CmdUseInfo(unitID, wave.Ability.Def.Description.Name, unitName,
-                            unitCost, wave.Ability.Def.getAbilityDefExtension().CBillCost);
-
-                        ModState.CommandUses.Add(commandUse);
+                        unitName = supportActorVehicleDef.Description.UIName;
+                        unitID = supportActorVehicleDef.Description.Id;
+                        unitCost = supportActorVehicleDef.Chassis.Description.Cost;
                         ModInit.modLog.LogMessage(
-                            $"Added usage cost for {commandUse.CommandName} - {commandUse.UnitName}");
-                    }
-                    else
-                    {
-                        var cmdUse = ModState.CommandUses.FirstOrDefault(x => x.UnitID == wave.ActorResource);
-                        if (cmdUse == null)
+                            $"Usage cost will be {unitCost} + {wave.Ability.Def.getAbilityDefExtension().CBillCost}");
+
+
+                        if (ModState.CommandUses.All(x => x.UnitID != wave.ActorResource))
                         {
-                            ModInit.modLog.LogMessage($"ERROR: cmdUseInfo was null");
+
+                            var commandUse = new CmdUseInfo(unitID, wave.Ability.Def.Description.Name, unitName,
+                                unitCost, wave.Ability.Def.getAbilityDefExtension().CBillCost);
+
+                            ModState.CommandUses.Add(commandUse);
+                            ModInit.modLog.LogMessage(
+                                $"Added usage cost for {commandUse.CommandName} - {commandUse.UnitName}");
                         }
                         else
                         {
-                            cmdUse.UseCount += 1;
-                            ModInit.modLog.LogMessage(
-                                $"Added usage cost for {cmdUse.CommandName} - {cmdUse.UnitName}, used {cmdUse.UseCount} times");
+                            var cmdUse = ModState.CommandUses.FirstOrDefault(x => x.UnitID == wave.ActorResource);
+                            if (cmdUse == null)
+                            {
+                                ModInit.modLog.LogMessage($"ERROR: cmdUseInfo was null");
+                            }
+                            else
+                            {
+                                cmdUse.UseCount += 1;
+                                ModInit.modLog.LogMessage(
+                                    $"Added usage cost for {cmdUse.CommandName} - {cmdUse.UnitName}, used {cmdUse.UseCount} times");
+                            }
                         }
                     }
                 }
@@ -725,7 +739,7 @@ namespace StrategicOperations.Framework
                 wave.DM.TurretDefs.TryGet(wave.ActorResource, out var supportActorTurretDef);
                 supportActorTurretDef.Refresh();
                 var customEncounterTags = new TagSet(wave.NeutralTeam.EncounterTags);
-                customEncounterTags.Add("SpawnedFromwave.Ability");
+                customEncounterTags.Add("SpawnedFromAbility");
                 var supportActorTurret = ActorFactory.CreateTurret(supportActorTurretDef,
                     wave.SupportPilotDef, customEncounterTags, wave.NeutralTeam.Combat,
                     wave.NeutralTeam.GetNextSupportUnitGuid(), "", wave.SupportHeraldryDef);

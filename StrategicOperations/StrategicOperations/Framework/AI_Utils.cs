@@ -135,7 +135,7 @@ namespace StrategicOperations.Framework
                                             if (ModState.CurrentBattleArmorSquads[unit.team.FactionValue.Name] <
                                                 baConfig.MaxSquadsPerContract)
                                             {
-                                                var spawner = new Classes.CustomSpawner(unit, chosenInt, baLance);
+                                                var spawner = new Classes.CustomSpawner(unit.Combat, unit, chosenInt, baLance);
                                                 spawner.SpawnBattleArmorAtActor();
                                                 ModState.CurrentBattleArmorSquads[unit.team.FactionValue.Name] += 1;
                                                 ModInit.modLog.LogMessage(
@@ -188,7 +188,7 @@ namespace StrategicOperations.Framework
                                         if (ModState.CurrentBattleArmorSquads[unit.team.FactionValue.Name] <
                                             baConfig.MaxSquadsPerContract)
                                         {
-                                            var spawner = new Classes.CustomSpawner(unit, chosenMount, baLance);
+                                            var spawner = new Classes.CustomSpawner(unit.Combat, unit, chosenMount, baLance);
                                             spawner.SpawnBattleArmorAtActor();
                                             ModState.CurrentBattleArmorSquads[unit.team.FactionValue.Name] += 1;
                                             ModInit.modLog.LogMessage(
@@ -234,7 +234,7 @@ namespace StrategicOperations.Framework
                                         if (ModState.CurrentBattleArmorSquads[unit.team.FactionValue.Name] <
                                             baConfig.MaxSquadsPerContract)
                                         {
-                                            var spawner = new Classes.CustomSpawner(unit, chosenHandsy, baLance);
+                                            var spawner = new Classes.CustomSpawner(unit.Combat, unit, chosenHandsy, baLance);
                                             spawner.SpawnBattleArmorAtActor();
                                             ModState.CurrentBattleArmorSquads[unit.team.FactionValue.Name] += 1;
                                             ModInit.modLog.LogMessage(

@@ -520,7 +520,16 @@ namespace StrategicOperations.Patches
 
                 Quaternion quaternion = Quaternion.LookRotation(positionB - positionA);
 
-                if (actorResource.StartsWith("mechdef_"))
+                
+
+                if (actorResource.StartsWith("mechdef_") || actorResource.StartsWith("vehicledef_"))
+                {
+                    ModInit.modLog.LogMessage($"Attempting to spawn {actorResource} as mech.");
+                    var spawner = new Classes.CustomSpawner(combat, actorResource, cmdLance, teamSelection, positionA, quaternion, supportHeraldryDef, supportPilotDef);
+                    spawner.SpawnBeaconUnitAtLocation();
+                }
+
+                if (actorResource.StartsWith("mechdef_") && false)
                 {
                     ModInit.modLog.LogMessage($"Attempting to spawn {actorResource} as mech.");
                     dm.MechDefs.TryGet(actorResource, out var supportActorMechDef);
@@ -620,7 +629,7 @@ namespace StrategicOperations.Patches
                         }
                     }
                 }
-                else if (actorResource.StartsWith("vehicledef_"))
+                else if (actorResource.StartsWith("vehicledef_") && false) //disable for CU
                 {
                     ModInit.modLog.LogMessage($"Attempting to spawn {actorResource} as vehicle.");
                     dm.VehicleDefs.TryGet(actorResource, out var supportActorVehicleDef);

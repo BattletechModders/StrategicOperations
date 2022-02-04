@@ -475,26 +475,39 @@ namespace StrategicOperations.Patches
         {
             public static void Postfix(ActorMovementSequence __instance)
             {
-                if (ModState.DeSwarmMovementInfo.Carrier.GUID == __instance.OwningActor.GUID)
+                try
                 {
-                    var baseChance = __instance.owningActor.getMovementDeSwarmMinChance();
-                    var chanceFromPips = __instance.owningActor.EvasivePipsCurrent *
-                                         __instance.owningActor.getMovementDeSwarmEvasivePipsFactor();
-                    var finalChance = Mathf.Min(baseChance + chanceFromPips,
-                        __instance.owningActor.getMovementDeSwarmMaxChance());
-                    var roll = ModInit.Random.NextDouble();
-                    ModInit.modLog.LogMessage($"[ActorMovementSequence.CompleteOrders] Found DeSwarmMovementInfo for unit {__instance.owningActor.DisplayName} {__instance.owningActor.GUID}. Rolled {roll} vs finalChance {finalChance} from baseChance {baseChance} and evasive chance {chanceFromPips}");
-                    if (roll <= finalChance)
+                    if (ModState.DeSwarmMovementInfo?.Carrier?.GUID == __instance?.owningActor?.GUID ||
+                        ModState.DeSwarmMovementInfo?.Carrier?.GUID == __instance?.OwningMech?.GUID ||
+                        ModState.DeSwarmMovementInfo?.Carrier?.GUID == __instance?.OwningVehicle?.GUID)
                     {
-                        var waypoints = Traverse.Create(__instance).Property("Waypoints").GetValue<List<WayPoint>>();
-                        foreach (var swarmingUnit in ModState.DeSwarmMovementInfo.SwarmingUnits)
+                        var baseChance = __instance.owningActor.getMovementDeSwarmMinChance();
+                        var chanceFromPips = __instance.owningActor.EvasivePipsCurrent *
+                                             __instance.owningActor.getMovementDeSwarmEvasivePipsFactor();
+                        var finalChance = Mathf.Min(baseChance + chanceFromPips,
+                            __instance.owningActor.getMovementDeSwarmMaxChance());
+                        var roll = ModInit.Random.NextDouble();
+                        ModInit.modLog.LogMessage(
+                            $"[ActorMovementSequence.CompleteOrders] Found DeSwarmMovementInfo for unit {__instance.owningActor.DisplayName} {__instance.owningActor.GUID}. Rolled {roll} vs finalChance {finalChance} from baseChance {baseChance} and evasive chance {chanceFromPips}");
+                        if (roll <= finalChance)
                         {
-                            var selectedWaypoint = waypoints.GetRandomElement();
-                            ModInit.modLog.LogMessage(
-                                $"[ActorMovementSequence.CompleteOrders] Roll succeeded, plonking {swarmingUnit.DisplayName} at {selectedWaypoint.Position}");
-                            swarmingUnit.DismountBA(__instance.owningActor, selectedWaypoint.Position);
+                            var waypoints = Traverse.Create(__instance).Property("Waypoints")
+                                .GetValue<List<WayPoint>>();
+                            foreach (var swarmingUnit in ModState.DeSwarmMovementInfo?.SwarmingUnits)
+                            {
+                                var selectedWaypoint = waypoints.GetRandomElement();
+                                ModInit.modLog.LogMessage(
+                                    $"[ActorMovementSequence.CompleteOrders] Roll succeeded, plonking {swarmingUnit.DisplayName} at {selectedWaypoint.Position}");
+                                swarmingUnit.DismountBA(__instance.owningActor, selectedWaypoint.Position, true);
+                            }
+
+                            ModState.DeSwarmMovementInfo = new Classes.BA_DeswarmMovementInfo();
                         }
                     }
+                }
+                catch (Exception ex)
+                {
+                    ModInit.modLog.LogError(ex.ToString());
                 }
             }
         }
@@ -504,7 +517,7 @@ namespace StrategicOperations.Patches
         {
             public static void Postfix(MechJumpSequence __instance)
             {
-                if (ModState.DeSwarmMovementInfo.Carrier.GUID == __instance.OwningMech.GUID)
+                if (ModState.DeSwarmMovementInfo?.Carrier?.GUID == __instance?.OwningMech?.GUID)
                 {
                     var baseChance = __instance.owningActor.getMovementDeSwarmMinChance();
                     var chanceFromPips = __instance.owningActor.EvasivePipsCurrent *
@@ -524,8 +537,24 @@ namespace StrategicOperations.Patches
                                 Utils.LerpByDistance(__instance.StartPos, __instance.FinalPos, finalDist);
                             ModInit.modLog.LogMessage(
                                 $"[ActorMovementSequence.CompleteOrders] Roll succeeded, plonking {swarmingUnit.DisplayName} at {finalDestination}");
-                            swarmingUnit.DismountBA(__instance.owningActor, finalDestination);
+                            swarmingUnit.DismountBA(__instance.owningActor, finalDestination, true);
+                            if (swarmingUnit is TrooperSquad swarmingUnitSquad)
+                            {
+                                var trooperLocs = swarmingUnitSquad.GetPossibleHitLocations(__instance.owningActor);
+                                for (int i = 0; i < trooperLocs.Count; i++)
+                                {
+                                    var hitinfo = new WeaponHitInfo(-1, -1, 0, 0, __instance.owningActor.GUID,
+                                        swarmingUnitSquad.GUID, 1, new float[1], new float[1], new float[1],
+                                        new bool[1], new int[trooperLocs[i]], new int[1], new AttackImpactQuality[1],
+                                        new AttackDirection[1], new Vector3[1], new string[1], new int[trooperLocs[i]]);
+
+                                    swarmingUnitSquad.TakeWeaponDamage(hitinfo, trooperLocs[i],
+                                        swarmingUnitSquad.MeleeWeapon, swarmingUnitSquad.MechDef.Chassis.DFASelfDamage,
+                                        0, 0, DamageType.DFASelf);
+                                }
+                            }
                         }
+                        ModState.DeSwarmMovementInfo = new Classes.BA_DeswarmMovementInfo();
                     }
                 }
             }
