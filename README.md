@@ -81,85 +81,118 @@ settings in the mod.json:
 		"Gear_B_Pod"
 		],
 	"BPodsAutoActivate": true,
-	"BATargetEffect": {
-		"ID": "BA_AccurateFire",
-		"Name": "Battle Armor - SwarmingAccuracy",
-		"description": "Battle Armor has greatly increased accuracy against the unit it is swarming.",
-		"effectDataJO": [
-			{
-				"durationData": {},
-				"targetingData": {
-					"effectTriggerType": "Passive",
-					"effectTargetType": "Creator",
-					"showInStatusPanel": true
+	"BATargetEffects": [
+		{
+			"ID": "BA_AccurateFire",
+			"TargetEffectType": "SWARM",
+			"Name": "Battle Armor - SwarmingAccuracy",
+			"description": "Battle Armor has greatly increased accuracy against the unit it is swarming.",
+			"effectDataJO": [
+				{
+					"durationData": {},
+					"targetingData": {
+						"effectTriggerType": "Passive",
+						"effectTargetType": "Creator",
+						"showInStatusPanel": true
+					},
+					"effectType": "StatisticEffect",
+					"Description": {
+						"Id": "BA_EasyTargetingPassive",
+						"Name": "Easy shots",
+						"Details": "Battle Armor has increased accuracy while swarming.",
+						"Icon": "allied-star"
+					},
+					"nature": "Buff",
+					"statisticData": {
+						"statName": "AccuracyModifier",
+						"operation": "Set",
+						"modValue": "-9001",
+						"modType": "System.Single"
+					}
 				},
-				"effectType": "StatisticEffect",
-				"Description": {
-					"Id": "BA_EasyTargetingPassive",
-					"Name": "Easy shots",
-					"Details": "Battle Armor has increased accuracy while swarming.",
-					"Icon": "allied-star"
+				{
+					"durationData": {
+						"duration": -1,
+						"stackLimit": -1
+					},
+					"targetingData": {
+						"effectTriggerType": "Passive",
+						"effectTargetType": "Creator"
+					},
+					"effectType": "StatisticEffect",
+					"Description": {
+						"Id": "BA_CALLED_SHOT",
+						"Name": "BA Called Shot",
+						"Details": "Called Shots twice as reliable when swarming",
+						"Icon": "uixSvgIcon_ability_mastertactician"
+					},
+					"statisticData": {
+						"statName": "CalledShotBonusMultiplier",
+						"operation": "Float_Multiply",
+						"modValue": "9001.0",
+						"modType": "System.Single"
+					}
 				},
-				"nature": "Buff",
-				"statisticData": {
-					"statName": "AccuracyModifier",
-					"operation": "Set",
-					"modValue": "-9001",
-					"modType": "System.Single"
+				{
+					"durationData": {
+						"duration": -1,
+						"stackLimit": -1
+					},
+					"targetingData": {
+						"effectTriggerType": "Passive",
+						"effectTargetType": "Creator",
+						"showInTargetPreview": false,
+						"showInStatusPanel": false
+					},
+					"effectType": "StatisticEffect",
+					"Description": {
+						"Id": "BA_FocusFireCluster",
+						"Name": "BA ClusterFuck",
+						"Details": "Better clustering for BA while swarming.",
+						"Icon": "UixSvgIcon_specialEquip_System"
+					},
+					"statisticData": {
+						"statName": "ClusteringModifier",
+						"operation": "Float_Add",
+						"modValue": "9001",
+						"modType": "System.Single",
+						"targetCollection": "Weapon"
+					},
+					"nature": "Buff"
 				}
-			},
-			{
-				"durationData": {
-					"duration": -1,
-					"stackLimit": -1
-				},
-				"targetingData": {
-					"effectTriggerType": "Passive",
-					"effectTargetType": "Creator"
-				},
-				"effectType": "StatisticEffect",
-				"Description": {
-					"Id": "BA_CALLED_SHOT",
-					"Name": "BA Called Shot",
-					"Details": "Called Shots twice as reliable when swarming",
-					"Icon": "uixSvgIcon_ability_mastertactician"
-				},
-				"statisticData": {
-					"statName": "CalledShotBonusMultiplier",
-					"operation": "Float_Multiply",
-					"modValue": "9001.0",
-					"modType": "System.Single"
+			]
+		},
+		{
+			"ID": "BA_MountedFireDebuff",
+			"TargetEffectType": "MOUNT",
+			"Name": "Battle Armor - Mounted Debuff",
+			"description": "Battle Armor has decreased accuracy when firing while mounted.",
+			"effectDataJO": [
+				{
+					"durationData": {},
+					"targetingData": {
+						"effectTriggerType": "Passive",
+						"effectTargetType": "Creator",
+						"showInStatusPanel": true
+					},
+					"effectType": "StatisticEffect",
+					"Description": {
+						"Id": "BA_EasyTargetingPassive",
+						"Name": "Easy shots",
+						"Details": "Battle Armor has decreased accuracy while mounted.",
+						"Icon": "allied-star"
+					},
+					"nature": "Buff",
+					"statisticData": {
+						"statName": "AccuracyModifier",
+						"operation": "Set",
+						"modValue": "8",
+						"modType": "System.Single"
+					}
 				}
-			},
-			{
-				"durationData": {
-					"duration": -1,
-					"stackLimit": -1
-				},
-				"targetingData": {
-					"effectTriggerType": "Passive",
-					"effectTargetType": "Creator",
-					"showInTargetPreview": false,
-					"showInStatusPanel": false
-				},
-				"effectType": "StatisticEffect",
-				"Description": {
-					"Id": "BA_FocusFireCluster",
-					"Name": "BA ClusterFuck",
-					"Details": "Better clustering for BA while swarming.",
-					"Icon": "UixSvgIcon_specialEquip_System"
-				},
-				"statisticData": {
-					"statName": "ClusteringModifier",
-					"operation": "Float_Add",
-					"modValue": "9001",
-					"modType": "System.Single",
-					"targetCollection": "Weapon"
-				},
-				"nature": "Buff"
-			}
-		]
-	},
+			]
+		}
+	],
 	"BattleArmorFactionAssociations": [
 		{
 			"FactionIDs": [
@@ -280,6 +313,8 @@ settings in the mod.json:
 `BattleArmorDeSwarmRoll` - string, ability ID of pilot ability that allows mech to "roll" (forced self-knockdown) in order to dislodge swarming battle armor. Chance of success is 50% + (Piloting skill x 5%), capped at 95%. On a success, there is a 30% chance to smush the Battle Armor in the process. Ability is automatically granted to Mechs at contract start (e.g. does not need to be added manually to pilot).
 
 `BattleArmorDeSwarmSwat` - string, ability ID of pilot ability that allows mech to "swat" swarming battle armor (remove using arms). Chance of success is 30% + (Piloting skill x 5%) - 5% for each "missing" arm actuator. An arm actuator is considered "missing" if it is destroyed, or was never mounted in the first place. Shoulder, Upper Arm, Lower Arm, and Hand for both left and right arms; thus a mech missing both arms would suffer a 40% penalty (8 x 5%). Ability is automatically granted to Mechs at contract start (e.g. does not need to be added manually to pilot).
+	
+`BattleArmorDeSwarmMovement` - support for new ability giving units a chance to deswarm BA from movement. See below for details.
 
 `ArmActuatorCategoryIDs` - list of strings, Custom Category IDs identifying actuators that will be considered in `BattleArmorDeSwarmSwat` calculations. E.g, if ArmActuator is listed here and an actuator has the following, it would be counted:
 ```
@@ -295,7 +330,7 @@ settings in the mod.json:
 
 `BPodsAutoActivate` - bool, if true BPod Components will auto-activate when the unit carrying them gets swarmed. If false, only BPods mounted on AI-controlled units will auto-activate (players must manually activate BPods using CAE activation).
 	
-`BATargetEffect` - Effect which will be applied to Battle Armor while swarming. Intended use is to improve accuracy and clustering of swarming BA so they always (usually, mostly) hit the same location on the unit they're swarming. Of course you can add whatever else you want here.
+`BATargetEffects` - **Renamed BATargetEffects and changed to list in 2.0.3.1**  Effects which will be applied to Battle Armor while swarming or mounting, depending on value of `TargetEffectType` field. Can be SWARM, MOUNT, or BOTH. Intended use is to improve accuracy and clustering of swarming BA so they always (usually, mostly) hit the same location on the unit they're swarming, and give mounted BA a debuff to accuracy when firing from mount. Of course you can add whatever else you want here.
 
 <s>`AI_BattleArmorSpawnChance` - float, base probability that AI units that <i>can</i> mount Battle Armor, either mounted externally or internally, will get Battle Armor at contract start. Note that any added Battle Armor is independent of any "support lance" or "extra lance" settings in Mission Control or other mods. Added to AI_BattleArmorSpawnDiffMod for total chance.</s> DEPRECATED, IMPLEMENTED IN BattleArmorFactionAssociations
 
@@ -832,5 +867,170 @@ and for swats (the 2nd effectdata defining BattleArmorDeSwarmerSwatInitPenalty a
 			}
 		}
 	]
+}
+```
+
+**New in 2.0.3.1** 
+
+`BattleArmorDeSwarmMovement` - string, ability def ID for new ability giving units a chance to deswarm BA from movement. Usable by mechs AND vehicles.
+
+Required stats to be set are all floats (System.Single):
+
+`MovementDeSwarmMinChance` - Minimum (or starting) % to successfully deswarm on movement.
+
+`MovementDeSwarmMaxChance` - Maximum % to successfully deswarm on movement.
+
+`MovementDeSwarmEvasivePipsFactor` - Value set here is multiplied by # of evasive pips gained from movement and added to MinChance
+
+`MovementDeSwarmEvasiveJumpMovementMultiplier` - Value here is multiplier on chance from above if the movement was a jump (do a barrel roll!)
+	
+After unit movement is complete, roll processes to determine if de-swarm occurs. IF so, the swarming BA is deposited randomly along the movement path. If move was a jump, the swarming BA will also take its DFASelfDamage to each suit in the squad.
+	
+```
+{
+	"Description": {
+		"Id": "AbilityDefDeSwarmerMovement",
+		"Name": "Erratic Maneuvering",
+		"Details": "ACTION: Do fancy footworks and barrel rolls to get rid of little grabby bois. But it's hard to shoot straight.",
+		"Icon": "uixSvgIcon_skullAtlas"
+	},
+	"ActivationTime": "ConsumedByFiring",
+	"ActivationCooldown": -1,
+	"Targeting": "ActorSelf",
+	"ResolveCost": 0,
+	"EffectData": [
+		{
+			"durationData": {
+				"duration": 1,
+				"stackLimit": 1
+			},
+			"targetingData": {
+				"effectTriggerType": "OnActivation",
+				"effectTargetType": "Creator",
+				"showInStatusPanel": true
+			},
+			"effectType": "StatisticEffect",
+			"Description": {
+				"Id": "StatusEffect-BattlemasterAccuracy",
+				"Name": "Overcharged Targeting",
+				"Details": "-6 Accuracy",
+				"Icon": "uixSvgIcon_skullAtlas"
+			},
+			"nature": "Buff",
+			"statisticData": {
+				"statName": "AccuracyModifier",
+				"operation": "Float_Add",
+				"modValue": "6",
+				"modType": "System.Single",
+				"additionalRules": "NotSet",
+				"targetCollection": "Weapon",
+				"targetWeaponCategory": "NotSet",
+				"targetWeaponType": "NotSet",
+				"targetAmmoCategory": "NotSet",
+				"targetWeaponSubType": "NotSet"
+			}
+		},
+		{
+			"durationData": {
+				"duration": 1,
+				"stackLimit": 1
+			},
+			"targetingData": {
+				"effectTriggerType": "OnActivation",
+				"effectTargetType": "Creator",
+				"showInStatusPanel": false
+			},
+			"effectType": "StatisticEffect",
+			"Description": {
+				"Id": "StatusEffect-DeSwarmMoveMinChance",
+				"Name": "Battle Armor DeSwarmer Movement",
+				"Details": "mount",
+				"Icon": "uixSvgIcon_ability_precisionstrike"
+			},
+			"nature": "Buff",
+			"statisticData": {
+				"statName": "MovementDeSwarmMinChance",
+				"operation": "Set",
+				"modValue": "0.50",
+				"modType": "System.Single"
+			}
+		},
+		{
+			"durationData": {
+				"duration": 1,
+				"stackLimit": 1
+			},
+			"targetingData": {
+				"effectTriggerType": "OnActivation",
+				"effectTargetType": "Creator",
+				"showInStatusPanel": false
+			},
+			"effectType": "StatisticEffect",
+			"Description": {
+				"Id": "StatusEffect-DeSwarmMoveMaxChance",
+				"Name": "Battle Armor DeSwarmer Movement",
+				"Details": "mount",
+				"Icon": "uixSvgIcon_ability_precisionstrike"
+			},
+			"nature": "Buff",
+			"statisticData": {
+				"statName": "MovementDeSwarmMaxChance",
+				"operation": "Set",
+				"modValue": "1.0",
+				"modType": "System.Single"
+			}
+		},
+		{
+			"durationData": {
+				"duration": 1,
+				"stackLimit": 1
+			},
+			"targetingData": {
+				"effectTriggerType": "OnActivation",
+				"effectTargetType": "Creator",
+				"showInStatusPanel": false
+			},
+			"effectType": "StatisticEffect",
+			"Description": {
+				"Id": "StatusEffect-DeSwarmMoveEvasiveChance",
+				"Name": "Battle Armor DeSwarmer Movement",
+				"Details": "mount",
+				"Icon": "uixSvgIcon_ability_precisionstrike"
+			},
+			"nature": "Buff",
+			"statisticData": {
+				"statName": "MovementDeSwarmEvasivePipsFactor",
+				"operation": "Set",
+				"modValue": "0.1",
+				"modType": "System.Single"
+			}
+		},
+		{
+			"durationData": {
+				"duration": 1,
+				"stackLimit": 1
+			},
+			"targetingData": {
+				"effectTriggerType": "OnActivation",
+				"effectTargetType": "Creator",
+				"showInStatusPanel": false
+			},
+			"effectType": "StatisticEffect",
+			"Description": {
+				"Id": "StatusEffect-DeSwarmMoveJumpMulti",
+				"Name": "Battle Armor DeSwarmer Movement",
+				"Details": "mount",
+				"Icon": "uixSvgIcon_ability_precisionstrike"
+			},
+			"nature": "Buff",
+			"statisticData": {
+				"statName": "MovementDeSwarmMaxChance",
+				"operation": "Set",
+				"modValue": "1.2",
+				"modType": "System.Single"
+			}
+		}
+	],
+	"Priority": 0
 }
 ```
