@@ -552,33 +552,30 @@ namespace StrategicOperations.Framework
                 var circ = maxRange * 2 * Math.PI;
                 var steps = Mathf.RoundToInt((float)circ / (ability.Def.FloatParam1 * 2));
 
-                var enemyCombatants = new List<ICombatant>(actor.Combat.GetAllImporantCombatants().Where(x=>x.team.IsEnemy(actor.team)));
+                //var enemyCombatants = new List<ICombatant>(actor.Combat.GetAllImporantCombatants().Where(x=>x.team.IsEnemy(actor.team)));
+                var enemyUnits = actor.GetVisibleEnemyUnits();
+                enemyUnits.RemoveAll(x=> x.GUID == actor.GUID || x.IsDead);
 
-                enemyCombatants.RemoveAll(x=> x.GUID == actor.GUID || x.IsDead);
-
-                for (int i = 0; i < enemyCombatants.Count; i++)
+                for (int i = enemyUnits.Count - 1; i >= 0; i--)
                 {
-                    if (enemyCombatants[i] is AbstractActor combatantAsActor)
+                    if (enemyUnits[i].WasDespawned || enemyUnits[i].WasEjected || enemyUnits[i].IsDead || enemyUnits[i].GUID == actor.GUID)
                     {
-                        if (combatantAsActor.WasDespawned || combatantAsActor.WasEjected)
-                        {
-                            enemyCombatants.RemoveAt(i);
-                        }
+                        enemyUnits.RemoveAt(i);
                     }
                 }
 
-                for (int k = 0; k < enemyCombatants.Count; k++)
+                for (int k = 0; k < enemyUnits.Count; k++)
                 {
 //                    AbstractActor enemyActor = actor.BehaviorTree.enemyUnits[k] as AbstractActor;
-                    if (enemyCombatants[k] == null) continue;
+                    if (enemyUnits[k] == null) continue;
                     Vector3 possibleStart;
-                    if (Mathf.RoundToInt(Vector3.Distance(actor.CurrentPosition, enemyCombatants[k].CurrentPosition)) < maxRange)
+                    if (Mathf.RoundToInt(Vector3.Distance(actor.CurrentPosition, enemyUnits[k].CurrentPosition)) < maxRange)
                     {
-                        possibleStart = enemyCombatants[k].CurrentPosition;
+                        possibleStart = enemyUnits[k].CurrentPosition;
                     }
                     else
                     {
-                        ModInit.modLog.LogTrace($"[TargetsForStrafe] Unit #{k} {enemyCombatants[k].DisplayName} > {maxRange} from starting unit, can't use as starting position.");
+                        ModInit.modLog.LogTrace($"[TargetsForStrafe] Unit #{k} {enemyUnits[k].DisplayName} > {maxRange} from starting unit, can't use as starting position.");
                         continue;
                     }
 
@@ -586,7 +583,7 @@ namespace StrategicOperations.Framework
                     var currentSavedEndVector = new Vector3();
                     var currentSavedStartVector = new Vector3();
                     var currentMaxCount = 0;
-                    ModInit.modLog.LogTrace($"[TargetsForStrafe] Evaluating strafe start position at combatant #{k} {enemyCombatants[k].DisplayName} pos {possibleStart}.");
+                    ModInit.modLog.LogTrace($"[TargetsForStrafe] Evaluating strafe start position at combatant #{k} {enemyUnits[k].DisplayName} pos {possibleStart}.");
                     for (var index = 0; index < vectors.Length; index++)
                     {
                         var vector = vectors[index];
@@ -595,9 +592,9 @@ namespace StrategicOperations.Framework
                         for (var i = 0; i < rectangles.Length; i++)
                         {
                             var rectangle = rectangles[i];
-                            for (int l = 0; l < enemyCombatants.Count; l++)
+                            for (int l = 0; l < enemyUnits.Count; l++)
                             {
-                                if (!(enemyCombatants[l] is AbstractActor newTarget)) continue;
+                                if (!(enemyUnits[l] is AbstractActor newTarget)) continue;
                                 if (rectangle.Contains(newTarget.CurrentPosition))
                                 {
                                     targetCount += 1;

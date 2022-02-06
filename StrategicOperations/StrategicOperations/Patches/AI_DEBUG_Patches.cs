@@ -59,7 +59,7 @@ namespace StrategicOperations.Patches
         [HarmonyPatch(typeof(Mech), "JumpDistance", MethodType.Getter)]
         public static class Mech_JumpDistance
         {
-            static bool Prepare() => true; //turned back on to see if caching in CU works.
+            static bool Prepare() => false; //turned back off because fuck it, not my problem.
             public static void Prefix(Mech __instance, ref float __result)
             {
                 try

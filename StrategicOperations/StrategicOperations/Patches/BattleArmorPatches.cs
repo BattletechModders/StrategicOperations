@@ -791,6 +791,12 @@ namespace StrategicOperations.Patches
         {
             public static void Prefix(AbstractActor __instance, string attackerGUID)
             {
+                var dismount = false || (__instance.DeathMethod == DeathMethod.PilotEjection ||
+                                         __instance.DeathMethod == DeathMethod.PilotEjectionActorDisabled ||
+                                         __instance.DeathMethod == DeathMethod.PilotEjectionNoMessage ||
+                                         __instance.DeathMethod == DeathMethod.DespawnedNoMessage ||
+                                         __instance.DeathMethod == DeathMethod.DespawnedEscaped);
+
                 if (__instance.HasSwarmingUnits())
                 {
                     var swarmingUnits = new List<KeyValuePair<string, string>>(ModState.PositionLockSwarm.Where(x => x.Value == __instance.GUID).ToList());
@@ -799,7 +805,7 @@ namespace StrategicOperations.Patches
                     {
                         var actor = __instance.Combat.FindActorByGUID(swarmingUnit.Key);
                         var squad = actor as TrooperSquad;
-                        if (ModInit.Random.NextDouble() <= (double)1 / 3 && !wereSwarmingUnitsResponsible)
+                        if (ModInit.Random.NextDouble() <= (double)1 / 3 && !wereSwarmingUnitsResponsible && !dismount)
                         {
                             var trooperLocs = squad.GetPossibleHitLocations(__instance);
                             for (int i = 0; i < trooperLocs.Count; i++)
@@ -825,7 +831,7 @@ namespace StrategicOperations.Patches
                     {
                         var actor = __instance.Combat.FindActorByGUID(mountedUnit.Key);
                         var squad = actor as TrooperSquad;
-                        if (ModInit.Random.NextDouble() <= (double)1 / 3)
+                        if (ModInit.Random.NextDouble() <= (double)1 / 3 && !dismount)
                         {
                             var trooperLocs = squad.GetPossibleHitLocations(__instance);
                             for (int i = 0; i < trooperLocs.Count; i++)

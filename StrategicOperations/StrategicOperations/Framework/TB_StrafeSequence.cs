@@ -418,7 +418,7 @@ namespace StrategicOperations.Framework
                     return;
                 case TB_StrafeSequence.SequenceState.Finished:
                 {
-                    FlyAwaySequence sequence = new FlyAwaySequence(this.Attacker, this.Velocity, 150f);
+                    TB_FlyAwaySequence sequence = new TB_FlyAwaySequence(this.Attacker, this.Velocity, 150f);
                     base.Combat.MessageCenter.PublishMessage(new AddParallelSequenceToStackMessage(sequence));
                     return;
                 }
