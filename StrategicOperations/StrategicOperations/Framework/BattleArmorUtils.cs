@@ -635,7 +635,7 @@ namespace StrategicOperations.Framework
                     actor.ResetPathing(false);
                     actor.Pathing.UpdateCurrentPath(false);
                 }
-                if (false)
+                if (false) //(actor.HasBegunActivation)
                 {
                     ModInit.modLog.LogMessage(
                         $"[DismountBA] Called from handledeath? {calledFromHandleDeath} or Deswarm? {calledFromDeswarm}, forcing end of activation."); // was i trying to end carrier activation maybe?
