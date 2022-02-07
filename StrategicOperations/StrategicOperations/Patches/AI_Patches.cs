@@ -654,6 +654,6 @@ namespace StrategicOperations.Patches
                     }
                 }
             }
-            }
+        }
     }
 }

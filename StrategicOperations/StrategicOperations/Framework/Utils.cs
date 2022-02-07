@@ -83,6 +83,7 @@ namespace StrategicOperations.Framework
         public static float DistanceToClosestDetectedEnemy(this AbstractActor actor, Vector3 loc)
         {
             var enemy = actor.GetClosestDetectedEnemy(loc);
+            if (enemy == null) return 9999f;
             float magnitude = (enemy.CurrentPosition - loc).magnitude;
             return magnitude;
         }

@@ -635,10 +635,10 @@ namespace StrategicOperations.Framework
                     actor.ResetPathing(false);
                     actor.Pathing.UpdateCurrentPath(false);
                 }
-                else // if (actor.HasBegunActivation)
+                if (false)
                 {
                     ModInit.modLog.LogMessage(
-                        $"[DismountBA] Called from handledeath? {calledFromHandleDeath} or Deswarm? {calledFromDeswarm}, forcing end of activation.");
+                        $"[DismountBA] Called from handledeath? {calledFromHandleDeath} or Deswarm? {calledFromDeswarm}, forcing end of activation."); // was i trying to end carrier activation maybe?
 
                     var sequence = actor.DoneWithActor();
                     actor.Combat.MessageCenter.PublishMessage(new AddSequenceToStackMessage(sequence));
