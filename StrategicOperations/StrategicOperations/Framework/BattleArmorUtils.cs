@@ -537,13 +537,23 @@ namespace StrategicOperations.Framework
             return ModState.PositionLockMount.ContainsKey(actor.GUID);
         }
 
+        public static bool IsMountedToUnit(this AbstractActor actor, AbstractActor target)
+        {
+            return ModState.PositionLockMount.ContainsKey(actor.GUID) && ModState.PositionLockMount[actor.GUID] == target.GUID;
+        }
+
         public static bool HasSwarmingUnits(this AbstractActor actor)
         {
             return ModState.PositionLockSwarm.ContainsValue(actor.GUID);
         }
+
         public static bool IsSwarmingUnit(this AbstractActor actor)
         {
             return ModState.PositionLockSwarm.ContainsKey(actor.GUID);
+        }
+        public static bool IsSwarmingTargetUnit(this AbstractActor actor, AbstractActor target)
+        {
+            return ModState.PositionLockSwarm.ContainsKey(actor.GUID) && ModState.PositionLockSwarm[actor.GUID] == target.GUID;
         }
 
         public static Vector3 FetchAdjacentHex(AbstractActor actor)

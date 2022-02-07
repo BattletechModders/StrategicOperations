@@ -22,6 +22,23 @@ namespace StrategicOperations.Framework
 {
     public static class Utils
     {
+        public static void UpdateSwarmRangeIndicator(this CombatTargetingReticle reticle, Vector3 newPosition, bool minRangeShow, bool maxRangeShow)
+        {
+            if (minRangeShow)
+            {
+                reticle.MinRangeHolder.SetActive(false);
+                reticle.MinRangeHolder.transform.position = newPosition;
+                reticle.MinRangeHolder.SetActive(true);
+            }
+
+            if (maxRangeShow)
+            {
+                reticle.MaxRangeHolder.SetActive(false);
+                reticle.MaxRangeHolder.transform.position = newPosition;
+                reticle.MaxRangeHolder.SetActive(true);
+            }
+        }
+
         public static bool IsCustomUnitVehicle(this ICombatant combatant)
         {
             if (!combatant.StatCollection.ContainsStatistic("CUFakeVehicle")) return false;

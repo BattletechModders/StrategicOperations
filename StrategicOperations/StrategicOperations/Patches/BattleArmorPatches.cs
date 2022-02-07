@@ -17,6 +17,7 @@ using HBS.Math;
 using HBS.Pooling;
 using Localize;
 using StrategicOperations.Framework;
+using SVGImporter;
 using UnityEngine;
 using UnityEngine.UI;
 using MechStructureRules = BattleTech.MechStructureRules;
@@ -34,9 +35,130 @@ namespace StrategicOperations.Patches
                 CombatHUDActionButton FromButton) : base(Combat, HUD, FromButton)
             {
             }
+            public override void OnAddToStack()
+            {
+                base.OnAddToStack();
+                this.showTargetingText(this.abilitySelectionText);
+                var jumpdist = 0f;
+                if (SelectedActor is Mech mech)
+                {
+                    jumpdist = mech.JumpDistance;
+                    if (float.IsNaN(jumpdist)) jumpdist = 0f;
+                }
+
+                var ranges = new List<float>()
+                {
+                    SelectedActor.MaxWalkDistance,
+                    SelectedActor.MaxSprintDistance,
+                    jumpdist,
+                    this.FromButton.Ability.Def.IntParam2
+                };
+                var maxRange = ranges.Max();
+                //CombatTargetingReticle.Instance.UpdateReticle(SelectedActor.CurrentPosition, maxRange, false);
+                CombatTargetingReticle.Instance.ShowRangeIndicators(SelectedActor.CurrentPosition, 0f, maxRange, false, true);
+                CombatTargetingReticle.Instance.UpdateSwarmRangeIndicator(SelectedActor.CurrentPosition, false, true);
+                CombatTargetingReticle.Instance.ShowReticle();
+            }
+            protected override bool CanTargetCombatant(ICombatant potentialTarget)
+            {
+                if (!base.CanTargetCombatant(potentialTarget)) return false;
+                if (FromButton.Ability.Def.Id != ModInit.modSettings.BattleArmorMountAndSwarmID)
+                {
+                    return true;
+                }
+                if (potentialTarget is AbstractActor targetActor)
+                {
+                    if (FromButton.Ability.Def.Id == ModInit.modSettings.BattleArmorMountAndSwarmID && (SelectedActor == targetActor || targetActor is TrooperSquad))
+                    {
+                        return false;
+                    }
+
+                    if (SelectedActor.team.IsFriendly(targetActor.team))
+                    {
+                        if (SelectedActor.IsSwarmingUnit())
+                        {
+                            return false;
+                        }
+                        if (SelectedActor.IsMountedToUnit(targetActor))
+                        {
+                            return true;
+                        }
+
+                        if (SelectedActor.IsMountedUnit() && !SelectedActor.IsMountedToUnit(targetActor))
+                        {
+                            return false;
+                        }
+
+                        if (targetActor.getIsUnMountable())
+                        {
+                            return false;
+                        }
+
+                        if (!SelectedActor.getIsBattleArmorHandsy() && !targetActor.getHasBattleArmorMounts() && targetActor.getAvailableInternalBASpace() <= 0)
+                        {
+                            return false;
+                        }
+
+                        if (SelectedActor.IsMountedUnit() && !targetActor.HasMountedUnits())
+                        {
+                            return false;
+                        }
+
+                        if (!SelectedActor.IsMountedUnit() && SelectedActor.canRideInternalOnly() && targetActor.getAvailableInternalBASpace() <= 0)
+                        {
+                            return false;
+                        }
+
+                        if (!SelectedActor.IsMountedUnit())
+                        {
+                            if (!targetActor.HasMountedUnits() || targetActor.getAvailableInternalBASpace() > 0 || (targetActor.getHasBattleArmorMounts() && !targetActor.getHasExternalMountedBattleArmor()))
+                            {
+                                return true;
+                            }
+                            return false;
+                        }
+                        return true;
+                    }
+
+                    if (SelectedActor.team.IsEnemy(targetActor.team))
+                    {
+                        if (SelectedActor.IsMountedUnit())
+                        {
+                            return false;
+                        }
+                        if (SelectedActor.IsSwarmingTargetUnit(targetActor))
+                        {
+                            return true;
+                        }
+
+                        if (SelectedActor.IsSwarmingUnit() && !SelectedActor.IsSwarmingTargetUnit(targetActor))
+                        {
+                            return false;
+                        }
+
+                        if (targetActor.getIsUnSwarmable() || !SelectedActor.canSwarm())
+                        {
+                            return false;
+                        }
+
+                        if (SelectedActor.IsSwarmingUnit() && !targetActor.HasSwarmingUnits())
+                        {
+                            return false;
+                        }
+
+                        if (!SelectedActor.IsSwarmingUnit())
+                        {
+                            return true;
+                        }
+                        return true;
+                    }
+                }
+                return true;
+            }
+        
+
             public override bool ProcessClickedCombatant(ICombatant combatant)
             {
-
                 var sourcePos = this.HUD.SelectedActor.CurrentPosition;
                 sourcePos.y = 0f;
                 var targetPos = combatant.CurrentPosition;
@@ -62,29 +184,24 @@ namespace StrategicOperations.Patches
                 {
                     return false;
                 }
-                return base.ProcessClickedCombatant(combatant);
-            }
 
-            public override void ProcessMousePos(Vector3 worldPos)
-            {
-                base.ProcessMousePos(worldPos);
-                var jumpdist = 0f;
-                if (this.HUD.SelectedActor is Mech mech)
+                if (base.ProcessClickedCombatant(combatant))
                 {
-                    jumpdist = mech.JumpDistance;
-                    if (float.IsNaN(jumpdist)) jumpdist = 0f;
+                    if (FromButton.Ability.Def.Id == ModInit.modSettings.BattleArmorMountAndSwarmID)
+                    {
+
+                        if (SelectedActor is Mech creatorMech && combatant != null && combatant.team.IsEnemy(creatorMech.team))
+                        {
+                            var chance = creatorMech.Combat.ToHit.GetToHitChance(creatorMech, creatorMech.MeleeWeapon, combatant, creatorMech.CurrentPosition, combatant.CurrentPosition, 1, MeleeAttackType.Charge, false);
+                            ModInit.modLog.LogTrace($"[SelectionState.ShowFireButton - Swarm Success calculated as {chance}, storing in state.");
+                            ModState.SwarmSuccessChance = chance;
+                            var chanceDisplay = (float)Math.Round(chance, 2) * 100;
+                            HUD.AttackModeSelector.FireButton.FireText.SetText($"{chanceDisplay}% - Confirm", Array.Empty<object>());
+                        }
+                    }
                 }
 
-                var ranges = new List<float>()
-                {
-                    this.HUD.SelectedActor.MaxWalkDistance,
-                    this.HUD.SelectedActor.MaxSprintDistance,
-                    jumpdist,
-                    this.FromButton.Ability.Def.IntParam2
-                };
-                var maxRange = ranges.Max();
-                CombatTargetingReticle.Instance.ShowRangeIndicators(this.HUD.SelectedActor.CurrentPosition, 0f, maxRange, true, true);
-                CombatTargetingReticle.Instance.ShowReticle();
+                return false;
             }
 
             public override void OnInactivate()
@@ -194,6 +311,7 @@ namespace StrategicOperations.Patches
         [HarmonyPatch(typeof(SelectionStateTargetSingleCombatantBase), "ProcessClickedCombatant", new Type[] {typeof(ICombatant)})]
         public static class SelectionStateTargetSingleCombatantBase_ProcessClickedCombatant
         {
+            private static bool Prepare() => false;
             public static void Postfix(SelectionStateTargetSingleCombatantBase __instance, ICombatant combatant)
             {
                 if (__instance.FromButton.Ability.Def.Id == ModInit.modSettings.BattleArmorMountAndSwarmID)
@@ -265,7 +383,6 @@ namespace StrategicOperations.Patches
                     var chanceDisplay = (float)Math.Round(finalChance, 3) * 100;
                     cHUD.AttackModeSelector.FireButton.FireText.SetText($"{chanceDisplay}% - Confirm", Array.Empty<object>());
                 }
-
             }
         }
 
@@ -273,6 +390,7 @@ namespace StrategicOperations.Patches
             new Type[] {typeof(ICombatant)})]
         public static class SelectionStateMWTargetSingle_CanTargetCombatant
         {
+            private static bool Prepare() => false;
             public static bool Prefix(AbilityExtensions.SelectionStateMWTargetSingle __instance, ICombatant potentialTarget, ref bool __result)
             {
                 if (__instance.FromButton.Ability.Def.Id != ModInit.modSettings.BattleArmorMountAndSwarmID)
@@ -289,13 +407,15 @@ namespace StrategicOperations.Patches
 
                     if (__instance.SelectedActor.team.IsFriendly(targetActor.team))
                     {
-                        if (__instance.SelectedActor.IsMountedUnit() && targetActor.HasMountedUnits())
+
+                        if (__instance.SelectedActor.IsMountedToUnit(targetActor))
                         {
-                            if (ModState.PositionLockMount[__instance.SelectedActor.GUID] == targetActor.GUID)
-                            {
-                                __result = true;
-                                return false;
-                            }
+                            __result = true;
+                            return false;
+                        }
+
+                        if (__instance.SelectedActor.IsMountedUnit() && !__instance.SelectedActor.IsMountedToUnit(targetActor))
+                        {
                             __result = false;
                             return false;
                         }
@@ -341,13 +461,15 @@ namespace StrategicOperations.Patches
 
                     if (__instance.SelectedActor.team.IsEnemy(targetActor.team))
                     {
-                        if (__instance.SelectedActor.IsSwarmingUnit() && targetActor.HasSwarmingUnits())
+
+                        if (__instance.SelectedActor.IsSwarmingTargetUnit(targetActor))
                         {
-                            if (ModState.PositionLockSwarm[__instance.SelectedActor.GUID] == targetActor.GUID)
-                            {
-                                __result = true;
-                                return false;
-                            }
+                            __result = true;
+                            return false;
+                        }
+
+                        if (__instance.SelectedActor.IsSwarmingUnit() && !__instance.SelectedActor.IsSwarmingTargetUnit(targetActor))
+                        {
                             __result = false;
                             return false;
                         }
@@ -886,6 +1008,27 @@ namespace StrategicOperations.Patches
                 }
             }
         }
+
+
+        [HarmonyPatch(typeof(CombatHUDEquipmentSlot), "InitButton",
+            new Type[] {typeof(SelectionType), typeof(Ability), typeof(SVGAsset), typeof(string), typeof(string), typeof(AbstractActor) })]
+        public static class CombatHUDEquipmentSlot_InitButton
+        {
+            public static void Postfix(CombatHUDEquipmentSlot __instance, SelectionType SelectionType, Ability Ability, SVGAsset Icon, string GUID, string Tooltip, AbstractActor actor)
+            {
+                if (actor == null) return;
+                if (Ability == null || Ability?.Def?.Id != ModInit.modSettings.BattleArmorMountAndSwarmID) return;
+                if (actor.IsMountedUnit())
+                {
+                    __instance.Text.SetText("DISMOUNT BATTLEARMOR", Array.Empty<object>());
+                }
+                else if (actor.IsSwarmingUnit())
+                {
+                    __instance.Text.SetText("HALT SWARM ATTACK", Array.Empty<object>());
+                }
+            }
+        }
+
 
         [HarmonyPatch(typeof(CombatSelectionHandler), "AddSprintState",
             new Type[] {typeof(AbstractActor)})]

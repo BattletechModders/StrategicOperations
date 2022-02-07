@@ -1580,6 +1580,7 @@ namespace StrategicOperations.Patches
         [HarmonyPatch(typeof(CombatAuraReticle), "RefreshActiveProbeRange")]
         public static class CombatAuraReticle_RefreshActiveProbeRange
         {
+            static bool Prepare() => false; //disabled
             public static void Postfix(CombatAuraReticle __instance, bool showActiveProbe, AbstractActor ___owner, ref float ___currentAPRange)
             {
                 if (!showActiveProbe || __instance.AuraBubble() != null) return;
