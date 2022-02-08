@@ -22,7 +22,7 @@ namespace StrategicOperations.Framework
 {
     public static class Utils
     {
-        public static void UpdateSwarmRangeIndicator(this CombatTargetingReticle reticle, Vector3 newPosition, bool minRangeShow, bool maxRangeShow)
+        public static void UpdateRangeIndicator(this CombatTargetingReticle reticle, Vector3 newPosition, bool minRangeShow, bool maxRangeShow)
         {
             if (minRangeShow)
             {
@@ -609,12 +609,11 @@ namespace StrategicOperations.Framework
             {
                 var customSpawner = new CustomSpawner(parentSequenceID, wave);
                 customSpawner.SpawnStrafingUnit();
+                return;
             }
 
             if (false)
             {
-
-
                 if (wave.ActorResource.StartsWith("mechdef_"))
                 {
                     wave.DM.MechDefs.TryGet(wave.ActorResource, out var supportActorMechDef);

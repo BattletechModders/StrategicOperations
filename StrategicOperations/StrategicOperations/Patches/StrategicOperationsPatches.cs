@@ -449,12 +449,8 @@ namespace StrategicOperations.Patches
                 {
                     teamSelection = team as AITeam;
                 }
-
-
                 var actorResource = __instance.Def.ActorResource;
-
                 var supportHeraldryDef = Utils.SwapHeraldryColors(team.HeraldryDef, dm);
-
 
                 if (!string.IsNullOrEmpty(ModState.PopupActorResource))
                 {
@@ -520,13 +516,12 @@ namespace StrategicOperations.Patches
 
                 Quaternion quaternion = Quaternion.LookRotation(positionB - positionA);
 
-                
-
                 if (actorResource.StartsWith("mechdef_") || actorResource.StartsWith("vehicledef_"))
                 {
                     ModInit.modLog.LogMessage($"Attempting to spawn {actorResource} as mech.");
                     var spawner = new Classes.CustomSpawner(combat, actorResource, cmdLance, teamSelection, positionA, quaternion, supportHeraldryDef, supportPilotDef);
                     spawner.SpawnBeaconUnitAtLocation();
+                    return false;
                 }
 
                 if (actorResource.StartsWith("mechdef_") && false)
@@ -1143,8 +1138,22 @@ namespace StrategicOperations.Patches
             }
         }
 
-
-
+        [HarmonyPatch(typeof(SelectionStateCommand), "OnAddToStack")]
+        public static class SelectionStateCommand_OnAddToStack
+        {
+            public static void Postfix(SelectionStateCommand __instance)
+            {
+                if (UnityGameInstance.BattleTechGame.Combat.ActiveContract.ContractTypeValue.IsSkirmish) return;
+                var HUD = Traverse.Create(__instance).Property("HUD").GetValue<CombatHUD>();
+                var theActor = HUD.SelectedActor;
+                if (theActor == null) return;
+                CombatTargetingReticle.Instance.HideReticle();
+                var maxRange = Mathf.RoundToInt(__instance.FromButton.Ability.Def.IntParam2);
+                CombatTargetingReticle.Instance.ShowRangeIndicators(theActor.CurrentPosition, 0f, maxRange, false, true);
+                CombatTargetingReticle.Instance.UpdateRangeIndicator(theActor.CurrentPosition, false, true);
+                CombatTargetingReticle.Instance.ShowReticle();
+            }
+        }
 
         [HarmonyPatch(typeof(SelectionStateCommandSpawnTarget), "ProcessMousePos")]
         public static class SelectionStateCommandSpawnTarget_ProcessMousePos
@@ -1153,20 +1162,20 @@ namespace StrategicOperations.Patches
                 int ___numPositionsLocked)
             {
                 if (UnityGameInstance.BattleTechGame.Combat.ActiveContract.ContractTypeValue.IsSkirmish) return true;
-                //CombatSpawningReticle.Instance.ShowReticle();
+                CombatSpawningReticle.Instance.ShowReticle();
                 var HUD = Traverse.Create(__instance).Property("HUD").GetValue<CombatHUD>();
                 var theActor = HUD.SelectedActor;
                 if (theActor == null) return true;
                 var distance = Mathf.RoundToInt(Vector3.Distance(theActor.CurrentPosition, worldPos));
                 var maxRange = Mathf.RoundToInt(__instance.FromButton.Ability.Def.IntParam2);
-                CombatTargetingReticle.Instance.ShowRangeIndicators(theActor.CurrentPosition, 0f, maxRange, true, true);
-                CombatTargetingReticle.Instance.ShowReticle();
+                //CombatTargetingReticle.Instance.ShowRangeIndicators(theActor.CurrentPosition, 0f, maxRange, true, true);
+                //CombatTargetingReticle.Instance.ShowReticle();
                 if (__instance.FromButton.Ability.Def.specialRules == AbilityDef.SpecialRules.SpawnTurret &&
                     distance > maxRange && ___numPositionsLocked == 0)
                 {
                     ModState.OutOfRange = true;
                     CombatSpawningReticle.Instance.HideReticle();
-                    CombatTargetingReticle.Instance.HideReticle();
+                    //CombatTargetingReticle.Instance.HideReticle();
                     //                    ModInit.modLog.LogMessage($"Cannot spawn turret with coordinates farther than __instance.Ability.Def.IntParam2: {__instance.FromButton.Ability.Def.IntParam2}");
                     return false;
                 }
@@ -1206,7 +1215,7 @@ namespace StrategicOperations.Patches
                 var maxRange = Mathf.RoundToInt(__instance.FromButton.Ability.Def.IntParam2);
                 var radius = __instance.FromButton.Ability.Def.FloatParam1;
                 CombatTargetingReticle.Instance.UpdateReticle(positionA, positionB, radius, false);
-                CombatTargetingReticle.Instance.ShowRangeIndicators(theActor.CurrentPosition, 0f, maxRange, true, true);
+                //CombatTargetingReticle.Instance.ShowRangeIndicators(theActor.CurrentPosition, 0f, maxRange, true, true);
                 CombatTargetingReticle.Instance.ShowReticle();
                 if (__instance.FromButton.Ability.Def.specialRules == AbilityDef.SpecialRules.Strafe &&
                     (distance > maxRange && ___numPositionsLocked == 0) ||
@@ -1550,12 +1559,20 @@ namespace StrategicOperations.Patches
             {
                 if (!string.IsNullOrEmpty(ModInit.modSettings.customSpawnReticleAsset))
                 {
-                    var circle = GameObject.Find("ReticleDecalCircle");
-                    var decalFromCirle = circle.GetComponent<BTUIDecal>();
-                    var dm = UnityGameInstance.BattleTechGame.DataManager;
-                    var newTexture = dm.GetObjectOfType<Texture2D>(ModInit.modSettings.customSpawnReticleAsset,
-                        BattleTechResourceType.Texture2D);
-                    decalFromCirle.DecalMaterial.mainTexture = newTexture;
+                    var childComponents = __instance.gameObject.GetComponentsInChildren<Transform>(true);
+
+                    for (int i = 0; i < childComponents.Length; i++)
+                    {
+                        if (childComponents[i].name == "ReticleDecalCircle")
+                        {
+                            var decalFromCirle = childComponents[i].GetComponent<BTUIDecal>();
+                            var dm = UnityGameInstance.BattleTechGame.DataManager;
+                            var newTexture = dm.GetObjectOfType<Texture2D>(ModInit.modSettings.customSpawnReticleAsset,
+                                BattleTechResourceType.Texture2D);
+                            decalFromCirle.DecalMaterial.mainTexture = newTexture;
+                        }
+                    }
+                    //var circle1 = GameObject.Find("ReticleDecalCircle");
                 }
 
                 var decals = __instance.gameObject.GetComponentsInChildren<BTUIDecal>();

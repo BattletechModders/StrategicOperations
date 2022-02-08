@@ -188,7 +188,7 @@ namespace StrategicOperations.Framework
                 newUnit.OnPositionUpdate(SpawnLoc, SpawnRotation, -1, true, null, false);
                 newUnit.DynamicUnitRole = UnitRole.Brawler;
                 UnitSpawnedMessage message = new UnitSpawnedMessage("FROM_ABILITY", newUnit.GUID);
-                Actor.Combat.MessageCenter.PublishMessage(message);
+                Combat.MessageCenter.PublishMessage(message);
 
                 var underMap = newUnit.CurrentPosition;
                 underMap.y = -1000f;

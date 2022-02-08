@@ -56,7 +56,7 @@ namespace StrategicOperations.Patches
                 var maxRange = ranges.Max();
                 //CombatTargetingReticle.Instance.UpdateReticle(SelectedActor.CurrentPosition, maxRange, false);
                 CombatTargetingReticle.Instance.ShowRangeIndicators(SelectedActor.CurrentPosition, 0f, maxRange, false, true);
-                CombatTargetingReticle.Instance.UpdateSwarmRangeIndicator(SelectedActor.CurrentPosition, false, true);
+                CombatTargetingReticle.Instance.UpdateRangeIndicator(SelectedActor.CurrentPosition, false, true);
                 CombatTargetingReticle.Instance.ShowReticle();
             }
             protected override bool CanTargetCombatant(ICombatant potentialTarget)
