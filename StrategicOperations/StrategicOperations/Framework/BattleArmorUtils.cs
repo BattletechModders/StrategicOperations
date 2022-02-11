@@ -20,6 +20,25 @@ namespace StrategicOperations.Framework
 {
     public static class BattleArmorUtils
     {
+        public static void ShowBATargetsMeleeIndicator(this CombatHUDInWorldElementMgr inWorld, List<AbstractActor> targets, AbstractActor unit)
+        {
+            var tickMarks = Traverse.Create(inWorld).Field("WeaponTickMarks")
+                .GetValue<List<CombatHUDWeaponTickMarks>>();
+
+            for (int i = 0; i < tickMarks.Count; i++)
+            {
+                if (targets.Contains(tickMarks[i].Owner))
+                {
+                    if (tickMarks[i].Owner.team.IsEnemy(unit.team))
+                    {
+                        if (tickMarks[i].MeleeTweenAnimations != null)
+                        {
+                            tickMarks[i].MeleeTweenAnimations.SetState(ButtonState.Enabled, false);
+                        }
+                    }
+                }
+            }
+        }
         public static List<float> CreateBPodDmgClusters(List<int> locs, float totalDmg)
         {
             var clusters = new List<float>();

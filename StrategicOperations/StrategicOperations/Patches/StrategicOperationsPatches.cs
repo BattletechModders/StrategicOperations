@@ -43,10 +43,24 @@ namespace StrategicOperations.Patches
 
                 loadRequest.AddBlindLoadRequest(BattleTechResourceType.PilotDef, "pilot_sim_starter_dekker");
                 ModInit.modLog.LogMessage($"Added loadrequest for PilotDef: pilot_sim_starter_dekker (hardcoded)");
+                if (!string.IsNullOrEmpty(ModInit.modSettings.customSpawnReticleAsset))
+                {
+                    loadRequest.AddBlindLoadRequest(BattleTechResourceType.Texture2D, ModInit.modSettings.customSpawnReticleAsset);
+                    ModInit.modLog.LogMessage($"Added loadrequest for Texture2D: {ModInit.modSettings.customSpawnReticleAsset}");
+                }
+                if (!string.IsNullOrEmpty(ModInit.modSettings.MountIndicatorAsset))
+                {
+                    loadRequest.AddBlindLoadRequest(BattleTechResourceType.Texture2D, ModInit.modSettings.MountIndicatorAsset);
+                    ModInit.modLog.LogMessage($"Added loadrequest for Texture2D: {ModInit.modSettings.MountIndicatorAsset}");
+                }
+                if (!string.IsNullOrEmpty(ModInit.modSettings.SwarmIndicatorAsset))
+                {
+                    loadRequest.AddBlindLoadRequest(BattleTechResourceType.Texture2D, ModInit.modSettings.SwarmIndicatorAsset);
+                    ModInit.modLog.LogMessage($"Added loadrequest for Texture2D: {ModInit.modSettings.SwarmIndicatorAsset}");
+                }
 
-                loadRequest.AddBlindLoadRequest(BattleTechResourceType.Texture2D, ModInit.modSettings.customSpawnReticleAsset);
-                ModInit.modLog.LogMessage(
-                    $"Added loadrequest for Texture2D: uixTxrFram_circleSmallOutline2 (hardcoded)");
+                ModInit.modLog.LogMessage($"Added loadrequest for Texture2D: triangle_icon_512 (hardcoded)");
+                ModInit.modLog.LogMessage($"Added loadrequest for Texture2D: pentagon_icon_512 (hardcoded)");
 
 
                 foreach (var abilityDef in dm.AbilityDefs.Where(x => x.Key.StartsWith("AbilityDefCMD_")))
@@ -893,6 +907,7 @@ namespace StrategicOperations.Patches
             private static void Postfix(CombatGameState __instance)
             {
                 ModState.ResetAll();
+                BattleArmorSelection.BA_TargetIndicatorsManager.Clear();
             }
         }
 

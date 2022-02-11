@@ -157,7 +157,7 @@ namespace StrategicOperations.Framework
             return detectedEnemies;
         }
 
-        public static List<AbstractActor> GetAllEnemiesWithinRange(AbstractActor actor, float range)
+        public static List<AbstractActor> GetAllEnemiesWithinRange(this AbstractActor actor, float range)
         {
             var detectedEnemies = new List<AbstractActor>();
             foreach (var enemy in actor.Combat.AllActors)
@@ -172,6 +172,23 @@ namespace StrategicOperations.Framework
                 }
             }
             return detectedEnemies;
+        }
+
+        public static List<AbstractActor> GetAllFriendliesWithinRange(this AbstractActor actor, float range)
+        {
+            var detectedFriendlies = new List<AbstractActor>();
+            foreach (var friendly in actor.team.units)
+            {
+                if ((friendly.team.IsLocalPlayer || friendly.team.IsFriendly(actor.team)) && !friendly.IsDead && !friendly.IsFlaggedForDeath)
+                {
+                    if (Vector3.Distance(actor.CurrentPosition, friendly.CurrentPosition) <= range)
+                    {
+                        ModInit.modLog.LogDev($"unit {friendly.DisplayName} is friendly of {actor.DisplayName}.");
+                        detectedFriendlies.Add(friendly);
+                    }
+                }
+            }
+            return detectedFriendlies;
         }
 
         public static List<AbstractActor> GetAllFriendlies (this SharedVisibilityCache cache, AbstractActor actor)

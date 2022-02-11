@@ -7,11 +7,13 @@ using System.Threading.Tasks;
 using Abilifier;
 using Abilifier.Patches;
 using BattleTech;
+using BattleTech.Rendering;
 using BattleTech.UI;
 using CustAmmoCategories;
 using CustomActivatableEquipment;
 using CustomComponents;
 using CustomUnits;
+using DG.Tweening;
 using Harmony;
 using HBS.Math;
 using HBS.Pooling;
@@ -21,6 +23,7 @@ using SVGImporter;
 using UnityEngine;
 using UnityEngine.UI;
 using MechStructureRules = BattleTech.MechStructureRules;
+using ObjectSpawnDataSelf = CustAmmoCategories.ObjectSpawnDataSelf;
 using Random = System.Random;
 using Text = Localize.Text;
 using TrooperSquad = CustomUnits.TrooperSquad;
@@ -29,12 +32,210 @@ namespace StrategicOperations.Patches
 {
     public class BattleArmorSelection
     {
+        public static class BA_TargetIndicatorsManager
+        {
+            public static List<GameObject> ReticleGOs = new List<GameObject>();
+            public static CombatHUD HUD = null;
+            public static GameObject BaseReticleObject = null;
+
+            public static void Clear()
+            {
+                BA_TargetIndicatorsManager.ReticleGOs.Clear();
+                UnityEngine.Object.Destroy(BA_TargetIndicatorsManager.BaseReticleObject);
+                BA_TargetIndicatorsManager.BaseReticleObject = null;
+                BA_TargetIndicatorsManager.HUD = null;
+            }
+            public static void HideReticles()
+            {
+                foreach (var reticle in BA_TargetIndicatorsManager.ReticleGOs)
+                {
+                    reticle.gameObject.SetActive(false);
+                }
+            }
+            public static void InitReticles(CombatHUD hud, int count)
+            {
+                if (BA_TargetIndicatorsManager.BaseReticleObject == null)
+                {
+                    BA_TargetIndicatorsManager.BaseReticleObject = new GameObject("BATargetingReticles"); //was TargetingCircles
+                }
+                BA_TargetIndicatorsManager.HUD = hud;
+
+                while (ReticleGOs.Count < count)
+                {
+                    ModInit.modLog.LogTrace($"[InitReticle] Need to init new reticles; have {ReticleGOs.Count}");
+                    GameObject reticleGO = new GameObject("BAReticle"); //was Circle
+                    BattleArmorTargetReticle reticle = reticleGO.AddComponent<BattleArmorTargetReticle>();
+                    //reticle.transform.SetParent(reticleGO.transform);
+                    reticle.Init(BA_TargetIndicatorsManager.HUD);
+                    BA_TargetIndicatorsManager.ReticleGOs.Add(reticleGO);
+                }
+            }
+            public static void ShowRoot()
+            {
+                BA_TargetIndicatorsManager.BaseReticleObject.SetActive(true);
+            }
+        }
+
+        public class BattleArmorTargetReticle : MonoBehaviour
+        {
+            public CombatHUD HUD;
+            public GameObject ReticleObject;
+
+
+            public void Init(CombatHUD hud)
+            {
+                this.HUD = hud;
+                ReticleObject = UnityEngine.Object.Instantiate<GameObject>(CombatTargetingReticle.Instance.Circles[0]);
+                ReticleObject.transform.SetParent(base.transform);
+                Vector3 localScale = ReticleObject.transform.localScale;
+                localScale.x = 2f;
+                localScale.z = 2f;
+                ReticleObject.transform.localScale = localScale;
+                ReticleObject.transform.localPosition = Vector3.zero;
+            }
+
+            public void SetScaleAndLocation(Vector3 loc, float radius)
+            {
+                Vector3 localScale = ReticleObject.transform.localScale;
+                localScale.x = radius * 2f;
+                localScale.z = radius * 2f;
+                ReticleObject.transform.localScale = localScale;
+                base.transform.position = loc;
+                ReticleObject.SetActive(true);
+                ReticleObject.gameObject.SetActive(true);
+                ModInit.modLog.LogTrace($"[SetScaleAndLocation] Set location to {loc}");
+            }
+
+            public void UpdateColorAndStyle(bool IsFriendly)
+            {
+                var dm = UnityGameInstance.BattleTechGame.DataManager;
+                
+                Transform[] childComponents;
+
+                childComponents = ReticleObject.GetComponentsInChildren<Transform>(true);
+                
+                for (int i = 0; i < childComponents.Length; i++)
+                {
+                    if (childComponents[i].name == "Thumper1")
+                    {
+                        childComponents[i].gameObject.SetActive(false);
+                        continue;
+                    }
+
+                    if (childComponents[i].name == "Mortar1")
+                    {
+                        childComponents[i].gameObject.SetActive(true);
+                        var decalsFromCircle = childComponents[i].GetComponentsInChildren<BTUIDecal>();
+                        for (int j = 0; j < decalsFromCircle.Length; j++)
+                        {
+                            if (decalsFromCircle[j].name == "ReticleDecalCircle")
+                            {
+                                if (IsFriendly)
+                                {
+                                    if (!string.IsNullOrEmpty(ModInit.modSettings.MountIndicatorAsset))
+                                    {
+                                        var newTexture = dm.GetObjectOfType<Texture2D>(ModInit.modSettings.MountIndicatorAsset,
+                                            BattleTechResourceType.Texture2D);
+                                        if (newTexture != null) decalsFromCircle[j].DecalPropertyBlock.SetTexture("_MainTex", newTexture);
+                                    }
+                                    
+                                    if (ModInit.modSettings.MountIndicatorColor != null)
+                                    {
+                                        var customColor = new Color(ModInit.modSettings.MountIndicatorColor.Rf,
+                                            ModInit.modSettings.MountIndicatorColor.Gf,
+                                            ModInit.modSettings.MountIndicatorColor.Bf);
+                                        decalsFromCircle[j].DecalPropertyBlock.SetColor("_Color", customColor);
+                                        
+                                    }
+                                    else
+                                    {
+                                        decalsFromCircle[j].DecalPropertyBlock.SetColor("_Color", Color.blue);
+                                    }
+                                }
+                                else
+                                {
+                                    if (!string.IsNullOrEmpty(ModInit.modSettings.SwarmIndicatorAsset))
+                                    {
+                                        var newTexture = dm.GetObjectOfType<Texture2D>(ModInit.modSettings.SwarmIndicatorAsset,
+                                            BattleTechResourceType.Texture2D);
+                                        if (newTexture != null) decalsFromCircle[j].DecalPropertyBlock.SetTexture("_MainTex", newTexture);
+                                    }
+                                    
+                                    if (ModInit.modSettings.SwarmIndicatorColor != null)
+                                    {
+                                        var customColor = new Color(ModInit.modSettings.SwarmIndicatorColor.Rf,
+                                            ModInit.modSettings.SwarmIndicatorColor.Gf,
+                                            ModInit.modSettings.SwarmIndicatorColor.Bf);
+                                        decalsFromCircle[j].DecalPropertyBlock.SetColor("_Color", customColor);
+                                        
+                                    }
+                                    else
+                                    {
+                                        decalsFromCircle[j].DecalPropertyBlock.SetColor("_Color", Color.red);
+                                    }
+                                }
+                                decalsFromCircle[j].gameObject.SetActive(true);
+                            }
+                            else
+                            {
+                                decalsFromCircle[j].gameObject.SetActive(false);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
         public class SelectionStateMWTargetSingle_BA : AbilityExtensions.SelectionStateMWTargetSingle
         {
             public SelectionStateMWTargetSingle_BA(CombatGameState Combat, CombatHUD HUD,
                 CombatHUDActionButton FromButton) : base(Combat, HUD, FromButton)
             {
             }
+            
+            public void HighlightPotentialTargets()
+            {
+                var jumpdist = 0f;
+                if (SelectedActor is Mech mech)
+                {
+                    jumpdist = mech.JumpDistance;
+                    if (float.IsNaN(jumpdist)) jumpdist = 0f;
+                }
+
+                var ranges = new List<float>()
+                {
+                    SelectedActor.MaxWalkDistance,
+                    SelectedActor.MaxSprintDistance,
+                    jumpdist,
+                    this.FromButton.Ability.Def.IntParam2
+                };
+                var maxRange = ranges.Max();
+
+                if (!SelectedActor.IsMountedUnit() && !SelectedActor.IsSwarmingUnit())
+                {
+                    var mountTargets= SelectedActor.GetAllFriendliesWithinRange(maxRange);
+                    var swarmTargets = SelectedActor.GetAllEnemiesWithinRange(maxRange);
+
+                    mountTargets.RemoveAll(x => !this.CanTargetCombatant(x));
+                    swarmTargets.RemoveAll(x => !this.CanTargetCombatant(x));
+
+                    HUD.InWorldMgr.ShowBATargetsMeleeIndicator(swarmTargets, SelectedActor);
+
+                    BA_TargetIndicatorsManager.InitReticles(HUD, mountTargets.Count);
+                    for (var index = 0; index < mountTargets.Count; index++)
+                    {
+                        BA_TargetIndicatorsManager.ReticleGOs[index].SetActive(true);
+                        var reticle = BA_TargetIndicatorsManager.ReticleGOs[index]
+                            .GetComponent<BattleArmorTargetReticle>();
+                        var isFriendly = mountTargets[index].team.IsFriendly(SelectedActor.team);
+                        reticle.SetScaleAndLocation(mountTargets[index].CurrentPosition, 10f);
+                        reticle.UpdateColorAndStyle(isFriendly);
+                        ModInit.modLog.LogTrace($"[HighlightPotentialTargets] Updating reticle at index {index}, isFriendly {isFriendly}.");
+                    }
+                    BA_TargetIndicatorsManager.ShowRoot();
+                }
+            }
+
             public override void OnAddToStack()
             {
                 base.OnAddToStack();
@@ -58,6 +259,21 @@ namespace StrategicOperations.Patches
                 CombatTargetingReticle.Instance.ShowRangeIndicators(SelectedActor.CurrentPosition, 0f, maxRange, false, true);
                 CombatTargetingReticle.Instance.UpdateRangeIndicator(SelectedActor.CurrentPosition, false, true);
                 CombatTargetingReticle.Instance.ShowReticle();
+
+                if (SelectedActor.IsMountedUnit())
+                {
+                    var carrier = Combat.FindActorByGUID(ModState.PositionLockMount[SelectedActor.GUID]);
+                    this.ProcessClickedCombatant(carrier);
+                }
+                else if (SelectedActor.IsSwarmingUnit())
+                {
+                    var carrier = Combat.FindActorByGUID(ModState.PositionLockSwarm[SelectedActor.GUID]);
+                    this.ProcessClickedCombatant(carrier);
+                }
+                else
+                {
+                    this.HighlightPotentialTargets();
+                }
             }
             protected override bool CanTargetCombatant(ICombatant potentialTarget)
             {
@@ -208,8 +424,9 @@ namespace StrategicOperations.Patches
             {
                 base.OnInactivate();
                 CombatTargetingReticle.Instance.HideReticle();
+                BA_TargetIndicatorsManager.HideReticles();
+                HUD.InWorldMgr.HideMeleeTargets();
             }
-
 
             [HarmonyPatch(typeof(SelectionState), "GetNewSelectionStateByType",
                 new Type[]
@@ -274,7 +491,7 @@ namespace StrategicOperations.Patches
                 if (ModInit.modSettings.BPodComponentIDs.Contains(component.defId))
                 {
                     ActivatableComponent activatableComponent = component.componentDef.GetComponent<ActivatableComponent>();
-                    var enemyActors = Utils.GetAllEnemiesWithinRange(component.parent, activatableComponent.Explosion.Range);
+                    var enemyActors = component.parent.GetAllEnemiesWithinRange(activatableComponent.Explosion.Range);
                     foreach (var enemyActor in enemyActors)
                     {
                         if (enemyActor is TrooperSquad trooperSquad)
@@ -1023,6 +1240,27 @@ namespace StrategicOperations.Patches
                     __instance.Text.SetText("DISMOUNT BATTLEARMOR", Array.Empty<object>());
                 }
                 else if (actor.IsSwarmingUnit())
+                {
+                    __instance.Text.SetText("HALT SWARM ATTACK", Array.Empty<object>());
+                }
+            }
+        }
+
+        [HarmonyPatch(typeof(CombatHUDEquipmentSlot), "ConfirmAbility",
+            new Type[] { typeof(AbilityDef.ActivationTiming) })]
+        public static class CombatHUDEquipmentSlot_ConfirmAbility
+        {
+            public static void Postfix(CombatHUDEquipmentSlot __instance, AbilityDef.ActivationTiming timing)
+            {
+                var HUD = Traverse.Create(__instance).Property("HUD").GetValue<CombatHUD>();
+                var theActor = HUD.SelectedActor;
+                if (theActor == null) return;
+                if (__instance.Ability == null || __instance.Ability?.Def?.Id != ModInit.modSettings.BattleArmorMountAndSwarmID) return;
+                if (theActor.IsMountedUnit())
+                {
+                    __instance.Text.SetText("DISMOUNT BATTLEARMOR", Array.Empty<object>());
+                }
+                else if (theActor.IsSwarmingUnit())
                 {
                     __instance.Text.SetText("HALT SWARM ATTACK", Array.Empty<object>());
                 }

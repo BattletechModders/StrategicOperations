@@ -490,10 +490,12 @@ namespace StrategicOperations.Framework
             public int r;
             public int g;
             public int b;
+            //public int a;
 
             public float Rf => r / 255f;
             public float Gf => g / 255f;
             public float Bf => b / 255f;
+            //public float Af => a / 255f;
         }
         public class CmdUseStat
         {
