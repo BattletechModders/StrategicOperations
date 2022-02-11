@@ -33,12 +33,18 @@ settings in the mod.json:
 		"Item.UpgradeDef.Gear_TurretBeacon_Schiltron",
 		"Item.UpgradeDef.Gear_TurretBeacon_Schiltron2"
 	],
+	"customSpawnReticleAsset": "select_spawn_reticle",
 	"customSpawnReticleColor": {
 		"r": 255,
 		"g": 16,
 		"b": 240
 	},
-	"customSpawnReticleAsset": "select_spawn_reticle",
+	"MountIndicatorAsset": "Target",
+	"MountIndicatorColor": {
+		"r": 0,
+		"g": 187,
+		"b": 255
+	},
 	"strafeWaves": 3,
 	"commandAbilities_AI": [
 		{
@@ -267,6 +273,10 @@ settings in the mod.json:
 `customSpawnReticleColor` - new type, defines custom color of reticle used for spawns. fields r, g, b, are RGB values, 0-255.
 	
 `customSpawnReticleAsset` string. name of custom .DDS asset that will be used for Spawn reticle (needs to be one that is added to manifest via modtek)
+
+`MountIndicatorAsset` - string. name of custom .DDS asset that will be used for Mount indicator when using Battle Armor (needs to be one that is added to manifest via modtek)
+	
+`MountIndicatorColor` - as `customSpawnReticleColor`, defines custom color of reticle used for Mount indicator. fields r, g, b, are RGB values, 0-255.
 	
 `strafeWaves` - int, default number of units (same unit copied multiple times) that will perform a strafe. e.g., if set to 3 and strafe calls a Lightning Aerospace fighter, 3 Lightnings will strafe the target area in succession. They tend to target exactly the same units (unless of course one of the targeted units gets destroyed by one of the previous strafing units). Overriden by mechcomponent tags in beacons where tag is "StrafeWaves_X" where X is the number of waves. E.g. a beacon with tag `StrafeWaves_5` would strafe with 5 units.
 
@@ -668,6 +678,8 @@ For example, this may be added to the `statusEffects` section of the omnimech gy
 
 In order to mount or swarm, activate the appropriate component ability, then select either a friendly (to mount) or enemy (to swarm) within range. By default the range within which you can mount/swarm is equal to the longest of walk/sprint/jump distance. Likewise, in order to dismount or stop swarming, activate the same component ability and then select the unit the BA is mounted to/currently swarming. Dismounting must be done at the start of the BA activation, and once dismounted the BA can move/attack as normal.
 
+Selecting the Mount/Swarm ability when the unit is already mounted/swarming will auto-select the unit you are mounted to; now just click Confirm to dismount/stop swarming. Selecting the Mount/Swarm ability when *not* mounted/swarming will display indicators showing valid targets for mounting and swarming. Swarm targets will all display the standard "melee target" indicator. Mount targets will get an icon defined in the `MountIndicatorAsset` setting, using the color defined in `MountIndicatorColor`
+	
 Attempts to mount a friendly unit are always successful. Attempts to swarm an enemy unit make a simplified melee roll to determine success. If unsuccessful, the BA will be deposited in the same hex as the unit they attempted to swarm. On both a swarm success and failure, a floatie will be generated indicating success or failure. Attempts to mount or swarm always end the BA activation, and must be conducted <i>before</i> the BA attempts to move.
 
 BA that is either swarming or mounted is noted in the "carrier" unit's armor paperdoll, as well as the current armor/structure of the BA mounted to a specific location. The individual suits of the BA squad are always distributed "evenly" across a mech in the following order: CT, CT-R, RT, RT-R, LT, LT-R for mounts (only a single squad can be mounted), and CT, CT-R, RT, RT-R, LT, LT-R, LA, RA, LL, RL, HD for swarms. Multiple squads can swarm a mech simultaneously, and will double-up on locations as needed. For vehicles the order is Front, Rear, Left, Right, Turret for both swarms and mounts. Incoming attacks targeting the "carrier" have a 33% chance of impacting the BA suit mounted to that location instead of the "carrier", with excess damaging transfering through the BA to the carrier.
