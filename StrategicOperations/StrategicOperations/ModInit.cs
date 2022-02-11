@@ -79,7 +79,7 @@ namespace StrategicOperations
         public string MountIndicatorAsset = "";
         public string SwarmIndicatorAsset = "";
         public ColorSetting MountIndicatorColor = new ColorSetting();
-        public ColorSetting SwarmIndicatorColor = new ColorSetting();
+        //public ColorSetting SwarmIndicatorColor = new ColorSetting();
         public int AI_InvokeStrafeThreshold = 1;
         public int AI_InvokeSpawnThreshold = 1;
         public List<AI_SpawnBehavior> AI_SpawnBehavior = new List<AI_SpawnBehavior>(); // values can be "AMBUSH", "BRAWLER" (is default if none selected), "REINFORCE"

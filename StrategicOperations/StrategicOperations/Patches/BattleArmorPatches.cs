@@ -152,28 +152,6 @@ namespace StrategicOperations.Patches
                                         decalsFromCircle[j].DecalPropertyBlock.SetColor("_Color", Color.blue);
                                     }
                                 }
-                                else
-                                {
-                                    if (!string.IsNullOrEmpty(ModInit.modSettings.SwarmIndicatorAsset))
-                                    {
-                                        var newTexture = dm.GetObjectOfType<Texture2D>(ModInit.modSettings.SwarmIndicatorAsset,
-                                            BattleTechResourceType.Texture2D);
-                                        if (newTexture != null) decalsFromCircle[j].DecalPropertyBlock.SetTexture("_MainTex", newTexture);
-                                    }
-                                    
-                                    if (ModInit.modSettings.SwarmIndicatorColor != null)
-                                    {
-                                        var customColor = new Color(ModInit.modSettings.SwarmIndicatorColor.Rf,
-                                            ModInit.modSettings.SwarmIndicatorColor.Gf,
-                                            ModInit.modSettings.SwarmIndicatorColor.Bf);
-                                        decalsFromCircle[j].DecalPropertyBlock.SetColor("_Color", customColor);
-                                        
-                                    }
-                                    else
-                                    {
-                                        decalsFromCircle[j].DecalPropertyBlock.SetColor("_Color", Color.red);
-                                    }
-                                }
                                 decalsFromCircle[j].gameObject.SetActive(true);
                             }
                             else
