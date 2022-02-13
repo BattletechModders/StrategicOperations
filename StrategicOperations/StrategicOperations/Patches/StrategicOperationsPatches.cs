@@ -533,7 +533,7 @@ namespace StrategicOperations.Patches
                 if (actorResource.StartsWith("mechdef_") || actorResource.StartsWith("vehicledef_"))
                 {
                     ModInit.modLog.LogMessage($"Attempting to spawn {actorResource} as mech.");
-                    var spawner = new Classes.CustomSpawner(combat, actorResource, cmdLance, teamSelection, positionA, quaternion, supportHeraldryDef, supportPilotDef);
+                    var spawner = new Classes.CustomSpawner(team, __instance, combat, actorResource, cmdLance, teamSelection, positionA, quaternion, supportHeraldryDef, supportPilotDef);
                     spawner.SpawnBeaconUnitAtLocation();
                     return false;
                 }

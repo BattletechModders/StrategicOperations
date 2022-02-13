@@ -30,6 +30,8 @@ namespace StrategicOperations.Framework
             public MechDef NewUnitDef;
             public PilotDef NewPilotDef;
             public Team TeamSelection;
+            public Team SourceTeam;
+            public Ability SourceAbility;
             public TagSet CustomEncounterTags;
             public Vector3 SpawnLoc = Vector3.zero;
             public Vector3 Loc2 = Vector3.zero;
@@ -47,8 +49,10 @@ namespace StrategicOperations.Framework
                 this.DM = UnityGameInstance.BattleTechGame.DataManager;
             }
 
-            public CustomSpawner(CombatGameState combat, string chosen, Lance custLance, Team teamSelection, Vector3 loc, Quaternion rotation, HeraldryDef heraldry, PilotDef supportPilotDef)
+            public CustomSpawner(Team team, Ability ability, CombatGameState combat, string chosen, Lance custLance, Team teamSelection, Vector3 loc, Quaternion rotation, HeraldryDef heraldry, PilotDef supportPilotDef)
             {
+                this.SourceTeam = team;
+                this.SourceAbility = ability;
                 this.Combat = combat;
                 this.ChosenUnit = chosen;
                 this.CustomLance = custLance;
@@ -108,6 +112,7 @@ namespace StrategicOperations.Framework
                 ModInit.modLog.LogMessage(
                     $"[SpawnBattleArmorAtActor] Added PositionLockMount with rider  {newBattleArmor.DisplayName} {newBattleArmor.GUID} and carrier {Actor.DisplayName} {Actor.GUID}.");
             }
+
             public void SpawnBattleArmorAtActor()
             {
                 LoadRequest loadRequest = DM.CreateLoadRequest();
@@ -214,6 +219,43 @@ namespace StrategicOperations.Framework
                 ModInit.modLog.LogTrace($"loaded prefabs success");
                 dropSpawner.StartCoroutine(dropSpawner.StartDropPodAnimation(0f));
                 ModInit.modLog.LogTrace($"started drop pod anim");
+
+                if (SourceTeam.IsLocalPlayer && (ModInit.modSettings.commandUseCostsMulti > 0 ||
+                                               SourceAbility.Def.getAbilityDefExtension().CBillCost > 0))
+                {
+                    var unitName = "";
+                    var unitCost = 0;
+                    var unitID = "";
+
+                    unitName = NewUnitDef.Description.UIName;
+                    unitID = NewUnitDef.Description.Id;
+                    unitCost = NewUnitDef.Chassis.Description.Cost;
+
+                    if (ModState.CommandUses.All(x => x.UnitID != ChosenUnit))
+                    {
+                        var commandUse =
+                            new CmdUseInfo(unitID, SourceAbility.Def.Description.Name, unitName, unitCost,
+                                SourceAbility.Def.getAbilityDefExtension().CBillCost);
+
+                        ModState.CommandUses.Add(commandUse);
+                        ModInit.modLog.LogMessage(
+                            $"Added usage cost for {commandUse.CommandName} - {commandUse.UnitName}. UnitUseCost (unadjusted): {unitCost}. Ability Use Cost: {SourceAbility.Def.getAbilityDefExtension().CBillCost}");
+                    }
+                    else
+                    {
+                        var cmdUse = ModState.CommandUses.FirstOrDefault(x => x.UnitID == ChosenUnit);
+                        if (cmdUse == null)
+                        {
+                            ModInit.modLog.LogMessage($"ERROR: cmdUseInfo was null");
+                        }
+                        else
+                        {
+                            cmdUse.UseCount += 1;
+                            ModInit.modLog.LogMessage(
+                                $"Added usage cost for {cmdUse.CommandName} - {cmdUse.UnitName}. UnitUseCost (unadjusted): {unitCost}. Ability Use Cost: {SourceAbility.Def.getAbilityDefExtension().CBillCost}. Now used {cmdUse.UseCount} times.");
+                        }
+                    }
+                }
             }
 
             public void SpawnBeaconUnitAtLocation()
