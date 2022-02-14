@@ -852,6 +852,7 @@ namespace StrategicOperations.Patches
                             var finalDist = (float)(baseDistance * ModInit.Random.NextDouble());
                             var finalDestination =
                                 Utils.LerpByDistance(__instance.StartPos, __instance.FinalPos, finalDist);
+                            finalDestination.y = swarmingUnit.Combat.MapMetaData.GetLerpedHeightAt(finalDestination, false); //set proper height on ground.
                             ModInit.modLog.LogMessage(
                                 $"[ActorMovementSequence.CompleteOrders] Roll succeeded, plonking {swarmingUnit.DisplayName} at {finalDestination}");
                             swarmingUnit.DismountBA(__instance.owningActor, finalDestination, true);

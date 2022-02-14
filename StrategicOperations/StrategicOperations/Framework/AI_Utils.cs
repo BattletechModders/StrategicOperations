@@ -309,7 +309,7 @@ namespace StrategicOperations.Framework
                 }
             }
 
-            if (!string.IsNullOrEmpty(ModInit.modSettings.BattleArmorDeSwarmMovement))
+            if (!(unit is TrooperSquad) && !string.IsNullOrEmpty(ModInit.modSettings.BattleArmorDeSwarmMovement))
             {
                 if (unit.GetPilot().Abilities
                         .All(x => x.Def.Id != ModInit.modSettings.BattleArmorDeSwarmMovement) &&
