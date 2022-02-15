@@ -787,6 +787,25 @@ namespace StrategicOperations.Patches
             }
         }
 
+        [HarmonyPatch(typeof(AttackDirector.AttackSequence), "IsBreachingShot", MethodType.Getter)]
+        public static class AttackDirector_AttackSequence_IsBreachingShot
+        {
+            public static void Postfix(AttackDirector.AttackSequence __instance, ref bool __result)
+            {
+                if (!__result)
+                {
+                    if (__instance.chosenTarget is AbstractActor targetActor)
+                    {
+                        if (__instance.attacker.IsSwarmingTargetUnit(targetActor))
+                        {
+                            __result = true;
+                        }
+                    }
+                }
+            }
+        }
+
+
         [HarmonyPatch(typeof(ActorMovementSequence), "CompleteOrders")]
         public static class ActorMovementSequence_CompleteOrders
         {
@@ -1213,7 +1232,7 @@ namespace StrategicOperations.Patches
             public static void Postfix(CombatHUDEquipmentSlot __instance, SelectionType SelectionType, Ability Ability, SVGAsset Icon, string GUID, string Tooltip, AbstractActor actor)
             {
                 if (actor == null) return;
-                if (Ability == null || Ability?.Def?.Id != ModInit.modSettings.BattleArmorMountAndSwarmID) return;
+                if (Ability == null || Ability.Def?.Id != ModInit.modSettings.BattleArmorMountAndSwarmID) return;
                 if (actor.IsMountedUnit())
                 {
                     __instance.Text.SetText("DISMOUNT BATTLEARMOR", Array.Empty<object>());
@@ -1242,6 +1261,10 @@ namespace StrategicOperations.Patches
                 else if (theActor.IsSwarmingUnit())
                 {
                     __instance.Text.SetText("HALT SWARM ATTACK", Array.Empty<object>());
+                }
+                else
+                {
+                    __instance.Text.SetText(__instance.Ability.Def?.Description.Name);
                 }
             }
         }
