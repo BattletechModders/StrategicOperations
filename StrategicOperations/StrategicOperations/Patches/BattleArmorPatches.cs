@@ -1244,11 +1244,11 @@ namespace StrategicOperations.Patches
             }
         }
 
-        [HarmonyPatch(typeof(CombatHUDEquipmentSlot), "ConfirmAbility",
-            new Type[] { typeof(AbilityDef.ActivationTiming) })]
+        [HarmonyPatch(typeof(CombatHUDEquipmentSlot), "ActivateAbility",
+            new Type[] { typeof(string), typeof(string) })]
         public static class CombatHUDEquipmentSlot_ConfirmAbility
         {
-            public static void Postfix(CombatHUDEquipmentSlot __instance, AbilityDef.ActivationTiming timing)
+            public static void Postfix(CombatHUDEquipmentSlot __instance, string creatorGUID, string targetGUID)
             {
                 var HUD = Traverse.Create(__instance).Property("HUD").GetValue<CombatHUD>();
                 var theActor = HUD.SelectedActor;
