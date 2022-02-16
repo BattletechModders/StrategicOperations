@@ -1334,7 +1334,7 @@ namespace StrategicOperations.Patches
                     if (ModInit.Random.NextDouble() > (double)1 / 3) continue;
                     if (__instance.Combat.FindActorByGUID(squadInfo.Key) is Mech BattleArmorAsMech)
                     {
-                        if (BattleArmorAsMech.GUID == hitInfo.attackerId) return;
+                        if (BattleArmorAsMech.GUID == hitInfo.attackerId) continue;
                         var BattleArmorMounts = squadInfo.Value.BA_MountedLocations.Where(x => x.Value == (int) aLoc);
                         foreach (var mount in BattleArmorMounts)
                         {
@@ -1427,7 +1427,7 @@ namespace StrategicOperations.Patches
                     if (ModInit.Random.NextDouble() > (double)1 / 3) continue;
                     if (__instance.Combat.FindActorByGUID(squadInfo.Key) is Mech BattleArmorAsMech)
                     {
-                        if (BattleArmorAsMech.GUID == hitInfo.attackerId) return;
+                        if (BattleArmorAsMech.GUID == hitInfo.attackerId) continue;
                         var BattleArmorMounts = squadInfo.Value.BA_MountedLocations.Where(x => x.Value == (int)vLoc);
                         foreach (var mount in BattleArmorMounts)
                         {
@@ -1453,7 +1453,7 @@ namespace StrategicOperations.Patches
                                         BattleArmorLocStruct, 1, DamageType.Combat);
                                     ModInit.modLog.LogMessage(
                                         $"[Vehicle.DamageLocation] Battle Armor at location {BALocArmor} takes {BattleArmorLocStruct} direct structure damage");
-                                    __instance.Combat.MessageCenter.PublishMessage(new AddSequenceToStackMessage(new ShowActorInfoSequence(BattleArmorAsMech, Strings.T("Battle Armor Damaged!"), FloatieMessage.MessageNature.StructureDamage, false)));
+                                    __instance.Combat.MessageCenter.PublishMessage(new AddSequenceToStackMessage(new ShowActorInfoSequence(BattleArmorAsMech, Strings.T("Battle Armor Damaged!"), FloatieMessage.MessageNature.CriticalHit, false)));
                                     continue;
                                 }
 
@@ -1466,7 +1466,7 @@ namespace StrategicOperations.Patches
                                     ModInit.modLog.LogMessage(
                                         $"[Vehicle.DamageLocation] Battle Armor at location {BALocArmor} takes {directStructureDamage} direct structure damage");
                                     directStructureDamage = 0;
-                                    __instance.Combat.MessageCenter.PublishMessage(new AddSequenceToStackMessage(new ShowActorInfoSequence(BattleArmorAsMech, Strings.T("Battle Armor Damaged!"), FloatieMessage.MessageNature.StructureDamage, false)));
+                                    __instance.Combat.MessageCenter.PublishMessage(new AddSequenceToStackMessage(new ShowActorInfoSequence(BattleArmorAsMech, Strings.T("Battle Armor Damaged!"), FloatieMessage.MessageNature.CriticalHit, false)));
                                 }
                             }
 
@@ -1485,7 +1485,7 @@ namespace StrategicOperations.Patches
                                         Mathf.Abs(totalArmorDamageDiff), 0, 1, DamageType.Combat);
                                     ModInit.modLog.LogMessage(
                                         $"[Vehicle.DamageLocation] Battle Armor at location {BALocArmor} takes {BattleArmorLocArmor} damage");
-                                    __instance.Combat.MessageCenter.PublishMessage(new AddSequenceToStackMessage(new ShowActorInfoSequence(BattleArmorAsMech, Strings.T("Battle Armor Damaged!"), FloatieMessage.MessageNature.ArmorDamage, false)));
+                                    __instance.Combat.MessageCenter.PublishMessage(new AddSequenceToStackMessage(new ShowActorInfoSequence(BattleArmorAsMech, Strings.T("Battle Armor Damaged!"), FloatieMessage.MessageNature.CriticalHit, false)));
                                 }
 
                                 else if (totalArmorDamageDiff <= 0)
@@ -1497,7 +1497,7 @@ namespace StrategicOperations.Patches
                                     ModInit.modLog.LogMessage(
                                         $"[Vehicle.DamageLocation] Battle Armor at location {BALocArmor} takes {totalArmorDamage} damage");
                                     totalArmorDamage = 0;
-                                    __instance.Combat.MessageCenter.PublishMessage(new AddSequenceToStackMessage(new ShowActorInfoSequence(BattleArmorAsMech, Strings.T("Battle Armor Damaged!"), FloatieMessage.MessageNature.ArmorDamage, false)));
+                                    __instance.Combat.MessageCenter.PublishMessage(new AddSequenceToStackMessage(new ShowActorInfoSequence(BattleArmorAsMech, Strings.T("Battle Armor Damaged!"), FloatieMessage.MessageNature.CriticalHit, false)));
                                 }
                             }
                         }
@@ -1525,6 +1525,7 @@ namespace StrategicOperations.Patches
                     if (ModInit.Random.NextDouble() > (double)1 / 3) continue;
                     if (__instance.Combat.FindActorByGUID(squadInfo.Key) is Mech BattleArmorAsMech)
                     {
+                        if (BattleArmorAsMech.GUID == hitInfo.attackerId) continue;
                         var BattleArmorMounts = squadInfo.Value.BA_MountedLocations.Where(x => x.Value == (int)bLoc);
                         foreach (var mount in BattleArmorMounts)
                         {
@@ -1550,7 +1551,7 @@ namespace StrategicOperations.Patches
                                         BattleArmorLocStruct, 1, DamageType.Combat);
                                     ModInit.modLog.LogMessage(
                                         $"[Turret.DamageLocation] Battle Armor at location {BALocArmor} takes {BattleArmorLocStruct} direct structure damage");
-                                    __instance.Combat.MessageCenter.PublishMessage(new AddSequenceToStackMessage(new ShowActorInfoSequence(BattleArmorAsMech, Strings.T("Battle Armor Damaged!"), FloatieMessage.MessageNature.StructureDamage, false)));
+                                    __instance.Combat.MessageCenter.PublishMessage(new AddSequenceToStackMessage(new ShowActorInfoSequence(BattleArmorAsMech, Strings.T("Battle Armor Damaged!"), FloatieMessage.MessageNature.CriticalHit, false)));
                                     continue;
                                 }
 
@@ -1563,7 +1564,7 @@ namespace StrategicOperations.Patches
                                     ModInit.modLog.LogMessage(
                                         $"[Turret.DamageLocation] Battle Armor at location {BALocArmor} takes {directStructureDamage} direct structure damage");
                                     directStructureDamage = 0;
-                                    __instance.Combat.MessageCenter.PublishMessage(new AddSequenceToStackMessage(new ShowActorInfoSequence(BattleArmorAsMech, Strings.T("Battle Armor Damaged!"), FloatieMessage.MessageNature.StructureDamage, false)));
+                                    __instance.Combat.MessageCenter.PublishMessage(new AddSequenceToStackMessage(new ShowActorInfoSequence(BattleArmorAsMech, Strings.T("Battle Armor Damaged!"), FloatieMessage.MessageNature.CriticalHit, false)));
                                 }
                             }
 
@@ -1582,7 +1583,7 @@ namespace StrategicOperations.Patches
                                         Mathf.Abs(totalArmorDamageDiff), 0, 1, DamageType.Combat);
                                     ModInit.modLog.LogMessage(
                                         $"[Turret.DamageLocation] Battle Armor at location {BALocArmor} takes {BattleArmorLocArmor} damage");
-                                    __instance.Combat.MessageCenter.PublishMessage(new AddSequenceToStackMessage(new ShowActorInfoSequence(BattleArmorAsMech, Strings.T("Battle Armor Damaged!"), FloatieMessage.MessageNature.ArmorDamage, false)));
+                                    __instance.Combat.MessageCenter.PublishMessage(new AddSequenceToStackMessage(new ShowActorInfoSequence(BattleArmorAsMech, Strings.T("Battle Armor Damaged!"), FloatieMessage.MessageNature.CriticalHit, false)));
                                 }
 
                                 else if (totalArmorDamageDiff <= 0)
@@ -1594,7 +1595,7 @@ namespace StrategicOperations.Patches
                                     ModInit.modLog.LogMessage(
                                         $"[Turret.DamageLocation] Battle Armor at location {BALocArmor} takes {totalArmorDamage} damage");
                                     totalArmorDamage = 0;
-                                    __instance.Combat.MessageCenter.PublishMessage(new AddSequenceToStackMessage(new ShowActorInfoSequence(BattleArmorAsMech, Strings.T("Battle Armor Damaged!"), FloatieMessage.MessageNature.ArmorDamage, false)));
+                                    __instance.Combat.MessageCenter.PublishMessage(new AddSequenceToStackMessage(new ShowActorInfoSequence(BattleArmorAsMech, Strings.T("Battle Armor Damaged!"), FloatieMessage.MessageNature.CriticalHit, false)));
                                 }
                             }
                         }
