@@ -95,6 +95,7 @@
   <ItemGroup>
     <Compile Include="Framework\AI_Utils.cs" />
     <Compile Include="Framework\BattleArmorUtils.cs" />
+    <Compile Include="Framework\AirliftUtils.cs" />
     <Compile Include="Framework\TB_FlyAwaySequence.cs" />
     <Compile Include="Framework\SpawnUtils.cs" />
     <Compile Include="Framework\Classes.cs" />

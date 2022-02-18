@@ -39,6 +39,7 @@ namespace StrategicOperations.Framework
         public static Dictionary<string, Vector3> CachedUnitCoordinates = new Dictionary<string, Vector3>();
         public static Dictionary<string, string> PositionLockMount = new Dictionary<string, string>(); // key is mounted unit, value is carrier
         public static Dictionary<string, string> PositionLockSwarm = new Dictionary<string, string>(); // key is mounted unit, value is carrier
+        public static Dictionary<string, string> PositionLockAirlift = new Dictionary<string, string>(); // key is mounted unit, value is carrier
 
         public static List<Ability> CommandAbilities = new List<Ability>();
 

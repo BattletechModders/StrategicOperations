@@ -16,7 +16,8 @@ namespace StrategicOperations.Framework
     {
         public enum BA_TargetEffectType
         {
-            MOUNT,
+            MOUNT_INT,
+            MOUNT_EXT,
             SWARM,
             BOTH
         }
@@ -514,6 +515,20 @@ namespace StrategicOperations.Framework
             public List<JObject> effectDataJO = new List<JObject>();
 
         }
+
+        public class AirliftTargetEffect
+        {
+            public string ID = "";
+            public bool FriendlyAirlift;
+            public string Name = "";
+            public string Description = "";
+
+            [JsonIgnore]
+            public List<EffectData> effects = new List<EffectData>();
+            public List<JObject> effectDataJO = new List<JObject>();
+
+        }
+
         public class SpawnCoords
         {
             public string ID;

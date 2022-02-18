@@ -556,6 +556,11 @@ namespace StrategicOperations.Framework
             return ModState.PositionLockMount.ContainsKey(actor.GUID);
         }
 
+        public static bool IsMountedInternal(this AbstractActor actor)
+        {
+            return (ModState.BADamageTrackers.ContainsKey(actor.GUID) && ModState.BADamageTrackers[actor.GUID].IsSquadInternal);
+        }
+
         public static bool IsMountedToUnit(this AbstractActor actor, AbstractActor target)
         {
             return ModState.PositionLockMount.ContainsKey(actor.GUID) && ModState.PositionLockMount[actor.GUID] == target.GUID;
@@ -876,8 +881,25 @@ namespace StrategicOperations.Framework
         {
             foreach (var BA_Effect in ModState.BA_MountSwarmEffects)
             {
-                if (BA_Effect.TargetEffectType == Classes.BA_TargetEffectType.MOUNT ||
-                    BA_Effect.TargetEffectType == Classes.BA_TargetEffectType.BOTH)
+                if (BA_Effect.TargetEffectType == Classes.BA_TargetEffectType.BOTH)
+                {
+                    foreach (var effectData in BA_Effect.effects)
+                    {
+                        creator.Combat.EffectManager.CreateEffect(effectData,
+                            BA_Effect.ID,
+                            -1, creator, creator, default(WeaponHitInfo), 1);
+                    }
+                }
+                if (BA_Effect.TargetEffectType == Classes.BA_TargetEffectType.MOUNT_EXT && !creator.IsMountedInternal())
+                {
+                    foreach (var effectData in BA_Effect.effects)
+                    {
+                        creator.Combat.EffectManager.CreateEffect(effectData,
+                            BA_Effect.ID,
+                            -1, creator, creator, default(WeaponHitInfo), 1);
+                    }
+                }
+                if (BA_Effect.TargetEffectType == Classes.BA_TargetEffectType.MOUNT_INT && creator.IsMountedInternal())
                 {
                     foreach (var effectData in BA_Effect.effects)
                     {

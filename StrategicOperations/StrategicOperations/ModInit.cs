@@ -85,6 +85,7 @@ namespace StrategicOperations
         public List<AI_SpawnBehavior> AI_SpawnBehavior = new List<AI_SpawnBehavior>(); // values can be "AMBUSH", "BRAWLER" (is default if none selected), "REINFORCE"
         public string BattleArmorMountAndSwarmID = "";
         public List<BA_TargetEffect> BATargetEffects = new List<BA_TargetEffect>();
+        public List<AirliftTargetEffect> AirliftTargetEffects = new List<AirliftTargetEffect>();
         public List<BA_FactionAssoc> BattleArmorFactionAssociations = new List<BA_FactionAssoc>();
         public string BattleArmorDeSwarmRoll = "";
         public string BattleArmorDeSwarmSwat = "";
@@ -98,5 +99,7 @@ namespace StrategicOperations
 
         public List<string> BeaconExcludedContractTypes = new List<string>();
         public List<string> BeaconExcludedContractIDs = new List<string>();
+
+        public string AirliftUnitID = "";
     }
 }

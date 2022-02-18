@@ -312,8 +312,106 @@ namespace StrategicOperations.Patches
         }
 
         [HarmonyPatch(typeof(Ability), "Activate",
+            new Type[] { typeof(AbstractActor), typeof(ICombatant) })]
+        public static class Ability_Activate_ICombatant
+        {
+            public static void Postfix(Ability __instance, AbstractActor creator, ICombatant target)
+            {
+                if (creator == null) return;
+                if (UnityGameInstance.BattleTechGame.Combat.ActiveContract.ContractTypeValue.IsSkirmish) return;
+
+                if (__instance.IsAvailable)
+                {
+                    if (target is AbstractActor targetActor)
+                    {
+                        if (creator.HasSwarmingUnits() && creator.GUID == targetActor.GUID)
+                        {
+                            ModInit.modLog.LogTrace($"[Ability.Activate - Unit has sawemers].");
+                            var swarmingUnits = ModState.PositionLockSwarm.Where(x => x.Value == creator.GUID).ToList();
+
+                            if (__instance.Def.Id == ModInit.modSettings.BattleArmorDeSwarmRoll)
+                            {
+                                creator.ProcessDeswarmRoll(swarmingUnits);
+                            }
+
+                            else if (__instance.Def.Id == ModInit.modSettings.BattleArmorDeSwarmSwat)
+                            {
+                                creator.ProcessDeswarmSwat(swarmingUnits);
+                            }
+
+                            else if (__instance.Def.Id == ModInit.modSettings.BattleArmorDeSwarmMovement)
+                            {
+                                ModInit.modLog.LogTrace($"[Ability.Activate - BattleArmorDeSwarm Movement].");
+                                creator.ProcessDeswarmMovement(swarmingUnits); // need to patch ActorMovementSequence complete AND JumpSequence complete AND DFASequencecomplete, and then do magic logic in there. or just do it on
+                                return; //return to avoid ending turn for player below. making AI use this properly is gonna suck hind tit.
+                            }
+
+                            if (creator is Mech mech)
+                            {
+                                mech.GenerateAndPublishHeatSequence(-1, true, false, mech.GUID);
+                            }
+                            if (__instance.Def.Id == ModInit.modSettings.BattleArmorDeSwarmRoll)
+                            {
+                                creator.FlagForKnockdown();
+                                creator.HandleKnockdown(-1, creator.GUID, Vector2.one, null);
+                            }
+                            if (creator.team.IsLocalPlayer)
+                            {
+                                var sequence = creator.DoneWithActor();
+                                creator.Combat.MessageCenter.PublishMessage(new AddSequenceToStackMessage(sequence));
+                                //creator.OnActivationEnd(creator.GUID, -1);
+                            }
+                            return;
+                        }
+
+                        if (!creator.IsSwarmingUnit() && !creator.IsMountedUnit())
+                        {
+                            if (__instance.Def.Id == ModInit.modSettings.BattleArmorMountAndSwarmID && target.team.IsFriendly(creator.team))
+                            {
+                                creator.ProcessMountFriendly(targetActor);
+                            }
+
+                            else if (__instance.Def.Id == ModInit.modSettings.BattleArmorMountAndSwarmID && target.team.IsEnemy(creator.team) && creator is Mech creatorMech && creatorMech.canSwarm())
+                            {
+                                creatorMech.ProcessSwarmEnemy(targetActor);
+                            }
+                        }
+
+                        else if (creator.IsSwarmingUnit())
+                        {
+                            if (__instance.Def.Id == ModInit.modSettings.BattleArmorMountAndSwarmID)
+                            {
+                                var loc = Vector3.zero;
+                                creator.DismountBA(targetActor, loc);
+                            }
+                        }
+                        else if (creator.IsMountedUnit())
+                        {
+                            if (__instance.Def.Id == ModInit.modSettings.BattleArmorMountAndSwarmID)
+                            {
+                                if (creator is TrooperSquad squad)
+                                {
+                                    var loc = Vector3.zero;
+                                    //ModInit.modLog.LogTrace($"[Ability.Activate] Called DetachFromCarrier.");
+                                    squad.DismountBA(targetActor, loc, false, false, false);
+                                    squad.DetachFromCarrier(targetActor);
+                                }
+                                //creator.DismountBA(targetActor);
+                            }
+                        }
+                        else if (__instance.Def.Id == ModInit.modSettings.AirliftUnitID)
+                        {
+                            //do airlifty things here
+                        }
+                    }
+                }
+            }
+        }
+
+
+        [HarmonyPatch(typeof(Ability), "Activate",
             new Type[] {typeof(AbstractActor), typeof(Vector3), typeof(Vector3)})]
-        public static class Ability_Activate
+        public static class Ability_Activate_TwoPoints
         {
             public static bool Prefix(Ability __instance, AbstractActor creator, Vector3 positionA, Vector3 positionB)
             {
