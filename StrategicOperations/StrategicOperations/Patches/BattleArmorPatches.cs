@@ -476,8 +476,7 @@ namespace StrategicOperations.Patches
                         {
                             if (trooperSquad.IsSwarmingUnit() && ModState.PositionLockSwarm[trooperSquad.GUID] == component.parent.GUID)
                             {
-                                var loc = Vector3.zero;
-                                trooperSquad.DismountBA(component.parent, loc, true);
+                                trooperSquad.DismountBA(component.parent, Vector3.zero, true);
                             }
                             
                             var baLoc = trooperSquad.GetPossibleHitLocations(component.parent);
@@ -1021,6 +1020,7 @@ namespace StrategicOperations.Patches
                             BattleArmorAsMech.NukeStructureLocation(hitInfo, 1, BALocStruct, attackDirection,
                                 damageType);
                         }
+                        BattleArmorAsMech.DismountBA(__instance, Vector3.zero, false, true);
                         BattleArmorAsMech.FlagForDeath("Killed When Mount Died", DeathMethod.VitalComponentDestroyed, DamageType.Melee, 0, -1, __instance.GUID, false);
                         BattleArmorAsMech.HandleDeath(__instance.GUID);
                     }
@@ -1058,13 +1058,13 @@ namespace StrategicOperations.Patches
                                 var hitinfo = new WeaponHitInfo(-1, -1, 0, 0, __instance.GUID, squad.GUID, 1, new float[1], new float[1], new float[1], new bool[1], new int[trooperLocs[i]], new int[1], new AttackImpactQuality[1], new AttackDirection[1], new Vector3[1], new string[1], new int[trooperLocs[i]]);
                                 squad.NukeStructureLocation(hitinfo, trooperLocs[i], cLoc, Vector3.up, DamageType.ComponentExplosion);
                             }
+                            actor.DismountBA(__instance, Vector3.zero, false, true);
                             actor.FlagForDeath("Killed When Mount Died", DeathMethod.VitalComponentDestroyed, DamageType.Melee, 0, -1, __instance.GUID, false);
                             actor.HandleDeath(__instance.GUID);
                             continue;
                         }
-                        var loc = Vector3.zero;
                         ModInit.modLog.LogTrace($"[AbstractActor.HandleDeath] Swarmed unit {__instance.DisplayName} destroyed, calling dismount.");
-                        actor.DismountBA(__instance, loc, false, true);
+                        actor.DismountBA(__instance, Vector3.zero, false, true);
                     }
                 }
 
@@ -1084,13 +1084,13 @@ namespace StrategicOperations.Patches
                                 var hitinfo = new WeaponHitInfo(-1, -1, 0, 0, __instance.GUID, squad.GUID, 1, new float[1], new float[1], new float[1], new bool[1], new int[trooperLocs[i]], new int[1], new AttackImpactQuality[1], new AttackDirection[1], new Vector3[1], new string[1], new int[trooperLocs[i]]);
                                 squad.NukeStructureLocation(hitinfo, trooperLocs[i], cLoc, Vector3.up, DamageType.ComponentExplosion);
                             }
+                            actor.DismountBA(__instance, Vector3.zero, false, true);
                             actor.FlagForDeath("Killed When Mount Died", DeathMethod.VitalComponentDestroyed, DamageType.Melee, 0, -1, __instance.GUID, false);
                             actor.HandleDeath(__instance.GUID);
                             continue;
                         }
-                        var loc = Vector3.zero;
                         ModInit.modLog.LogTrace($"[AbstractActor.HandleDeath] Mount {__instance.DisplayName} destroyed, calling dismount.");
-                        actor.DismountBA(__instance, loc, false, true);
+                        actor.DismountBA(__instance, Vector3.zero, false, true);
                     }
                 }
             }

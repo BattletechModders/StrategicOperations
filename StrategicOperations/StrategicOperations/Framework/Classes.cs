@@ -605,6 +605,12 @@ namespace StrategicOperations.Framework
                 this.Carrier = null;
                 this.SwarmingUnits = new List<AbstractActor>();
             }
+
+            public BA_DeswarmMovementInfo(AbstractActor carrier)
+            {
+                this.Carrier = carrier;
+                this.SwarmingUnits = new List<AbstractActor>();
+            }
             public BA_DeswarmMovementInfo(AbstractActor carrier, List<AbstractActor> swarmingUnits)
             {
                 this.Carrier = carrier;

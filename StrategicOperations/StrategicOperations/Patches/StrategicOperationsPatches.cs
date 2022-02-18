@@ -381,8 +381,7 @@ namespace StrategicOperations.Patches
                         {
                             if (__instance.Def.Id == ModInit.modSettings.BattleArmorMountAndSwarmID)
                             {
-                                var loc = Vector3.zero;
-                                creator.DismountBA(targetActor, loc);
+                                creator.DismountBA(targetActor, Vector3.zero);
                             }
                         }
                         else if (creator.IsMountedUnit())
@@ -391,9 +390,8 @@ namespace StrategicOperations.Patches
                             {
                                 if (creator is TrooperSquad squad)
                                 {
-                                    var loc = Vector3.zero;
                                     //ModInit.modLog.LogTrace($"[Ability.Activate] Called DetachFromCarrier.");
-                                    squad.DismountBA(targetActor, loc, false, false, false);
+                                    squad.DismountBA(targetActor, Vector3.zero, false, false, false);
                                     squad.DetachFromCarrier(targetActor);
                                 }
                                 //creator.DismountBA(targetActor);
@@ -415,7 +413,7 @@ namespace StrategicOperations.Patches
         {
             public static bool Prefix(Ability __instance, AbstractActor creator, Vector3 positionA, Vector3 positionB)
             {
-                ModInit.modLog.LogMessage($"Running Ability.Activate; check if skirmish.");
+                ModInit.modLog.LogMessage($"Running Ability.Activate; check if skirmish.") // need to add blocks for self-apply EffectData
                 if (__instance.Combat.ActiveContract.ContractTypeValue.IsSkirmish) return true;
                 if (!__instance.IsAvailable)
                 {

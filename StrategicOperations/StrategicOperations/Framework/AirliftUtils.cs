@@ -4,14 +4,86 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using BattleTech;
+using BattleTech.UI;
 using CustAmmoCategories;
 using CustomUnits;
+using Harmony;
 using UnityEngine;
 
 namespace StrategicOperations.Framework
 {
     public static class AirliftUtils
     {
+
+        public static void DropAirliftedUnit(this AbstractActor carrier, AbstractActor actor, Vector3 locationOverride, bool calledFromDeswarm = false,
+            bool calledFromHandleDeath = false, bool unShrinkRep = true)
+        {
+
+            var em = actor.Combat.EffectManager;
+            foreach (var airliftEffect in ModState.AirliftEffects)
+            {
+                var effects = em.GetAllEffectsTargetingWithUniqueID(actor, airliftEffect.ID);
+                for (int i = effects.Count - 1; i >= 0; i--)
+                {
+                    ModInit.modLog.LogMessage(
+                        $"[DropAirliftedUnit] Cancelling effect on {actor.DisplayName}: {effects[i].EffectData.Description.Name}.");
+                    em.CancelEffect(effects[i]);
+                }
+            }
+
+            var hud = Traverse.Create(CameraControl.Instance).Property("HUD").GetValue<CombatHUD>();
+            //actor.GameRep.IsTargetable = true;
+
+            ModState.PositionLockAirlift.Remove(actor.GUID);
+            //ModState.PositionLockSwarm.Remove(actor.GUID);
+            ModState.CachedUnitCoordinates.Remove(carrier.GUID);
+
+            if (unShrinkRep)
+            {
+                actor.GameRep.transform.localScale = new Vector3(1f, 1f, 1f);
+                //actor.GameRep.transform.localScale = ModState.SavedBAScale[actor.GUID];
+                //ModState.SavedBAScale.Remove(actor.GUID);
+                //squad.GameRep.ToggleHeadlights(true);
+            }
+            var point = carrier.CurrentPosition;
+            if (locationOverride != Vector3.zero)
+            {
+                point = locationOverride;
+                ModInit.modLog.LogMessage($"[DropAirliftedUnit] Using location override {locationOverride}.");
+            }
+            point.y = actor.Combat.MapMetaData.GetLerpedHeightAt(point, false);
+            actor.TeleportActor(point);
+
+            if (!calledFromHandleDeath && !calledFromDeswarm && false) // dont think i need this, since the unit being dropped won't need to reset state ever?
+            {
+                ModInit.modLog.LogMessage(
+                    $"[DropAirliftedUnit] Not called from HandleDeath or Deswarm, resetting buttons and pathing.");
+                hud.MechWarriorTray.JumpButton.ResetButtonIfNotActive(actor);
+                hud.MechWarriorTray.SprintButton.ResetButtonIfNotActive(actor);
+                hud.MechWarriorTray.MoveButton.ResetButtonIfNotActive(actor);
+                hud.SelectionHandler.AddJumpState(actor);
+                hud.SelectionHandler.AddSprintState(actor);
+                hud.SelectionHandler.AddMoveState(actor);
+                actor.ResetPathing(false);
+                actor.Pathing.UpdateCurrentPath(false);
+            }
+            if (false) //(actor.HasBegunActivation)
+            {
+                ModInit.modLog.LogMessage(
+                    $"[DropAirliftedUnit] Called from handledeath? {calledFromHandleDeath} or Deswarm? {calledFromDeswarm}, forcing end of activation."); // was i trying to end carrier activation maybe?
+
+                var sequence = actor.DoneWithActor();
+                actor.Combat.MessageCenter.PublishMessage(new AddSequenceToStackMessage(sequence));
+                //actor.OnActivationEnd(actor.GUID, -1);
+            }
+
+            actor.VisibilityCache.UpdateCacheReciprocal(actor.Combat.GetAllLivingCombatants());
+
+            ModInit.modLog.LogMessage(
+                $"[DropAirliftedUnit] Removing PositionLock with rider  {actor.DisplayName} {actor.GUID} and carrier {carrier.DisplayName} {carrier.GUID} and rebuilding visibility cache.");
+            
+        }
+
         public class DetachFromCarrierDelegate
         {
             public AbstractActor Actor{ get; set; }
@@ -112,8 +184,8 @@ namespace StrategicOperations.Framework
             {
                 ModInit.modLog.LogTrace($"DetachFromCarrier call dismount.");
                 //CALL DEFAULT ATTACH CODE
-                var loc = Vector3.zero;
-                squad.DismountBA(carrier, loc, false, false, true);
+                
+                squad.DismountBA(carrier, Vector3.zero, false, false, true);
             }
         }
     }

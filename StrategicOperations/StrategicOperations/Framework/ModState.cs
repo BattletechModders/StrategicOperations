@@ -71,6 +71,7 @@ namespace StrategicOperations.Framework
         public static List<CmdUseStat> DeploymentAssetsStats = new List<CmdUseStat>();
 
         public static List<BA_TargetEffect> BA_MountSwarmEffects = new List<BA_TargetEffect>();
+        public static List<AirliftTargetEffect> AirliftEffects = new List<AirliftTargetEffect>();
 
         public static BA_DeswarmMovementInfo DeSwarmMovementInfo = new BA_DeswarmMovementInfo();
 
@@ -115,6 +116,20 @@ namespace StrategicOperations.Framework
                 }
                 BA_MountSwarmEffects.Add(BA_Effect);
             }
+
+            AirliftEffects = new List<AirliftTargetEffect>();
+            foreach (var airliftEffect in ModInit.modSettings.AirliftTargetEffects)
+            {
+                ModInit.modLog.LogTrace($"[Initializing] Adding effects for {airliftEffect.ID}!");
+                foreach (var jObject in airliftEffect.effectDataJO)
+                {
+                    var effectData = new EffectData();
+                    effectData.FromJSON(jObject.ToString());
+                    airliftEffect.effects.Add(effectData);
+                    ModInit.modLog.LogTrace($"EffectData statname: {effectData?.statisticData?.statName}");
+                }
+                AirliftEffects.Add(airliftEffect);
+            }
         }
 
         public static void ResetAll()
@@ -136,6 +151,7 @@ namespace StrategicOperations.Framework
             CachedUnitCoordinates = new Dictionary<string, Vector3>();
             PositionLockMount = new Dictionary<string, string>();
             PositionLockSwarm = new Dictionary<string, string>();
+            PositionLockAirlift = new Dictionary<string, string>();
             DeferredActorResource = "";
             PopupActorResource = "";
             StrafeWaves = 0; // this is TBD-> want to make beacons define # of waves.

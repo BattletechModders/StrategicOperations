@@ -310,16 +310,14 @@ namespace StrategicOperations.Framework
                 {
                     ModInit.modLog.LogTrace($"DetachFromCarrier call dismount.");
                     //CALL DEFAULT ATTACH CODE
-                    var loc = Vector3.zero;
-                    squad.DismountBA(custMech, loc, false, false, true);
+                    squad.DismountBA(custMech, Vector3.zero, false, false, true);
                 }
             }
             else
             {
                 ModInit.modLog.LogTrace($"DetachFromCarrier call dismount.");
                 //CALL DEFAULT ATTACH CODE
-                var loc = Vector3.zero;
-                squad.DismountBA(attachTarget, loc, false, false, true);
+                squad.DismountBA(attachTarget, Vector3.zero, false, false, true);
             }
         }
 
@@ -759,15 +757,15 @@ namespace StrategicOperations.Framework
                             var hitinfo = new WeaponHitInfo(-1, -1, 0, 0, creator.GUID, swarmingUnitActor.GUID, 1, new float[1], new float[1], new float[1], new bool[1], new int[trooperLocs[i]], new int[1], new AttackImpactQuality[1], new AttackDirection[1], new Vector3[1], new string[1], new int[trooperLocs[i]]);
                             swarmingUnitSquad?.NukeStructureLocation(hitinfo, trooperLocs[i], cLoc, Vector3.up, DamageType.ComponentExplosion);
                         }
+                        swarmingUnitActor.DismountBA(creator, Vector3.zero, false, true);
                         swarmingUnitActor.FlagForDeath("Squished", DeathMethod.VitalComponentDestroyed, DamageType.Melee, 0, -1, creator.GUID, false);
                         swarmingUnitActor.HandleDeath(creator.GUID);
                     }
                     else
                     {
-                        var loc = Vector3.zero;
                         ModInit.modLog.LogMessage(
                             $"[Ability.Activate - DestroyBA on Roll] FAILURE: {destroyBARoll} > {finalChance}.");
-                        swarmingUnitActor.DismountBA(creator, loc, true);
+                        swarmingUnitActor.DismountBA(creator, Vector3.zero, true);
                     }
                 }
                 else
@@ -845,8 +843,7 @@ namespace StrategicOperations.Framework
                             swarmingUnitActor.TakeWeaponDamage(hitinfo, baLoc, swarmingUnitAsSquad.MeleeWeapon, swatDmg, 0, 0, DamageType.Melee);
                         }
                     }
-                    var loc = Vector3.zero;
-                    swarmingUnitActor.DismountBA(creator, loc, true);
+                    swarmingUnitActor.DismountBA(creator, Vector3.zero, true);
                 }
                 else
                 {
@@ -862,10 +859,7 @@ namespace StrategicOperations.Framework
 
         public static void ProcessDeswarmMovement(this AbstractActor creator, List<KeyValuePair<string, string>> swarmingUnits)
         {
-            var DeswarmMovementInfo = new Classes.BA_DeswarmMovementInfo
-            {
-                Carrier = creator
-            };
+            var DeswarmMovementInfo = new Classes.BA_DeswarmMovementInfo(creator);
             ModInit.modLog.LogTrace($"[ProcessDeswarmMovement] - {DeswarmMovementInfo.Carrier.DisplayName} set to {creator.DisplayName}.");
             foreach (var swarmingUnit in swarmingUnits)
             {
