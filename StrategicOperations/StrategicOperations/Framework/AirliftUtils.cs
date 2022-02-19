@@ -14,6 +14,92 @@ namespace StrategicOperations.Framework
 {
     public static class AirliftUtils
     {
+        public static int getInternalLiftCapacity(this AbstractActor actor)
+        {
+            return actor.StatCollection.GetValue<int>("InternalLiftCapacity");
+        }
+        public static int getInternalLiftCapacityUsed(this AbstractActor actor)
+        {
+            return actor.StatCollection.GetValue<int>("InternalLiftCapacityUsed");
+        }
+        public static void modifyAvailableInternalLiftCapacity(this AbstractActor actor, int value)
+        {
+            actor.StatCollection.ModifyStat("modifyAvailableInternalLiftCapacity", -1, "InternalLiftCapacityUsed", StatCollection.StatOperation.Int_Add, value);
+        }
+        public static int getAvailableInternalLiftCapacity(this AbstractActor actor)
+        {
+            return actor.StatCollection.GetValue<int>("InternalLiftCapacity") - actor.StatCollection.GetValue<int>("InternalLiftCapacityUsed");
+        }
+
+        public static int getExternalLiftCapacity(this AbstractActor actor)
+        {
+            return actor.StatCollection.GetValue<int>("ExternalLiftCapacity");
+        }
+        public static int getExternalLiftCapacityUsed(this AbstractActor actor)
+        {
+            return actor.StatCollection.GetValue<int>("ExternalLiftCapacityUsed");
+        }
+        public static void modifyAvailableExternalLiftCapacity(this AbstractActor actor, int value)
+        {
+            actor.StatCollection.ModifyStat("modifyAvailableExternalLiftCapacity", -1, "ExternalLiftCapacityUsed", StatCollection.StatOperation.Int_Add, value);
+        }
+        public static int getAvailableExternalLiftCapacity(this AbstractActor actor)
+        {
+            return actor.StatCollection.GetValue<int>("ExternalLiftCapacity") - actor.StatCollection.GetValue<int>("ExternalLiftCapacityUsed");
+        }
+
+        public static void MountUnitToAirliftCarrier(this AbstractActor carrier, AbstractActor targetUnit,
+            bool shrinkRepForInternal)
+        {
+            if (targetUnit is Mech targetMech)
+            {
+                ModState.PositionLockAirlift.Add(targetMech.GUID, carrier.GUID);
+                
+                if (shrinkRepForInternal)
+                {
+                    //var baseScale = battleArmor.GameRep.transform.localScale;
+                    //ModState.SavedBAScale.Add(battleArmor.GUID, baseScale);
+                    targetMech.GameRep.transform.localScale = new Vector3(.01f, .01f, .01f);
+                    targetMech.GameRep.ToggleHeadlights(false);
+                }
+
+                if (carrier.team.IsFriendly(targetMech.team))
+                {
+                    var availableCapacity = carrier.getAvailableInternalLiftCapacity();
+
+                    if (ModInit.modSettings.AirliftCapacityByTonnage)
+                    {
+                        var unitTonnage = Mathf.RoundToInt(targetMech.tonnage);
+
+                        if (availableCapacity >= unitTonnage)
+                        {
+                            ModInit.modLog.LogMessage(
+                                $"[MountUnitToAirliftCarrier] - target unit {carrier.DisplayName} has available internal lift capacity of {availableCapacity}; mounting {targetMech.DisplayName} internally.");
+                            carrier.modifyAvailableInternalLiftCapacity(unitTonnage);
+                            tracker.IsSquadInternal = true;
+                            // try and set firing arc to 360?
+                            battleArmor.FiringArc(360f);
+                            return;
+                        }
+                    }
+                    else
+                    {
+                        if (availableCapacity > 0)
+                        {
+                            ModInit.modLog.LogMessage(
+                                $"[MountUnitToAirliftCarrier] - target unit {carrier.DisplayName} has internal BA capacity of {internalCap}. Currently used: {currentInternalUsed}, mounting squad internally.");
+                            carrier.modifyInternalBASquads(1);
+                            tracker.IsSquadInternal = true;
+                            // try and set firing arc to 360?
+                            battleArmor.FiringArc(360f);
+                            return;
+                        }
+                    }
+
+                    carrier.setHasExternalMountedBattleArmor(true);
+                }
+            }
+        }
 
         public static void DropAirliftedUnit(this AbstractActor carrier, AbstractActor actor, Vector3 locationOverride, bool calledFromDeswarm = false,
             bool calledFromHandleDeath = false, bool unShrinkRep = true)
@@ -81,7 +167,6 @@ namespace StrategicOperations.Framework
 
             ModInit.modLog.LogMessage(
                 $"[DropAirliftedUnit] Removing PositionLock with rider  {actor.DisplayName} {actor.GUID} and carrier {carrier.DisplayName} {carrier.GUID} and rebuilding visibility cache.");
-            
         }
 
         public class DetachFromCarrierDelegate
@@ -185,7 +270,7 @@ namespace StrategicOperations.Framework
                 ModInit.modLog.LogTrace($"DetachFromCarrier call dismount.");
                 //CALL DEFAULT ATTACH CODE
                 
-                squad.DismountBA(carrier, Vector3.zero, false, false, true);
+                //squad.DismountBA(carrier, Vector3.zero, false, false, true);
             }
         }
     }
