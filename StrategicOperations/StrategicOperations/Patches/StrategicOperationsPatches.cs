@@ -413,7 +413,7 @@ namespace StrategicOperations.Patches
         {
             public static bool Prefix(Ability __instance, AbstractActor creator, Vector3 positionA, Vector3 positionB)
             {
-                ModInit.modLog.LogMessage($"Running Ability.Activate; check if skirmish.") // need to add blocks for self-apply EffectData
+                ModInit.modLog.LogMessage($"Running Ability.Activate; check if skirmish."); // need to add blocks for self-apply EffectData
                 if (__instance.Combat.ActiveContract.ContractTypeValue.IsSkirmish) return true;
                 if (!__instance.IsAvailable)
                 {
@@ -440,6 +440,7 @@ namespace StrategicOperations.Patches
                     __instance.Combat.MessageCenter.PublishMessage(new AbilityActivatedMessage(creator.GUID,
                         creator.GUID, __instance.Def.Id, positionA, positionB));
                     __instance.ActivateCooldown();
+                    __instance.ApplyCreatorEffects(creator);
                     return false;
                 }
 
@@ -451,6 +452,7 @@ namespace StrategicOperations.Patches
                     __instance.Combat.MessageCenter.PublishMessage(new AbilityActivatedMessage(creator.GUID,
                         creator.GUID, __instance.Def.Id, positionA, positionB));
                     __instance.ActivateCooldown();
+                    __instance.ApplyCreatorEffects(creator);
                     return false;
                 }
 

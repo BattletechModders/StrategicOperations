@@ -866,7 +866,56 @@ namespace StrategicOperations.Framework
             attackSequence.ResetWeapons();
         }
 
+        public static void ApplyCreatorEffects(this Ability ability, AbstractActor creator)
+        {
+            for (int i = 0; i < ability.Def.EffectData.Count; i++)
+            {
+                if (ability.Def.EffectData[i].targetingData.effectTriggerType == EffectTriggerType.OnActivation && ability.Def.EffectData[i].targetingData.effectTargetType == EffectTargetType.Creator)
+                {
+                    if (ability.Def.EffectData[i].effectType == EffectType.VFXEffect)
+                    {
+                        if (false)
+                        {
+                            List<ObjectSpawnData> list = new List<ObjectSpawnData>();
+                            var pos = creator.CurrentPosition + Vector3.up;
+                            ObjectSpawnData item = new ObjectSpawnData(ability.Def.EffectData[i].vfxData.vfxName, pos,
+                                Quaternion.identity, true, false);
+                            list.Add(item);
 
+                            var duration = ability.Def.EffectData[i].durationData.duration;
+
+                            SpawnObjectSequence spawnObjectSequence = new SpawnObjectSequence(creator.Combat, list);
+                            creator.Combat.MessageCenter.PublishMessage(
+                                new AddSequenceToStackMessage(spawnObjectSequence));
+                            List<ObjectSpawnData> spawnedObjects = spawnObjectSequence.spawnedObjects;
+                            CleanupObjectSequence cleanupSequence =
+                                new CleanupObjectSequence(creator.Combat, spawnedObjects);
+                            TurnEvent tEvent = new TurnEvent(Guid.NewGuid().ToString(), creator.Combat, duration, null,
+                                cleanupSequence, ability.Def, false);
+                            creator.Combat.TurnDirector.AddTurnEvent(tEvent);
+                        }
+
+                        var hitInfo = default(WeaponHitInfo);
+                        hitInfo.numberOfShots = 1;
+                        hitInfo.hitLocations = new int[1];
+                        hitInfo.hitLocations[0] = 8;
+                        hitInfo.hitPositions = new Vector3[1];
+
+                        var attackPos = creator.GameRep.transform.position + Vector3.up * 100f;
+                        var impactPos = creator.getImpactPositionSimple(attackPos, 8) + Vector3.up * 10f;
+
+                        hitInfo.hitPositions[0] = impactPos;
+                        hitInfo.attackerId = creator.GUID;
+                        hitInfo.targetId = creator.GUID;
+                        creator.Combat.EffectManager.CreateEffect(ability.Def.EffectData[i], ability.Def.EffectData[i].Description.Id, 0, creator, creator, hitInfo, 0, false);
+                    }
+                    else
+                    {
+                        creator.Combat.EffectManager.CreateEffect(ability.Def.EffectData[i], ability.Def.Id, 0, creator, creator, default(WeaponHitInfo), 0, false);
+                    }
+                }
+            }
+        }
 
         public static MethodInfo _activateSpawnTurretMethod = AccessTools.Method(typeof(Ability), "ActivateSpawnTurret");
         public static MethodInfo _activateStrafeMethod = AccessTools.Method(typeof(Ability), "ActivateStrafe");
