@@ -170,7 +170,37 @@ settings in the mod.json:
 		},
 		{
 			"ID": "BA_MountedFireDebuff",
-			"TargetEffectType": "MOUNT",
+			"TargetEffectType": "MOUNT_INT",
+			"Name": "Battle Armor - Mounted Debuff",
+			"description": "Battle Armor has decreased accuracy when firing while mounted.",
+			"effectDataJO": [
+				{
+					"durationData": {},
+					"targetingData": {
+						"effectTriggerType": "Passive",
+						"effectTargetType": "Creator",
+						"showInStatusPanel": true
+					},
+					"effectType": "StatisticEffect",
+					"Description": {
+						"Id": "BA_EasyTargetingPassive",
+						"Name": "Easy shots",
+						"Details": "Battle Armor has decreased accuracy while mounted.",
+						"Icon": "allied-star"
+					},
+					"nature": "Buff",
+					"statisticData": {
+						"statName": "AccuracyModifier",
+						"operation": "Set",
+						"modValue": "8",
+						"modType": "System.Single"
+					}
+				}
+			]
+		},
+		{
+			"ID": "BA_MountedFireDebuff",
+			"TargetEffectType": "MOUNT_EXT",
 			"Name": "Battle Armor - Mounted Debuff",
 			"description": "Battle Armor has decreased accuracy when firing while mounted.",
 			"effectDataJO": [
@@ -340,7 +370,7 @@ settings in the mod.json:
 
 `BPodsAutoActivate` - bool, if true BPod Components will auto-activate when the unit carrying them gets swarmed. If false, only BPods mounted on AI-controlled units will auto-activate (players must manually activate BPods using CAE activation).
 	
-`BATargetEffects` - **Renamed BATargetEffects and changed to list in 2.0.3.1**  Effects which will be applied to Battle Armor while swarming or mounting, depending on value of `TargetEffectType` field. Can be SWARM, MOUNT, or BOTH. Intended use is to improve accuracy and clustering of swarming BA so they always (usually, mostly) hit the same location on the unit they're swarming, and give mounted BA a debuff to accuracy when firing from mount. Of course you can add whatever else you want here.
+`BATargetEffects` - **Renamed BATargetEffects and changed to list in 2.0.3.1**  Effects which will be applied to Battle Armor while swarming or mounting, depending on value of `TargetEffectType` field. Can be SWARM, MOUNT_INT, MOUNT_EXT, or BOTH. Intended use is to improve accuracy and clustering of swarming BA so they always (usually, mostly) hit the same location on the unit they're swarming, and give mounted BA a debuff to accuracy when firing from mount. Of course you can add whatever else you want here. MOUNT_INT will take effect only when mounted internally, while MOUNT_EXT will take effect only when mounted externally. SWAM will only take effect when swarming, and BOTH will always take effect.
 
 <s>`AI_BattleArmorSpawnChance` - float, base probability that AI units that <i>can</i> mount Battle Armor, either mounted externally or internally, will get Battle Armor at contract start. Note that any added Battle Armor is independent of any "support lance" or "extra lance" settings in Mission Control or other mods. Added to AI_BattleArmorSpawnDiffMod for total chance.</s> DEPRECATED, IMPLEMENTED IN BattleArmorFactionAssociations
 
