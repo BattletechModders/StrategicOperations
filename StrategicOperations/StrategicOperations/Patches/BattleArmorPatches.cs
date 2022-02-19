@@ -696,6 +696,7 @@ namespace StrategicOperations.Patches
         [HarmonyPatch(typeof(AttackDirector.AttackSequence), "IsBreachingShot", MethodType.Getter)]
         public static class AttackDirector_AttackSequence_IsBreachingShot
         {
+            static bool Prepare() => !ModInit.modSettings.UsingMechAffinityForSwarmBreach;
             public static void Postfix(AttackDirector.AttackSequence __instance, ref bool __result)
             {
                 if (!__result)
@@ -719,9 +720,8 @@ namespace StrategicOperations.Patches
             {
                 try
                 {
-                    if (ModState.DeSwarmMovementInfo?.Carrier?.GUID == __instance?.owningActor?.GUID ||
-                        ModState.DeSwarmMovementInfo?.Carrier?.GUID == __instance?.OwningMech?.GUID ||
-                        ModState.DeSwarmMovementInfo?.Carrier?.GUID == __instance?.OwningVehicle?.GUID)
+                    if (__instance.owningActor == null) return;
+                    if (ModState.DeSwarmMovementInfo?.Carrier?.GUID == __instance.owningActor.GUID)
                     {
                         var baseChance = __instance.owningActor.getMovementDeSwarmMinChance();
                         var chanceFromPips = __instance.owningActor.EvasivePipsCurrent *
@@ -742,9 +742,8 @@ namespace StrategicOperations.Patches
                                     $"[ActorMovementSequence.CompleteOrders] Roll succeeded, plonking {swarmingUnit.DisplayName} at {selectedWaypoint.Position}");
                                 swarmingUnit.DismountBA(__instance.owningActor, selectedWaypoint.Position, true);
                             }
-
-                            ModState.DeSwarmMovementInfo = new Classes.BA_DeswarmMovementInfo();
                         }
+                        ModState.DeSwarmMovementInfo = new Classes.BA_DeswarmMovementInfo();
                     }
                 }
                 catch (Exception ex)
@@ -759,7 +758,8 @@ namespace StrategicOperations.Patches
         {
             public static void Postfix(MechJumpSequence __instance)
             {
-                if (ModState.DeSwarmMovementInfo?.Carrier?.GUID == __instance?.OwningMech?.GUID)
+                if (__instance.OwningMech == null) return;
+                if (ModState.DeSwarmMovementInfo?.Carrier?.GUID == __instance.OwningMech.GUID)
                 {
                     var baseChance = __instance.owningActor.getMovementDeSwarmMinChance();
                     var chanceFromPips = __instance.owningActor.EvasivePipsCurrent *
@@ -797,8 +797,8 @@ namespace StrategicOperations.Patches
                                 }
                             }
                         }
-                        ModState.DeSwarmMovementInfo = new Classes.BA_DeswarmMovementInfo();
                     }
+                    ModState.DeSwarmMovementInfo = new Classes.BA_DeswarmMovementInfo();
                 }
             }
         }

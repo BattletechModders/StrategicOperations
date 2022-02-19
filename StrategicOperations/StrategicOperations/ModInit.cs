@@ -100,6 +100,9 @@ namespace StrategicOperations
         public List<string> BeaconExcludedContractTypes = new List<string>();
         public List<string> BeaconExcludedContractIDs = new List<string>();
 
+        public bool UsingMechAffinityForSwarmBreach = false;
+
         public string AirliftUnitID = "";
+        public bool AirliftCapacityByTonnage = false;
     }
 }

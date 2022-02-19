@@ -76,9 +76,9 @@ namespace StrategicOperations.Framework
                             ModInit.modLog.LogMessage(
                                 $"[MountUnitToAirliftCarrier] - target unit {carrier.DisplayName} has available internal lift capacity of {availableCapacity}; mounting {targetMech.DisplayName} internally.");
                             carrier.modifyAvailableInternalLiftCapacity(unitTonnage);
-                            tracker.IsSquadInternal = true;
+                            //tracker.IsSquadInternal = true;
                             // try and set firing arc to 360?
-                            battleArmor.FiringArc(360f);
+                            //battleArmor.FiringArc(360f);
                             return;
                         }
                     }
@@ -86,12 +86,11 @@ namespace StrategicOperations.Framework
                     {
                         if (availableCapacity > 0)
                         {
-                            ModInit.modLog.LogMessage(
-                                $"[MountUnitToAirliftCarrier] - target unit {carrier.DisplayName} has internal BA capacity of {internalCap}. Currently used: {currentInternalUsed}, mounting squad internally.");
+                         //   ModInit.modLog.LogMessage($"[MountUnitToAirliftCarrier] - target unit {carrier.DisplayName} has internal BA capacity of {internalCap}. Currently used: {currentInternalUsed}, mounting squad internally.");
                             carrier.modifyInternalBASquads(1);
-                            tracker.IsSquadInternal = true;
+                           // tracker.IsSquadInternal = true;
                             // try and set firing arc to 360?
-                            battleArmor.FiringArc(360f);
+                          //  battleArmor.FiringArc(360f);
                             return;
                         }
                     }
