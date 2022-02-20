@@ -162,10 +162,42 @@ namespace StrategicOperations.Patches
                         return;
                     }
                 }
+                var combat = ____parentActor.Combat;
+                if (____parentActor.HasAirliftedEnemy() || ____parentActor.HasAirliftedFriendly())
+                {
+                    var airliftedUnits= ModState.AirliftTrackers.Where(x =>
+                        x.Value.TargetGUID == ____parentActor.GUID);
+                    foreach (var trackerInfo in airliftedUnits)
+                    {
+                        var targetActor = combat.FindActorByGUID(trackerInfo.Key);
+                        if (targetActor == null) continue;
+                        if (____parentActor is CustomMech mech)
+                        {
+                            var pos = ____parentActor.CurrentPosition + Vector3.down * trackerInfo.Value.Offset + Vector3.up * mech.custGameRep.HeightController.CurrentHeight;
+                            targetActor.TeleportActor(pos);
+                        }
+                        else
+                        {
+                            var pos = ____parentActor.CurrentPosition + Vector3.down * trackerInfo.Value.Offset;
+                            targetActor.TeleportActor(pos);
+                        }
+                        targetActor.MountedEvasion(____parentActor);
+                        ModInit.modLog.LogTrace($"PositionLockMount- Setting airlifted unit {targetActor.DisplayName} position to same as carrier unit {____parentActor.DisplayName}");
+
+                        if (!ModState.CachedUnitCoordinates.ContainsKey(targetActor.GUID))
+                        {
+                            ModState.CachedUnitCoordinates.Add(targetActor.GUID, targetActor.CurrentPosition);
+                        }
+                        else
+                        {
+                            ModState.CachedUnitCoordinates[targetActor.GUID] = targetActor.CurrentPosition;
+                        }
+                    }
+                }
+
 
                 if (____parentActor.HasMountedUnits())
                 {
-                    var combat = ____parentActor.Combat;
                     var targetActorGUIDs = ModState.PositionLockMount.Where(x=>x.Value == ____parentActor.GUID);
                     foreach (var targetActorGUID in targetActorGUIDs)
                     {
@@ -182,40 +214,40 @@ namespace StrategicOperations.Patches
                         {
                             targetActor.TeleportActor(____parentActor.CurrentPosition);
                         }
-                        targetActor.BA_MountedEvasion(____parentActor);
+                        targetActor.MountedEvasion(____parentActor);
                         ModInit.modLog.LogTrace($"PositionLockMount- Setting riding unit {targetActor.DisplayName} position to same as carrier unit {____parentActor.DisplayName}");
-                    }
 
-                    if (!ModState.CachedUnitCoordinates.ContainsKey(____parentActor.GUID))
-                    {
-                        ModState.CachedUnitCoordinates.Add(____parentActor.GUID, ____parentActor.CurrentPosition);
-                    }
-                    else
-                    {
-                        ModState.CachedUnitCoordinates[____parentActor.GUID] = ____parentActor.CurrentPosition;
+                        if (!ModState.CachedUnitCoordinates.ContainsKey(targetActor.GUID))
+                        {
+                            ModState.CachedUnitCoordinates.Add(targetActor.GUID, targetActor.CurrentPosition);
+                        }
+                        else
+                        {
+                            ModState.CachedUnitCoordinates[targetActor.GUID] = targetActor.CurrentPosition;
+                        }
                     }
                 }
                 // removed return/else so swarming units are locked to carrier even if carrier has mounted units. derp.
                 if (____parentActor.HasSwarmingUnits())
                 {
-                    var combat = ____parentActor.Combat;
+                    
                     var targetActorGUIDs = ModState.PositionLockSwarm.Where(x => x.Value == ____parentActor.GUID);
                     foreach (var targetActorGUID in targetActorGUIDs)
                     {
                         var targetActor = combat.FindActorByGUID(targetActorGUID.Key);
                         if (targetActor == null) continue;
                         targetActor.TeleportActor(____parentActor.CurrentPosition);
-                        targetActor.BA_MountedEvasion(____parentActor);
+                        targetActor.MountedEvasion(____parentActor);
                         ModInit.modLog.LogTrace($"PositionLockMount- Setting riding unit {targetActor.DisplayName} position to same as carrier unit {____parentActor.DisplayName}");
-                    }
 
-                    if (!ModState.CachedUnitCoordinates.ContainsKey(____parentActor.GUID))
-                    {
-                        ModState.CachedUnitCoordinates.Add(____parentActor.GUID, ____parentActor.CurrentPosition);
-                    }
-                    else
-                    {
-                        ModState.CachedUnitCoordinates[____parentActor.GUID] = ____parentActor.CurrentPosition;
+                        if (!ModState.CachedUnitCoordinates.ContainsKey(targetActor.GUID))
+                        {
+                            ModState.CachedUnitCoordinates.Add(targetActor.GUID, targetActor.CurrentPosition);
+                        }
+                        else
+                        {
+                            ModState.CachedUnitCoordinates[targetActor.GUID] = targetActor.CurrentPosition;
+                        }
                     }
                 }
             }

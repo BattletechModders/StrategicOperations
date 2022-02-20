@@ -14,6 +14,114 @@ namespace StrategicOperations.Framework
 {
     public class Classes
     {
+        public class StrategicMovementInvocation : AbstractActorMovementInvocation
+        {
+            public new string ActorGUID = "";
+            public new bool AbilityConsumesFiring;
+            public new List<WayPoint> Waypoints = new List<WayPoint>();
+            public new MoveType MoveType;
+            public new Vector3 FinalOrientation;
+            public new string MeleeTargetGUID = "";
+            public AbstractActor MoveTarget;
+            public bool IsFriendly;
+            public bool IsMountOrSwarm;
+            public StrategicMovementInvocation(){}
+            public StrategicMovementInvocation(AbstractActor actor, bool abilityConsumesFiring, AbstractActor moveTarget, bool isFriendly, bool isMountOrSwarm) : base(actor, abilityConsumesFiring)
+            {
+                Pathing pathing = actor.Pathing;
+
+                this.MoveTarget = moveTarget;
+                pathing.UpdateFreePath(moveTarget.CurrentPosition, moveTarget.CurrentPosition, false, false);
+                this.ActorGUID = actor.GUID;
+                this.AbilityConsumesFiring = abilityConsumesFiring;
+                List<WayPoint> collection = ActorMovementSequence.ExtractWaypointsFromPath(actor, pathing.CurrentPath, pathing.ResultDestination, pathing.CurrentMeleeTarget, this.MoveType);
+                this.Waypoints = new List<WayPoint>(collection);
+                this.MoveType = pathing.MoveType;
+                this.FinalOrientation = pathing.ResultAngleAsVector;
+                this.MeleeTargetGUID = "";
+                this.IsFriendly = isFriendly;
+                this.IsMountOrSwarm = isMountOrSwarm;
+            }
+
+            public override bool Invoke(CombatGameState combat)
+            {
+                InvocationMessage.logger.Log("Invoking a STRATEGIC MOVE!");
+                AbstractActor abstractActor = combat.FindActorByGUID(this.ActorGUID);
+                if (abstractActor == null)
+                {
+                    InvocationMessage.logger.LogError(string.Format("MechMovement.Invoke Actor with GUID {0} not found!", this.ActorGUID));
+                    return false;
+                }
+                ICombatant combatant = null;
+                if (!string.IsNullOrEmpty(this.MeleeTargetGUID))
+                {
+                    combatant = combat.FindCombatantByGUID(this.MeleeTargetGUID, false);
+                    if (combatant == null)
+                    {
+                        InvocationMessage.logger.LogError(string.Format("MechMovement.Invoke ICombatant with GUID {0} not found!", this.MeleeTargetGUID));
+                        return false;
+                    }
+                }
+
+                StrategicMovementSequence stackSequence = new StrategicMovementSequence(abstractActor, this.Waypoints, this.FinalOrientation, this.MoveType, combatant, this.AbilityConsumesFiring, this.MoveTarget, this.IsFriendly, this.IsMountOrSwarm);
+                base.PublishStackSequence(combat.MessageCenter, stackSequence, this);
+                return true;
+            }
+        }
+
+        public class StrategicMovementSequence : ActorMovementSequence
+        {
+            public AbstractActor Target;
+            public bool IsFriendly;
+            public bool MountSwarmBA;
+
+            public StrategicMovementSequence(AbstractActor actor, List<WayPoint> waypoints, Vector3 finalOrientation, MoveType moveType, ICombatant meleeTarget, bool consumesFiring, AbstractActor target, bool friendly, bool mountORswarm) : base(actor, waypoints, finalOrientation, moveType, meleeTarget, consumesFiring)
+            {
+                this.Target = target;
+                this.IsFriendly = friendly;
+                this.MountSwarmBA = mountORswarm;
+            }
+
+            public override void CompleteOrders()
+            {
+                base.CompleteOrders();
+                if (MountSwarmBA)
+                {
+                    ModInit.modLog.LogMessage($"[StrategicMovementSequence] Called for BA movement to mount or swarm.");
+                    if (base.owningActor is TrooperSquad squad)
+                    {
+                        if (this.IsFriendly)
+                        {
+                            if (!squad.IsMountedUnit())
+                            {
+                                squad.AttachToCarrier(this.Target, IsFriendly);
+                                return;
+                            }
+                        }
+
+                        if (!squad.IsSwarmingUnit())
+                        {
+                            squad.AttachToCarrier(this.Target, IsFriendly);
+                        }
+                    }
+                    ModInit.modLog.LogMessage($"[StrategicMovementSequence] ERROR: called sequence for BA, but target actor is not TrooperSquad.");
+                    return;
+                }
+                ModInit.modLog.LogMessage($"[StrategicMovementSequence] Called for airlift/dropoff.");
+
+                if (this.Target.IsAirliftedFriendly() || this.Target.IsAirliftedEnemy())
+                {
+                    this.Target.DetachFromAirliftCarrier(base.OwningActor, IsFriendly);
+                    return;
+                }
+
+                if (!this.Target.IsAirliftedEnemy() && !this.Target.IsAirliftedFriendly())
+                {
+                    this.Target.AttachToAirliftCarrier(base.OwningActor, IsFriendly);
+                }
+            }
+        }
+
         public enum BA_TargetEffectType
         {
             MOUNT_INT,
@@ -508,19 +616,22 @@ namespace StrategicOperations.Framework
             public string TargetGUID = ""; // guid of carrier unit.
             public bool IsCarriedInternal;
             public bool IsFriendly; // key is BA unit chassis location (HD, CT, LT, RT, LA, RA), value is BA mounted ARMOR location on carrier.
+            public float Offset;
 
             public AirliftTracker()
             {
                 this.TargetGUID = "";
                 this.IsCarriedInternal = false;
                 this.IsFriendly = false;
+                this.Offset = 0f;
             }
 
-            public AirliftTracker(string targetGUID, bool internalCarry, bool isFriendly)
+            public AirliftTracker(string targetGUID, bool internalCarry, bool isFriendly, float offset)
             {
                 this.TargetGUID = targetGUID;
                 this.IsCarriedInternal = internalCarry;
                 this.IsFriendly = isFriendly;
+                this.Offset = offset;
             }
         }
 

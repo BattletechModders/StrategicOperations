@@ -42,7 +42,7 @@ namespace StrategicOperations.Framework
         public static Dictionary<string, string> PositionLockSwarm = new Dictionary<string, string>(); // key is mounted unit, value is carrier
         //public static Dictionary<string, string> PositionLockAirlift = new Dictionary<string, string>(); // key is mounted unit, value is carrier
 
-        public static Dictionary<string, AirliftTracker> AirliftTrackers = new Dictionary<string, AirliftTracker>();
+        public static Dictionary<string, AirliftTracker> AirliftTrackers = new Dictionary<string, AirliftTracker>(); //Key is mounted unit, value has carrier
 
         public static List<Ability> CommandAbilities = new List<Ability>();
 

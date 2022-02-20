@@ -486,7 +486,7 @@ namespace StrategicOperations.Framework
             }
         }
 
-        public static void BA_MountedEvasion(this AbstractActor actor, AbstractActor carrier)
+        public static void MountedEvasion(this AbstractActor actor, AbstractActor carrier)
         {
             ModInit.modLog.LogMessage($"Adding BA mounted protection to {actor.DisplayName}.");
 

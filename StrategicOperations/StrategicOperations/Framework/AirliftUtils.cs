@@ -48,10 +48,35 @@ namespace StrategicOperations.Framework
             return actor.StatCollection.GetValue<int>("ExternalLiftCapacity") - actor.StatCollection.GetValue<int>("ExternalLiftCapacityUsed");
         }
 
+
+
+
+
         public static void MountUnitToAirliftCarrier(this AbstractActor carrier, AbstractActor targetUnit, bool isFriendly)
         {
             if (targetUnit is Mech targetMech)
             {
+                foreach (var airliftEffect in ModState.AirliftEffects)
+                {
+                    if (airliftEffect.FriendlyAirlift && isFriendly)
+                    {
+                        foreach (var effectData in airliftEffect.effects)
+                        {
+                            targetMech.Combat.EffectManager.CreateEffect(effectData,
+                                airliftEffect.ID,
+                                -1, targetMech, targetMech, default(WeaponHitInfo), 1);
+                        }
+                    }
+                    else if (!airliftEffect.FriendlyAirlift && !isFriendly)
+                    {
+                        foreach (var effectData in airliftEffect.effects)
+                        {
+                            targetMech.Combat.EffectManager.CreateEffect(effectData,
+                                airliftEffect.ID,
+                                -1, targetMech, targetMech, default(WeaponHitInfo), 1);
+                        }
+                    }
+                }
                 var availableInternalCapacity = carrier.getAvailableInternalLiftCapacity();
                 var availableExternalCapacity = carrier.getAvailableExternalLiftCapacity();
                 var unitTonnage = Mathf.RoundToInt(targetMech.tonnage);
@@ -64,7 +89,7 @@ namespace StrategicOperations.Framework
                             ModInit.modLog.LogMessage(
                                 $"[MountUnitToAirliftCarrier] - target unit {carrier.DisplayName} has available internal lift capacity of {availableInternalCapacity}; mounting {targetMech.DisplayName} internally.");
                             carrier.modifyUsedInternalLiftCapacity(unitTonnage);
-                            ModState.AirliftTrackers.Add(targetMech.GUID, new Classes.AirliftTracker(carrier.GUID, true, true));
+                            ModState.AirliftTrackers.Add(targetMech.GUID, new Classes.AirliftTracker(carrier.GUID, true, true, 0f));
                             //shrinkadink
                             targetMech.GameRep.transform.localScale = new Vector3(.01f, .01f, .01f);
                             targetMech.GameRep.ToggleHeadlights(false);
@@ -75,7 +100,7 @@ namespace StrategicOperations.Framework
                             ModInit.modLog.LogMessage(
                                 $"[MountUnitToAirliftCarrier] - target unit {carrier.DisplayName} has available external lift capacity of {availableExternalCapacity}; mounting {targetMech.DisplayName} externally.");
                             carrier.modifyUsedExternalLiftCapacity(unitTonnage);
-                            ModState.AirliftTrackers.Add(targetMech.GUID, new Classes.AirliftTracker(carrier.GUID, false, true));
+                            ModState.AirliftTrackers.Add(targetMech.GUID, new Classes.AirliftTracker(carrier.GUID, false, true, 5f));
                         }
                     }
                     else
@@ -83,7 +108,7 @@ namespace StrategicOperations.Framework
                         if (availableInternalCapacity > 0)
                         {
                             carrier.modifyUsedInternalLiftCapacity(1);
-                            ModState.AirliftTrackers.Add(targetMech.GUID, new Classes.AirliftTracker(carrier.GUID, false, true));
+                            ModState.AirliftTrackers.Add(targetMech.GUID, new Classes.AirliftTracker(carrier.GUID, false, true, 0f));
                             //shrinkadink
                             targetMech.GameRep.transform.localScale = new Vector3(.01f, .01f, .01f);
                             targetMech.GameRep.ToggleHeadlights(false);
@@ -94,7 +119,7 @@ namespace StrategicOperations.Framework
                             ModInit.modLog.LogMessage(
                                 $"[MountUnitToAirliftCarrier] - target unit {carrier.DisplayName} has available external lift capacity of {availableExternalCapacity}; mounting {targetMech.DisplayName} externally.");
                             carrier.modifyUsedExternalLiftCapacity(1);
-                            ModState.AirliftTrackers.Add(targetMech.GUID, new Classes.AirliftTracker(carrier.GUID, false, true));
+                            ModState.AirliftTrackers.Add(targetMech.GUID, new Classes.AirliftTracker(carrier.GUID, false, true, 5f));
                         }
                     }
                 }
@@ -107,7 +132,7 @@ namespace StrategicOperations.Framework
                             ModInit.modLog.LogMessage(
                                 $"[MountUnitToAirliftCarrier] - target unit {carrier.DisplayName} has available external lift capacity of {availableExternalCapacity}; mounting {targetMech.DisplayName} externally.");
                             carrier.modifyUsedExternalLiftCapacity(unitTonnage);
-                            ModState.AirliftTrackers.Add(targetMech.GUID, new Classes.AirliftTracker(carrier.GUID, false, true));
+                            ModState.AirliftTrackers.Add(targetMech.GUID, new Classes.AirliftTracker(carrier.GUID, false, true, 5f));
                         }
                     }
                     else
@@ -117,7 +142,7 @@ namespace StrategicOperations.Framework
                             ModInit.modLog.LogMessage(
                                 $"[MountUnitToAirliftCarrier] - target unit {carrier.DisplayName} has available external lift capacity of {availableExternalCapacity}; mounting {targetMech.DisplayName} externally.");
                             carrier.modifyUsedExternalLiftCapacity(1);
-                            ModState.AirliftTrackers.Add(targetMech.GUID, new Classes.AirliftTracker(carrier.GUID, false, true));
+                            ModState.AirliftTrackers.Add(targetMech.GUID, new Classes.AirliftTracker(carrier.GUID, false, true, 5f));
                         }
                     }
                 }
