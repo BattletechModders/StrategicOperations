@@ -381,7 +381,7 @@ namespace StrategicOperations.Patches
                         {
                             if (__instance.Def.Id == ModInit.modSettings.BattleArmorMountAndSwarmID)
                             {
-                                creator.DismountBA(targetActor, Vector3.zero);
+                                creator.DismountBA(targetActor, Vector3.zero, false);
                             }
                         }
                         else if (creator.IsMountedUnit())
@@ -392,7 +392,7 @@ namespace StrategicOperations.Patches
                                 {
                                     //ModInit.modLog.LogTrace($"[Ability.Activate] Called DetachFromCarrier.");
                                     squad.DismountBA(targetActor, Vector3.zero, false, false, false);
-                                    squad.DetachFromCarrier(targetActor);
+                                    squad.DetachFromCarrier(targetActor, true);
                                 }
                                 //creator.DismountBA(targetActor);
                             }

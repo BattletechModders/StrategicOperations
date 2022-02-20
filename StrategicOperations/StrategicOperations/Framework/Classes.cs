@@ -106,7 +106,7 @@ namespace StrategicOperations.Framework
                 ModState.PositionLockMount.Add(newBattleArmor.GUID, Actor.GUID);
                 if (newBattleArmor is TrooperSquad squad)
                 {
-                    squad.AttachToCarrier(Actor);
+                    squad.AttachToCarrier(Actor, true);
                 }
                 Actor.Combat.ItemRegistry.AddItem(newBattleArmor);
                 Actor.Combat.RebuildAllLists();
@@ -502,6 +502,28 @@ namespace StrategicOperations.Framework
                 this.BA_MountedLocations = mountedLocations;
             }
         }
+
+        public class AirliftTracker
+        {
+            public string TargetGUID = ""; // guid of carrier unit.
+            public bool IsCarriedInternal;
+            public bool IsFriendly; // key is BA unit chassis location (HD, CT, LT, RT, LA, RA), value is BA mounted ARMOR location on carrier.
+
+            public AirliftTracker()
+            {
+                this.TargetGUID = "";
+                this.IsCarriedInternal = false;
+                this.IsFriendly = false;
+            }
+
+            public AirliftTracker(string targetGUID, bool internalCarry, bool isFriendly)
+            {
+                this.TargetGUID = targetGUID;
+                this.IsCarriedInternal = internalCarry;
+                this.IsFriendly = isFriendly;
+            }
+        }
+
 
         public class BA_TargetEffect
         {

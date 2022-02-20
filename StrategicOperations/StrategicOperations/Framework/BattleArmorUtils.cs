@@ -243,7 +243,7 @@ namespace StrategicOperations.Framework
             public void OnLandAttach()
             {
                 //HIDE SQUAD REPRESENTATION
-                attachTarget.MountBattleArmorToChassis(squad, true);
+                attachTarget.MountBattleArmorToChassis(squad, true, true);
                 //attachTarget.HideBattleArmorOnChassis(squad);
             }
 
@@ -257,12 +257,12 @@ namespace StrategicOperations.Framework
             }
         }
 
-        public static void AttachToCarrier(this TrooperSquad squad, AbstractActor attachTarget)
+        public static void AttachToCarrier(this TrooperSquad squad, AbstractActor attachTarget, bool isFriendly)
         {
-            if (attachTarget is CustomMech custMech && attachTarget.team.IsFriendly(squad.team))
+            if (isFriendly)
             {
                 ModInit.modLog.LogTrace($"AttachToCarrier processing on friendly.");
-                if (custMech.FlyingHeight() > 1.5f)
+                if (attachTarget is CustomMech custMech && custMech.FlyingHeight() > 1.5f)
                 {
                     //Check if actually flying unit
                     //CALL ATTACH CODE BUT WITHOUT SQUAD REPRESENTATION HIDING
@@ -278,24 +278,24 @@ namespace StrategicOperations.Framework
                 {
                     ModInit.modLog.LogTrace($"AttachToCarrier call mount.");
                     //CALL DEFAULT ATTACH CODE
-                    custMech.MountBattleArmorToChassis(squad, true);
+                    attachTarget.MountBattleArmorToChassis(squad, true, true);
                 }
             }
             else
             {
                 ModInit.modLog.LogTrace($"AttachToCarrier call mount.");
                 //CALL DEFAULT ATTACH CODE
-                attachTarget.MountBattleArmorToChassis(squad, true);
+                attachTarget.MountBattleArmorToChassis(squad, true, false);
             }
         }
 
-        public static void DetachFromCarrier(this TrooperSquad squad, AbstractActor attachTarget)
+        public static void DetachFromCarrier(this TrooperSquad squad, AbstractActor attachTarget, bool isFriendly)
         {
             ModState.PositionLockMount.Remove(squad.GUID);
-            if (attachTarget is CustomMech custMech && attachTarget.team.IsFriendly(squad.team))
+            if (isFriendly)
             {
                 ModInit.modLog.LogTrace($"DetachFromCarrier processing on friendly.");
-                if (custMech.FlyingHeight() > 1.5f)
+                if (attachTarget is CustomMech custMech && custMech.FlyingHeight() > 1.5f)
                 {
                     //Check if actually flying unit
                     //CALL ATTACH CODE BUT WITHOUT SQUAD REPRESENTATION HIDING
@@ -310,7 +310,7 @@ namespace StrategicOperations.Framework
                 {
                     ModInit.modLog.LogTrace($"DetachFromCarrier call dismount.");
                     //CALL DEFAULT ATTACH CODE
-                    squad.DismountBA(custMech, Vector3.zero, false, false, true);
+                    squad.DismountBA(attachTarget, Vector3.zero, false, false, true);
                 }
             }
             else
@@ -321,7 +321,7 @@ namespace StrategicOperations.Framework
             }
         }
 
-        public static void MountBattleArmorToChassis(this AbstractActor carrier, AbstractActor battleArmor, bool shrinkRep)
+        public static void MountBattleArmorToChassis(this AbstractActor carrier, AbstractActor battleArmor, bool shrinkRep, bool isFriendly)
         {
             if (battleArmor is Mech battleArmorAsMech)
             {
@@ -353,7 +353,7 @@ namespace StrategicOperations.Framework
                     tracker.BA_MountedLocations = new Dictionary<int, int>();
                 }
 
-                if (carrier.team.IsFriendly(battleArmorAsMech.team))
+                if (isFriendly)
                 {
                     var internalCap = carrier.getInternalBACap();
                     var currentInternalSquads = carrier.getInternalBASquads();
@@ -586,7 +586,7 @@ namespace StrategicOperations.Framework
             return point;
         }
 
-        public static void DismountBA(this AbstractActor actor, AbstractActor carrier, Vector3 locationOverride, bool calledFromDeswarm = false,
+        public static void DismountBA(this AbstractActor actor, AbstractActor carrier, Vector3 locationOverride, bool isFriendly, bool calledFromDeswarm = false,
             bool calledFromHandleDeath = false, bool unShrinkRep = true)
         {
             if (actor is TrooperSquad squad)
@@ -594,7 +594,7 @@ namespace StrategicOperations.Framework
                 //if (squad.StatCollection.ContainsStatistic("irbtmu_immobile_unit")) squad.StatCollection.Set("irbtmu_immobile_unit", false);
                 if (ModState.BADamageTrackers.ContainsKey(actor.GUID))
                 {
-                    if (squad.team.IsFriendly(carrier.team))
+                    if (isFriendly)
                     {
                         if (ModState.BADamageTrackers[actor.GUID].IsSquadInternal)
                         {
@@ -910,7 +910,7 @@ namespace StrategicOperations.Framework
             if (creator is TrooperSquad squad)
             {
                 squad.GameRep.transform.localScale = new Vector3(.01f, .01f, .01f);
-                squad.AttachToCarrier(targetActor);
+                squad.AttachToCarrier(targetActor, true);
                 ModInit.modLog.LogTrace($"[Ability.Activate - BattleArmorMountID] Called AttachToCarrier.");
             }
             ModInit.modLog.LogMessage(
@@ -980,7 +980,7 @@ namespace StrategicOperations.Framework
                 ModState.PositionLockSwarm.Add(creatorMech.GUID, targetActor.GUID);
                 if (creatorMech is TrooperSquad squad)
                 {
-                    squad.AttachToCarrier(targetActor);
+                    squad.AttachToCarrier(targetActor, false);
                     ModInit.modLog.LogTrace($"[Ability.Activate - BattleArmorMountID] Called AttachToCarrier.");
                 }
                 ModInit.modLog.LogMessage(

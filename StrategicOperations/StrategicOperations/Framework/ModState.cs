@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Collections.Specialized;
+using System.Configuration;
 using Abilifier;
 using BattleTech;
 using UnityEngine;
@@ -39,7 +40,9 @@ namespace StrategicOperations.Framework
         public static Dictionary<string, Vector3> CachedUnitCoordinates = new Dictionary<string, Vector3>();
         public static Dictionary<string, string> PositionLockMount = new Dictionary<string, string>(); // key is mounted unit, value is carrier
         public static Dictionary<string, string> PositionLockSwarm = new Dictionary<string, string>(); // key is mounted unit, value is carrier
-        public static Dictionary<string, string> PositionLockAirlift = new Dictionary<string, string>(); // key is mounted unit, value is carrier
+        //public static Dictionary<string, string> PositionLockAirlift = new Dictionary<string, string>(); // key is mounted unit, value is carrier
+
+        public static Dictionary<string, AirliftTracker> AirliftTrackers = new Dictionary<string, AirliftTracker>();
 
         public static List<Ability> CommandAbilities = new List<Ability>();
 
@@ -140,7 +143,8 @@ namespace StrategicOperations.Framework
             CurrentBattleArmorSquads = new Dictionary<string, int>();
             CurrentFactionSettingsList = new List<AI_FactionCommandAbilitySetting>();
             PendingStrafeWaves = new Dictionary<string, PendingStrafeWave>();
-            BADamageTrackers = new Dictionary<string, BA_DamageTracker>(); 
+            BADamageTrackers = new Dictionary<string, BA_DamageTracker>();
+            AirliftTrackers = new Dictionary<string, AirliftTracker>();
             CommandAbilities = new List<Ability>();
             DeferredInvokeSpawns = new List<KeyValuePair<string, Action>>();
             DeferredInvokeBattleArmor = new List<KeyValuePair<string, Action>>();
@@ -151,7 +155,6 @@ namespace StrategicOperations.Framework
             CachedUnitCoordinates = new Dictionary<string, Vector3>();
             PositionLockMount = new Dictionary<string, string>();
             PositionLockSwarm = new Dictionary<string, string>();
-            PositionLockAirlift = new Dictionary<string, string>();
             DeferredActorResource = "";
             PopupActorResource = "";
             StrafeWaves = 0; // this is TBD-> want to make beacons define # of waves.
