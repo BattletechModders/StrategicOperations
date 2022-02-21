@@ -125,7 +125,7 @@ namespace StrategicOperations.Framework
 
         public static float GetVerticalOffsetForExternalMount(this AbstractActor targetUnit)
         {
-            return targetUnit.HighestLOSPosition.y * .8f;
+            return targetUnit.HighestLOSPosition.y * .7f;
         }
         public static List<AbstractActor> GetAirliftedUnits(this AbstractActor carrier)
         {
@@ -398,6 +398,17 @@ namespace StrategicOperations.Framework
                 var pos = Carrier.CurrentPosition + offset +
                           Vector3.up * Carrier.custGameRep.HeightController.CurrentHeight;
                 Actor.TeleportActor(pos);
+
+                //Actor.GameRep.thisTransform.rotation = Quaternion.identity;
+                //Actor.CurrentRotation = Quaternion.identity;
+                if (Actor is CustomMech customMech)
+                {
+                    customMech.custGameRep.j_Root.localRotation = Quaternion.identity;
+                }
+                Actor.GameRep.thisTransform.rotation = Carrier.GameRep.thisTransform.rotation;
+                Actor.CurrentRotation = Carrier.CurrentRotation;
+                //var rotate = Quaternion.LookRotation(Carrier.CurrentRotation.eulerAngles);
+                //Actor.GameRep.thisTransform.LookAt(rotate.eulerAngles, Vector3.up);
             }
         }
 

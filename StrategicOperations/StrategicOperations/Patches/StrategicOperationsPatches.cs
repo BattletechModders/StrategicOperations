@@ -190,7 +190,11 @@ namespace StrategicOperations.Patches
 
                 if (ModState.CachedUnitCoordinates.ContainsKey(____parentActor.GUID))
                 {
-                    if (ModState.CachedUnitCoordinates[____parentActor.GUID] == ____parentActor.CurrentPosition)
+                    if (____parentActor is CustomMech mech)
+                    {
+                        if (ModState.CachedUnitCoordinates[____parentActor.GUID] == ____parentActor.CurrentPosition && !mech.custGameRep.HeightController.isInChangeHeight) return;
+                    }
+                    else if (ModState.CachedUnitCoordinates[____parentActor.GUID] == ____parentActor.CurrentPosition)
                     {
                         return;
                     }
@@ -1770,10 +1774,17 @@ namespace StrategicOperations.Patches
                     }
                 }
 
-                if (ability.Def.Id == ModInit.modSettings.AirliftAbilityID && ModInit.modSettings.CanDropOffAfterMoving && actor.MovingToPosition == null) // maybe need to check IsAnyOrderActive (but that might screw me)
+                if (ability.Def.Id == ModInit.modSettings.AirliftAbilityID && ModInit.modSettings.CanDropOffAfterMoving)// && actor.MovingToPosition == null) // maybe need to check IsAnyOrderActive (but that might screw me)
                 {
                     if (actor.HasAirliftedEnemy() || actor.HasAirliftedFriendly())
                     {
+                        //button.DisableButton();
+                        //if (!button.gameObject.activeSelf)
+                        //{
+                        //    button.gameObject.SetActive(true);
+                        //}
+
+                        //button.InitButton(CombatHUDMechwarriorTray.GetSelectionTypeFromTargeting(ability.Def.Targeting, false), ability, ability.Def.AbilityIcon, ability.Def.Description.Id, ability.Def.Description.Name, actor);
                         button.ResetButtonIfNotActive(actor);
                     }
                 }
@@ -1813,11 +1824,69 @@ namespace StrategicOperations.Patches
                     }
                 }
 
-                if (ability.Def.Id == ModInit.modSettings.AirliftAbilityID && ModInit.modSettings.CanDropOffAfterMoving && actor.MovingToPosition == null) // maybe need to check IsAnyOrderActive (but that might screw me)
+                if (ability.Def.Id == ModInit.modSettings.AirliftAbilityID && ModInit.modSettings.CanDropOffAfterMoving)// && actor.MovingToPosition == null) // maybe need to check IsAnyOrderActive (but that might screw me)
                 {
                     if (actor.HasAirliftedEnemy() || actor.HasAirliftedFriendly())
                     {
-                        button.ResetButtonIfNotActive(actor); //also need to check targeting make sure ca only target self if has activated this round
+                        //button.DisableButton();
+                        //if (!button.gameObject.activeSelf)
+                        //{
+                        //    button.gameObject.SetActive(true);
+                        //}
+
+                        //button.InitButton(CombatHUDMechwarriorTray.GetSelectionTypeFromTargeting(ability.Def.Targeting, false), ability, ability.Def.AbilityIcon, ability.Def.Description.Id, ability.Def.Description.Name, actor);
+                        button.ResetButtonIfNotActive(actor);
+                    }
+                }
+            }
+        }
+
+        [HarmonyPatch(typeof(CombatHUDEquipmentSlotEx), "ResetAbilityButton",
+            new Type[] {typeof(AbstractActor), typeof(CombatHUDActionButton), typeof(Ability), typeof(bool)})]
+        public static class CombatHUDEquipmentSlotEx_ResetAbilityButton
+        {
+            public static void Postfix(CombatHUDEquipmentSlotEx __instance, AbstractActor actor,
+                CombatHUDActionButton button, Ability ability, bool forceInactive)
+            {
+                if (UnityGameInstance.BattleTechGame.Combat.ActiveContract.ContractTypeValue.IsSkirmish) return;
+                if (actor == null || ability == null) return;
+                //                if (button == __instance.FireButton)
+                //                {
+                //                   ModInit.modLog.LogTrace(
+                //                       $"Leaving Fire Button Enabled");
+                //                   return;
+                //                }
+                if (actor.IsMountedUnit() || actor.IsSwarmingUnit())
+                {
+                    button.DisableButton();
+                }
+
+                if (ability.Def.Id == ModInit.modSettings.BattleArmorDeSwarmRoll ||
+                    ability.Def.Id == ModInit.modSettings.BattleArmorDeSwarmSwat)
+                {
+                    if (actor is Vehicle vehicle || actor.IsCustomUnitVehicle())
+                    {
+                        button.DisableButton();
+                    }
+
+                    if (!actor.HasSwarmingUnits())
+                    {
+                        button.DisableButton();
+                    }
+                }
+
+                if (ability.Def.Id == ModInit.modSettings.AirliftAbilityID && ModInit.modSettings.CanDropOffAfterMoving)// && actor.MovingToPosition == null) // maybe need to check IsAnyOrderActive (but that might screw me)
+                {
+                    if (actor.HasAirliftedEnemy() || actor.HasAirliftedFriendly())
+                    {
+                        //button.DisableButton();
+                        //if (!button.gameObject.activeSelf)
+                        //{
+                        //    button.gameObject.SetActive(true);
+                        //}
+
+                        //button.InitButton(CombatHUDMechwarriorTray.GetSelectionTypeFromTargeting(ability.Def.Targeting, false), ability, ability.Def.AbilityIcon, ability.Def.Description.Id, ability.Def.Description.Name, actor);
+                        button.ResetButtonIfNotActive(actor);
                     }
                 }
             }

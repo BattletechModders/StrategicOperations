@@ -1208,6 +1208,14 @@ namespace StrategicOperations.Patches
                     }
                 }
 
+                if (source.IsAirlifted())
+                {
+                    if (!ModState.AirliftTrackers[source.GUID].IsCarriedInternal)
+                    {
+                        list.Remove(source.Combat.FindActorByGUID(ModState.AirliftTrackers[source.GUID].TargetGUID));
+                    }
+                }
+
                 LineSegment lineSegment = new LineSegment(sourcePosition, targetPosition);
                 list.Sort((AbstractActor x, AbstractActor y) => Vector3.SqrMagnitude(x.CurrentPosition - sourcePosition).CompareTo(Vector3.SqrMagnitude(y.CurrentPosition - sourcePosition)));
                 float num = Vector3.SqrMagnitude(sourcePosition - targetPosition);
@@ -1337,7 +1345,18 @@ namespace StrategicOperations.Patches
             public static void Postfix(LOFCache __instance, AbstractActor source, Vector3 sourcePosition, ICombatant target, Vector3 targetPosition, Quaternion targetRotation, out Vector3 collisionWorldPos, ref LineOfFireLevel __result)
             {
                 collisionWorldPos = targetPosition;
-                if (source.IsMountedUnit())
+
+                if (source.IsAirlifted())
+                {
+                    if (!ModState.AirliftTrackers[source.GUID].IsCarriedInternal)
+                    {
+                        var carrier = source.Combat.FindActorByGUID(ModState.AirliftTrackers[source.GUID].TargetGUID);
+                        __result = source.Combat.LOFCache.GetLineOfFire(carrier, carrier.CurrentPosition, target,
+                            targetPosition, targetRotation, out collisionWorldPos);
+                    }
+                }
+
+                else if (source.IsMountedUnit())
                 {
                     var carrier = source.Combat.FindActorByGUID(ModState.PositionLockMount[source.GUID]);
                     if (carrier.hasFiringPorts())
