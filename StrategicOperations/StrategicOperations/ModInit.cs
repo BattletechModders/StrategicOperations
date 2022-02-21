@@ -102,7 +102,8 @@ namespace StrategicOperations
 
         public bool UsingMechAffinityForSwarmBreach = false;
 
-        public string AirliftUnitID = "";
+        public string AirliftAbilityID = "";
+        public bool CanDropOffAfterMoving = false;
         public bool AirliftCapacityByTonnage = false;
     }
 }

@@ -22,6 +22,24 @@ namespace StrategicOperations.Framework
 {
     public static class Utils
     {
+        public static void PublishInvocationExternal(this MessageCenter messageCenter, MessageCenterMessage invocation)
+        {
+            messageCenter.AddSubscriber(MessageCenterMessageType.InvocationStackSequenceCreated, new ReceiveMessageCenterMessage(HandleInvocationStackSequenceCreatedExternal));
+            messageCenter.PublishMessage(invocation);
+            messageCenter.RemoveSubscriber(MessageCenterMessageType.InvocationStackSequenceCreated, new ReceiveMessageCenterMessage(HandleInvocationStackSequenceCreatedExternal));
+            
+            //if (this.Orders == null && this.SelectionType != SelectionType.DoneWithMech)
+            //{
+            //    Debug.LogError("No Orders assigned from invocation!");
+            //}
+        }
+
+        public static void HandleInvocationStackSequenceCreatedExternal(this MessageCenterMessage message)
+        {
+           // InvocationStackSequenceCreated invocationStackSequenceCreated = message as InvocationStackSequenceCreated;
+            //message.Orders = invocationStackSequenceCreated.StackSequence; //we dont need orders for the movement sequence. maybe.
+        }
+
         public static void UpdateRangeIndicator(this CombatTargetingReticle reticle, Vector3 newPosition, bool minRangeShow, bool maxRangeShow)
         {
             if (minRangeShow)

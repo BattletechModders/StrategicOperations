@@ -14,6 +14,41 @@ namespace StrategicOperations.Framework
 {
     public static class AirliftUtils
     {
+        public static bool IsAirlifted(this AbstractActor actor)
+        {
+            return ModState.AirliftTrackers.ContainsKey(actor.GUID);
+        }
+        public static bool IsAirliftedFriendly(this AbstractActor actor)
+        {
+            return ModState.AirliftTrackers.ContainsKey(actor.GUID) && ModState.AirliftTrackers[actor.GUID].IsFriendly;
+        }
+
+        public static bool IsAirliftingTargetUnit(this AbstractActor actor, AbstractActor targetActor)
+        {
+            return ModState.AirliftTrackers.ContainsKey(targetActor.GUID) && ModState.AirliftTrackers[targetActor.GUID].TargetGUID == actor.GUID;
+        }
+
+        public static bool IsAirliftedByTarget(AbstractActor actor, AbstractActor targetActor)
+        {
+            return ModState.AirliftTrackers.ContainsKey(actor.GUID) &&
+                   ModState.AirliftTrackers[actor.GUID].TargetGUID == targetActor.GUID;
+        }
+
+        public static bool HasAirliftedFriendly(this AbstractActor actor)
+        {
+            return ModState.AirliftTrackers.Any(x => x.Value.IsFriendly && x.Value.TargetGUID == actor.GUID);
+        }
+
+        public static bool IsAirliftedEnemy(this AbstractActor actor)
+        {
+            return ModState.AirliftTrackers.ContainsKey(actor.GUID) && !ModState.AirliftTrackers[actor.GUID].IsFriendly;
+        }
+
+        public static bool HasAirliftedEnemy(this AbstractActor actor)
+        {
+            return ModState.AirliftTrackers.Any(x => !x.Value.IsFriendly && x.Value.TargetGUID == actor.GUID);
+        }
+
         public static int getInternalLiftCapacity(this AbstractActor actor)
         {
             return actor.StatCollection.GetValue<int>("InternalLiftCapacity");
@@ -29,6 +64,46 @@ namespace StrategicOperations.Framework
         public static int getAvailableInternalLiftCapacity(this AbstractActor actor)
         {
             return actor.StatCollection.GetValue<int>("InternalLiftCapacity") - actor.StatCollection.GetValue<int>("InternalLiftCapacityUsed");
+        }
+
+        public static bool getHasAvailableInternalLiftCapacityForTarget(this AbstractActor actor, AbstractActor targetActor)
+        {
+            if (ModInit.modSettings.AirliftCapacityByTonnage)
+            {
+                if (targetActor is Mech targetMech)
+                {
+                   return actor.StatCollection.GetValue<int>("InternalLiftCapacity") -
+                            actor.StatCollection.GetValue<int>("InternalLiftCapacityUsed") >= targetMech.tonnage;
+                }
+                else if (targetActor is Vehicle vehicle)
+                {
+                    
+                    return actor.StatCollection.GetValue<int>("InternalLiftCapacity") -
+                            actor.StatCollection.GetValue<int>("InternalLiftCapacityUsed") >= vehicle.tonnage;
+                }
+            }
+            return actor.StatCollection.GetValue<int>("InternalLiftCapacity") -
+                actor.StatCollection.GetValue<int>("InternalLiftCapacityUsed") >= 1;
+        }
+
+        public static bool getHasAvailableExternalLiftCapacityForTarget(this AbstractActor actor, AbstractActor targetActor)
+        {
+            if (ModInit.modSettings.AirliftCapacityByTonnage)
+            {
+                if (targetActor is Mech targetMech)
+                {
+                    return actor.StatCollection.GetValue<int>("ExternalLiftCapacity") -
+                        actor.StatCollection.GetValue<int>("ExternalLiftCapacityUsed") >= Mathf.RoundToInt(targetMech.tonnage);
+                }
+                else if (targetActor is Vehicle vehicle)
+                {
+
+                    return actor.StatCollection.GetValue<int>("ExternalLiftCapacity") -
+                        actor.StatCollection.GetValue<int>("ExternalLiftCapacityUsed") >= Mathf.RoundToInt(vehicle.tonnage);
+                }
+            }
+            return actor.StatCollection.GetValue<int>("ExternalLiftCapacity") -
+                actor.StatCollection.GetValue<int>("ExternalLiftCapacityUsed") >= 1;
         }
 
         public static int getExternalLiftCapacity(this AbstractActor actor)
@@ -48,9 +123,20 @@ namespace StrategicOperations.Framework
             return actor.StatCollection.GetValue<int>("ExternalLiftCapacity") - actor.StatCollection.GetValue<int>("ExternalLiftCapacityUsed");
         }
 
-
-
-
+        public static float GetVerticalOffsetForExternalMount(this AbstractActor targetUnit)
+        {
+            return targetUnit.HighestLOSPosition.y * .8f;
+        }
+        public static List<AbstractActor> GetAirliftedUnits(this AbstractActor carrier)
+        {
+            var results = new List<AbstractActor>();
+            var trackers = ModState.AirliftTrackers.Where(x => x.Value.TargetGUID == carrier.GUID);
+            foreach (var tracker in trackers)
+            {
+                results.Add(carrier.Combat.FindActorByGUID(tracker.Key));
+            }
+            return results;
+        }
 
         public static void MountUnitToAirliftCarrier(this AbstractActor carrier, AbstractActor targetUnit, bool isFriendly)
         {
@@ -80,6 +166,7 @@ namespace StrategicOperations.Framework
                 var availableInternalCapacity = carrier.getAvailableInternalLiftCapacity();
                 var availableExternalCapacity = carrier.getAvailableExternalLiftCapacity();
                 var unitTonnage = Mathf.RoundToInt(targetMech.tonnage);
+                var offset = targetUnit.GetVerticalOffsetForExternalMount();
                 if (isFriendly)
                 {
                     if (ModInit.modSettings.AirliftCapacityByTonnage)
@@ -98,15 +185,17 @@ namespace StrategicOperations.Framework
                         if (availableExternalCapacity >= unitTonnage)
                         {
                             ModInit.modLog.LogMessage(
-                                $"[MountUnitToAirliftCarrier] - target unit {carrier.DisplayName} has available external lift capacity of {availableExternalCapacity}; mounting {targetMech.DisplayName} externally.");
+                                $"[MountUnitToAirliftCarrier] - target unit {carrier.DisplayName} has available external lift capacity of {availableExternalCapacity}; mounting {targetMech.DisplayName} externally. Offset calculated at {offset}");
                             carrier.modifyUsedExternalLiftCapacity(unitTonnage);
-                            ModState.AirliftTrackers.Add(targetMech.GUID, new Classes.AirliftTracker(carrier.GUID, false, true, 5f));
+                            ModState.AirliftTrackers.Add(targetMech.GUID, new Classes.AirliftTracker(carrier.GUID, false, true, offset));
                         }
                     }
                     else
                     {
                         if (availableInternalCapacity > 0)
                         {
+                            ModInit.modLog.LogMessage(
+                                $"[MountUnitToAirliftCarrier] - target unit {carrier.DisplayName} has available internal lift capacity of {availableInternalCapacity}; mounting {targetMech.DisplayName} internally.");
                             carrier.modifyUsedInternalLiftCapacity(1);
                             ModState.AirliftTrackers.Add(targetMech.GUID, new Classes.AirliftTracker(carrier.GUID, false, true, 0f));
                             //shrinkadink
@@ -117,9 +206,9 @@ namespace StrategicOperations.Framework
                         if (availableExternalCapacity > 0)
                         {
                             ModInit.modLog.LogMessage(
-                                $"[MountUnitToAirliftCarrier] - target unit {carrier.DisplayName} has available external lift capacity of {availableExternalCapacity}; mounting {targetMech.DisplayName} externally.");
+                                $"[MountUnitToAirliftCarrier] - target unit {carrier.DisplayName} has available external lift capacity of {availableExternalCapacity}; mounting {targetMech.DisplayName} externally. Offset calculated at {offset}");
                             carrier.modifyUsedExternalLiftCapacity(1);
-                            ModState.AirliftTrackers.Add(targetMech.GUID, new Classes.AirliftTracker(carrier.GUID, false, true, 5f));
+                            ModState.AirliftTrackers.Add(targetMech.GUID, new Classes.AirliftTracker(carrier.GUID, false, true, offset));
                         }
                     }
                 }
@@ -130,9 +219,9 @@ namespace StrategicOperations.Framework
                         if (availableExternalCapacity >= unitTonnage)
                         {
                             ModInit.modLog.LogMessage(
-                                $"[MountUnitToAirliftCarrier] - target unit {carrier.DisplayName} has available external lift capacity of {availableExternalCapacity}; mounting {targetMech.DisplayName} externally.");
+                                $"[MountUnitToAirliftCarrier] - target unit {carrier.DisplayName} has available external lift capacity of {availableExternalCapacity}; mounting {targetMech.DisplayName} externally. Offset calculated at {offset}");
                             carrier.modifyUsedExternalLiftCapacity(unitTonnage);
-                            ModState.AirliftTrackers.Add(targetMech.GUID, new Classes.AirliftTracker(carrier.GUID, false, true, 5f));
+                            ModState.AirliftTrackers.Add(targetMech.GUID, new Classes.AirliftTracker(carrier.GUID, false, true, offset));
                         }
                     }
                     else
@@ -140,9 +229,9 @@ namespace StrategicOperations.Framework
                         if (availableExternalCapacity > 0)
                         {
                             ModInit.modLog.LogMessage(
-                                $"[MountUnitToAirliftCarrier] - target unit {carrier.DisplayName} has available external lift capacity of {availableExternalCapacity}; mounting {targetMech.DisplayName} externally.");
+                                $"[MountUnitToAirliftCarrier] - target unit {carrier.DisplayName} has available external lift capacity of {availableExternalCapacity}; mounting {targetMech.DisplayName} externally. Offset calculated at {offset}");
                             carrier.modifyUsedExternalLiftCapacity(1);
-                            ModState.AirliftTrackers.Add(targetMech.GUID, new Classes.AirliftTracker(carrier.GUID, false, true, 5f));
+                            ModState.AirliftTrackers.Add(targetMech.GUID, new Classes.AirliftTracker(carrier.GUID, false, true, offset));
                         }
                     }
                 }
@@ -167,6 +256,39 @@ namespace StrategicOperations.Framework
 
             var hud = Traverse.Create(CameraControl.Instance).Property("HUD").GetValue<CombatHUD>();
             //actor.GameRep.IsTargetable = true;
+
+            if (ModState.AirliftTrackers[actor.GUID].IsCarriedInternal)
+            {
+                if (ModInit.modSettings.AirliftCapacityByTonnage)
+                {
+                    var tonnage = 0;
+                    if (actor is Mech mech) tonnage = Mathf.RoundToInt(mech.tonnage);
+                    else if (actor is Vehicle vehicle) tonnage = Mathf.RoundToInt(vehicle.tonnage);
+                    ModInit.modLog.LogMessage($"[DropAirliftedUnit] Decrementing {carrier.DisplayName} used internal capacity by tonnage {tonnage}.");
+                    carrier.modifyUsedInternalLiftCapacity(-tonnage);
+                }
+                else
+                {
+                    ModInit.modLog.LogMessage($"[DropAirliftedUnit] Decrementing {carrier.DisplayName} used internal capacity by 1.");
+                    carrier.modifyUsedInternalLiftCapacity(-1);
+                }
+            }
+            else
+            {
+                if (ModInit.modSettings.AirliftCapacityByTonnage)
+                {
+                    var tonnage = 0;
+                    if (actor is Mech mech) tonnage = Mathf.RoundToInt(mech.tonnage);
+                    else if (actor is Vehicle vehicle) tonnage = Mathf.RoundToInt(vehicle.tonnage);
+                    ModInit.modLog.LogMessage($"[DropAirliftedUnit] Decrementing {carrier.DisplayName} used external capacity by tonnage {tonnage}.");
+                    carrier.modifyUsedExternalLiftCapacity(-tonnage);
+                }
+                else
+                {
+                    ModInit.modLog.LogMessage($"[DropAirliftedUnit] Decrementing {carrier.DisplayName} used external capacity by 1.");
+                    carrier.modifyUsedExternalLiftCapacity(-1);
+                }
+            }
 
             ModState.AirliftTrackers.Remove(actor.GUID);
             //ModState.PositionLockSwarm.Remove(actor.GUID);
@@ -238,6 +360,7 @@ namespace StrategicOperations.Framework
             public void OnLandDetach()
             {
                 Actor.GameRep.transform.localScale = new Vector3(1f, 1f, 1f);
+                Carrier.DropAirliftedUnit(Actor, Vector3.zero, false, false, true);
                 //Actor.GameRep.ToggleHeadlights(true); // maybe toggle headlights if internal?
             }
         }
@@ -265,9 +388,14 @@ namespace StrategicOperations.Framework
 
             public void OnRestoreHeightControl()
             {
+                var offset = Vector3.zero;
+                if (Actor.IsAirlifted())
+                {
+                    offset = Vector3.down * ModState.AirliftTrackers[Actor.GUID].Offset;
+                }
                 Carrier.custGameRep.HeightController.UpSpeed = CarrierUpSpeed;
                 Carrier.custGameRep.HeightController.DownSpeed = CarrierDownSpeed;
-                var pos = Carrier.CurrentPosition +
+                var pos = Carrier.CurrentPosition + offset +
                           Vector3.up * Carrier.custGameRep.HeightController.CurrentHeight;
                 Actor.TeleportActor(pos);
             }
@@ -292,7 +420,7 @@ namespace StrategicOperations.Framework
                 }
                 else
                 {
-                    ModInit.modLog.LogTrace($"AttachToCarrier call mount.");
+                    ModInit.modLog.LogTrace($"AttachToAirliftCarrier call mount.");
                     //CALL DEFAULT ATTACH CODE
                     carrier.MountUnitToAirliftCarrier(actor, true);
                 }
@@ -329,7 +457,7 @@ namespace StrategicOperations.Framework
             }
             else
             {
-                ModInit.modLog.LogTrace($"DetachFromCarrier call DropAirliftedUnit.");
+                ModInit.modLog.LogTrace($"DetachFromAirliftCarrier call DropAirliftedUnit.");
                 //CALL DEFAULT ATTACH CODE
                 carrier.DropAirliftedUnit(actor, Vector3.zero, false, false, true);
                 //squad.DismountBA(carrier, Vector3.zero, false, false, true);

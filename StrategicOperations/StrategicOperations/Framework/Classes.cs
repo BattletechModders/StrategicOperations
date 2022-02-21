@@ -31,13 +31,16 @@ namespace StrategicOperations.Framework
                 Pathing pathing = actor.Pathing;
 
                 this.MoveTarget = moveTarget;
+                pathing.SetSprinting();
                 pathing.UpdateFreePath(moveTarget.CurrentPosition, moveTarget.CurrentPosition, false, false);
+                pathing.UpdateLockedPath(moveTarget.CurrentPosition, moveTarget.CurrentPosition, false);
+                pathing.LockPosition();
                 this.ActorGUID = actor.GUID;
                 this.AbilityConsumesFiring = abilityConsumesFiring;
                 List<WayPoint> collection = ActorMovementSequence.ExtractWaypointsFromPath(actor, pathing.CurrentPath, pathing.ResultDestination, pathing.CurrentMeleeTarget, this.MoveType);
                 this.Waypoints = new List<WayPoint>(collection);
                 this.MoveType = pathing.MoveType;
-                this.FinalOrientation = pathing.ResultAngleAsVector;
+                this.FinalOrientation = moveTarget.CurrentRotation.eulerAngles;//pathing.ResultAngleAsVector;
                 this.MeleeTargetGUID = "";
                 this.IsFriendly = isFriendly;
                 this.IsMountOrSwarm = isMountOrSwarm;
@@ -74,6 +77,9 @@ namespace StrategicOperations.Framework
             public AbstractActor Target;
             public bool IsFriendly;
             public bool MountSwarmBA;
+            public override bool ConsumesActivation => false;
+
+            //public new virtual bool ForceActivationEnd => false;
 
             public StrategicMovementSequence(AbstractActor actor, List<WayPoint> waypoints, Vector3 finalOrientation, MoveType moveType, ICombatant meleeTarget, bool consumesFiring, AbstractActor target, bool friendly, bool mountORswarm) : base(actor, waypoints, finalOrientation, moveType, meleeTarget, consumesFiring)
             {
@@ -84,7 +90,9 @@ namespace StrategicOperations.Framework
 
             public override void CompleteOrders()
             {
+                base.owningActor.AutoBrace = false;
                 base.CompleteOrders();
+                base.owningActor.ResetPathing(false);
                 if (MountSwarmBA)
                 {
                     ModInit.modLog.LogMessage($"[StrategicMovementSequence] Called for BA movement to mount or swarm.");
@@ -94,28 +102,28 @@ namespace StrategicOperations.Framework
                         {
                             if (!squad.IsMountedUnit())
                             {
-                                squad.AttachToCarrier(this.Target, IsFriendly);
+                                squad.ProcessMountFriendly(this.Target);
                                 return;
                             }
                         }
 
                         if (!squad.IsSwarmingUnit())
                         {
-                            squad.AttachToCarrier(this.Target, IsFriendly);
+                            squad.ProcessSwarmEnemy(this.Target);
                         }
                     }
                     ModInit.modLog.LogMessage($"[StrategicMovementSequence] ERROR: called sequence for BA, but target actor is not TrooperSquad.");
                     return;
                 }
-                ModInit.modLog.LogMessage($"[StrategicMovementSequence] Called for airlift/dropoff.");
+                ModInit.modLog.LogMessage($"[StrategicMovementSequence] Called for airlift/dropoff for Target {this.Target.DisplayName}.");
 
-                if (this.Target.IsAirliftedFriendly() || this.Target.IsAirliftedEnemy())
+                if (this.Target.IsAirlifted())
                 {
                     this.Target.DetachFromAirliftCarrier(base.OwningActor, IsFriendly);
                     return;
                 }
 
-                if (!this.Target.IsAirliftedEnemy() && !this.Target.IsAirliftedFriendly())
+                if (!this.Target.IsAirlifted())
                 {
                     this.Target.AttachToAirliftCarrier(base.OwningActor, IsFriendly);
                 }

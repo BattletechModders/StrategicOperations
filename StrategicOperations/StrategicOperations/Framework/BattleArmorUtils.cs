@@ -465,24 +465,6 @@ namespace StrategicOperations.Framework
             }
         }
 
-        public static bool IsAirliftedFriendly(this AbstractActor actor)
-        {
-            return ModState.AirliftTrackers.ContainsKey(actor.GUID) && ModState.AirliftTrackers[actor.GUID].IsFriendly;
-        }
-        public static bool HasAirliftedFriendly(this AbstractActor actor)
-        {
-            return ModState.AirliftTrackers.Any(x=>x.Value.IsFriendly && x.Value.TargetGUID == actor.GUID);
-        }
-
-        public static bool IsAirliftedEnemy(this AbstractActor actor)
-        {
-            return ModState.AirliftTrackers.ContainsKey(actor.GUID) && !ModState.AirliftTrackers[actor.GUID].IsFriendly;
-        }
-        public static bool HasAirliftedEnemy(this AbstractActor actor)
-        {
-            return ModState.AirliftTrackers.Any(x => !x.Value.IsFriendly && x.Value.TargetGUID == actor.GUID);
-        }
-
         public static float getMovementDeSwarmMinChance(this AbstractActor actor)
         {
             return actor.StatCollection.GetValue<float>("MovementDeSwarmMinChance");
