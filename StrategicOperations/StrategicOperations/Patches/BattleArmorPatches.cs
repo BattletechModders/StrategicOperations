@@ -519,10 +519,7 @@ namespace StrategicOperations.Patches
                     var actor = __instance.Combat.FindActorByGUID(garrison.Key);
                     var squad = actor as TrooperSquad;
 
-                    //resolve cluster damage here
-
-
-
+                    //TODO CLUSTER DAMAGE
 
                     foreach (var garrisonEffect in ModState.OnGarrisonCollapseEffects)
                     {
