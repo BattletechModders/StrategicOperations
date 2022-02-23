@@ -38,6 +38,7 @@ namespace StrategicOperations.Framework
         //public static Dictionary<string, Vector3> SavedBAScale = new Dictionary<string, Vector3>(); // should always be 1,1,1
 
         public static Dictionary<string, Vector3> CachedUnitCoordinates = new Dictionary<string, Vector3>();
+        public static Dictionary<string, string> PositionLockGarrison = new Dictionary<string, string>(); // key is mounted unit, value is building
         public static Dictionary<string, string> PositionLockMount = new Dictionary<string, string>(); // key is mounted unit, value is carrier
         public static Dictionary<string, string> PositionLockSwarm = new Dictionary<string, string>(); // key is mounted unit, value is carrier
         //public static Dictionary<string, string> PositionLockAirlift = new Dictionary<string, string>(); // key is mounted unit, value is carrier
@@ -58,7 +59,7 @@ namespace StrategicOperations.Framework
         public static string DeferredActorResource = "";
         public static string PopupActorResource = "";
         public static int StrafeWaves;
-        public static string PilotOverride= null;
+        public static string PilotOverride = null;
         public static bool DeferredSpawnerFromDelegate;
         public static bool DeferredBattleArmorSpawnerFromDelegate;
         public static bool OutOfRange;
@@ -74,6 +75,7 @@ namespace StrategicOperations.Framework
         public static List<CmdUseStat> DeploymentAssetsStats = new List<CmdUseStat>();
 
         public static List<BA_TargetEffect> BA_MountSwarmEffects = new List<BA_TargetEffect>();
+        public static List<BA_TargetEffect> OnGarrisonCollapseEffects = new List<BA_TargetEffect>();
         public static List<AirliftTargetEffect> AirliftEffects = new List<AirliftTargetEffect>();
 
         public static BA_DeswarmMovementInfo DeSwarmMovementInfo = new BA_DeswarmMovementInfo();
@@ -109,7 +111,7 @@ namespace StrategicOperations.Framework
             BA_MountSwarmEffects = new List<BA_TargetEffect>();
             foreach (var BA_Effect in ModInit.modSettings.BATargetEffects)
             {
-                ModInit.modLog.LogTrace($"[Initializing] Adding effects for {BA_Effect.ID}!");
+                ModInit.modLog.LogTrace($"[Initializing BATargetEffects] Adding effects for {BA_Effect.ID}!");
                 foreach (var jObject in BA_Effect.effectDataJO)
                 {
                     var effectData = new EffectData();
@@ -120,10 +122,24 @@ namespace StrategicOperations.Framework
                 BA_MountSwarmEffects.Add(BA_Effect);
             }
 
+            OnGarrisonCollapseEffects = new List<BA_TargetEffect>();
+            foreach (var BA_Effect in ModInit.modSettings.OnGarrisonCollapseEffects)
+            {
+                ModInit.modLog.LogTrace($"[Initializing OnGarrisonCollapseEffects] Adding effects for {BA_Effect.ID}!");
+                foreach (var jObject in BA_Effect.effectDataJO)
+                {
+                    var effectData = new EffectData();
+                    effectData.FromJSON(jObject.ToString());
+                    BA_Effect.effects.Add(effectData);
+                    ModInit.modLog.LogTrace($"EffectData statname: {effectData?.statisticData?.statName}");
+                }
+                OnGarrisonCollapseEffects.Add(BA_Effect);
+            }
+
             AirliftEffects = new List<AirliftTargetEffect>();
             foreach (var airliftEffect in ModInit.modSettings.AirliftTargetEffects)
             {
-                ModInit.modLog.LogTrace($"[Initializing] Adding effects for {airliftEffect.ID}!");
+                ModInit.modLog.LogTrace($"[Initializing AirliftTargetEffects] Adding effects for {airliftEffect.ID}!");
                 foreach (var jObject in airliftEffect.effectDataJO)
                 {
                     var effectData = new EffectData();
@@ -155,6 +171,7 @@ namespace StrategicOperations.Framework
             CachedUnitCoordinates = new Dictionary<string, Vector3>();
             PositionLockMount = new Dictionary<string, string>();
             PositionLockSwarm = new Dictionary<string, string>();
+            PositionLockGarrison = new Dictionary<string, string>();
             DeferredActorResource = "";
             PopupActorResource = "";
             StrafeWaves = 0; // this is TBD-> want to make beacons define # of waves.

@@ -14,6 +14,10 @@ namespace StrategicOperations.Framework
 {
     public static class AirliftUtils
     {
+        public static bool HasAirliftedUnits(this AbstractActor actor)
+        {
+            return ModState.AirliftTrackers.Any(x => x.Value.TargetGUID == actor.GUID);
+        }
         public static bool IsAirlifted(this AbstractActor actor)
         {
             return ModState.AirliftTrackers.ContainsKey(actor.GUID);
@@ -125,8 +129,10 @@ namespace StrategicOperations.Framework
 
         public static float GetVerticalOffsetForExternalMount(this AbstractActor targetUnit)
         {
-            return targetUnit.HighestLOSPosition.y * .7f;
+
+            return targetUnit.HighestLOSPosition.y * .7f; //TODO see if i can dynamagically calculate offset using unity intersects?
         }
+
         public static List<AbstractActor> GetAirliftedUnits(this AbstractActor carrier)
         {
             var results = new List<AbstractActor>();

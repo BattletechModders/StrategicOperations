@@ -493,6 +493,23 @@ namespace StrategicOperations.Patches
                             //do airlifty things here
                         }
                     }
+                    if (target is BattleTech.Building building &&
+                        __instance.Def.Id == ModInit.modSettings.BattleArmorMountAndSwarmID)
+                    {
+                        if (!building.hasGarrisonedUnits())
+                        {
+                            MessageCenterMessage invocation =
+                                new StrategicMovementInvocation(creator, true, building, true, true);
+                            creator.Combat.MessageCenter.PublishInvocationExternal(invocation);
+                        }
+                        else
+                        {
+                            if (creator.isGarrisonedInTargetBuilding(building))
+                            {
+                                creator.DismountGarrison(building, Vector3.zero, false);
+                            }
+                        }
+                    }
                 }
             }
         }
@@ -1757,7 +1774,7 @@ namespace StrategicOperations.Patches
                 //                }
                 if (actor.IsMountedUnit() || actor.IsSwarmingUnit())
                 {
-                    button.DisableButton();
+                    button.DisableButton(); // maybe remove this for mounted units?
                 }
 
                 if (ability.Def.Id == ModInit.modSettings.BattleArmorDeSwarmRoll ||
@@ -1807,7 +1824,7 @@ namespace StrategicOperations.Patches
                 //                }
                 if (actor.IsMountedUnit() || actor.IsSwarmingUnit())
                 {
-                    button.DisableButton();
+                    button.DisableButton(); // maybe remove this for mounted units?
                 }
 
                 if (ability.Def.Id == ModInit.modSettings.BattleArmorDeSwarmRoll ||
@@ -1858,7 +1875,7 @@ namespace StrategicOperations.Patches
                 //                }
                 if (actor.IsMountedUnit() || actor.IsSwarmingUnit())
                 {
-                    button.DisableButton();
+                    button.DisableButton(); // maybe remove this for mounted units?
                 }
 
                 if (ability.Def.Id == ModInit.modSettings.BattleArmorDeSwarmRoll ||

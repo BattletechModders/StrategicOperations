@@ -86,6 +86,7 @@ namespace StrategicOperations
         public string BattleArmorMountAndSwarmID = "";
         public List<BA_TargetEffect> BATargetEffects = new List<BA_TargetEffect>();
         public List<AirliftTargetEffect> AirliftTargetEffects = new List<AirliftTargetEffect>();
+        public List<BA_TargetEffect> OnGarrisonCollapseEffects = new List<BA_TargetEffect>();
         public List<BA_FactionAssoc> BattleArmorFactionAssociations = new List<BA_FactionAssoc>();
         public string BattleArmorDeSwarmRoll = "";
         public string BattleArmorDeSwarmSwat = "";

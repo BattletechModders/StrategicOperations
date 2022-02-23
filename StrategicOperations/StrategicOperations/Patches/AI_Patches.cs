@@ -613,7 +613,7 @@ namespace StrategicOperations.Patches
             {
                 if (target is AbstractActor actor)
                 {
-                    if (actor.IsSwarmingUnit() || actor.IsMountedUnit())
+                    if (actor.IsSwarmingUnit() || actor.IsMountedUnit()) // i could force visibility to zero for BA? unsure what i want to do here since i dont think the AI is smart enough to directly target the building. have to see how it plays/maybe give garrisoned BA some DR or something.
                     {
                         ModInit.modLog.LogTrace(
                             $"[AIUtil.UnitHasVisibilityToTargetFromCurrentPosition] DUMP: Target {target.DisplayName} is either mounted or swarming, forcing AI visibility to zero for this node.");
@@ -648,7 +648,7 @@ namespace StrategicOperations.Patches
                 //debugMsg = default(string);
                 if (target is AbstractActor actor)
                 {
-                    if (actor.IsSwarmingUnit() || actor.IsMountedUnit())
+                    if (actor.IsSwarmingUnit() || actor.IsMountedUnit()) // same as UnitHasVisibilityToTargetFromCurrentPosition; let the AI shoot at garrison direclty?
                     {
                         __result = false;
                     }

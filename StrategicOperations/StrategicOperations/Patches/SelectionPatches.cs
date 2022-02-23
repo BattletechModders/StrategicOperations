@@ -174,7 +174,7 @@ namespace StrategicOperations.Patches
                 };
                 var maxRange = ranges.Max();
 
-                if (!SelectedActor.IsMountedUnit() && !SelectedActor.IsSwarmingUnit())
+                if (!SelectedActor.IsMountedUnit() && !SelectedActor.IsSwarmingUnit() && !SelectedActor.isGarrisoned())
                 {
                     var mountTargets = SelectedActor.GetAllFriendliesWithinRange(maxRange);
                     var swarmTargets = SelectedActor.GetAllEnemiesWithinRange(maxRange);
@@ -223,14 +223,9 @@ namespace StrategicOperations.Patches
                 CombatTargetingReticle.Instance.UpdateRangeIndicator(SelectedActor.CurrentPosition, false, true);
                 CombatTargetingReticle.Instance.ShowReticle();
 
-                if (SelectedActor.IsMountedUnit())
+                if (SelectedActor.IsMountedUnit() || SelectedActor.IsSwarmingUnit() || SelectedActor.isGarrisoned())
                 {
                     var carrier = Combat.FindActorByGUID(ModState.PositionLockMount[SelectedActor.GUID]);
-                    this.ProcessClickedCombatant(carrier);
-                }
-                else if (SelectedActor.IsSwarmingUnit())
-                {
-                    var carrier = Combat.FindActorByGUID(ModState.PositionLockSwarm[SelectedActor.GUID]);
                     this.ProcessClickedCombatant(carrier);
                 }
                 else
@@ -251,9 +246,22 @@ namespace StrategicOperations.Patches
 
                 if (!base.CanTargetCombatant(potentialTarget)) return false;
 
-                if (potentialTarget is AbstractActor targetActor)
+
+                if (FromButton.Ability.Def.Id == ModInit.modSettings.BattleArmorMountAndSwarmID)
                 {
-                    if (FromButton.Ability.Def.Id == ModInit.modSettings.BattleArmorMountAndSwarmID)
+
+                    if (potentialTarget is BattleTech.Building building)
+                    {
+                        if (SelectedActor.isGarrisonedInTargetBuilding(building)) return true;
+                        if (building.hasGarrisonedUnits()) return false;
+                        if (building.team.IsNeutral(SelectedActor.team) || building.team.IsFriendly(SelectedActor.team))
+                        {
+                            return true;
+                        }
+                        return false;
+                    }
+
+                    else if (potentialTarget is AbstractActor targetActor)
                     {
                         if (SelectedActor == targetActor || targetActor is TrooperSquad)
                         {
@@ -301,7 +309,8 @@ namespace StrategicOperations.Patches
 
                             if (!SelectedActor.IsMountedUnit())
                             {
-                                if (!targetActor.HasMountedUnits() || targetActor.getAvailableInternalBASpace() > 0 ||
+                                if (!targetActor.HasMountedUnits() ||
+                                    targetActor.getAvailableInternalBASpace() > 0 ||
                                     (targetActor.getHasBattleArmorMounts() &&
                                      !targetActor.getHasExternalMountedBattleArmor()))
                                 {
@@ -349,11 +358,15 @@ namespace StrategicOperations.Patches
                             return true;
                         }
                     }
-                    else if (FromButton.Ability.Def.Id == ModInit.modSettings.AirliftAbilityID)
+                }
+                else if (FromButton.Ability.Def.Id == ModInit.modSettings.AirliftAbilityID)
+                {
+                    if (potentialTarget is AbstractActor targetActor)
                     {
                         if (SelectedActor.HasActivatedThisRound) return false;
                         if (targetActor.IsMountedUnit() || targetActor.IsSwarmingUnit() ||
-                            targetActor.HasSwarmingUnits() || targetActor.HasMountedUnits())
+                            targetActor.HasSwarmingUnits() || targetActor.HasMountedUnits() ||
+                            targetActor.IsAirlifted() || targetActor.HasAirliftedUnits())
                         {
                             return false;
                         }
@@ -365,10 +378,12 @@ namespace StrategicOperations.Patches
 
                         if (targetActor.team.IsFriendly(SelectedActor.team))
                         {
-                            if (SelectedActor.getHasAvailableInternalLiftCapacityForTarget(targetActor) || SelectedActor.getHasAvailableExternalLiftCapacityForTarget(targetActor))
+                            if (SelectedActor.getHasAvailableInternalLiftCapacityForTarget(targetActor) ||
+                                SelectedActor.getHasAvailableExternalLiftCapacityForTarget(targetActor))
                             {
                                 return true;
                             }
+
                             return false;
                         }
                         else
@@ -377,6 +392,7 @@ namespace StrategicOperations.Patches
                             {
                                 return true;
                             }
+
                             return false;
                         }
                     }
@@ -384,14 +400,13 @@ namespace StrategicOperations.Patches
                 return true;
             }
 
-
             public override bool ProcessClickedCombatant(ICombatant combatant)
             {
                 if (FromButton.Ability.Def.Id == ModInit.modSettings.AirliftAbilityID)
                 {
                     if (SelectedActor.GUID == combatant.GUID)
                     {
-                        AbstractActor newUnitSelection = null;
+                        ICombatant newUnitSelection = null;
                         var unitsCarried = SelectedActor.GetAirliftedUnits();
                         //handle 0 units carried here
                         if (unitsCarried.Count < 1) return false;

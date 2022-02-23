@@ -22,11 +22,11 @@ namespace StrategicOperations.Framework
             public new MoveType MoveType;
             public new Vector3 FinalOrientation;
             public new string MeleeTargetGUID = "";
-            public AbstractActor MoveTarget;
+            public ICombatant MoveTarget;
             public bool IsFriendly;
             public bool IsMountOrSwarm;
             public StrategicMovementInvocation(){}
-            public StrategicMovementInvocation(AbstractActor actor, bool abilityConsumesFiring, AbstractActor moveTarget, bool isFriendly, bool isMountOrSwarm) : base(actor, abilityConsumesFiring)
+            public StrategicMovementInvocation(AbstractActor actor, bool abilityConsumesFiring, ICombatant moveTarget, bool isFriendly, bool isMountOrSwarm) : base(actor, abilityConsumesFiring)
             {
                 Pathing pathing = actor.Pathing;
 
@@ -74,14 +74,14 @@ namespace StrategicOperations.Framework
 
         public class StrategicMovementSequence : ActorMovementSequence
         {
-            public AbstractActor Target;
+            public ICombatant Target;
             public bool IsFriendly;
             public bool MountSwarmBA;
             public override bool ConsumesActivation => false;
 
             //public new virtual bool ForceActivationEnd => false;
 
-            public StrategicMovementSequence(AbstractActor actor, List<WayPoint> waypoints, Vector3 finalOrientation, MoveType moveType, ICombatant meleeTarget, bool consumesFiring, AbstractActor target, bool friendly, bool mountORswarm) : base(actor, waypoints, finalOrientation, moveType, meleeTarget, consumesFiring)
+            public StrategicMovementSequence(AbstractActor actor, List<WayPoint> waypoints, Vector3 finalOrientation, MoveType moveType, ICombatant meleeTarget, bool consumesFiring, ICombatant target, bool friendly, bool mountORswarm) : base(actor, waypoints, finalOrientation, moveType, meleeTarget, consumesFiring)
             {
                 this.Target = target;
                 this.IsFriendly = friendly;
@@ -93,39 +93,61 @@ namespace StrategicOperations.Framework
                 base.owningActor.AutoBrace = false;
                 base.CompleteOrders();
                 base.owningActor.ResetPathing(false);
+
                 if (MountSwarmBA)
                 {
-                    ModInit.modLog.LogMessage($"[StrategicMovementSequence] Called for BA movement to mount or swarm.");
-                    if (base.owningActor is TrooperSquad squad)
+                    if (this.Target is BattleTech.Building building)
                     {
-                        if (this.IsFriendly)
+                        ModInit.modLog.LogMessage(
+                            $"[StrategicMovementSequence] Called for BA movement to garrison building {building.DisplayName}.");
+                        base.owningActor.ProcessGarrisonBuilding(building);
+                        return;
+                    }
+                }
+
+                if (this.Target is AbstractActor targetActor)
+                {
+                    if (MountSwarmBA)
+                    {
+                        ModInit.modLog.LogMessage(
+                            $"[StrategicMovementSequence] Called for BA movement to mount or swarm.");
+                        if (base.owningActor is TrooperSquad squad)
                         {
-                            if (!squad.IsMountedUnit())
+                            if (this.IsFriendly)
                             {
-                                squad.ProcessMountFriendly(this.Target);
-                                return;
+                                if (!squad.IsMountedUnit())
+                                {
+                                    squad.ProcessMountFriendly(targetActor);
+                                    return;
+                                }
+                            }
+
+                            if (!squad.IsSwarmingUnit())
+                            {
+                                squad.ProcessSwarmEnemy(targetActor);
                             }
                         }
-
-                        if (!squad.IsSwarmingUnit())
+                        else
                         {
-                            squad.ProcessSwarmEnemy(this.Target);
+                            ModInit.modLog.LogMessage(
+                                $"[StrategicMovementSequence] ERROR: called sequence for BA, but target actor is not TrooperSquad.");
+                            return;
                         }
                     }
-                    ModInit.modLog.LogMessage($"[StrategicMovementSequence] ERROR: called sequence for BA, but target actor is not TrooperSquad.");
-                    return;
-                }
-                ModInit.modLog.LogMessage($"[StrategicMovementSequence] Called for airlift/dropoff for Target {this.Target.DisplayName}.");
 
-                if (this.Target.IsAirlifted())
-                {
-                    this.Target.DetachFromAirliftCarrier(base.OwningActor, IsFriendly);
-                    return;
-                }
+                    ModInit.modLog.LogMessage(
+                        $"[StrategicMovementSequence] Called for airlift/dropoff for Target {this.Target.DisplayName}.");
 
-                if (!this.Target.IsAirlifted())
-                {
-                    this.Target.AttachToAirliftCarrier(base.OwningActor, IsFriendly);
+                    if (targetActor.IsAirlifted())
+                    {
+                        targetActor.DetachFromAirliftCarrier(base.OwningActor, IsFriendly);
+                        return;
+                    }
+
+                    if (!targetActor.IsAirlifted())
+                    {
+                        targetActor.AttachToAirliftCarrier(base.OwningActor, IsFriendly);
+                    }
                 }
             }
         }
@@ -135,6 +157,7 @@ namespace StrategicOperations.Framework
             MOUNT_INT,
             MOUNT_EXT,
             SWARM,
+            GARRISON,
             BOTH
         }
         public class CustomSpawner
