@@ -34,18 +34,18 @@ namespace StrategicOperations.Patches
                 __instance.StatCollection.AddStatistic<bool>("IsBattleArmorHandsy", false);
                 __instance.StatCollection.AddStatistic<bool>("IsUnmountableBattleArmor", false);
                 __instance.StatCollection.AddStatistic<bool>("IsUnswarmableBattleArmor", false);
-                __instance.StatCollection.AddStatistic<bool>("BattleArmorMount", false);
-                __instance.StatCollection.AddStatistic<float>("BattleArmorDeSwarmerSwat", 0.3f);
-                __instance.StatCollection.AddStatistic<int>("BattleArmorDeSwarmerRollInitPenalty", 0);
-                __instance.StatCollection.AddStatistic<int>("BattleArmorDeSwarmerSwatInitPenalty", 0);
-                __instance.StatCollection.AddStatistic<float>("BattleArmorDeSwarmerSwatDamage", 0f);
-                __instance.StatCollection.AddStatistic<float>("BattleArmorDeSwarmerRoll", 0.5f);
                 __instance.StatCollection.AddStatistic<bool>("HasFiringPorts", false);
-                __instance.StatCollection.AddStatistic<float>("MovementDeSwarmMinChance", 0.0f);
-                __instance.StatCollection.AddStatistic<float>("MovementDeSwarmMaxChance", 1.0f);
-                __instance.StatCollection.AddStatistic<float>("MovementDeSwarmEvasivePipsFactor", 0f);
-                __instance.StatCollection.AddStatistic<float>("MovementDeSwarmEvasiveJumpMovementMultiplier", 1.0f);
-                __instance.StatCollection.AddStatistic<bool>("Airlifting", false);
+                //__instance.StatCollection.AddStatistic<bool>("BattleArmorMount", false);
+                //__instance.StatCollection.AddStatistic<float>("BattleArmorDeSwarmerSwat", 0.3f);
+                //__instance.StatCollection.AddStatistic<int>("BattleArmorDeSwarmerRollInitPenalty", 0);
+                //__instance.StatCollection.AddStatistic<int>("BattleArmorDeSwarmerSwatInitPenalty", 0);
+                //__instance.StatCollection.AddStatistic<float>("BattleArmorDeSwarmerSwatDamage", 0f);
+                //__instance.StatCollection.AddStatistic<float>("BattleArmorDeSwarmerRoll", 0.5f);
+                //__instance.StatCollection.AddStatistic<float>("MovementDeSwarmMinChance", 0.0f);
+                //__instance.StatCollection.AddStatistic<float>("MovementDeSwarmMaxChance", 1.0f);
+                //__instance.StatCollection.AddStatistic<float>("MovementDeSwarmEvasivePipsFactor", 0f);
+                //__instance.StatCollection.AddStatistic<float>("MovementDeSwarmEvasiveJumpMovementMultiplier", 1.0f);
+                //__instance.StatCollection.AddStatistic<bool>("Airlifting", false);
                 __instance.StatCollection.AddStatistic<int>("InternalLiftCapacity", 0);
                 __instance.StatCollection.AddStatistic<int>("InternalLiftCapacityUsed", 0);
                 __instance.StatCollection.AddStatistic<int>("ExternalLiftCapacity", 0);
@@ -646,7 +646,7 @@ namespace StrategicOperations.Patches
                     if (__instance.Def.IntParam1 > 0)
                     {
                         Utils.SpawnFlares(__instance, positionA, positionB, ModInit.modSettings.flareResourceID,
-                            __instance.Def.IntParam1, __instance.Def.ActivationETA, team.IsLocalPlayer);
+                            __instance.Def.IntParam1, __instance.Def.ActivationETA * strafeWaves, team.IsLocalPlayer); // make smoke last for all strafe waves because babies
                     }
                 }
                 return false;

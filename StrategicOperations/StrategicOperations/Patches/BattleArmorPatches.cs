@@ -105,27 +105,31 @@ namespace StrategicOperations.Patches
                 var creator = cHUD.SelectedActor;
                 if (__instance.FromButton.Ability.Def.Id == ModInit.modSettings.BattleArmorDeSwarmRoll)
                 {
-                    var parsed = float.TryParse(__instance.FromButton.Ability.Def.EffectData
-                        .FirstOrDefault(x => x.statisticData.statName == "BattleArmorDeSwarmerRoll")
-                        ?.statisticData
-                        .modValue, out var baseChance);
-                    if (!parsed) baseChance = 0.55f;
+                    var settings = ModInit.modSettings.DeswarmConfigs.ContainsKey(ModInit.modSettings.BattleArmorDeSwarmRoll)
+                        ? ModInit.modSettings.DeswarmConfigs[ModInit.modSettings.BattleArmorDeSwarmRoll]
+                        : new Classes.BA_DeswarmAbilityConfig();
+                    //var parsed = float.TryParse(__instance.FromButton.Ability.Def.EffectData
+                    //    .FirstOrDefault(x => x.statisticData.statName == "BattleArmorDeSwarmerRoll")
+                    //    ?.statisticData
+                    //    .modValue, out var baseChance);
 
                     var pilotSkill = creator.GetPilot().Piloting;
-                    var finalChance = Mathf.Min(baseChance + (0.05f * pilotSkill), 0.95f);
-                    ModInit.modLog.LogMessage($"[SelectionStateAbilityInstant.OnAddToStack - BattleArmorDeSwarm] Deswarm chance: {finalChance} from baseChance {baseChance} + pilotSkill x 0.05 {0.05f * pilotSkill}, max 0.95., stored in state.");
+                    var finalChance = Mathf.Min(settings.BaseSuccessChance + (0.05f * pilotSkill), settings.MaxSuccessChance);
+                    ModInit.modLog.LogMessage($"[SelectionStateAbilityInstant.OnAddToStack - BattleArmorDeSwarm] Deswarm chance: {finalChance} from baseChance {settings.BaseSuccessChance} + pilotSkill x 0.05 {0.05f * pilotSkill}, max {settings.MaxSuccessChance}., stored in state.");
                     ModState.DeSwarmSuccessChance = finalChance;
                     var chanceDisplay = (float)Math.Round(finalChance, 3) * 100;
                     cHUD.AttackModeSelector.FireButton.FireText.SetText($"{chanceDisplay}% - Confirm", Array.Empty<object>());
                 }
                 else if (__instance.FromButton.Ability.Def.Id == ModInit.modSettings.BattleArmorDeSwarmSwat)
                 {
-                    
-                    var parsed = float.TryParse(__instance.FromButton.Ability.Def.EffectData
-                        .FirstOrDefault(x => x.statisticData.statName == "BattleArmorDeSwarmerSwat")
-                        ?.statisticData
-                        .modValue, out var baseChance);
-                    if (!parsed) baseChance = 0.55f;
+                    var settings = ModInit.modSettings.DeswarmConfigs.ContainsKey(ModInit.modSettings.BattleArmorDeSwarmSwat)
+                        ? ModInit.modSettings.DeswarmConfigs[ModInit.modSettings.BattleArmorDeSwarmSwat]
+                        : new Classes.BA_DeswarmAbilityConfig();
+                    //var parsed = float.TryParse(__instance.FromButton.Ability.Def.EffectData
+                    //    .FirstOrDefault(x => x.statisticData.statName == "BattleArmorDeSwarmerSwat")
+                    //    ?.statisticData
+                    //    .modValue, out var baseChance);
+                    //if (!parsed) baseChance = 0.55f;
 
                     var pilotSkill = creator.GetPilot().Piloting;
                     var missingActuatorCount = -8;
@@ -142,8 +146,9 @@ namespace StrategicOperations.Patches
                         }
                     }
 
-                    var finalChance = baseChance + (0.05f * pilotSkill) - (0.05f * missingActuatorCount);
-                    ModInit.modLog.LogMessage($"[SelectionStateAbilityInstant.OnAddToStack - BattleArmorDeSwarm] Deswarm chance: {finalChance} from baseChance {baseChance} + pilotSkill x 0.05 {0.05f * pilotSkill} - missingActuators x 0.05 {0.05f * missingActuatorCount}, stored in state.");
+                    var finalChance = Mathf.Min(settings.BaseSuccessChance + (0.05f * pilotSkill) - (0.05f * missingActuatorCount), settings.MaxSuccessChance);
+
+                    ModInit.modLog.LogMessage($"[SelectionStateAbilityInstant.OnAddToStack - BattleArmorDeSwarm] Deswarm chance: {finalChance} from baseChance {settings.BaseSuccessChance} + pilotSkill x 0.05 {0.05f * pilotSkill} - missingActuators x 0.05 {0.05f * missingActuatorCount}, max {settings.MaxSuccessChance} stored in state.");
                     ModState.DeSwarmSuccessChance = finalChance;
                     var chanceDisplay = (float)Math.Round(finalChance, 3) * 100;
                     cHUD.AttackModeSelector.FireButton.FireText.SetText($"{chanceDisplay}% - Confirm", Array.Empty<object>());
@@ -181,11 +186,12 @@ namespace StrategicOperations.Patches
                     if (__instance.owningActor == null) return;
                     if (ModState.DeSwarmMovementInfo?.Carrier?.GUID == __instance.owningActor.GUID)
                     {
-                        var baseChance = __instance.owningActor.getMovementDeSwarmMinChance();
-                        var chanceFromPips = __instance.owningActor.EvasivePipsCurrent *
-                                             __instance.owningActor.getMovementDeSwarmEvasivePipsFactor();
-                        var finalChance = Mathf.Min(baseChance + chanceFromPips,
-                            __instance.owningActor.getMovementDeSwarmMaxChance());
+                        var settings = ModInit.modSettings.DeswarmMovementConfig;
+
+                        var baseChance = settings.BaseSuccessChance; //__instance.owningActor.getMovementDeSwarmMinChance();
+                        var chanceFromPips = __instance.owningActor.EvasivePipsCurrent * settings.EvasivePipsFactor;//__instance.owningActor.getMovementDeSwarmEvasivePipsFactor();
+                        var finalChance = Mathf.Min(baseChance + chanceFromPips, settings.MaxSuccessChance);
+                            //__instance.owningActor.getMovementDeSwarmMaxChance());
                         var roll = ModInit.Random.NextDouble();
                         ModInit.modLog.LogMessage(
                             $"[ActorMovementSequence.CompleteOrders] Found DeSwarmMovementInfo for unit {__instance.owningActor.DisplayName} {__instance.owningActor.GUID}. Rolled {roll} vs finalChance {finalChance} from baseChance {baseChance} and evasive chance {chanceFromPips}");
@@ -217,15 +223,18 @@ namespace StrategicOperations.Patches
             public static void Postfix(MechJumpSequence __instance)
             {
                 if (__instance.OwningMech == null) return;
+                var settings = ModInit.modSettings.DeswarmMovementConfig;
+
                 if (ModState.DeSwarmMovementInfo?.Carrier?.GUID == __instance.OwningMech.GUID)
                 {
-                    var baseChance = __instance.owningActor.getMovementDeSwarmMinChance();
-                    var chanceFromPips = __instance.owningActor.EvasivePipsCurrent *
-                                         __instance.owningActor.getMovementDeSwarmEvasivePipsFactor();
-                    var finalChance = Mathf.Min((baseChance + chanceFromPips) * __instance.owningActor.getMovementDeSwarmEvasiveJumpMovementMultiplier(),
-                        __instance.owningActor.getMovementDeSwarmMaxChance());
+                    var baseChance = settings.BaseSuccessChance; //__instance.owningActor.getMovementDeSwarmMinChance();
+                    var chanceFromPips = __instance.owningActor.EvasivePipsCurrent * settings.EvasivePipsFactor;
+                                         //__instance.owningActor.getMovementDeSwarmEvasivePipsFactor();
+                                         var finalChance =
+                                             Mathf.Min((baseChance + chanceFromPips) * settings.JumpMovementModifier,
+                                                 settings.MaxSuccessChance);//__instance.owningActor.getMovementDeSwarmEvasiveJumpMovementMultiplier(), __instance.owningActor.getMovementDeSwarmMaxChance());
                     var roll = ModInit.Random.NextDouble();
-                    ModInit.modLog.LogMessage($"[ActorMovementSequence.CompleteOrders] Found DeSwarmMovementInfo for unit {__instance.owningActor.DisplayName} {__instance.owningActor.GUID}. Rolled {roll} vs finalChance {finalChance} from (baseChance {baseChance} + evasive chance {chanceFromPips}) x JumpMovementMulti {__instance.owningActor.getMovementDeSwarmEvasiveJumpMovementMultiplier()}");
+                    ModInit.modLog.LogMessage($"[ActorMovementSequence.CompleteOrders] Found DeSwarmMovementInfo for unit {__instance.owningActor.DisplayName} {__instance.owningActor.GUID}. Rolled {roll} vs finalChance {finalChance} from (baseChance {baseChance} + evasive chance {chanceFromPips}) x JumpMovementMulti {settings.JumpMovementModifier}");
                     if (roll <= finalChance)
                     {
                         var baseDistance = Vector3.Distance(__instance.StartPos, __instance.FinalPos);
@@ -241,6 +250,9 @@ namespace StrategicOperations.Patches
                             swarmingUnit.DismountBA(__instance.owningActor, finalDestination, true);
                             if (swarmingUnit is TrooperSquad swarmingUnitSquad)
                             {
+                                var dmg = settings.UseDFADamage
+                                    ? swarmingUnitSquad.StatCollection.GetValue<float>("DFASelfDamage")
+                                    : settings.LocationDamageOverride;
                                 var trooperLocs = swarmingUnitSquad.GetPossibleHitLocations(__instance.owningActor);
                                 for (int i = 0; i < trooperLocs.Count; i++)
                                 {
@@ -519,7 +531,7 @@ namespace StrategicOperations.Patches
                     var actor = __instance.Combat.FindActorByGUID(garrison.Key);
                     var squad = actor as TrooperSquad;
 
-                    //TODO CLUSTER DAMAGE
+                    //TODO CLUSTER DAMAGE? or just make them take DFA
 
                     foreach (var garrisonEffect in ModState.OnGarrisonCollapseEffects)
                     {

@@ -596,6 +596,29 @@ namespace StrategicOperations.Framework
             }
         }
 
+        public class BA_DeswarmAbilityConfig // key will be AbilityDefID
+        {
+            //public string AbilityDefID = "";
+            public float BaseSuccessChance = 0f;
+            public float MaxSuccessChance = 0f;
+            public float TotalDamage = 0f;
+            public int Clusters = 1;
+            public int InitPenalty = 0;
+
+            public BA_DeswarmAbilityConfig(){}
+        }
+
+        public class BA_DeswarmMovementConfig
+        {
+            public float BaseSuccessChance = 0f;
+            public float MaxSuccessChance = 0f;
+            public float EvasivePipsFactor = 0f;
+            public float JumpMovementModifier = 0f;
+            public bool UseDFADamage = false;
+            public float LocationDamageOverride = 0f;
+            public  BA_DeswarmMovementConfig(){}
+        }
+
         public class AI_FactionCommandAbilitySetting
         {
             public string AbilityDefID = "";
@@ -605,6 +628,7 @@ namespace StrategicOperations.Framework
             public int MaxUsersAddedPerContract = 0;
             public List<AI_BeaconProxyInfo> AvailableBeacons = new List<AI_BeaconProxyInfo>();
         }
+
         public class AI_BeaconProxyInfo
         {
             public string UnitDefID = "";

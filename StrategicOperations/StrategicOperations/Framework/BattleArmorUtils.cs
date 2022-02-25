@@ -21,6 +21,20 @@ namespace StrategicOperations.Framework
 {
     public static class BattleArmorUtils
     {
+        public static float[] CalculateClusterDamages(float totalDamage, int clusters, List<int> possibleLocs, out int[] locs)
+        {
+            ModInit.modLog.LogTrace($"[CalculateClusterDamages] Generating {totalDamage} total damage in {clusters} clusters");
+            var dmgClusters = new float[clusters];
+            locs = new int[clusters];
+            var dmgSplit = totalDamage / clusters;
+            for (int i = 0; i < clusters; i++)
+            {
+                dmgClusters[i] = dmgSplit;
+                locs[i] = possibleLocs.GetRandomElement();
+                ModInit.modLog.LogTrace($"[CalculateClusterDamages] Assigning {dmgSplit} damage to location {locs[i]}");
+            }
+            return dmgClusters;
+        }
         public static void ShowBATargetsMeleeIndicator(this CombatHUDInWorldElementMgr inWorld, List<AbstractActor> targets, AbstractActor unit)
         {
             var tickMarks = Traverse.Create(inWorld).Field("WeaponTickMarks")
@@ -789,12 +803,18 @@ namespace StrategicOperations.Framework
         public static void ProcessDeswarmRoll(this AbstractActor creator, List<KeyValuePair<string, string>> swarmingUnits)
         {
             var finalChance = 0f;
-            var rollInitPenalty = creator.StatCollection.GetValue<int>("BattleArmorDeSwarmerRollInitPenalty");
+
+            var settings = ModInit.modSettings.DeswarmConfigs.ContainsKey(ModInit.modSettings.BattleArmorDeSwarmRoll)
+                ? ModInit.modSettings.DeswarmConfigs[ModInit.modSettings.BattleArmorDeSwarmRoll]
+                : new Classes.BA_DeswarmAbilityConfig();
+            //var rollInitPenalty = creator.StatCollection.GetValue<int>("BattleArmorDeSwarmerRollInitPenalty");
+            var rollInitPenalty = settings.InitPenalty;
             if (!creator.team.IsLocalPlayer)
             {
-                var baseChance = creator.StatCollection.GetValue<float>("BattleArmorDeSwarmerRoll");//0.5f;
+                //var baseChance = creator.StatCollection.GetValue<float>("BattleArmorDeSwarmerRoll");//0.5f;
+                var baseChance = settings.BaseSuccessChance;
                 var pilotSkill = creator.GetPilot().Piloting;
-                finalChance = Mathf.Min(baseChance + (0.05f * pilotSkill), 0.95f);
+                finalChance = Mathf.Min(baseChance + (0.05f * pilotSkill), settings.MaxSuccessChance);
                 ModInit.modLog.LogMessage($"[Ability.Activate - BattleArmorDeSwarm] Deswarm chance: {finalChance} from baseChance {baseChance} + pilotSkill x 0.05 {0.05f * pilotSkill}, max 0.95.");
             }
             else
@@ -819,21 +839,24 @@ namespace StrategicOperations.Framework
                     {
                         swarmingUnitActor.ForceUnitOnePhaseDown(creator.GUID, -1, false);
                     }
+
                     var destroyBARoll = ModInit.Random.NextDouble();
                     if (destroyBARoll <= .3f)
                     {
-                        //TODO CHANGE TO CLUSTER DAMAGE
+                        swarmingUnitActor.DismountBA(creator, Vector3.zero, false, true);
                         ModInit.modLog.LogMessage(
                             $"[Ability.Activate - DestroyBA on Roll] SUCCESS: {destroyBARoll} <= {finalChance}.");
                         var trooperLocs = swarmingUnitActor.GetPossibleHitLocations(creator);
-                        for (int i = 0; i < trooperLocs.Count; i++)
+                        var damages = BattleArmorUtils.CalculateClusterDamages(settings.TotalDamage, settings.Clusters, trooperLocs,
+                            out var locs);
+
+                        for (int i = 0; i < damages.Length; i++)
                         {
-                            var cLoc = (ChassisLocations)trooperLocs[i];
-                            var hitinfo = new WeaponHitInfo(-1, -1, 0, 0, creator.GUID, swarmingUnitActor.GUID, 1, new float[1], new float[1], new float[1], new bool[1], new int[trooperLocs[i]], new int[1], new AttackImpactQuality[1], new AttackDirection[1], new Vector3[1], new string[1], new int[trooperLocs[i]]);
-                            swarmingUnitSquad?.NukeStructureLocation(hitinfo, trooperLocs[i], cLoc, Vector3.up, DamageType.ComponentExplosion);
+                            var hitinfo = new WeaponHitInfo(-1, -1, 0, 0, creator.GUID, swarmingUnitActor.GUID, 1, new float[1], new float[1], new float[1], new bool[1], new int[locs[i]], new int[1], new AttackImpactQuality[1], new AttackDirection[1], new Vector3[1], new string[1], new int[locs[i]]);
+                            swarmingUnitActor.TakeWeaponDamage(hitinfo, locs[i], swarmingUnitSquad.MeleeWeapon, damages[i], 0, 0, DamageType.Melee);
                         }
-                        swarmingUnitActor.DismountBA(creator, Vector3.zero, false, true);
-                        swarmingUnitActor.FlagForDeath("Squished", DeathMethod.VitalComponentDestroyed, DamageType.Melee, 0, -1, creator.GUID, false);
+                        if (swarmingUnitSquad.IsFlaggedForDeath)
+                        //swarmingUnitActor.FlagForDeath("Squished", DeathMethod.VitalComponentDestroyed, DamageType.Melee, 0, -1, creator.GUID, false);
                         swarmingUnitActor.HandleDeath(creator.GUID);
                     }
                     else
@@ -859,13 +882,15 @@ namespace StrategicOperations.Framework
             List<KeyValuePair<string, string>> swarmingUnits)
         {
             var finalChance = 0f;
-            var swatInitPenalty =
-                creator.StatCollection.GetValue<int>("BattleArmorDeSwarmerSwatInitPenalty");
+            //var swatInitPenalty = creator.StatCollection.GetValue<int>("BattleArmorDeSwarmerSwatInitPenalty");
+            var settings = ModInit.modSettings.DeswarmConfigs.ContainsKey(ModInit.modSettings.BattleArmorDeSwarmRoll)
+                ? ModInit.modSettings.DeswarmConfigs[ModInit.modSettings.BattleArmorDeSwarmRoll]
+                : new Classes.BA_DeswarmAbilityConfig();
+            var swatInitPenalty = settings.InitPenalty;
             if (!creator.team.IsLocalPlayer)
             {
-                var baseChance =
-                    creator.StatCollection.GetValue<float>(
-                        "BattleArmorDeSwarmerSwat"); //0.5f;//0.3f;
+                //var baseChance = creator.StatCollection.GetValue<float>("BattleArmorDeSwarmerSwat"); //0.5f;//0.3f;
+                var baseChance = settings.BaseSuccessChance;
                 var pilotSkill = creator.GetPilot().Piloting;
                 var missingActuatorCount = -8;
                 foreach (var armComponent in creator.allComponents.Where(x =>
@@ -881,7 +906,7 @@ namespace StrategicOperations.Framework
                     }
                 }
 
-                finalChance = baseChance + (0.05f * pilotSkill) - (0.05f * missingActuatorCount);
+                finalChance = Mathf.Min(baseChance + (0.05f * pilotSkill) - (0.05f * missingActuatorCount), settings.MaxSuccessChance);
                 ModInit.modLog.LogMessage(
                     $"[Ability.Activate - BattleArmorDeSwarm] Deswarm chance: {finalChance} from baseChance {baseChance} + pilotSkill x 0.05 {0.05f * pilotSkill} - missingActuators x 0.05 {0.05f * missingActuatorCount}.");
             }
@@ -905,20 +930,33 @@ namespace StrategicOperations.Framework
                     {
                         swarmingUnitActor.ForceUnitOnePhaseDown(creator.GUID, -1, false);
                     }
+                    swarmingUnitActor.DismountBA(creator, Vector3.zero, true);
                     var dmgRoll = ModInit.Random.NextDouble();
                     if (dmgRoll <= finalChance)
                     {
                         if (swarmingUnitActor is TrooperSquad swarmingUnitAsSquad)
                         {
-                            var baLoc = swarmingUnitAsSquad.GetPossibleHitLocations(creator).GetRandomElement();
-                            ModInit.modLog.LogMessage($"[Ability.Activate - BattleArmorDeSwarm] BA Armor Damage Location {baLoc}: {swarmingUnitAsSquad.GetStringForArmorLocation((ArmorLocation)baLoc)}");
-                            var swatDmg = creator.StatCollection.GetValue<float>("BattleArmorDeSwarmerSwatDamage");
-                            var hitinfo = new WeaponHitInfo(-1, -1, 0, 0, creator.GUID, swarmingUnitActor.GUID, 1, new float[1], new float[1], new float[1], new bool[1], new int[baLoc], new int[1], new AttackImpactQuality[1], new AttackDirection[1], new Vector3[1], new string[1], new int[baLoc]);
+                            var trooperLocs = swarmingUnitActor.GetPossibleHitLocations(creator);
+                            var damages = BattleArmorUtils.CalculateClusterDamages(settings.TotalDamage, settings.Clusters, trooperLocs,
+                                out var locs);
 
-                            swarmingUnitActor.TakeWeaponDamage(hitinfo, baLoc, swarmingUnitAsSquad.MeleeWeapon, swatDmg, 0, 0, DamageType.Melee);
+                            //var baLoc = swarmingUnitAsSquad.GetPossibleHitLocations(creator).GetRandomElement();
+                            for (int i = 0; i < damages.Length; i++)
+                            {
+                                ModInit.modLog.LogMessage(
+                                    $"[Ability.Activate - BattleArmorDeSwarm] BA Armor Damage Location {locs[i]}: {swarmingUnitAsSquad.GetStringForArmorLocation((ArmorLocation) locs[i])}");
+                                //var swatDmg = creator.StatCollection.GetValue<float>("BattleArmorDeSwarmerSwatDamage");
+
+                                var hitinfo = new WeaponHitInfo(-1, -1, 0, 0, creator.GUID, swarmingUnitActor.GUID, 1,
+                                    new float[1], new float[1], new float[1], new bool[1], new int[locs[i]], new int[1],
+                                    new AttackImpactQuality[1], new AttackDirection[1], new Vector3[1], new string[1],
+                                    new int[locs[i]]);
+                                swarmingUnitActor.TakeWeaponDamage(hitinfo, locs[i], swarmingUnitAsSquad.MeleeWeapon,
+                                    damages[i], 0, 0, DamageType.Melee);
+                            }
+                            if (swarmingUnitActor.IsFlaggedForDeath) swarmingUnitActor.HandleDeath(creator.GUID);
                         }
                     }
-                    swarmingUnitActor.DismountBA(creator, Vector3.zero, true);
                 }
                 else
                 {

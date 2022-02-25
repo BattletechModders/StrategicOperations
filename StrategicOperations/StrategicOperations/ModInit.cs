@@ -94,6 +94,12 @@ namespace StrategicOperations
         public List<string> BPodComponentIDs = new List<string>(); //statistic for dmg will be BPod_DamageDealt
         public bool BPodsAutoActivate = true; //BPods always auto activate when swarmed for AI, this only controls for player
         public List<string> ArmActuatorCategoryIDs = new List<string>();
+
+        public bool UseActorStatsForDeswarmAbilities = false;
+        public Dictionary<string, BA_DeswarmAbilityConfig> DeswarmConfigs =
+            new Dictionary<string, BA_DeswarmAbilityConfig>();
+        public BA_DeswarmMovementConfig DeswarmMovementConfig;
+
         public bool AttackOnSwarmSuccess = false;
         public List<string> AI_BattleArmorExcludedContractTypes = new List<string>();
         public List<string> AI_BattleArmorExcludedContractIDs = new List<string>();
