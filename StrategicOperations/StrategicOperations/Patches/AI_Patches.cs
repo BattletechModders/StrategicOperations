@@ -64,14 +64,14 @@ namespace StrategicOperations.Patches
 
                     }
 
-                    if (!string.IsNullOrEmpty(ModInit.modSettings.BattleArmorDeSwarmMovement))
+                    if (!string.IsNullOrEmpty(ModInit.modSettings.DeswarmMovementConfig.AbilityDefID))
                     {
                         if (unit.GetPilot().Abilities
-                                .All(x => x.Def.Id != ModInit.modSettings.BattleArmorDeSwarmMovement) &&
+                                .All(x => x.Def.Id != ModInit.modSettings.DeswarmMovementConfig.AbilityDefID) &&
                             unit.ComponentAbilities.All(y =>
-                                y.Def.Id != ModInit.modSettings.BattleArmorDeSwarmMovement))
+                                y.Def.Id != ModInit.modSettings.DeswarmMovementConfig.AbilityDefID))
                         {
-                            unit.Combat.DataManager.AbilityDefs.TryGet(ModInit.modSettings.BattleArmorDeSwarmMovement,
+                            unit.Combat.DataManager.AbilityDefs.TryGet(ModInit.modSettings.DeswarmMovementConfig.AbilityDefID,
                                 out var def);
                             var ability = new Ability(def);
                             ModInit.modLog.LogTrace(
@@ -245,6 +245,14 @@ namespace StrategicOperations.Patches
                 AbstractActor ___unit)
             {
                 if (!___unit.Combat.TurnDirector.IsInterleaved) return true;
+
+                if (___unit.IsAirlifted())
+                {
+                    ModInit.modLog.LogTrace(
+                        $"[CanMoveAndShootWithoutOverheatingNode] Actor {___unit.DisplayName} is currently being airlifted. Doing nothing.");
+                    __result = new BehaviorTreeResults(BehaviorNodeState.Failure);
+                    return false;
+                }
 
                 var battleArmorAbility =
                     ___unit.ComponentAbilities.FirstOrDefault(x =>

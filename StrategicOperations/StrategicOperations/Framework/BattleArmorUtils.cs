@@ -14,6 +14,7 @@ using CustomUnits;
 using Harmony;
 using HBS.Math;
 using Localize;
+using UIWidgets;
 using UnityEngine;
 using Random = UnityEngine.Random;
 
@@ -482,11 +483,11 @@ namespace StrategicOperations.Framework
 
         public static bool hasGarrisonedUnits(this BattleTech.Building building)
         {
-            return ModState.PositionLockGarrison.ContainsValue(building.GUID);
+            return ModState.PositionLockGarrison.Any(x=>x.Value.BuildingGUID == building.GUID);
         }
         public static bool isGarrisonedInTargetBuilding(this AbstractActor actor, BattleTech.Building building)
         {
-            return ModState.PositionLockGarrison.ContainsKey(actor.GUID) && ModState.PositionLockGarrison[actor.GUID] == building.GUID;
+            return ModState.PositionLockGarrison.ContainsKey(actor.GUID) && ModState.PositionLockGarrison[actor.GUID].BuildingGUID == building.GUID;
         }
         public static bool isGarrisoned(this AbstractActor actor)
         {
@@ -606,7 +607,7 @@ namespace StrategicOperations.Framework
             return ModState.PositionLockSwarm.ContainsKey(actor.GUID) && ModState.PositionLockSwarm[actor.GUID] == target.GUID;
         }
 
-        public static Vector3 FetchAdjacentHex(AbstractActor actor)
+        public static Vector3 FetchAdjacentHex(this AbstractActor actor)
         {
             var points = actor.Combat.HexGrid.GetAdjacentPointsOnGrid(actor.CurrentPosition);
             var point = points.GetRandomElement();
@@ -704,62 +705,75 @@ namespace StrategicOperations.Framework
             }
         }
 
-        public static void DismountGarrison(this AbstractActor actor, ICombatant carrier, Vector3 locationOverride,
+        public static void DismountGarrison(this TrooperSquad squad, ICombatant carrier, Vector3 locationOverride,
             bool calledFromHandleDeath = false)
         {
-            if (actor is TrooperSquad squad)
+            var em = squad.Combat.EffectManager;
+            foreach (var BA_effect in ModState.BA_MountSwarmEffects)
             {
-               var em = actor.Combat.EffectManager;
-                foreach (var BA_effect in ModState.BA_MountSwarmEffects)
-                {
-                    var effects = em.GetAllEffectsTargetingWithUniqueID(actor, BA_effect.ID);
-                    for (int i = effects.Count - 1; i >= 0; i--)
-                    {
-                        ModInit.modLog.LogMessage(
-                            $"[DismountGarrison] Cancelling effect on {actor.DisplayName}: {effects[i].EffectData.Description.Name}.");
-                        em.CancelEffect(effects[i]);
-                    }
-                }
-                actor.FiringArc(actor.GetCustomInfo().FiringArc);
-                var hud = Traverse.Create(CameraControl.Instance).Property("HUD").GetValue<CombatHUD>();
-                //actor.GameRep.IsTargetable = true;
-
-                ModState.PositionLockGarrison.Remove(actor.GUID);
-
-                
-                actor.GameRep.transform.localScale = new Vector3(1f, 1f, 1f);
-                //actor.GameRep.transform.localScale = ModState.SavedBAScale[actor.GUID];
-                //ModState.SavedBAScale.Remove(actor.GUID);
-                squad.GameRep.ToggleHeadlights(true);
-                
-                var point = carrier.CurrentPosition;
-                if (locationOverride != Vector3.zero)
-                {
-                    point = locationOverride;
-                    ModInit.modLog.LogMessage($"[DismountGarrison] Using location override {locationOverride}.");
-                }
-                point.y = actor.Combat.MapMetaData.GetLerpedHeightAt(point, true);
-                actor.TeleportActor(point);
-
-                if (!calledFromHandleDeath)
+                if (BA_effect.TargetEffectType != Classes.BA_TargetEffectType.GARRISON &&
+                    BA_effect.TargetEffectType != Classes.BA_TargetEffectType.BOTH) continue;
+                var effects = em.GetAllEffectsTargetingWithUniqueID(squad, BA_effect.ID);
+                for (int i = effects.Count - 1; i >= 0; i--)
                 {
                     ModInit.modLog.LogMessage(
-                        $"[DismountGarrison] Not called from HandleDeath or Deswarm, resetting buttons and pathing.");
-                    hud.MechWarriorTray.JumpButton.ResetButtonIfNotActive(actor);
-                    hud.MechWarriorTray.SprintButton.ResetButtonIfNotActive(actor);
-                    hud.MechWarriorTray.MoveButton.ResetButtonIfNotActive(actor);
-                    hud.SelectionHandler.AddJumpState(actor);
-                    hud.SelectionHandler.AddSprintState(actor);
-                    hud.SelectionHandler.AddMoveState(actor);
-                    actor.ResetPathing(false);
-                    actor.Pathing.UpdateCurrentPath(false);
+                        $"[DismountGarrison] Cancelling effect on {squad.DisplayName}: {effects[i].EffectData.Description.Name}.");
+                    em.CancelEffect(effects[i]);
                 }
-
-                actor.VisibilityCache.UpdateCacheReciprocal(actor.Combat.GetAllLivingCombatants());
-
-                ModInit.modLog.LogMessage(
-                    $"[DismountGarrison] Removing PositionLock with rider  {actor.DisplayName} {actor.GUID} and carrier {carrier.DisplayName} {carrier.GUID} and rebuilding visibility cache.");
             }
+            squad.FiringArc(squad.GetCustomInfo().FiringArc);
+            var hud = Traverse.Create(CameraControl.Instance).Property("HUD").GetValue<CombatHUD>();
+            //actor.GameRep.IsTargetable = true;
+
+            carrier.RemoveFromTeam();
+
+            foreach (var loc in ModState.PositionLockGarrison[squad.GUID].InitialLocArmor)
+            {
+                if (squad.GetCurrentArmor((ArmorLocation) loc.Key) > loc.Value)
+                {
+                    squad.StatCollection.Set(squad.GetStringForArmorLocation((ArmorLocation)loc.Key),
+                        loc.Value);
+                }
+            }
+
+            ModState.PositionLockGarrison.Remove(squad.GUID);
+
+            squad.GameRep.transform.localScale = new Vector3(1f, 1f, 1f);
+            squad.GameRep.ToggleHeadlights(true);
+
+            if (carrier is BattleTech.Building building)
+            {
+                locationOverride = squad.GetEvacBuildingLocation(building);
+            }
+            
+            var point = carrier.CurrentPosition;
+            if (locationOverride != Vector3.zero)
+            {
+                point = locationOverride;
+                ModInit.modLog.LogMessage($"[DismountGarrison] Using location override {locationOverride}.");
+            }
+            point.y = squad.Combat.MapMetaData.GetLerpedHeightAt(point, false);
+            squad.TeleportActor(point);
+
+            if (!calledFromHandleDeath)
+            {
+                ModInit.modLog.LogMessage(
+                    $"[DismountGarrison] Not called from HandleDeath or Deswarm, resetting buttons and pathing.");
+                hud.MechWarriorTray.JumpButton.ResetButtonIfNotActive(squad);
+                hud.MechWarriorTray.SprintButton.ResetButtonIfNotActive(squad);
+                hud.MechWarriorTray.MoveButton.ResetButtonIfNotActive(squad);
+                hud.SelectionHandler.AddJumpState(squad);
+                hud.SelectionHandler.AddSprintState(squad);
+                hud.SelectionHandler.AddMoveState(squad);
+                squad.ResetPathing(false);
+                squad.Pathing.UpdateCurrentPath(false);
+            }
+
+            squad.VisibilityCache.UpdateCacheReciprocal(squad.Combat.GetAllLivingCombatants());
+
+            ModInit.modLog.LogMessage(
+                $"[DismountGarrison] Removing PositionLock with rider  {squad.DisplayName} {squad.GUID} and carrier {carrier.DisplayName} {carrier.GUID} and rebuilding visibility cache.");
+            
         }
 
         public static Ability GetDeswarmerAbilityForAI(this AbstractActor actor, bool UseMovement = false)
@@ -768,11 +782,11 @@ namespace StrategicOperations.Framework
 
             if (UseMovement)
             {
-                if (!string.IsNullOrEmpty(ModInit.modSettings.BattleArmorDeSwarmMovement))
+                if (!string.IsNullOrEmpty(ModInit.modSettings.DeswarmMovementConfig.AbilityDefID))
                 {
                     var move = actor.GetPilot().Abilities
-                        .FirstOrDefault(x => x.Def.Id == ModInit.modSettings.BattleArmorDeSwarmMovement) ?? actor.ComponentAbilities
-                        .FirstOrDefault(x => x.Def.Id == ModInit.modSettings.BattleArmorDeSwarmMovement);
+                        .FirstOrDefault(x => x.Def.Id == ModInit.modSettings.DeswarmMovementConfig.AbilityDefID) ?? actor.ComponentAbilities
+                        .FirstOrDefault(x => x.Def.Id == ModInit.modSettings.DeswarmMovementConfig.AbilityDefID);
                     if (move != null) return move;
                 }
             }
@@ -800,6 +814,10 @@ namespace StrategicOperations.Framework
             return new Ability(new AbilityDef());
         }
 
+        public static void ProcessWiggleWiggle(this AbstractActor creator, AbstractActor carrier)
+        {
+
+        }
         public static void ProcessDeswarmRoll(this AbstractActor creator, List<KeyValuePair<string, string>> swarmingUnits)
         {
             var finalChance = 0f;
@@ -984,7 +1002,7 @@ namespace StrategicOperations.Framework
             ModInit.modLog.LogTrace($"[ProcessDeswarmMovement] - Set modstate.");
         }
 
-        public static void ProcessGarrisonBuilding(this AbstractActor creator, BattleTech.Building targetBuilding)
+        public static void ProcessGarrisonBuilding(this TrooperSquad creator, BattleTech.Building targetBuilding)
         {
             foreach (var BA_Effect in ModState.BA_MountSwarmEffects)
             {
@@ -993,7 +1011,7 @@ namespace StrategicOperations.Framework
                     foreach (var effectData in BA_Effect.effects)
                     {
                         creator.Combat.EffectManager.CreateEffect(effectData,
-                            BA_Effect.ID,
+                            effectData.Description.Id,
                             -1, creator, creator, default(WeaponHitInfo), 1);
                     }
                 }
@@ -1002,26 +1020,42 @@ namespace StrategicOperations.Framework
                     foreach (var effectData in BA_Effect.effects)
                     {
                         creator.Combat.EffectManager.CreateEffect(effectData,
-                            BA_Effect.ID,
+                            effectData.Description.Id,
                             -1, creator, creator, default(WeaponHitInfo), 1);
                     }
                 }
             }
 
             var pos = targetBuilding.CurrentPosition;
-            pos.y = creator.Combat.MapMetaData.GetLerpedHeightAt(pos);
+            pos.y = creator.Combat.MapMetaData.GetLerpedHeightAt(pos) + 5f;
             creator.TeleportActor(pos);
 
-            ModState.PositionLockGarrison.Add(creator.GUID, targetBuilding.GUID);
-            if (creator is TrooperSquad squad)
+            ModState.PositionLockGarrison.Add(creator.GUID, new Classes.BA_GarrisonInfo(targetBuilding, creator));
+            
+            creator.GameRep.transform.localScale = new Vector3(.01f, .01f, .01f);
+            creator.FiringArc(360f);
+           // var alliedTeam = 
+            //squad.team.SupportTeam.AddCombatant(targetBuilding);
+            targetBuilding.AddToTeam(creator.team.SupportTeam);
+            //targetBuilding.BuildingRep.IsTargetable = true;
+            //targetBuilding.BuildingRep.SetHighlightColor(creator.Combat, creator.team);
+            //targetBuilding.BuildingRep.RefreshEdgeCache();
+            creator.GameRep.ToggleHeadlights(false);
+
+            var currentSquadLocs = creator.GetPossibleHitLocations(creator);
+            var additionalArmorPerLoc = (targetBuilding.CurrentStructure + targetBuilding.CurrentArmor) /
+                currentSquadLocs.Count * ModInit.modSettings.GarrisonBuildingArmorFactor;
+
+            foreach (var location in creator.GetPossibleHitLocations(creator))
             {
-                squad.GameRep.transform.localScale = new Vector3(.01f, .01f, .01f);
-                squad.FiringArc(360f);
-                squad.team.AddCombatant(targetBuilding);
-                targetBuilding.AddToTeam(squad.team);
+                var currentArmor = creator.GetCurrentArmor((ArmorLocation)location);
+                creator.StatCollection.Set(creator.GetStringForArmorLocation((ArmorLocation) location),
+                    currentArmor + additionalArmorPerLoc);
             }
+
+            
             ModInit.modLog.LogMessage(
-                $"[ProcessGarrisonBuilding] Added garrision info with unit {creator.DisplayName} {creator.GUID} and building {targetBuilding.DisplayName} {targetBuilding.GUID}.");
+                $"[ProcessGarrisonBuilding] Added garrision info with unit {creator.DisplayName} {creator.GUID} and building {targetBuilding.DisplayName} {targetBuilding.GUID} at position {targetBuilding.CurrentPosition}.");
 
             if (creator.team.IsLocalPlayer)
             {
@@ -1039,7 +1073,7 @@ namespace StrategicOperations.Framework
                     foreach (var effectData in BA_Effect.effects)
                     {
                         creator.Combat.EffectManager.CreateEffect(effectData,
-                            BA_Effect.ID,
+                            effectData.Description.Id,
                             -1, creator, creator, default(WeaponHitInfo), 1);
                     }
                 }
@@ -1048,7 +1082,7 @@ namespace StrategicOperations.Framework
                     foreach (var effectData in BA_Effect.effects)
                     {
                         creator.Combat.EffectManager.CreateEffect(effectData,
-                            BA_Effect.ID,
+                            effectData.Description.Id,
                             -1, creator, creator, default(WeaponHitInfo), 1);
                     }
                 }
@@ -1057,7 +1091,7 @@ namespace StrategicOperations.Framework
                     foreach (var effectData in BA_Effect.effects)
                     {
                         creator.Combat.EffectManager.CreateEffect(effectData,
-                            BA_Effect.ID,
+                            effectData.Description.Id,
                             -1, creator, creator, default(WeaponHitInfo), 1);
                     }
                 }
@@ -1113,7 +1147,7 @@ namespace StrategicOperations.Framework
                         foreach (var effectData in BA_Effect.effects)
                         {
                             creatorMech.Combat.EffectManager.CreateEffect(effectData,
-                                BA_Effect.ID,
+                                effectData.Description.Id,
                                 -1, creatorMech, creatorMech, default(WeaponHitInfo), 1);
                         }
                     }
@@ -1192,121 +1226,194 @@ namespace StrategicOperations.Framework
             }
         }
 
-        public static LineOfFireLevel GetLineOfFireForGarrison(this ICombatant source, AbstractActor garrisonSquad, Vector3 sourcePosition,
-            ICombatant target, Vector3 targetPosition, Quaternion targetRotation, out Vector3 collisionWorldPos)
+        public static Vector3[] GetGarrisionLOSSourcePositions(this BattleTech.Building sourceBuilding)
         {
-            Vector3 forward = targetPosition - sourcePosition;
-            forward.y = 0f;
-            Quaternion rotation = Quaternion.LookRotation(forward);
-            Vector3[] lossourcePositions = source.GetLOSTargetPositions(sourcePosition, rotation);
-            Vector3[] lostargetPositions = target.GetLOSTargetPositions(targetPosition, targetRotation);
-            List<AbstractActor> list = new List<AbstractActor>(source.Combat.AllActors);
-            list.Remove(garrisonSquad);
-            AbstractActor abstractActor = target as AbstractActor;
-            string text = null;
-            if (abstractActor != null)
+            Point buildingPoint = new Point(
+                sourceBuilding.Combat.MapMetaData.GetXIndex(sourceBuilding.CurrentPosition.x),
+                sourceBuilding.Combat.MapMetaData.GetZIndex(sourceBuilding.CurrentPosition.z));
+            MapEncounterLayerDataCell encounterLayerDataCell =
+                sourceBuilding.Combat.EncounterLayerData.mapEncounterLayerDataCells[buildingPoint.Z, buildingPoint.X];
+            float buildingHeight = encounterLayerDataCell.GetBuildingHeight() * 2f;
+
+            Vector3[] positions = new Vector3[5];
+            var pos1 = new Vector3(-10f, buildingHeight, -10f);
+            var pos2 = new Vector3(10f, buildingHeight, -10f);
+            var pos3 = new Vector3(0f, buildingHeight, 0f);
+            var pos4 = new Vector3(-10f, buildingHeight, 10f);
+            var pos5 = new Vector3(10f, buildingHeight, 10f);
+
+            positions[0] = pos1;
+            positions[1] = pos2;
+            positions[2] = pos3;
+            positions[3] = pos4;
+            positions[4] = pos5;
+
+            return positions;
+        }
+
+        public static Vector3 GetEvacBuildingLocation(this AbstractActor squad, BattleTech.Building building)
+        {
+            var ogl = ObstructionGameLogic.GetObstructionFromBuilding(building, squad.Combat.ItemRegistry);
+
+            var posToCheck =
+                squad.Combat.HexGrid.GetGridPointsAroundPointWithinRadius(building.CurrentPosition,
+                    ogl.occupiedCells.Count);
+            var evacLoc = posToCheck[0];
+            foreach (var pos in posToCheck)
             {
-                list.Remove(abstractActor);
-            }
-            else
-            {
-                text = target.GUID;
-            }
-            LineSegment lineSegment = new LineSegment(sourcePosition, targetPosition);
-            list.Sort((AbstractActor x, AbstractActor y) => Vector3.SqrMagnitude(x.CurrentPosition - sourcePosition).CompareTo(Vector3.SqrMagnitude(y.CurrentPosition - sourcePosition)));
-            float num = Vector3.SqrMagnitude(sourcePosition - targetPosition);
-            for (int i = list.Count - 1; i >= 0; i--)
-            {
-                if (list[i].IsDead || Vector3.SqrMagnitude(list[i].CurrentPosition - sourcePosition) > num || lineSegment.DistToPoint(list[i].CurrentPosition) > list[i].Radius * 5f)
+                var point = new Point(
+                    squad.Combat.MapMetaData.GetXIndex(pos.x),
+                    squad.Combat.MapMetaData.GetZIndex(pos.z));
+                var encounterLayerDataCell =
+                    squad.Combat.EncounterLayerData.mapEncounterLayerDataCells[point.Z, point.X];
+                if (encounterLayerDataCell.HasBuilding) continue;
+                if (Vector3.Distance(pos, building.CurrentPosition) <
+                    Vector3.Distance(evacLoc, building.CurrentPosition))
                 {
-                    list.RemoveAt(i);
+                    evacLoc = pos;
                 }
             }
-            float num2 = 0f;
-            float num3 = 0f;
-            float num4 = 0f;
+            return evacLoc;
+        }
+
+        public static LineOfFireLevel GetLineOfFireForGarrison(this ICombatant source, AbstractActor garrisonSquad,
+            Vector3 sourcePosition,
+            ICombatant target, Vector3 targetPosition, Quaternion targetRotation, out Vector3 collisionWorldPos)
+        {
             collisionWorldPos = targetPosition;
-            float num5 = 999999.9f;
-            Weapon longestRangeWeapon = garrisonSquad.GetLongestRangeWeapon(false, false);
-            float num6 = (longestRangeWeapon == null) ? 0f : longestRangeWeapon.MaxRange;
-            float adjustedSpotterRange = garrisonSquad.Combat.LOS.GetAdjustedSpotterRange(garrisonSquad, abstractActor);
-            num6 = Mathf.Max(num6, adjustedSpotterRange);
-            float num7 = Mathf.Pow(num6, 2f);
-            for (int j = 0; j < lossourcePositions.Length; j++)
+            if (source is BattleTech.Building building)
             {
-                for (int k = 0; k < lostargetPositions.Length; k++)
+                Vector3 forward = targetPosition - sourcePosition;
+                forward.y = 0f;
+                Quaternion rotation = Quaternion.LookRotation(forward);
+                //Vector3[] lossourcePositions = source.GetLOSTargetPositions(sourcePosition, rotation);
+
+                Vector3[] lossourcePositions = building.GetGarrisionLOSSourcePositions();
+
+                    Vector3[] lostargetPositions = target.GetLOSTargetPositions(targetPosition, targetRotation);
+                List<AbstractActor> list = new List<AbstractActor>(source.Combat.AllActors);
+                list.Remove(garrisonSquad);
+                AbstractActor abstractActor = target as AbstractActor;
+                string text = null;
+                if (abstractActor != null)
                 {
-                    num3 += 1f;
-                    if (Vector3.SqrMagnitude(lossourcePositions[j] - lostargetPositions[k]) <= num7)
+                    list.Remove(abstractActor);
+                }
+                else
+                {
+                    text = target.GUID;
+                }
+
+                LineSegment lineSegment = new LineSegment(sourcePosition, targetPosition);
+                list.Sort((AbstractActor x, AbstractActor y) => Vector3.SqrMagnitude(x.CurrentPosition - sourcePosition)
+                    .CompareTo(Vector3.SqrMagnitude(y.CurrentPosition - sourcePosition)));
+                float num = Vector3.SqrMagnitude(sourcePosition - targetPosition);
+                for (int i = list.Count - 1; i >= 0; i--)
+                {
+                    if (list[i].IsDead || Vector3.SqrMagnitude(list[i].CurrentPosition - sourcePosition) > num ||
+                        lineSegment.DistToPoint(list[i].CurrentPosition) > list[i].Radius * 5f)
                     {
-                        lineSegment = new LineSegment(lossourcePositions[j], lostargetPositions[k]);
-                        bool flag = false;
-                        Vector3 vector;
-                        if (text == null)
+                        list.RemoveAt(i);
+                    }
+                }
+
+                float num2 = 0f;
+                float num3 = 0f;
+                float num4 = 0f;
+                float num5 = 999999.9f;
+                Weapon longestRangeWeapon = garrisonSquad.GetLongestRangeWeapon(false, false);
+                float num6 = (longestRangeWeapon == null) ? 0f : longestRangeWeapon.MaxRange;
+                float adjustedSpotterRange =
+                    garrisonSquad.Combat.LOS.GetAdjustedSpotterRange(garrisonSquad, abstractActor);
+                num6 = Mathf.Max(num6, adjustedSpotterRange);
+                float num7 = Mathf.Pow(num6, 2f);
+                for (int j = 0; j < lossourcePositions.Length; j++)
+                {
+                    for (int k = 0; k < lostargetPositions.Length; k++)
+                    {
+                        num3 += 1f;
+                        if (Vector3.SqrMagnitude(lossourcePositions[j] - lostargetPositions[k]) <= num7)
                         {
-                            for (int l = 0; l < list.Count; l++)
+                            lineSegment = new LineSegment(lossourcePositions[j], lostargetPositions[k]);
+                            bool flag = false;
+                            Vector3 vector;
+                            if (text == null)
                             {
-                                if (lineSegment.DistToPoint(list[l].CurrentPosition) < list[l].Radius)
+                                for (int l = 0; l < list.Count; l++)
                                 {
-                                    vector = NvMath.NearestPointStrict(lossourcePositions[j], lostargetPositions[k], list[l].CurrentPosition);
-                                    float num8 = Vector3.Distance(vector, list[l].CurrentPosition);
-                                    if (num8 < list[l].HighestLOSPosition.y)
+                                    if (lineSegment.DistToPoint(list[l].CurrentPosition) < list[l].Radius)
                                     {
-                                        flag = true;
-                                        num4 += 1f;
-                                        if (num8 < num5)
+                                        vector = NvMath.NearestPointStrict(lossourcePositions[j], lostargetPositions[k],
+                                            list[l].CurrentPosition);
+                                        float num8 = Vector3.Distance(vector, list[l].CurrentPosition);
+                                        if (num8 < list[l].HighestLOSPosition.y)
                                         {
-                                            num5 = num8;
-                                            collisionWorldPos = vector;
+                                            flag = true;
+                                            num4 += 1f;
+                                            if (num8 < num5)
+                                            {
+                                                num5 = num8;
+                                                collisionWorldPos = vector;
+                                                break;
+                                            }
+
                                             break;
                                         }
-                                        break;
                                     }
                                 }
                             }
-                        }
-                        if (source.Combat.LOS.HasLineOfFire(lossourcePositions[j], lostargetPositions[k], text, num6, out vector))
-                        {
-                            num2 += 1f;
-                            if (text != null)
+
+                            if (source.Combat.LOS.HasLineOfFire(lossourcePositions[j], lostargetPositions[k], text,
+                                    num6, out vector))
                             {
-                                break;
+                                num2 += 1f;
+                                if (text != null)
+                                {
+                                    break;
+                                }
                             }
-                        }
-                        else
-                        {
-                            if (flag)
+                            else
                             {
-                                num4 -= 1f;
-                            }
-                            float num8 = Vector3.Distance(vector, sourcePosition);
-                            if (num8 < num5)
-                            {
-                                num5 = num8;
-                                collisionWorldPos = vector;
+                                if (flag)
+                                {
+                                    num4 -= 1f;
+                                }
+
+                                float num8 = Vector3.Distance(vector, sourcePosition);
+                                if (num8 < num5)
+                                {
+                                    num5 = num8;
+                                    collisionWorldPos = vector;
+                                }
                             }
                         }
                     }
+
+                    if (text != null && num2 > 0.5f)
+                    {
+                        break;
+                    }
                 }
-                if (text != null && num2 > 0.5f)
+
+                float num9 = (text == null) ? (num2 / num3) : num2;
+                float b = num9 - source.Combat.Constants.Visibility.MinRatioFromActors;
+                float num10 = Mathf.Min(num4 / num3, b);
+                if (num10 > 0.001f)
                 {
-                    break;
+                    num9 -= num10;
                 }
-            }
-            float num9 = (text == null) ? (num2 / num3) : num2;
-            float b = num9 - source.Combat.Constants.Visibility.MinRatioFromActors;
-            float num10 = Mathf.Min(num4 / num3, b);
-            if (num10 > 0.001f)
-            {
-                num9 -= num10;
-            }
-            if (num9 >= source.Combat.Constants.Visibility.RatioFullVis)
-            {
-                return LineOfFireLevel.LOFClear;
-            }
-            if (num9 >= source.Combat.Constants.Visibility.RatioObstructedVis)
-            {
-                return LineOfFireLevel.LOFObstructed;
+
+                if (num9 >= source.Combat.Constants.Visibility.RatioFullVis)
+                {
+                    return LineOfFireLevel.LOFClear;
+                }
+
+                if (num9 >= source.Combat.Constants.Visibility.RatioObstructedVis)
+                {
+                    return LineOfFireLevel.LOFObstructed;
+                }
+
+                return LineOfFireLevel.LOFBlocked;
             }
             return LineOfFireLevel.LOFBlocked;
         }

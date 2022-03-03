@@ -26,6 +26,7 @@ namespace StrategicOperations.Patches
             public static void Postfix(AbstractActor __instance)
             {
                 __instance.StatCollection.AddStatistic<bool>("CanSwarm", false);
+                __instance.StatCollection.AddStatistic<bool>("CanAirliftHostiles", false);
                 __instance.StatCollection.AddStatistic<bool>("BattleArmorInternalMountsOnly", false);
                 __instance.StatCollection.AddStatistic<int>("InternalBattleArmorSquadCap", 0);
                 __instance.StatCollection.AddStatistic<int>("InternalBattleArmorSquads", 0);
@@ -408,7 +409,7 @@ namespace StrategicOperations.Patches
                                 creator.ProcessDeswarmSwat(swarmingUnits);
                             }
 
-                            else if (__instance.Def.Id == ModInit.modSettings.BattleArmorDeSwarmMovement)
+                            else if (__instance.Def.Id == ModInit.modSettings.DeswarmMovementConfig.AbilityDefID)
                             {
                                 ModInit.modLog.LogTrace($"[Ability.Activate - BattleArmorDeSwarm Movement].");
                                 creator.ProcessDeswarmMovement(
@@ -494,19 +495,19 @@ namespace StrategicOperations.Patches
                         }
                     }
                     if (target is BattleTech.Building building &&
-                        __instance.Def.Id == ModInit.modSettings.BattleArmorMountAndSwarmID)
+                        __instance.Def.Id == ModInit.modSettings.BattleArmorMountAndSwarmID && creator is TrooperSquad squad2)
                     {
                         if (!building.hasGarrisonedUnits())
                         {
                             MessageCenterMessage invocation =
-                                new StrategicMovementInvocation(creator, true, building, true, true);
-                            creator.Combat.MessageCenter.PublishInvocationExternal(invocation);
+                                new StrategicMovementInvocation(squad2, true, building, true, true);
+                            squad2.Combat.MessageCenter.PublishInvocationExternal(invocation);
                         }
                         else
                         {
-                            if (creator.isGarrisonedInTargetBuilding(building))
+                            if (squad2.isGarrisonedInTargetBuilding(building))
                             {
-                                creator.DismountGarrison(building, Vector3.zero, false);
+                                squad2.DismountGarrison(building, Vector3.zero, false);
                             }
                         }
                     }
@@ -1873,7 +1874,7 @@ namespace StrategicOperations.Patches
                 //                       $"Leaving Fire Button Enabled");
                 //                   return;
                 //                }
-                if (actor.IsMountedUnit() || actor.IsSwarmingUnit())
+                if (ability.Def.Id != ModInit.modSettings.BattleArmorMountAndSwarmID && (actor.IsMountedUnit() || actor.IsSwarmingUnit()))
                 {
                     button.DisableButton(); // maybe remove this for mounted units?
                 }

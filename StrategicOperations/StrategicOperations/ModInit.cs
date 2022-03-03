@@ -59,6 +59,7 @@ namespace StrategicOperations
         public bool spawnTurretEndsActivation = true;
         public float strafeTargetsFriendliesChance = 1f;
         public float strafeNeutralBuildingsChance = 1f;
+        public float strafeObjectiveBuildingsChance = 1f;
         public int deployProtection = 8;
         public float strafeSensorFactor = 4f;
         public float strafeVelocityDefault = 150f;
@@ -90,15 +91,16 @@ namespace StrategicOperations
         public List<BA_FactionAssoc> BattleArmorFactionAssociations = new List<BA_FactionAssoc>();
         public string BattleArmorDeSwarmRoll = "";
         public string BattleArmorDeSwarmSwat = "";
-        public string BattleArmorDeSwarmMovement = "";
+        //public string BattleArmorDeSwarmMovement = "";
         public List<string> BPodComponentIDs = new List<string>(); //statistic for dmg will be BPod_DamageDealt
         public bool BPodsAutoActivate = true; //BPods always auto activate when swarmed for AI, this only controls for player
         public List<string> ArmActuatorCategoryIDs = new List<string>();
 
-        public bool UseActorStatsForDeswarmAbilities = false;
+        //public bool UseActorStatsForDeswarmAbilities = false;
         public Dictionary<string, BA_DeswarmAbilityConfig> DeswarmConfigs =
             new Dictionary<string, BA_DeswarmAbilityConfig>();
-        public BA_DeswarmMovementConfig DeswarmMovementConfig;
+
+        public BA_DeswarmMovementConfig DeswarmMovementConfig = new BA_DeswarmMovementConfig();
 
         public bool AttackOnSwarmSuccess = false;
         public List<string> AI_BattleArmorExcludedContractTypes = new List<string>();
@@ -109,8 +111,12 @@ namespace StrategicOperations
 
         public bool UsingMechAffinityForSwarmBreach = false;
 
+        public float GarrisonBuildingArmorFactor = 1f;
+
         public string AirliftAbilityID = "";
         public bool CanDropOffAfterMoving = false;
         public bool AirliftCapacityByTonnage = false;
+
+        public AirliftWiggleConfig AirliftWiggleConfiguration = new AirliftWiggleConfig();
     }
 }

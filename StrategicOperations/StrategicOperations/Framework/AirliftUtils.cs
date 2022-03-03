@@ -52,6 +52,11 @@ namespace StrategicOperations.Framework
         {
             return ModState.AirliftTrackers.Any(x => !x.Value.IsFriendly && x.Value.TargetGUID == actor.GUID);
         }
+        
+        public static bool getCanAirliftHostiles(this AbstractActor actor)
+        {
+            return actor.StatCollection.GetValue<bool>("CanAirliftHostiles");
+        }
 
         public static int getInternalLiftCapacity(this AbstractActor actor)
         {
@@ -155,7 +160,7 @@ namespace StrategicOperations.Framework
                         foreach (var effectData in airliftEffect.effects)
                         {
                             targetMech.Combat.EffectManager.CreateEffect(effectData,
-                                airliftEffect.ID,
+                                effectData.Description.Id,
                                 -1, targetMech, targetMech, default(WeaponHitInfo), 1);
                         }
                     }
@@ -164,7 +169,7 @@ namespace StrategicOperations.Framework
                         foreach (var effectData in airliftEffect.effects)
                         {
                             targetMech.Combat.EffectManager.CreateEffect(effectData,
-                                airliftEffect.ID,
+                                effectData.Description.Id,
                                 -1, targetMech, targetMech, default(WeaponHitInfo), 1);
                         }
                     }

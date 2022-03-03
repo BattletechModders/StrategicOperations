@@ -929,7 +929,7 @@ namespace StrategicOperations.Framework
                     }
                     else
                     {
-                        creator.Combat.EffectManager.CreateEffect(ability.Def.EffectData[i], ability.Def.Id, 0, creator, creator, default(WeaponHitInfo), 0, false);
+                        creator.Combat.EffectManager.CreateEffect(ability.Def.EffectData[i], ability.Def.EffectData[i].Description.Id, 0, creator, creator, default(WeaponHitInfo), 0, false);
                     }
                 }
             }

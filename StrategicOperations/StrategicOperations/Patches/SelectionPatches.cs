@@ -223,9 +223,19 @@ namespace StrategicOperations.Patches
                 CombatTargetingReticle.Instance.UpdateRangeIndicator(SelectedActor.CurrentPosition, false, true);
                 CombatTargetingReticle.Instance.ShowReticle();
 
-                if (SelectedActor.IsMountedUnit() || SelectedActor.IsSwarmingUnit() || SelectedActor.isGarrisoned())
+                if (SelectedActor.IsMountedUnit())
                 {
-                    var carrier = Combat.FindActorByGUID(ModState.PositionLockMount[SelectedActor.GUID]);
+                    var carrier = Combat.FindCombatantByGUID(ModState.PositionLockMount[SelectedActor.GUID]);
+                    this.ProcessClickedCombatant(carrier);
+                }
+                else if (SelectedActor.IsSwarmingUnit())
+                {
+                    var carrier = Combat.FindCombatantByGUID(ModState.PositionLockSwarm[SelectedActor.GUID]);
+                    this.ProcessClickedCombatant(carrier);
+                }
+                else if (SelectedActor.isGarrisoned())
+                {
+                    var carrier = Combat.FindCombatantByGUID(ModState.PositionLockGarrison[SelectedActor.GUID].BuildingGUID);
                     this.ProcessClickedCombatant(carrier);
                 }
                 else
@@ -388,7 +398,7 @@ namespace StrategicOperations.Patches
                         }
                         else
                         {
-                            if (SelectedActor.getHasAvailableExternalLiftCapacityForTarget(targetActor))
+                            if (SelectedActor.getHasAvailableExternalLiftCapacityForTarget(targetActor) && SelectedActor.getCanAirliftHostiles())
                             {
                                 return true;
                             }

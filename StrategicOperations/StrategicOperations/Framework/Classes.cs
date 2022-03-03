@@ -94,13 +94,13 @@ namespace StrategicOperations.Framework
                 base.CompleteOrders();
                 base.owningActor.ResetPathing(false);
 
-                if (MountSwarmBA)
+                if (MountSwarmBA && owningActor is TrooperSquad squad)
                 {
                     if (this.Target is BattleTech.Building building)
                     {
                         ModInit.modLog.LogMessage(
                             $"[StrategicMovementSequence] Called for BA movement to garrison building {building.DisplayName}.");
-                        base.owningActor.ProcessGarrisonBuilding(building);
+                        squad.ProcessGarrisonBuilding(building);
                         return;
                     }
                 }
@@ -111,20 +111,20 @@ namespace StrategicOperations.Framework
                     {
                         ModInit.modLog.LogMessage(
                             $"[StrategicMovementSequence] Called for BA movement to mount or swarm.");
-                        if (base.owningActor is TrooperSquad squad)
+                        if (base.owningActor is TrooperSquad squad2)
                         {
                             if (this.IsFriendly)
                             {
-                                if (!squad.IsMountedUnit())
+                                if (!squad2.IsMountedUnit())
                                 {
-                                    squad.ProcessMountFriendly(targetActor);
+                                    squad2.ProcessMountFriendly(targetActor);
                                     return;
                                 }
                             }
 
-                            if (!squad.IsSwarmingUnit())
+                            if (!squad2.IsSwarmingUnit())
                             {
-                                squad.ProcessSwarmEnemy(targetActor);
+                                squad2.ProcessSwarmEnemy(targetActor);
                             }
                         }
                         else
@@ -220,7 +220,7 @@ namespace StrategicOperations.Framework
 
             public void OnStratOpsDepsFailed()
             {
-                ModInit.modLog.LogTrace($"Failed to load BA Dependencies for {ChosenUnit}. This shouldnt happen!");
+                ModInit.modLog.LogTrace($"Failed to load Dependencies for {ChosenUnit}. This shouldnt happen!");
             }
             public void OnBADepsLoaded()
             {
@@ -596,6 +596,15 @@ namespace StrategicOperations.Framework
             }
         }
 
+        public class AirliftWiggleConfig
+        {
+            public string AbilityDefID = "";
+            public float BaseSuccessChance = 0f;
+            public float MaxSuccessChance = 0f;
+            public float PilotingSuccessFactor = 0f;
+            public float PilotingDamageReductionFactor = 0f;
+        }
+
         public class BA_DeswarmAbilityConfig // key will be AbilityDefID
         {
             //public string AbilityDefID = "";
@@ -610,14 +619,18 @@ namespace StrategicOperations.Framework
 
         public class BA_DeswarmMovementConfig
         {
+            public string AbilityDefID = "";
             public float BaseSuccessChance = 0f;
             public float MaxSuccessChance = 0f;
             public float EvasivePipsFactor = 0f;
             public float JumpMovementModifier = 0f;
             public bool UseDFADamage = false;
             public float LocationDamageOverride = 0f;
+            public float PilotingDamageReductionFactor = 0f;
             public  BA_DeswarmMovementConfig(){}
         }
+
+         
 
         public class AI_FactionCommandAbilitySetting
         {
@@ -645,6 +658,24 @@ namespace StrategicOperations.Framework
             public Dictionary<string, int> MountedBattleArmorWeight = new Dictionary<string, int>();
             public Dictionary<string, int> HandsyBattleArmorWeight = new Dictionary<string, int>();
         }
+
+        public class BA_GarrisonInfo
+        {
+            public string BuildingGUID = ""; //guid of building
+            public Dictionary<int, float> InitialLocArmor = new Dictionary<int, float>();
+
+            public BA_GarrisonInfo(ICombatant building, TrooperSquad squad)
+            {
+                BuildingGUID = building.GUID;
+                InitialLocArmor = new Dictionary<int, float>();
+                foreach (var loc in squad.GetPossibleHitLocations(squad))
+                {
+                    var currentArmor = squad.GetCurrentArmor((ArmorLocation) loc);
+                    InitialLocArmor.Add(loc, currentArmor);
+                }
+            }
+        }
+
         public class BA_DamageTracker
         {
             public string TargetGUID = ""; // guid of carrier unit.

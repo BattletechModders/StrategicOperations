@@ -309,14 +309,14 @@ namespace StrategicOperations.Framework
                 }
             }
 
-            if (!(unit is TrooperSquad) && !string.IsNullOrEmpty(ModInit.modSettings.BattleArmorDeSwarmMovement))
+            if (!(unit is TrooperSquad) && !string.IsNullOrEmpty(ModInit.modSettings.DeswarmMovementConfig.AbilityDefID))
             {
                 if (unit.GetPilot().Abilities
-                        .All(x => x.Def.Id != ModInit.modSettings.BattleArmorDeSwarmMovement) &&
+                        .All(x => x.Def.Id != ModInit.modSettings.DeswarmMovementConfig.AbilityDefID) &&
                     unit.ComponentAbilities.All(y =>
-                        y.Def.Id != ModInit.modSettings.BattleArmorDeSwarmMovement))
+                        y.Def.Id != ModInit.modSettings.DeswarmMovementConfig.AbilityDefID))
                 {
-                    unit.Combat.DataManager.AbilityDefs.TryGet(ModInit.modSettings.BattleArmorDeSwarmMovement,
+                    unit.Combat.DataManager.AbilityDefs.TryGet(ModInit.modSettings.DeswarmMovementConfig.AbilityDefID,
                         out var def);
                     var ability = new Ability(def);
                     ModInit.modLog.LogTrace(

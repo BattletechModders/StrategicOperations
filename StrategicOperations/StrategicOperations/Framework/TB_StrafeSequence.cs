@@ -258,13 +258,23 @@ namespace StrategicOperations.Framework
 
                 if (allCombatants[i] is BattleTech.Building building)
                 {
-                    if (building.team.GUID == "421027ec-8480-4cc6-bf01-369f84a22012") //only need to check for "World" since friendly buildings will be covered below, and we're ok targeting enemy buildings
+                    var rollBuilding = ModInit.Random.NextDouble();
+                    var isObjective = Traverse.Create(building).Field("isObjectiveTarget").GetValue<bool>();
+                    if (isObjective)
                     {
-                        var rollBuilding = ModInit.Random.NextDouble();
+                        var chanceBuilding = ModInit.modSettings.strafeObjectiveBuildingsChance;
+                        if (rollBuilding >= chanceBuilding && allCombatants[i].team.IsNeutral(this.StrafingTeam))
+                        {
+                            ModInit.modLog.LogMessage($"Roll {rollBuilding} >= strafeObjectiveBuildingsChance {chanceBuilding}, skipping.");
+                            continue;
+                        }
+                    }
+                    else if (building.team.GUID == "421027ec-8480-4cc6-bf01-369f84a22012") //only need to check for "World" since friendly buildings will be covered below, and we're ok targeting enemy buildings
+                    {
                         var chanceBuilding = ModInit.modSettings.strafeNeutralBuildingsChance;
                         if (rollBuilding >= chanceBuilding && allCombatants[i].team.IsNeutral(this.StrafingTeam))
                         {
-                            ModInit.modLog.LogMessage($"Roll {rollBuilding} >= chance {chanceBuilding}, skipping.");
+                            ModInit.modLog.LogMessage($"Roll {rollBuilding} >= strafeNeutralBuildingsChance {chanceBuilding}, skipping.");
                             continue;
                         }
                     }

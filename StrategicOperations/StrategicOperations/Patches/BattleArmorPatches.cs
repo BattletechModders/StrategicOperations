@@ -30,6 +30,215 @@ using TrooperSquad = CustomUnits.TrooperSquad;
 
 namespace StrategicOperations.Patches
 {
+    public class GarrisonLOSPatches
+    {
+        // Copied wholesale from FrostRaptor's ConcreteJungle, because why reinvent the wheel. Plus if I made it the wheel would be square.
+        // When a trap turret's line of sight is calculated, give it 'x-ray' vision to see through the shell building.
+        [HarmonyPatch(typeof(LineOfSight), "GetVisibilityToTargetWithPositionsAndRotations")]
+        [HarmonyPatch(new Type[] { typeof(AbstractActor), typeof(Vector3), typeof(ICombatant), typeof(Vector3), typeof(Quaternion) })]
+        static class LineOfSight_GetVisibilityToTargetWithPositionsAndRotations
+        {
+            static void Prefix(AbstractActor source, Vector3 sourcePosition, ICombatant target, Vector3 targetPosition, Quaternion targetRotation)
+            {
+                if (source.isGarrisoned())
+                {
+                    ModState.CurrentGarrisonSquadForLOS = source;
+                }
+
+            }
+
+            static void Postfix(AbstractActor source, Vector3 sourcePosition, ICombatant target, Vector3 targetPosition, Quaternion targetRotation, VisibilityLevel __result)
+            {
+                if (ModState.CurrentGarrisonSquadForLOS != null)
+                {
+                    ModState.CurrentGarrisonSquadForLOS = null;
+                }
+            }
+        }
+
+        // Modify the vision test to allow 'x-ray' vision through the shell building for trap turrets
+        [HarmonyPatch(typeof(LineOfSight), "bresenhamVisionTest")]
+        static class LineOfSight_bresenhamVisionTest
+        {
+            static void Postfix(LineOfSight __instance, Point p0, float height0, Point p1, float height1, Vector3 unitDelta, string targetGuid,
+                ref float __result, CombatGameState ___Combat)
+            {
+                if (ModState.CurrentGarrisonSquadForLOS == null) return;
+
+                if (p0.X == p1.X && p0.Z == p1.Z)
+                {
+                    __result = 0f;
+                    return;
+                }
+
+                if (!___Combat.MapMetaData.IsWithinBounds(p0) || !___Combat.MapMetaData.IsWithinBounds(p1))
+                {
+                    __result = float.MaxValue;
+                    return;
+                }
+
+                float numCellsX = Mathf.Abs(unitDelta.x) * (float)MapMetaDataExporter.cellSize;
+                float numCellsY = Mathf.Abs(unitDelta.z) * (float)MapMetaDataExporter.cellSize;
+                float lineDeltaX = (float)(p1.X - p0.X);
+                float lineDeltaZ = (float)(p1.Z - p0.Z);
+                float greatestDivisor = Mathf.Max(Mathf.Abs(lineDeltaX), Mathf.Abs(lineDeltaZ));
+                float stepHeight = (height1 - height0) / greatestDivisor;
+                float sumVisionCost = 0f;
+
+                Traverse projectedHeightAtT = Traverse.Create(__instance).Method("getProjectedHeightAt", new Type[] { typeof(Point), typeof(float), typeof(Point), typeof(float) });
+                Traverse visCostOfCellT = Traverse.Create(__instance).Method("visCostOfCell", new Type[] { typeof(MapTerrainDataCell), typeof(float) });
+                string shellBuildingGUID = ModState.PositionLockGarrison[ModState.CurrentGarrisonSquadForLOS.GUID].BuildingGUID;
+                EncounterLayerData encounterLayerData = ___Combat.EncounterLayerData;
+
+                List<Point> list = BresenhamLineUtil.BresenhamLine(p0, p1);
+                for (int i = 1; i < list.Count; i++)
+                {
+                    float stepDelta;
+                    if (list[i].X != list[i - 1].X)
+                    {
+                        stepDelta = numCellsX;
+                    }
+                    else
+                    {
+                        stepDelta = numCellsY;
+                    }
+
+                    // Increment vision cost only slightly if it's inside our shell building
+                    if (encounterLayerData.mapEncounterLayerDataCells[list[i].Z, list[i].X].HasSpecifiedBuilding(shellBuildingGUID))
+                    {
+                        //Mod.Log.Trace?.Write($" Point x={list[i].X} z={list[i].Z} is inside the shell building, adding vision cost normally.");
+                        sumVisionCost += stepDelta;
+                    }
+                    else
+                    {
+                        float projectedHeightAt = projectedHeightAtT.GetValue<float>(new object[] { p0, height0, list[i], stepHeight });
+                        MapTerrainDataCell mapTerrainDataCell = ___Combat.MapMetaData.mapTerrainDataCells[list[i].Z, list[i].X];
+                        if (mapTerrainDataCell.cachedHeight > projectedHeightAt)
+                        {
+                            if (mapTerrainDataCell.MapEncounterLayerDataCell.HasBuilding)
+                            {
+                                for (int j = 0; j < mapTerrainDataCell.MapEncounterLayerDataCell.buildingList.Count; j++)
+                                {
+                                    if (ObstructionGameLogic.GuidsMatchObjectOrRep(mapTerrainDataCell.MapEncounterLayerDataCell.buildingList[j].buildingGuid, targetGuid))
+                                    {
+                                        __result = sumVisionCost;
+                                        return;
+                                    }
+                                }
+                            }
+
+                            __result = float.MaxValue;
+                            return;
+                        }
+
+                        sumVisionCost += visCostOfCellT.GetValue<float>(new object[] { mapTerrainDataCell, projectedHeightAt }) * stepDelta;
+                    }
+                }
+
+                __result = sumVisionCost;
+                return;
+            }
+        }
+
+        // When a trap turret's line of fire is calculated, give it 'x-ray' vision to see through the shell building.
+        [HarmonyPatch(typeof(LOFCache), "GetLineOfFire")]
+        static class LOFCache_GetLineOfFire
+        {
+
+            static void Prefix(AbstractActor source, ICombatant target, LineOfFireLevel __result)
+            {
+                if (source.isGarrisoned())
+                {
+                    //Mod.Log.Trace?.Write($"Turret {CombatantUtils.Label(turret)} is calculating it's LOF");
+                    ModState.CurrentGarrisonSquadForLOF = source;
+                }
+            }
+
+            static void Postfix(AbstractActor source, ICombatant target, LineOfFireLevel __result)
+            {
+                if (ModState.CurrentGarrisonSquadForLOF != null)
+                {
+                    ModState.CurrentGarrisonSquadForLOF = null;
+                }
+            }
+        }
+
+        // Modify the vision test to allow 'x-ray' vision through the shell building for trap turrets
+        [HarmonyPatch(typeof(LineOfSight), "bresenhamHeightTest")]
+        static class LineOfSight_bresenhamHeightTest
+        {
+
+            static void Postfix(LineOfSight __instance, Point p0, float height0, Point p1, float height1, string targetedBuildingGuid, ref Point collisionWorldPos,
+                ref bool __result, CombatGameState ___Combat)
+            {
+
+                if (ModState.CurrentGarrisonSquadForLOF == null) return;
+
+                //Mod.Log.Trace?.Write($"Recalculating LOF from {CombatantUtils.Label(ModState.CurrentTurretForLOF)} due to collision on building shell. " +
+              //      $"CollisonWorldPos=> x={collisionWorldPos.X} z={collisionWorldPos.Z}");
+
+                collisionWorldPos = p1;
+
+                // If the origin and target points are the same, there is a collision
+                if (p0.X == p1.X && p0.Z == p1.Z)
+                {
+                    __result = true;
+                    return;
+                }
+
+                // If the origin or target points are outsie the bounds of the map, there is no collision (because how could there be)
+                if (!___Combat.MapMetaData.IsWithinBounds(p0) || !___Combat.MapMetaData.IsWithinBounds(p1))
+                {
+                    __result = false;
+                    return;
+                }
+
+                MapMetaData mapMetaData = ___Combat.MapMetaData;
+                EncounterLayerData encounterLayerData = ___Combat.EncounterLayerData;
+
+                bool targetIsABuilding = !string.IsNullOrEmpty(targetedBuildingGuid);
+                string shellBuildingGUID = ModState.PositionLockGarrison[ModState.CurrentGarrisonSquadForLOF.GUID].BuildingGUID;
+
+                List<Point> bresenhamLinePoints = BresenhamLineUtil.BresenhamLine(p0, p1);
+                float heightDeltaPerPoint = (height1 - height0) / (float)bresenhamLinePoints.Count;
+                float collisionPointHeight = height0;
+                // Walk the bresenham Line, evaluation collision at a speciifc height as we go.
+                for (int i = 0; i < bresenhamLinePoints.Count; i++)
+                {
+                    collisionPointHeight += heightDeltaPerPoint;
+                    Point point = bresenhamLinePoints[i];
+
+                    if (encounterLayerData.mapEncounterLayerDataCells[point.Z, point.X].HasSpecifiedBuilding(shellBuildingGUID))
+                    {
+                        //Mod.Log.Trace?.Write($" Point x={point.X} z={point.Z} is inside the shell building, continuing.");
+                        continue;
+                    }
+
+                    if (targetIsABuilding && encounterLayerData.mapEncounterLayerDataCells[point.Z, point.X].HasSpecifiedBuilding(targetedBuildingGuid))
+                    {
+                        //Mod.Log.Trace?.Write($" Building {targetedBuildingGuid} conflicts with the LoS, collision at x={collisionWorldPos.X} z={collisionWorldPos.Z}");
+                        collisionWorldPos = bresenhamLinePoints[i];
+                        __result = true;
+                        return;
+                    }
+
+                    if (mapMetaData.mapTerrainDataCells[point.Z, point.X].cachedHeight > collisionPointHeight)
+                    {
+                        //Mod.Log.Trace?.Write($" Collision on terrain at position x={collisionWorldPos.X} z={collisionWorldPos.Z}");
+                        collisionWorldPos = bresenhamLinePoints[i];
+                        __result = false;
+                        return;
+                    }
+                }
+
+                //Mod.Log.Trace?.Write($"No collision detected, changing LoF to true. CollisonWorldPos => x ={ collisionWorldPos.X} z ={ collisionWorldPos.Z}");
+
+                __result = true;
+                return;
+
+            }
+        }
+    }
     public class BattleArmorPatches
     {
        [HarmonyPatch(typeof(ActivatableComponent), "activateComponent", new Type[] {typeof(MechComponent), typeof(bool), typeof(bool)})]
@@ -253,6 +462,8 @@ namespace StrategicOperations.Patches
                                 var dmg = settings.UseDFADamage
                                     ? swarmingUnitSquad.StatCollection.GetValue<float>("DFASelfDamage")
                                     : settings.LocationDamageOverride;
+                                var reduction = settings.PilotingDamageReductionFactor *
+                                                swarmingUnitSquad.GetPilot().Piloting;
                                 var trooperLocs = swarmingUnitSquad.GetPossibleHitLocations(__instance.owningActor);
                                 for (int i = 0; i < trooperLocs.Count; i++)
                                 {
@@ -262,7 +473,7 @@ namespace StrategicOperations.Patches
                                         new AttackDirection[1], new Vector3[1], new string[1], new int[trooperLocs[i]]);
 
                                     swarmingUnitSquad.TakeWeaponDamage(hitinfo, trooperLocs[i],
-                                        swarmingUnitSquad.MeleeWeapon, swarmingUnitSquad.MechDef.Chassis.DFASelfDamage,
+                                        swarmingUnitSquad.MeleeWeapon, dmg,
                                         0, 0, DamageType.DFASelf);
                                 }
                             }
@@ -377,7 +588,7 @@ namespace StrategicOperations.Patches
             {
                 if (targetUnit is AbstractActor targetActor)
                 {
-                    if (targetActor.IsSwarmingUnit() || targetActor.IsMountedUnit() || targetActor.isGarrisoned())
+                    if (targetActor.IsSwarmingUnit() || targetActor.IsMountedUnit() ) //|| targetActor.isGarrisoned()) TODO make untargetable again?
                     {
 //                        ModInit.modLog.LogTrace($"[AbstractActor.HasLOFToTargetUnitAtTargetPosition] {targetActor.DisplayName} is swarming or mounted, preventing LOS.");
                         __result = false;
@@ -403,7 +614,7 @@ namespace StrategicOperations.Patches
 //                        }
 //                    }
 
-                    if (targetActor.IsSwarmingUnit() || targetActor.IsMountedUnit() || targetActor.isGarrisoned())
+                    if (targetActor.IsSwarmingUnit() || targetActor.IsMountedUnit() )//|| targetActor.isGarrisoned()) TODO Make untargetable again?
                     {
                         __result = false;
                     }
@@ -518,16 +729,20 @@ namespace StrategicOperations.Patches
             }
         }
 
-        [HarmonyPatch(typeof(BattleTech.Building), "HandleDeath",
-            new Type[] {typeof(string)})]
-        public static class Building_HandleDeath
+        [HarmonyPatch(typeof(BattleTech.Building), "FlagForDeath",
+            new Type[] {typeof(string), typeof(DeathMethod), typeof(DamageType), typeof(int), typeof(int), typeof(string), typeof(bool)})]
+        public static class Building_FlagForDeath
         {
-            public static void Prefix(BattleTech.Building __instance, string attackerGUID)
+            public static void Prefix(BattleTech.Building __instance, string reason, DeathMethod deathMethod, DamageType damageType, int location, int stackItemID, string attackerID, bool isSilent)
             {
+                if (__instance.IsFlaggedForDeath) return;
+                ModInit.modLog.LogTrace($"[Building.FlagForDeath] Building {__instance.DisplayName} {__instance.GUID} at position {__instance.CurrentPosition} dieded.");
                 if (!__instance.hasGarrisonedUnits()) return;
-                var garrisons = new List<KeyValuePair<string, string>>(ModState.PositionLockGarrison.Where(x => x.Value == __instance.GUID).ToList());
+                var garrisons = new List<KeyValuePair<string, Classes.BA_GarrisonInfo>>(ModState.PositionLockGarrison.Where(x => x.Value.BuildingGUID == __instance.GUID).ToList());
                 foreach (var garrison in garrisons)
                 {
+                    ModInit.modLog.LogTrace($"[Building.FlagForDeath] Building {__instance.DisplayName} {__instance.GUID} dieded, has units mounted.");
+
                     var actor = __instance.Combat.FindActorByGUID(garrison.Key);
                     var squad = actor as TrooperSquad;
 
@@ -540,10 +755,26 @@ namespace StrategicOperations.Patches
                             foreach (var effectData in garrisonEffect.effects)
                             {
                                 squad.Combat.EffectManager.CreateEffect(effectData,
-                                    garrisonEffect.ID,
+                                    effectData.Description.Id,
                                     -1, squad, squad, default(WeaponHitInfo), 1);
                             }
                         }
+                    }
+                    squad.DismountGarrison(__instance, Vector3.zero, true);
+
+
+                    var dmg = squad.StatCollection.GetValue<float>("DFASelfDamage");
+                    var trooperLocs = squad.GetPossibleHitLocations(squad);
+                    for (int i = 0; i < trooperLocs.Count; i++)
+                    {
+                        var hitinfo = new WeaponHitInfo(-1, -1, 0, 0, squad.GUID,
+                            squad.GUID, 1, new float[1], new float[1], new float[1],
+                            new bool[1], new int[trooperLocs[i]], new int[1], new AttackImpactQuality[1],
+                            new AttackDirection[1], new Vector3[1], new string[1], new int[trooperLocs[i]]);
+
+                        squad.TakeWeaponDamage(hitinfo, trooperLocs[i],
+                            squad.MeleeWeapon, dmg,
+                            0, 0, DamageType.DFASelf);
                     }
                 }
             }
@@ -725,6 +956,18 @@ namespace StrategicOperations.Patches
         {
             public static void Prefix(Mech __instance, int originalHitLoc, WeaponHitInfo hitInfo, ArmorLocation aLoc, Weapon weapon, ref float totalArmorDamage, ref float directStructureDamage, int hitIndex, AttackImpactQuality impactQuality, DamageType damageType)
             {
+                if (__instance is TrooperSquad squad)
+                {
+                    if (squad.isGarrisoned())
+                    {
+                        var bldgCombatant = squad.Combat.FindCombatantByGUID(ModState.PositionLockGarrison[squad.GUID].BuildingGUID);
+                        if (bldgCombatant is BattleTech.Building building)
+                        {
+                            building.TakeWeaponDamage(hitInfo, 1, weapon, totalArmorDamage, directStructureDamage, hitIndex, damageType);
+                        }
+                    }
+                }
+
                 if (!__instance.HasMountedUnits() && !__instance.HasSwarmingUnits()) return;
 
                 foreach (var squadInfo in ModState.BADamageTrackers.Where(x => x.Value.TargetGUID == __instance.GUID && !x.Value.IsSquadInternal && x.Value.BA_MountedLocations.ContainsValue((int)aLoc)))
@@ -1105,7 +1348,7 @@ namespace StrategicOperations.Patches
 
                 if (target is AbstractActor actorTarget)
                 {
-                    if (actorTarget.IsSwarmingUnit() || actorTarget.IsMountedUnit() || actorTarget.isGarrisoned())
+                    if (actorTarget.IsSwarmingUnit() || actorTarget.IsMountedUnit() )//|| actorTarget.isGarrisoned()) TODO Make untargetable again?
                     {
                         __result = LineOfFireLevel.NotSet; // added 1/11 to block all LOF to swarming/mounted units. NotSet, or should it be LOS.Blocked?
                         return false;
@@ -1316,7 +1559,7 @@ namespace StrategicOperations.Patches
 
                 else if (source.isGarrisoned())
                 {
-                    var carrier = source.Combat.FindCombatantByGUID(ModState.PositionLockGarrison[source.GUID]);
+                    var carrier = source.Combat.FindCombatantByGUID(ModState.PositionLockGarrison[source.GUID].BuildingGUID);
                     
                         __result = carrier.GetLineOfFireForGarrison(source, carrier.CurrentPosition, target,
                             targetPosition, targetRotation, out collisionWorldPos);
