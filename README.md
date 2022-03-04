@@ -83,6 +83,34 @@ settings in the mod.json:
 		"ArmHandActuator",
 		"OmniHandActuator"
 	],
+	"DeswarmConfigs": {
+			"AbilityDefDeSwarmerRoll": {
+				"BaseSuccessChance": 0.55,
+				"MaxSuccessChance": 0.95,
+				"PilotingSuccessFactor": 0.05,
+				"TotalDamage": 150,
+				"Clusters": 5,
+				"InitPenalty": 2
+			},
+			"AbilityDefDeSwarmerSwat": {
+				"BaseSuccessChance": 0.33,
+				"MaxSuccessChance": 0.95,
+				"PilotingSuccessFactor": 0.05,
+				"TotalDamage": 75,
+				"Clusters": 3,
+				"InitPenalty": 1
+			}
+		},
+		"DeswarmMovementConfig": {
+			"AbilityDefID": "AbilityDefDeSwarmerMovement",
+			"BaseSuccessChance": 0.35,
+			"MaxSuccessChance": 0.95,
+			"EvasivePipsFactor": 0.1,
+			"JumpMovementModifier": 1.2,
+			"UseDFADamage": true,
+			"LocationDamageOverride": 0,
+			"PilotingDamageReductionFactor": 0.1
+		},
 	"BPodComponentIDs": [
 		"Gear_B_Pod"
 		],
@@ -227,8 +255,127 @@ settings in the mod.json:
 					}
 				}
 			]
-		}
+		},
+		{
+				"ID": "BA_GarrisonDefense",
+				"TargetEffectType": "GARRISON",
+				"Name": "Battle Armor - Garrisoned Defensive Bonuses",
+				"Description": "Garrisoned units have Defensive bosnuses.",
+				"effectDataJO": [
+					{
+						"durationData": {},
+						"targetingData": {
+							"effectTriggerType": "Passive",
+							"effectTargetType": "Creator",
+							"showInStatusPanel": true
+						},
+						"effectType": "StatisticEffect",
+						"Description": {
+							"Id": "BA_GartrisonDamageResistance",
+							"Name": "AOE Immune",
+							"Details": "arrisoned units have 30% additional damage resist.",
+							"Icon": "allied-star"
+						},
+						"nature": "Buff",
+						"statisticData": {
+							"statName": "DamageReductionMultiplierAll",
+							"operation": "Float_Add",
+							"modValue": "-0.3",
+							"modType": "System.Single"
+						}
+					},
+					{
+						"durationData": {},
+						"targetingData": {
+							"effectTriggerType": "Passive",
+							"effectTargetType": "Creator",
+							"showInStatusPanel": true
+						},
+						"effectType": "StatisticEffect",
+						"Description": {
+							"Id": "BA_GartrisonDamageResistance",
+							"Name": "AOE Immune",
+							"Details": "arrisoned units have 30% additional damage resist.",
+							"Icon": "allied-star"
+						},
+						"nature": "Buff",
+						"statisticData": {
+							"statName": "ToHitThisActor",
+							"operation": "Float_Add",
+							"modValue": "5.0",
+							"modType": "System.Single"
+						}
+					}
+				]
+			}
 	],
+	"AirliftTargetEffects": [
+			{
+				"ID": "Airlift_Accuracy",
+				"FriendlyAirlift": true,
+				"Name": "Airlift Airlift_Accuracy",
+				"Description": "Airlifted Units get extra accuracy because t-bone needed to test something.",
+				"effectDataJO": [
+					{
+						"durationData": {},
+						"targetingData": {
+							"effectTriggerType": "Passive",
+							"effectTargetType": "Creator",
+							"showInStatusPanel": true
+						},
+						"effectType": "StatisticEffect",
+						"Description": {
+							"Id": "Airlift_Accuracy_Bonus",
+							"Name": "Easy shots",
+							"Details": "Airlift_Accuracy has increased accuracy while airlift.",
+							"Icon": "allied-star"
+						},
+						"nature": "Buff",
+						"statisticData": {
+							"statName": "AccuracyModifier",
+							"operation": "Set",
+							"modValue": "-9001",
+							"modType": "System.Single"
+						}
+					}
+				]
+			}
+		],
+		"OnGarrisonCollapseEffects": [
+			{
+				"ID": "GarrisonCollapseAccuracy",
+				"TargetEffectType": "GARRISON",
+				"Name": "Accuracy Penalty",
+				"Description": "Accuracy Penalty when building collapse",
+				"effectDataJO": [
+					{
+						"durationData": {
+							"duration": 2,
+							"stackLimit": 1
+						},
+						"targetingData": {
+							"effectTriggerType": "Passive",
+							"effectTargetType": "Creator",
+							"showInStatusPanel": true
+						},
+						"effectType": "StatisticEffect",
+						"Description": {
+							"Id": "Garrison_Collapse_accuracy",
+							"Name": "hard shots",
+							"Details": "Garrison_Collapse_accuracy has worse accuracy after collpase.",
+							"Icon": "allied-star"
+						},
+						"nature": "Buff",
+						"statisticData": {
+							"statName": "AccuracyModifier",
+							"operation": "Float_Add",
+							"modValue": "10",
+							"modType": "System.Single"
+						}
+					}
+				]
+			}
+		],
 	"BattleArmorFactionAssociations": [
 		{
 			"FactionIDs": [
@@ -263,7 +410,11 @@ settings in the mod.json:
 			"DuoDuel",
 			"SoloDuel"
 		],
-	"BeaconExcludedContractIDs": []
+	"BeaconExcludedContractIDs": [],
+	"UsingMechAffinityForSwarmBreach": true,
+	"AirliftAbilityID": "AbilityDefAirliftActivate",
+	"AirliftCapacityByTonnage": false,
+	"CanDropOffAfterMoving": true
 ```
 
 `enableLogging` - bool, enable logging
@@ -365,13 +516,38 @@ settings in the mod.json:
 			{"CategoryID": "NonQuad"}
 		],
 ```
+**new/changed in 3.0.0.0**
+`DeswarmConfigs` : dictionary - configurations for Deswarm abilities used by mechs; variables previously set in the AbilityDef are now controlled here:
+	- dictionary "key" is the abilityDef ID (i.e AbilityDefDeSwarmerRoll)
+	- BaseSuccessChance and MaxSuccessChance control the min and maximum success chance
+	- Piloting success factor is modifier for piloting skill added to success chance (swat ability also still uses # of intact actuators as before)
+	- TotalDamage total amount of damage dealt to suit on successful roll
+	- Clusters - TotalDamage is divided into this man clusters, and dealt randomly to the squad
+	- InitPenalty - int penalty
+
+`DeswarmMovementConfig` : config for movement-based deswarming (erratic maneuvers)
+	- AbilityDefID - ability def ID of the ability
+	- BaseSuccessChance and MaxSuccessChance as above
+	- EvasivePipsFactor success factor added based on evasive pips generated by the move
+	- JumpMovementModifier added if move is a jump
+	- UseDFADamage bool, if true will use chassis dfa damage to deal damage on success (for jump moves)
+	- LocationDamageOverride- damage to be dealt if UseDFADamage = false
+	- PilotingDamageReductionFactor = damage will be reduced by (this value x piloting)%. So setting to 0.1 and a unit with Piloting 6 would only take 40% ("60% less") damage.
+
 
 `BPodComponentIDs` - List of string componenet IDs for CAE gear that, when activated, will function as B-Pods, detonating and damaging only Battle Armor.
 
 `BPodsAutoActivate` - bool, if true BPod Components will auto-activate when the unit carrying them gets swarmed. If false, only BPods mounted on AI-controlled units will auto-activate (players must manually activate BPods using CAE activation).
-	
-`BATargetEffects` - **Renamed BATargetEffects and changed to list in 2.0.3.1**  Effects which will be applied to Battle Armor while swarming or mounting, depending on value of `TargetEffectType` field. Can be SWARM, MOUNT_INT, MOUNT_EXT, or BOTH. Intended use is to improve accuracy and clustering of swarming BA so they always (usually, mostly) hit the same location on the unit they're swarming, and give mounted BA a debuff to accuracy when firing from mount. Of course you can add whatever else you want here. MOUNT_INT will take effect only when mounted internally, while MOUNT_EXT will take effect only when mounted externally. SWAM will only take effect when swarming, and BOTH will always take effect.
 
+**new/changed in 3.0.0.0**
+`BATargetEffects` - **Renamed BATargetEffects and changed to list in 2.0.3.1**  Effects which will be applied to Battle Armor while swarming or mounting, depending on value of `TargetEffectType` field. Can be GARRISON, SWARM, MOUNT_INT, MOUNT_EXT, or BOTH. Intended use is to improve accuracy and clustering of swarming BA so they always (usually, mostly) hit the same location on the unit they're swarming, and give mounted BA a debuff to accuracy when firing from mount. Of course you can add whatever else you want here. MOUNT_INT will take effect only when mounted internally, while MOUNT_EXT will take effect only when mounted externally. SWAM will only take effect when swarming, and BOTH will always take effect. GARRISON will take effect only when units are occupying a building.
+
+**new/changed in 3.0.0.0**
+`AirliftTargetEffects` - effects that will take effect when a unit is airlifted. If FriendlyAirlift = true, will only take effect when being airlifted by firendly unit. If FriendlyAirlift = false, will only take effect when being airlifted by hostile unit.
+
+**new/changed in 3.0.0.0**
+`OnGarrisonCollapseEffects` - effects that will effect squad <i>when a garrisoned building collapses</i>. intended for debuffs, etc.
+	
 <s>`AI_BattleArmorSpawnChance` - float, base probability that AI units that <i>can</i> mount Battle Armor, either mounted externally or internally, will get Battle Armor at contract start. Note that any added Battle Armor is independent of any "support lance" or "extra lance" settings in Mission Control or other mods. Added to AI_BattleArmorSpawnDiffMod for total chance.</s> DEPRECATED, IMPLEMENTED IN BattleArmorFactionAssociations
 
 <s>AI_BattleArmorSpawnDiffMod - float, contract difficulty is multiplied by this value and added to AI_BattleArmorSpawnChance to determine probability of AI units spawning BA.</s> DEPRECATED, IMPLEMENTED IN BattleArmorFactionAssociations
@@ -418,7 +594,16 @@ Using the following settings, ClanGhostBear and ClanWolf have baseline 30% chanc
 `BeaconExcludedContractTypes` - List of ContractTypes where deployment or strafing beacons are not allowed to be used
 
 `BeaconExcludedContractIDs` - List of contract IDs where deployment or strafing beacons are not allowed to be used
-	
+
+**new/changed in 3.0.0.0**
+`UsingMechAffinityForSwarmBreach` - use MechAffinity implementation to give BA swarms breaching shot (if using MechAffinity, need to have BATargetEffect on swarm that sets `superBreachingShot` to true).
+
+`AirliftAbilityID` - abilityDef ID for airlift ability
+
+`AirliftCapacityByTonnage` - if true, airlift capacity will be determined by tonnage rather than absolute # of units
+
+`CanDropOffAfterMoving` - if true, airlift units can move and _then_ drop their airlifted units at final location. if false, airlifted units must drop units before moving that round.
+
 ## Spawns
 
 Spawns are basically what they sound like: spawning reinforcement units at the selected location. These units will be AI-controlled (allied). Exactly <i>what</i> unit gets deployed depends on a few things.
