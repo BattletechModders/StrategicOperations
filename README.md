@@ -908,7 +908,11 @@ The AI will also attempt to use Swarm against you. If an AI unit has BA (dictate
 #### Firing Ports
 
 Carrier units with actor bool statistic `HasFiringPorts` set to true will allow mounted BA to fire at enemies within range <i>while they are mounted</i>. Units so mounted will have the same LOF level as the carrier unit.
-	
+
+#### Garrisons - new in v3.0.0.0
+
+BA can now occupy buildings. Each building can only hold a single squad of BA because reasons. Because getting the AI to shoot at the damn _building_ is a pain in the ass, I've chosen to allow the AI to target the BA squads directly; however the BA squads <i>also</i> get the building HP added to their own armor (divided amongst the squad). If the building itself is destroyed with the BA still occupying it, they take their chassis DFA self-damage to each location, and receive any effects defined in `OnGarrisonCollapseEffects`. If players choose to voluntarily exit the garrisoned building, they will exfil to a random adjacent hex. I am not planning on giving the AI the ability to garrison buildings at this time; this is strictly a player gimmick.
+
 #### Countering Mount/Swarm
 
 **B-Pods Added in v2.0.2.0**
@@ -924,15 +928,15 @@ All battle armor squads within 150m would then take 100 damage, divided randomly
 	
 In addition, to B-Pods, all mechs can be given one or two abilities in order to attempt to dislodge swarming BA, using the following settings. The AI will also attempt to dislodge player BA when swarming.
 
-`BattleArmorDeSwarmRoll` - string, ability ID of pilot ability that allows mech to "roll" (forced self-knockdown) in order to dislodge swarming battle armor. <b>New in 2.0.1.2, the base success % is now exposed in the ability def</b>, for a final success % of BaseChance + (Piloting skill x 5%), capped at 95%. On a success, there is a 30% chance to smush the Battle Armor squad in the process. Ability is automatically granted to Mechs at contract start (e.g. does not need to be added manually to pilot). The ability can also set a statistic `BattleArmorDeSwarmerRollInitPenalty` to define an initiative penalty the BA will recieve on a successful deswarm.
+**note changes in settings rundown earlier in this document; behavior is now controlled by values in DeswarmConfigs**
+`BattleArmorDeSwarmRoll` - string, ability ID of pilot ability that allows mech to "roll" (forced self-knockdown) in order to dislodge swarming battle armor. On a success, there is a 30% chance to deal cluster damage to the Battle Armor squad in the process, as defined in the DeswarmConfig settings. Ability is automatically granted to Mechs at contract start (e.g. does not need to be added manually to pilot).
 
-`BattleArmorDeSwarmSwat` - string, ability ID of pilot ability that allows mech to "swat" swarming battle armor (remove using arms). <b>New in 2.0.1.2, the base success % is now exposed in the ability def</b>, for a final success % of BaseChance + (Piloting skill x 5%) - 5% for each "missing" arm actuator. An arm actuator is considered "missing" if it is destroyed, or was never mounted in the first place. Shoulder, Upper Arm, Lower Arm, and Hand for both left and right arms; thus a mech missing both arms would suffer a 40% penalty (8 x 5%). Ability is automatically granted to Mechs at contract start (e.g. does not need to be added manually to pilot).
-The ability can also set a statistic `BattleArmorDeSwarmerRollInitPenalty` to define an initiative penalty the BA will recieve on a successful deswarm.
-<b>Also new in 2.0.1.2</b>, the swat ability can deal damage directly to the swarming battle armor if a 2nd successful toll is made, if the statistic `BattleArmorDeSwarmerSwatDamage` is defined in the ability def (as below). If not defined, no damage will be done. To clarify, on activating a swat, a roll against `BaseChance + (Piloting skill x 5%) - 5% for each "missing" arm actuator` is made determine a successful swat. <b>Then</b> a 2nd roll against `BaseChance + (Piloting skill x 5%) - 5% for each "missing" arm actuator` is made to determine if the specified damage is dealt.
+`BattleArmorDeSwarmSwat` - string, ability ID of pilot ability that allows mech to "swat" swarming battle armor (remove using arms). In addition to base chance and piloting mopifier, swat chance gets -5% for each "missing" arm actuator. An arm actuator is considered "missing" if it is destroyed, or was never mounted in the first place. Shoulder, Upper Arm, Lower Arm, and Hand for both left and right arms; thus a mech missing both arms would suffer a 40% penalty (8 x 5%). Ability is automatically granted to Mechs at contract start (e.g. does not need to be added manually to pilot).
+The swat ability can deal damage directly to the swarming battle armor if a 2nd successful toll is made, iOn activating a swat, a roll against `BaseChance + (Piloting skill x 5%) - 5% for each "missing" arm actuator` is made determine a successful swat. <b>Then</b> a 2nd roll against `BaseChance + (Piloting skill x 5%) - 5% for each "missing" arm actuator` is made to determine if the specified damage is dealt.
 
-The two abilities must have at least the following (StratOps release contains these), although additional effects can certainly be added if developers wish to give Buffs/Debuffs when the ability is activated.
+The two abilities must have at least the following (StratOps release contains these), although additional effects can certainly be added if developers wish to give Buffs/Debuffs when the ability is activated. **new in v3.0.0.0, no effectData are necessary in these abilities**
 
-For rolls (the 2nd effectdata defining BattleArmorDeSwarmerSwatInitPenalty is optional):
+For rolls
 	
 ```
 {
@@ -947,62 +951,11 @@ For rolls (the 2nd effectdata defining BattleArmorDeSwarmerSwatInitPenalty is op
 	"ActivationCooldown": -1,
 	"Targeting": "ActorSelf",
 	"ResolveCost": 0,
-	"EffectData": [
-		{
-			"durationData": {
-				"duration": 1,
-				"stackLimit": 1
-			},
-			"targetingData": {
-				"effectTriggerType": "OnActivation",
-				"effectTargetType": "Creator",
-				"showInStatusPanel": false
-			},
-			"effectType": "StatisticEffect",
-			"Description": {
-				"Id": "StatusEffect-DeSwarmRoll",
-				"Name": "Battle Armor DeSwarmer Roll",
-				"Details": "mount",
-				"Icon": "uixSvgIcon_ability_precisionstrike"
-			},
-			"nature": "Buff",
-			"statisticData": {
-				"statName": "BattleArmorDeSwarmerRoll",
-				"operation": "Set",
-				"modValue": "0.5555",
-				"modType": "System.Single"
-			}
-		},
-		{
-			"durationData": {
-				"duration": 1,
-				"stackLimit": 1
-			},
-			"targetingData": {
-				"effectTriggerType": "OnActivation",
-				"effectTargetType": "Creator",
-				"showInStatusPanel": false
-			},
-			"effectType": "StatisticEffect",
-			"Description": {
-				"Id": "StatusEffect-DeSwarmRollInit",
-				"Name": "Battle Armor DeSwarmer Roll",
-				"Details": "mount",
-				"Icon": "uixSvgIcon_ability_precisionstrike"
-			},
-			"nature": "Buff",
-			"statisticData": {
-				"statName": "BattleArmorDeSwarmerRollInitPenalty",
-				"operation": "Set",
-				"modValue": "2",
-				"modType": "System.Int32"
-			}
-		}
-	]
+	"EffectData": []
 }
 ```
 
-and for swats (the 2nd effectdata defining BattleArmorDeSwarmerSwatInitPenalty and 3rd effectdata defining BattleArmorDeSwarmerSwatDamage are optional)
+and for swats
 
 ```
 {
@@ -1017,101 +970,31 @@ and for swats (the 2nd effectdata defining BattleArmorDeSwarmerSwatInitPenalty a
 	"ActivationCooldown": -1,
 	"Targeting": "ActorSelf",
 	"ResolveCost": 0,
-	"EffectData": [
-		{
-			"durationData": {
-				"duration": 1,
-				"stackLimit": 1
-			},
-			"targetingData": {
-				"effectTriggerType": "OnActivation",
-				"effectTargetType": "Creator",
-				"showInStatusPanel": false
-			},
-			"effectType": "StatisticEffect",
-			"Description": {
-				"Id": "StatusEffect-DeSwarmSwat",
-				"Name": "Battle Armor DeSwarmer Swat",
-				"Details": "mount",
-				"Icon": "uixSvgIcon_ability_precisionstrike"
-			},
-			"nature": "Buff",
-			"statisticData": {
-				"statName": "BattleArmorDeSwarmerSwat",
-				"operation": "Set",
-				"modValue": "0.3333",
-				"modType": "System.Single"
-			}
-		},
-		{
-			"durationData": {
-				"duration": 1,
-				"stackLimit": 1
-			},
-			"targetingData": {
-				"effectTriggerType": "OnActivation",
-				"effectTargetType": "Creator",
-				"showInStatusPanel": false
-			},
-			"effectType": "StatisticEffect",
-			"Description": {
-				"Id": "StatusEffect-DeSwarmRollInit",
-				"Name": "Battle Armor DeSwarmer Roll",
-				"Details": "mount",
-				"Icon": "uixSvgIcon_ability_precisionstrike"
-			},
-			"nature": "Buff",
-			"statisticData": {
-				"statName": "BattleArmorDeSwarmerSwatInitPenalty",
-				"operation": "Set",
-				"modValue": "1",
-				"modType": "System.Int32"
-			}
-		},
-		{
-			"durationData": {
-				"duration": 1,
-				"stackLimit": 1
-			},
-			"targetingData": {
-				"effectTriggerType": "OnActivation",
-				"effectTargetType": "Creator",
-				"showInStatusPanel": false
-			},
-			"effectType": "StatisticEffect",
-			"Description": {
-				"Id": "StatusEffect-DeSwarmSwatDamage",
-				"Name": "Battle Armor DeSwarmer Swat Damage",
-				"Details": "mount",
-				"Icon": "uixSvgIcon_ability_precisionstrike"
-			},
-			"nature": "Buff",
-			"statisticData": {
-				"statName": "BattleArmorDeSwarmerSwatDamage",
-				"operation": "Set",
-				"modValue": "100.0",
-				"modType": "System.Single"
-			}
-		}
-	]
+	"EffectData": []
 }
 ```
 
-**New in 2.0.3.1** 
-
-`BattleArmorDeSwarmMovement` - string, ability def ID for new ability giving units a chance to deswarm BA from movement. Usable by mechs AND vehicles.
-
-Required stats to be set are all floats (System.Single):
-
-`MovementDeSwarmMinChance` - Minimum (or starting) % to successfully deswarm on movement.
-
-`MovementDeSwarmMaxChance` - Maximum % to successfully deswarm on movement.
-
-`MovementDeSwarmEvasivePipsFactor` - Value set here is multiplied by # of evasive pips gained from movement and added to MinChance
-
-`MovementDeSwarmEvasiveJumpMovementMultiplier` - Value here is multiplier on chance from above if the movement was a jump (do a barrel roll!)
+**New in 2.0.3.1** **updated in v3.0.0.0
 	
-After unit movement is complete, roll processes to determine if de-swarm occurs. IF so, the swarming BA is deposited randomly along the movement path. If move was a jump, the swarming BA will also take its DFASelfDamage to each suit in the squad.
+Deswarm by movement behavior is controlled by the `DeswarmMovementConfig` setting, rather than statistics in the abilityDef.
+	
+`AbilityDefID` - string, ability def ID for new ability giving units a chance to deswarm BA from movement. Usable by mechs AND vehicles.
+
+`BaseSuccessChance` - Minimum (or starting) % to successfully deswarm on movement.
+
+`MaxSuccessChance` - Maximum % to successfully deswarm on movement.
+
+`EvasivePipsFactor` - Value set here is multiplied by # of evasive pips gained from movement and added to MinChance
+
+`JumpMovementModifier` - Value here is multiplier on chance from above if the movement was a jump (do a barrel roll!)
+
+`UseDFADamage` bool, if true will use chassis dfa damage to deal damage on success (for jump moves)
+
+`LocationDamageOverride` - damage to be dealt if UseDFADamage = false
+
+`PilotingDamageReductionFactor`  damage will be reduced by (this value x piloting)%. So setting to 0.1 and a unit with Piloting 6 would only take 40% ("60% less") damage.
+
+After unit movement is complete, roll processes to determine if de-swarm occurs. IF so, the swarming BA is deposited randomly along the movement path. If move was a jump, the swarming BA will also take damage as defined above to each suit in the squad.
 	
 ```
 {
@@ -1155,106 +1038,6 @@ After unit movement is complete, roll processes to determine if de-swarm occurs.
 				"targetWeaponType": "NotSet",
 				"targetAmmoCategory": "NotSet",
 				"targetWeaponSubType": "NotSet"
-			}
-		},
-		{
-			"durationData": {
-				"duration": 1,
-				"stackLimit": 1
-			},
-			"targetingData": {
-				"effectTriggerType": "OnActivation",
-				"effectTargetType": "Creator",
-				"showInStatusPanel": false
-			},
-			"effectType": "StatisticEffect",
-			"Description": {
-				"Id": "StatusEffect-DeSwarmMoveMinChance",
-				"Name": "Battle Armor DeSwarmer Movement",
-				"Details": "mount",
-				"Icon": "uixSvgIcon_ability_precisionstrike"
-			},
-			"nature": "Buff",
-			"statisticData": {
-				"statName": "MovementDeSwarmMinChance",
-				"operation": "Set",
-				"modValue": "0.50",
-				"modType": "System.Single"
-			}
-		},
-		{
-			"durationData": {
-				"duration": 1,
-				"stackLimit": 1
-			},
-			"targetingData": {
-				"effectTriggerType": "OnActivation",
-				"effectTargetType": "Creator",
-				"showInStatusPanel": false
-			},
-			"effectType": "StatisticEffect",
-			"Description": {
-				"Id": "StatusEffect-DeSwarmMoveMaxChance",
-				"Name": "Battle Armor DeSwarmer Movement",
-				"Details": "mount",
-				"Icon": "uixSvgIcon_ability_precisionstrike"
-			},
-			"nature": "Buff",
-			"statisticData": {
-				"statName": "MovementDeSwarmMaxChance",
-				"operation": "Set",
-				"modValue": "1.0",
-				"modType": "System.Single"
-			}
-		},
-		{
-			"durationData": {
-				"duration": 1,
-				"stackLimit": 1
-			},
-			"targetingData": {
-				"effectTriggerType": "OnActivation",
-				"effectTargetType": "Creator",
-				"showInStatusPanel": false
-			},
-			"effectType": "StatisticEffect",
-			"Description": {
-				"Id": "StatusEffect-DeSwarmMoveEvasiveChance",
-				"Name": "Battle Armor DeSwarmer Movement",
-				"Details": "mount",
-				"Icon": "uixSvgIcon_ability_precisionstrike"
-			},
-			"nature": "Buff",
-			"statisticData": {
-				"statName": "MovementDeSwarmEvasivePipsFactor",
-				"operation": "Set",
-				"modValue": "0.1",
-				"modType": "System.Single"
-			}
-		},
-		{
-			"durationData": {
-				"duration": 1,
-				"stackLimit": 1
-			},
-			"targetingData": {
-				"effectTriggerType": "OnActivation",
-				"effectTargetType": "Creator",
-				"showInStatusPanel": false
-			},
-			"effectType": "StatisticEffect",
-			"Description": {
-				"Id": "StatusEffect-DeSwarmMoveJumpMulti",
-				"Name": "Battle Armor DeSwarmer Movement",
-				"Details": "mount",
-				"Icon": "uixSvgIcon_ability_precisionstrike"
-			},
-			"nature": "Buff",
-			"statisticData": {
-				"statName": "MovementDeSwarmMaxChance",
-				"operation": "Set",
-				"modValue": "1.2",
-				"modType": "System.Single"
 			}
 		}
 	],
