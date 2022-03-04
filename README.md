@@ -596,7 +596,7 @@ Using the following settings, ClanGhostBear and ClanWolf have baseline 30% chanc
 `BeaconExcludedContractIDs` - List of contract IDs where deployment or strafing beacons are not allowed to be used
 
 **new/changed in 3.0.0.0**
-`UsingMechAffinityForSwarmBreach` - use MechAffinity implementation to give BA swarms breaching shot (if using MechAffinity, need to have BATargetEffect on swarm that sets `superBreachingShot` to true).
+`UsingMechAffinityForSwarmBreach` - use MechAffinity implementation to give BA swarms breaching shot (if using MechAffinity, need to have BATargetEffect on swarm that sets the appropriate stat to true).
 
 `AirliftAbilityID` - abilityDef ID for airlift ability
 
