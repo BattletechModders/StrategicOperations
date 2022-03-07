@@ -532,9 +532,9 @@ namespace StrategicOperations.Patches
                 {
                     if (ModState.AiBattleArmorAbilityCmds[unit.GUID].active)
                     {
-                        ModInit.modLog?.Trace?.Write(
+                        ModInit.modLog?.Debug?.Write(
                             $"BA AI Swarm/Mount Ability DUMP: {ModState.AiBattleArmorAbilityCmds[unit.GUID].active}, {ModState.AiBattleArmorAbilityCmds[unit.GUID].targetActor.DisplayName}.");
-                        ModInit.modLog?.Trace?.Write(
+                        ModInit.modLog?.Debug?.Write(
                             $"BA AI Swarm/Mount Ability DUMP: {ModState.AiBattleArmorAbilityCmds[unit.GUID].ability} {ModState.AiBattleArmorAbilityCmds[unit.GUID].ability.Def.Id}, Combat is not null? {ModState.AiBattleArmorAbilityCmds[unit.GUID].ability.Combat != null}");
 
                         ModState.AiBattleArmorAbilityCmds[unit.GUID].ability.Activate(unit,
@@ -589,9 +589,9 @@ namespace StrategicOperations.Patches
                 ModState.StrafeWaves = waves;
                 //assign waves here if needed
 
-                ModInit.modLog?.Trace?.Write(
+                ModInit.modLog?.Debug?.Write(
                     $"AICMD DUMP: {ModState.AiCmds[unit.GUID].active}, {ModState.AiCmds[unit.GUID].vectorOne}, {ModState.AiCmds[unit.GUID].vectorTwo}.");
-                ModInit.modLog?.Trace?.Write(
+                ModInit.modLog?.Debug?.Write(
                     $"CMD Ability DUMP: {ModState.AiCmds[unit.GUID].ability} {ModState.AiCmds[unit.GUID].ability.Def.Id}, Combat is not null? {ModState.AiCmds[unit.GUID].ability.Combat != null}");
 
                 ModState.AiCmds[unit.GUID].ability.Activate(unit, ModState.AiCmds[unit.GUID].vectorOne,
@@ -623,7 +623,7 @@ namespace StrategicOperations.Patches
                 {
                     if (actor.IsSwarmingUnit() || actor.IsMountedUnit()) // i could force visibility to zero for BA? unsure what i want to do here since i dont think the AI is smart enough to directly target the building. have to see how it plays/maybe give garrisoned BA some DR or something.
                     {
-                        ModInit.modLog?.Trace?.Write(
+                        ModInit.modLog?.Debug?.Write(
                             $"[AIUtil.UnitHasVisibilityToTargetFromCurrentPosition] DUMP: Target {target.DisplayName} is either mounted or swarming, forcing AI visibility to zero for this node.");
                         __result = false;
                     }

@@ -104,7 +104,7 @@ namespace StrategicOperations.Patches
                     // Increment vision cost only slightly if it's inside our shell building
                     if (encounterLayerData.mapEncounterLayerDataCells[list[i].Z, list[i].X].HasSpecifiedBuilding(shellBuildingGUID))
                     {
-                        ModInit.modLog?.Trace?.Write($" Point x={list[i].X} z={list[i].Z} is inside the shell building, adding vision cost normally.");
+                        ModInit.modLog?.Debug?.Write($" Point x={list[i].X} z={list[i].Z} is inside the shell building, adding vision cost normally.");
                         //sumVisionCost += stepDelta;
                     }
                     else
@@ -147,7 +147,7 @@ namespace StrategicOperations.Patches
             {
                 if (source.isGarrisoned())
                 {
-                    ModInit.modLog?.Trace?.Write($"unit {source.DisplayName} is calculating LOF to target {target.DisplayName} at x: {target.CurrentPosition.x}, z: {target.CurrentPosition.z}");
+                    ModInit.modLog?.Debug?.Write($"unit {source.DisplayName} is calculating LOF to target {target.DisplayName} at x: {target.CurrentPosition.x}, z: {target.CurrentPosition.z}");
                     ModState.CurrentGarrisonSquadForLOF = source;
                 }
             }
@@ -172,7 +172,7 @@ namespace StrategicOperations.Patches
 
                 if (ModState.CurrentGarrisonSquadForLOF == null) return;
 
-                ModInit.modLog?.Trace?.Write($"Recalculating LOF from {ModState.CurrentGarrisonSquadForLOF.DisplayName} due to collision on building shell. " +
+                ModInit.modLog?.Debug?.Write($"Recalculating LOF from {ModState.CurrentGarrisonSquadForLOF.DisplayName} due to collision on building shell. " +
                                         $"CollisonWorldPos=> x={collisionWorldPos.X} z={collisionWorldPos.Z}");
 
                 collisionWorldPos = p1;
@@ -208,13 +208,13 @@ namespace StrategicOperations.Patches
 
                     if (encounterLayerData.mapEncounterLayerDataCells[point.Z, point.X].HasSpecifiedBuilding(shellBuildingGUID))
                     {
-                        ModInit.modLog?.Trace?.Write($" Point x={point.X} z={point.Z} is inside the shell building, continuing.");
+                        ModInit.modLog?.Debug?.Write($" Point x={point.X} z={point.Z} is inside the shell building, continuing.");
                         continue;
                     }
 
                     if (targetIsABuilding && encounterLayerData.mapEncounterLayerDataCells[point.Z, point.X].HasSpecifiedBuilding(targetedBuildingGuid))
                     {
-                        ModInit.modLog?.Trace?.Write($" Building {targetedBuildingGuid} conflicts with the LoS, collision at x={collisionWorldPos.X} z={collisionWorldPos.Z}");
+                        ModInit.modLog?.Debug?.Write($" Building {targetedBuildingGuid} conflicts with the LoS, collision at x={collisionWorldPos.X} z={collisionWorldPos.Z}");
                         collisionWorldPos = bresenhamLinePoints[i];
                         __result = true;
                         return;
@@ -222,7 +222,7 @@ namespace StrategicOperations.Patches
 
                     if (mapMetaData.mapTerrainDataCells[point.Z, point.X].cachedHeight > collisionPointHeight)
                     {
-                        ModInit.modLog?.Trace?.Write($" Collision on terrain at position x={collisionWorldPos.X} z={collisionWorldPos.Z}");
+                        ModInit.modLog?.Debug?.Write($" Collision on terrain at position x={collisionWorldPos.X} z={collisionWorldPos.Z}");
                         collisionWorldPos = bresenhamLinePoints[i];
                         __result = false;
                         return;
@@ -656,7 +656,7 @@ namespace StrategicOperations.Patches
                 var actor = hud.SelectedActor;
                 if (!actor.IsSwarmingUnit())
                 {
-                    ModInit.modLog?.Info?.Write($"[CombatHUDButtonBase.OnClick] Actor {actor.DisplayName} is not swarming, ending turn like normal.");
+                    ModInit.modLog?.Debug?.Write($"[CombatHUDButtonBase.OnClick] Actor {actor.DisplayName} is not swarming, ending turn like normal.");
                     return;
                 }
                 var target = actor.Combat.FindActorByGUID(ModState.PositionLockSwarm[actor.GUID]);

@@ -48,7 +48,7 @@ namespace StrategicOperations
             harmony.PatchAll(Assembly.GetExecutingAssembly());
             ModState.Initialize();
             //dump settings
-            ModInit.modLog?.Trace?.Write($"Settings dump: {settings}");
+            ModInit.modLog?.Info?.Write($"Settings dump: {settings}");
         }
     }
     class Settings

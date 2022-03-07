@@ -110,7 +110,7 @@ namespace StrategicOperations.Framework
                     }
                     if (this.CurrentTargets.Count < 1)
                     {
-                        ModInit.modLog?.Info?.Write(
+                        ModInit.modLog?.Trace?.Write(
                             $"We have {this.CurrentTargets.Count} 0 targets remaining, probably shouldn't be calling AttackNextTarget anymore.");
                         this.SetState(TB_StrafeSequence.SequenceState.Finished);
                         return;
@@ -126,10 +126,8 @@ namespace StrategicOperations.Framework
                         }
                         var targetDist = Vector3.Distance(this.Attacker.CurrentPosition,
                             this.CurrentTargets[i].CurrentPosition);
-                        var firingAngle = Vector3.Angle(CurrentTargets[i].CurrentPosition,
-                            this.Attacker.CurrentPosition);
                         ModInit.modLog?.Info?.Write(
-                            $"Strafing unit {Attacker.DisplayName} is {targetDist}m from  {target.DisplayName} and firingAngle is {firingAngle}");
+                            $"Strafing unit {Attacker.DisplayName} is {targetDist}m from  {target.DisplayName}");
                         if (targetDist <= this.MaxWeaponRange)
                         {
                             var filteredWeapons =
@@ -155,7 +153,7 @@ namespace StrategicOperations.Framework
                             }
 
                             ModInit.modLog?.Info?.Write(
-                                $"Strafing unit {Attacker.DisplayName} attacking target {target.DisplayName} from range {targetDist} and firingAngle {firingAngle}");
+                                $"Strafing unit {Attacker.DisplayName} attacking target {target.DisplayName} from range {targetDist}");
 
                             //var attackStackSequence = new AttackStackSequence(Attacker, target, Attacker.CurrentPosition,
                             //Attacker.CurrentRotation, filteredWeapons, MeleeAttackType.NotSet, 0, -1);
@@ -191,11 +189,10 @@ namespace StrategicOperations.Framework
 //                    this.AllTargets.RemoveAt(0);
                     }
 
-                    ModInit.modLog?.Info?.Write(
+                    ModInit.modLog?.Debug?.Write(
                         $"We have {this.CurrentTargets.Count} targets remaining, none that we can attack.");
-                    
                 }
-                ModInit.modLog?.Info?.Write($"There is already an attack sequence active, so we're not doing anything?");
+                ModInit.modLog?.Debug?.Write($"There is already an attack sequence active, so we're not doing anything?");
             }
 //            ModInit.modLog?.Info?.Write($"timeSinceAttack was {this.timeSinceLastAttack} (needs to be > {timeBetweenAttacks}) and IsAnyAttackSequenceActive?: {base.Combat.AttackDirector.IsAnyAttackSequenceActive} should be false");
         }
@@ -320,7 +317,7 @@ namespace StrategicOperations.Framework
                 ModInit.modLog?.Info?.Write($"Target {combatant.DisplayName} is within weapons range. Distance: {dist}, Range: {this.Radius}");
                 return true;
             }
-            ModInit.modLog?.Info?.Write($"Target {combatant.DisplayName} not within weapons range. Distance: {dist}, Range: {this.Radius}");
+            ModInit.modLog?.Debug?.Write($"Target {combatant.DisplayName} not within weapons range. Distance: {dist}, Range: {this.Radius}");
             return false;
         }
         public override void Load(SerializationStream stream)
@@ -467,7 +464,7 @@ namespace StrategicOperations.Framework
                 case TB_StrafeSequence.SequenceState.Strafing:
                     //var endpoint = this.StartPos + (this.EndPos - this.StartPos).normalized * Vector3.Distance(this.StartPos, this.EndPos);
                     //var angle = Vector3.Angle(this.EndPos, this.Attacker.CurrentPosition);
-                    ModInit.modLog?.Info?.Write($"Strafing unit {fromEnd}m in 2D space from endpoint!");// Angle to endPoint: {angle}");
+                    ModInit.modLog?.Debug?.Write($"Strafing unit {fromEnd}m in 2D space from endpoint!");// Angle to endPoint: {angle}");
                     if (fromEnd < ModInit.modSettings.strafeMinDistanceToEnd || (fromEnd <= fromStart && fromEnd > this.StrafeLength))
                     {
                         ModInit.modLog?.Info?.Write($"Setting Strafe SequenceState to Finished!");
@@ -487,18 +484,18 @@ namespace StrategicOperations.Framework
                         {
                             Vector3 vector = pos2 - enemy.CurrentPosition;
                             vector.y = 0f;
-                            ModInit.modLog?.Trace?.Write(
+                            ModInit.modLog?.Debug?.Write(
                                 $"{enemy.Description.UIName} is {vector.magnitude} from strafing unit for. Unit has sensor range of {base.Combat.LOS.GetSensorRange(Attacker)}!");
                             if (vector.magnitude < ModInit.modSettings.strafeSensorFactor *
                                 base.Combat.LOS.GetSensorRange(Attacker))
                             {
-                                ModInit.modLog?.Trace?.Write($"Should be showing enemy!");
+                                ModInit.modLog?.Debug?.Write($"Should be showing enemy!");
                                 var rep = enemy.GameRep as PilotableActorRepresentation;
                                 if (rep != null && !rep.VisibleToPlayer &&
                                     enemy.VisibilityToTargetUnit(StrafingTeam.units.FirstOrDefault(x => !x.IsDead)) <
                                     VisibilityLevel.Blip0Minimum)
                                 {
-                                    ModInit.modLog?.Trace?.Write($"Game Rep is not null!");
+                                    ModInit.modLog?.Debug?.Write($"Game Rep is not null!");
 //                                rep.OnPlayerVisibilityChanged(VisibilityLevel.Blip0Minimum);
                                     rep.SetForcedPlayerVisibilityLevel(VisibilityLevel.Blip0Minimum);
                                 }

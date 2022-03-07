@@ -251,7 +251,7 @@ namespace StrategicOperations.Framework
                 var newPos = start + spawnDir * radius;
                 vectors.Add(newPos);
                 if (ModInit.modSettings.debugFlares) Utils.SpawnDebugFlare(newPos, "vfxPrfPrtl_artillerySmokeSignal_loop", 3);
-                ModInit.modLog?.Trace?.Write($"Distance from possibleStart to ray endpoint is {Vector3.Distance(start, newPos)}.");
+                ModInit.modLog?.Debug?.Write($"Distance from possibleStart to ray endpoint is {Vector3.Distance(start, newPos)}.");
             }
 
             return vectors.ToArray();
@@ -263,7 +263,7 @@ namespace StrategicOperations.Framework
             var rectangles = new List<Rect>();
             Vector3 line = end - start;
             float length = Vector3.Distance(start, end);
-            ModInit.modLog?.Trace?.Write($"Rectangle length should be {length}.");
+            ModInit.modLog?.Debug?.Write($"Rectangle length should be {length}.");
             Vector3 left = Vector3.Cross(line, Vector3.up).normalized;
             Vector3 right = -left;
             var startLeft = start + (left * width);
@@ -286,7 +286,7 @@ namespace StrategicOperations.Framework
             var tertiaryID = def.secondaryMechColorID;
             var primaryID = def.tertiaryMechColorID;
 
-            ModInit.modLog?.Info?.Write($"Creating new heraldry for support. {primaryID} was tertiary, now primary. {secondaryID} was primary, now secondary. {tertiaryID} was secondary, now tertiary.");
+            ModInit.modLog?.Trace?.Write($"Creating new heraldry for support. {primaryID} was tertiary, now primary. {secondaryID} was primary, now secondary. {tertiaryID} was secondary, now tertiary.");
             var newHeraldry = new HeraldryDef(def.Description, def.textureLogoID, primaryID, secondaryID, tertiaryID);
 
             newHeraldry.DataManager = dataManager;

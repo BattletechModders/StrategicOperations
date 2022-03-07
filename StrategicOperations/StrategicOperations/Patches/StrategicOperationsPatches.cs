@@ -221,7 +221,7 @@ namespace StrategicOperations.Patches
                             targetActor.TeleportActor(pos);
                         }
                         targetActor.MountedEvasion(____parentActor);
-                        ModInit.modLog?.Trace?.Write($"PositionLockMount- Setting airlifted unit {targetActor.DisplayName} position to same as carrier unit {____parentActor.DisplayName}");
+                        ModInit.modLog?.Debug?.Write($"PositionLockMount- Setting airlifted unit {targetActor.DisplayName} position to same as carrier unit {____parentActor.DisplayName}");
 
                         if (!ModState.CachedUnitCoordinates.ContainsKey(____parentActor.GUID))
                         {
@@ -254,7 +254,7 @@ namespace StrategicOperations.Patches
                             targetActor.TeleportActor(____parentActor.CurrentPosition);
                         }
                         targetActor.MountedEvasion(____parentActor);
-                        ModInit.modLog?.Trace?.Write($"PositionLockMount- Setting riding unit {targetActor.DisplayName} position to same as carrier unit {____parentActor.DisplayName}");
+                        ModInit.modLog?.Debug?.Write($"PositionLockMount- Setting riding unit {targetActor.DisplayName} position to same as carrier unit {____parentActor.DisplayName}");
 
                         if (!ModState.CachedUnitCoordinates.ContainsKey(____parentActor.GUID))
                         {
@@ -276,7 +276,7 @@ namespace StrategicOperations.Patches
                         if (targetActor == null) continue;
                         targetActor.TeleportActor(____parentActor.CurrentPosition);
                         targetActor.MountedEvasion(____parentActor);
-                        ModInit.modLog?.Trace?.Write($"PositionLockMount- Setting riding unit {targetActor.DisplayName} position to same as carrier unit {____parentActor.DisplayName}");
+                        ModInit.modLog?.Debug?.Write($"PositionLockMount- Setting riding unit {targetActor.DisplayName} position to same as carrier unit {____parentActor.DisplayName}");
 
                         if (!ModState.CachedUnitCoordinates.ContainsKey(____parentActor.GUID))
                         {

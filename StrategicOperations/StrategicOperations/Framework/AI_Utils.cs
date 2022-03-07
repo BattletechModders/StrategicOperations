@@ -347,14 +347,14 @@ namespace StrategicOperations.Framework
 
             ModState.CurrentFactionSettingsList = new List<Classes.AI_FactionCommandAbilitySetting>(new List<Classes.AI_FactionCommandAbilitySetting>(
                 ModInit.modSettings.commandAbilities_AI.Where(x=>x.FactionIDs.Contains(unit.team.FactionValue.Name))).OrderBy(y=>y.AddChance));
-            ModInit.modLog?.Trace?.Write($"Ordering setting dictionary.");
+            ModInit.modLog?.Debug?.Write($"Ordering setting dictionary.");
 
             if (unit.GetPilot().Abilities.All(x => x.Def.Resource != AbilityDef.ResourceConsumed.CommandAbility))
             {
-                ModInit.modLog?.Trace?.Write($"No command abilities on pilot.");
+                ModInit.modLog?.Debug?.Write($"No command abilities on pilot.");
                 if (unit.ComponentAbilities.All(x => x.Def.Resource != AbilityDef.ResourceConsumed.CommandAbility))
                 {
-                    ModInit.modLog?.Trace?.Write($"No command abilities on unit from Components.");
+                    ModInit.modLog?.Debug?.Write($"No command abilities on unit from Components.");
                     foreach (var abilitySetting in ModState.CurrentFactionSettingsList)
                     {
                         if (!ModState.CurrentCommandUnits.ContainsKey(abilitySetting.AbilityDefID))
@@ -396,7 +396,7 @@ namespace StrategicOperations.Framework
                                 loadRequest.ProcessRequests(1000U);
                                 if (!dm.AbilityDefs.TryGet(abilitySetting.AbilityDefID, out def))
                                 {
-                                    ModInit.modLog?.Info?.Write($"couldnt find {abilitySetting.AbilityDefID} in DataManager after loadrequest.");
+                                    ModInit.modLog?.Error?.Write($"ERROR couldnt find {abilitySetting.AbilityDefID} in DataManager after loadrequest.");
                                     return;
                                 }
                             };
