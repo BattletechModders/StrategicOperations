@@ -374,18 +374,16 @@ namespace StrategicOperations.Patches
                     if (potentialTarget is AbstractActor targetActor)
                     {
                         if (SelectedActor.HasActivatedThisRound) return false;
+                        if (SelectedActor.IsAirliftingTargetUnit(targetActor))
+                        {
+                            return true;
+                        }
                         if (targetActor.IsMountedUnit() || targetActor.IsSwarmingUnit() ||
                             targetActor.HasSwarmingUnits() || targetActor.HasMountedUnits() ||
                             targetActor.IsAirlifted() || targetActor.HasAirliftedUnits())
                         {
                             return false;
                         }
-
-                        if (SelectedActor.IsAirliftingTargetUnit(targetActor))
-                        {
-                            return true;
-                        }
-
                         if (targetActor.team.IsFriendly(SelectedActor.team))
                         {
                             if (SelectedActor.getHasAvailableInternalLiftCapacityForTarget(targetActor) ||

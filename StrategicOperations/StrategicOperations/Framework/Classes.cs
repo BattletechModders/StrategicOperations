@@ -596,20 +596,21 @@ namespace StrategicOperations.Framework
             }
         }
 
-        public class AirliftWiggleConfig
-        {
-            public string AbilityDefID = "";
-            public float BaseSuccessChance = 0f;
-            public float MaxSuccessChance = 0f;
-            public float PilotingSuccessFactor = 0f;
-            public float PilotingDamageReductionFactor = 0f;
-        }
+//        public class AirliftWiggleConfig
+//        {
+//            public string AbilityDefID = "";
+//            public float BaseSuccessChance = 0f;
+//            public float MaxSuccessChance = 0f;
+//            public float PilotingSuccessFactor = 0f;
+//            public float PilotingDamageReductionFactor = 0f;
+//        }
 
         public class BA_DeswarmAbilityConfig // key will be AbilityDefID
         {
             //public string AbilityDefID = "";
             public float BaseSuccessChance = 0f;
             public float MaxSuccessChance = 0f;
+            public float PilotingSuccessFactor = 0f;
             public float TotalDamage = 0f;
             public int Clusters = 1;
             public int InitPenalty = 0;
@@ -662,9 +663,9 @@ namespace StrategicOperations.Framework
         public class BA_GarrisonInfo
         {
             public string BuildingGUID = ""; //guid of building
-            public Dictionary<int, float> InitialLocArmor = new Dictionary<int, float>();
-
-            public BA_GarrisonInfo(ICombatant building, TrooperSquad squad)
+            public Dictionary<int, float> InitialLocArmor;
+            public float InitialBuildingStructure;
+            public BA_GarrisonInfo(BattleTech.Building building, TrooperSquad squad)
             {
                 BuildingGUID = building.GUID;
                 InitialLocArmor = new Dictionary<int, float>();
@@ -673,6 +674,8 @@ namespace StrategicOperations.Framework
                     var currentArmor = squad.GetCurrentArmor((ArmorLocation) loc);
                     InitialLocArmor.Add(loc, currentArmor);
                 }
+
+                InitialBuildingStructure = building.CurrentArmor + building.CurrentStructure;
             }
         }
 
@@ -699,14 +702,14 @@ namespace StrategicOperations.Framework
 
         public class AirliftTracker
         {
-            public string TargetGUID = ""; // guid of carrier unit.
+            public string CarrierGUID; // guid of carrier unit.
             public bool IsCarriedInternal;
             public bool IsFriendly; // key is BA unit chassis location (HD, CT, LT, RT, LA, RA), value is BA mounted ARMOR location on carrier.
             public float Offset;
 
             public AirliftTracker()
             {
-                this.TargetGUID = "";
+                this.CarrierGUID = "";
                 this.IsCarriedInternal = false;
                 this.IsFriendly = false;
                 this.Offset = 0f;
@@ -714,7 +717,7 @@ namespace StrategicOperations.Framework
 
             public AirliftTracker(string targetGUID, bool internalCarry, bool isFriendly, float offset)
             {
-                this.TargetGUID = targetGUID;
+                this.CarrierGUID = targetGUID;
                 this.IsCarriedInternal = internalCarry;
                 this.IsFriendly = isFriendly;
                 this.Offset = offset;

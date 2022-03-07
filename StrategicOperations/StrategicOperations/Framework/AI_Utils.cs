@@ -589,17 +589,18 @@ namespace StrategicOperations.Framework
                         var vector = vectors[index];
                         var targetCount = 0;
                         var rectangles = Utils.MakeRectangle(possibleStart, vector, ability.Def.FloatParam1);
+                        var rectTargets = new List<string>();
                         for (var i = 0; i < rectangles.Length; i++)
                         {
                             var rectangle = rectangles[i];
                             for (int l = 0; l < enemyUnits.Count; l++)
                             {
                                 if (!(enemyUnits[l] is AbstractActor newTarget)) continue;
-                                if (rectangle.Contains(newTarget.CurrentPosition))
+                                if (rectangle.Contains(newTarget.CurrentPosition) && !rectTargets.Contains(newTarget.GUID))
                                 {
+                                    rectTargets.Add(newTarget.GUID);
                                     targetCount += 1;
-                                    ModInit.modLog.LogTrace(
-                                        $"[TargetsForStrafe] Unit #{k}, Vector {index}: Current highest target count is {currentMaxCount} from start {currentSavedStartVector} and end {currentSavedEndVector}.");
+                                    ModInit.modLog.LogTrace($"[TargetsForStrafe] Unit #{k}, VectorStart {possibleStart} VectorEnd {vector}: {targetCount} targets.");
                                 }
                             }
                         }
@@ -610,7 +611,7 @@ namespace StrategicOperations.Framework
                             currentSavedEndVector = vector;
                             currentSavedStartVector = possibleStart;
                             ModInit.modLog.LogTrace(
-                                $"TargetsForStrafe] Unit #{k}, Vector {index}: Current highest target count in vector {index} is {currentMaxCount} from start {currentSavedStartVector} and end {currentSavedEndVector}.");
+                                $"TargetsForStrafe] Unit #{k}, possibleStart {currentSavedStartVector} currentSavedEndVector {currentSavedEndVector}: Current highest target count in vector {index} is {currentMaxCount} from start {currentSavedStartVector} and end {currentSavedEndVector}.");
                         }
                     }
 

@@ -3,18 +3,18 @@ using System.Collections.Generic;
 using System.Reflection;
 using BattleTech;
 using Harmony;
+using IRBTModUtils.Logging;
 using Localize;
 using Newtonsoft.Json;
 using StrategicOperations.Framework;
 using static StrategicOperations.Framework.Classes;
-using Logger = StrategicOperations.Framework.Logger;
 using Random = System.Random;
 
 namespace StrategicOperations
 {
     public static class ModInit
     {
-        internal static Logger modLog;
+        internal static DeferringLogger modLog;
         private static string modDir;
         public static readonly Random Random = new Random(123);
 
@@ -25,24 +25,30 @@ namespace StrategicOperations
         {
             
             modDir = directory;
-            modLog = new Logger(modDir, "Strategery");
+            Exception settingsException = null;
             try
             {
                 modSettings = JsonConvert.DeserializeObject<Settings>(settings);
             }
             catch (Exception ex)
             {
-                Logger.LogException(ex);
+                settingsException = ex;
                 modSettings = new Settings();
             }
             //HarmonyInstance.DEBUG = true;
-            ModInit.modLog.LogMessage($"Initializing StrategicOperations - Version {typeof(Settings).Assembly.GetName().Version}");
+            modLog = new DeferringLogger(modDir, "Strategery", modSettings.DEVTEST_Logging, modSettings.enableTrace);
+            if (settingsException != null)
+            {
+                ModInit.modLog?.Error?.Write($"EXCEPTION while reading settings file! Error was: {settingsException}");
+            }
+            
+            ModInit.modLog?.Info?.Write($"Initializing StrategicOperations - Version {typeof(Settings).Assembly.GetName().Version}");
             var harmony = HarmonyInstance.Create(HarmonyPackage);
             //FileLog.Log(HarmonyPackage);
             harmony.PatchAll(Assembly.GetExecutingAssembly());
             ModState.Initialize();
             //dump settings
-            ModInit.modLog.LogTrace($"Settings dump: {settings}");
+            ModInit.modLog?.Trace?.Write($"Settings dump: {settings}");
         }
     }
     class Settings
@@ -50,7 +56,6 @@ namespace StrategicOperations
         public bool DEVTEST_AIPOS = false;
         public bool DEVTEST_Logging = false;
         public bool debugFlares = false;
-        public bool enableLogging = true;
         public bool enableTrace = true;
         public string flareResourceID = "vfxPrfPrtl_fireTerrain_smLoop";
         public string CUVehicleStat = "CUFakeVehicle";
@@ -117,6 +122,6 @@ namespace StrategicOperations
         public bool CanDropOffAfterMoving = false;
         public bool AirliftCapacityByTonnage = false;
 
-        public AirliftWiggleConfig AirliftWiggleConfiguration = new AirliftWiggleConfig();
+//        public AirliftWiggleConfig AirliftWiggleConfiguration = new AirliftWiggleConfig();
     }
 }

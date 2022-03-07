@@ -16,7 +16,7 @@ namespace StrategicOperations.Framework
     {
         public static bool HasAirliftedUnits(this AbstractActor actor)
         {
-            return ModState.AirliftTrackers.Any(x => x.Value.TargetGUID == actor.GUID);
+            return ModState.AirliftTrackers.Any(x => x.Value.CarrierGUID == actor.GUID);
         }
         public static bool IsAirlifted(this AbstractActor actor)
         {
@@ -29,18 +29,18 @@ namespace StrategicOperations.Framework
 
         public static bool IsAirliftingTargetUnit(this AbstractActor actor, AbstractActor targetActor)
         {
-            return ModState.AirliftTrackers.ContainsKey(targetActor.GUID) && ModState.AirliftTrackers[targetActor.GUID].TargetGUID == actor.GUID;
+            return ModState.AirliftTrackers.ContainsKey(targetActor.GUID) && ModState.AirliftTrackers[targetActor.GUID].CarrierGUID == actor.GUID;
         }
 
         public static bool IsAirliftedByTarget(AbstractActor actor, AbstractActor targetActor)
         {
             return ModState.AirliftTrackers.ContainsKey(actor.GUID) &&
-                   ModState.AirliftTrackers[actor.GUID].TargetGUID == targetActor.GUID;
+                   ModState.AirliftTrackers[actor.GUID].CarrierGUID == targetActor.GUID;
         }
 
         public static bool HasAirliftedFriendly(this AbstractActor actor)
         {
-            return ModState.AirliftTrackers.Any(x => x.Value.IsFriendly && x.Value.TargetGUID == actor.GUID);
+            return ModState.AirliftTrackers.Any(x => x.Value.IsFriendly && x.Value.CarrierGUID == actor.GUID);
         }
 
         public static bool IsAirliftedEnemy(this AbstractActor actor)
@@ -50,7 +50,7 @@ namespace StrategicOperations.Framework
 
         public static bool HasAirliftedEnemy(this AbstractActor actor)
         {
-            return ModState.AirliftTrackers.Any(x => !x.Value.IsFriendly && x.Value.TargetGUID == actor.GUID);
+            return ModState.AirliftTrackers.Any(x => !x.Value.IsFriendly && x.Value.CarrierGUID == actor.GUID);
         }
         
         public static bool getCanAirliftHostiles(this AbstractActor actor)
@@ -141,7 +141,7 @@ namespace StrategicOperations.Framework
         public static List<AbstractActor> GetAirliftedUnits(this AbstractActor carrier)
         {
             var results = new List<AbstractActor>();
-            var trackers = ModState.AirliftTrackers.Where(x => x.Value.TargetGUID == carrier.GUID);
+            var trackers = ModState.AirliftTrackers.Where(x => x.Value.CarrierGUID == carrier.GUID);
             foreach (var tracker in trackers)
             {
                 results.Add(carrier.Combat.FindActorByGUID(tracker.Key));
@@ -249,10 +249,22 @@ namespace StrategicOperations.Framework
             }
         }
 
-        public static void DropAirliftedUnit(this AbstractActor carrier, AbstractActor actor, Vector3 locationOverride, bool calledFromDeswarm = false,
+//        public static void ProcessWiggleWiggle(this AbstractActor creator, AbstractActor carrier)
+//        {
+//            var settings = ModInit.modSettings.AirliftWiggleConfiguration;
+//            var roll = ModInit.Random.NextDouble();
+//            var successChance = Mathf.Min(settings.BaseSuccessChance +
+//                                          (settings.PilotingSuccessFactor * creator.GetPilot().Piloting), settings.MaxSuccessChance);
+//            ModInit.modLog.LogMessage($"[ProcessWiggleWiggle] {creator.DisplayName} is wiggling with success chance {successChance} vs roll {roll}.");
+//            if (roll <= successChance)
+//            {
+//                creator.DetachFromAirliftCarrier(carrier, false);
+//            }
+//        }
+
+        public static void DropAirliftedUnit(this AbstractActor carrier, AbstractActor actor, Vector3 locationOverride, bool isHostileDrop, bool calledFromDeswarm = false,
             bool calledFromHandleDeath = false, bool unShrinkRep = true)
         {
-
             var em = actor.Combat.EffectManager;
             foreach (var airliftEffect in ModState.AirliftEffects)
             {
@@ -312,14 +324,35 @@ namespace StrategicOperations.Framework
                 //ModState.SavedBAScale.Remove(actor.GUID);
                 //squad.GameRep.ToggleHeadlights(true);
             }
-            var point = carrier.CurrentPosition;
-            if (locationOverride != Vector3.zero)
+
+            if (!isHostileDrop)
             {
-                point = locationOverride;
-                ModInit.modLog.LogMessage($"[DropAirliftedUnit] Using location override {locationOverride}.");
+                var point = carrier.CurrentPosition;
+                if (locationOverride != Vector3.zero)
+                {
+                    point = locationOverride;
+                    ModInit.modLog.LogMessage($"[DropAirliftedUnit] Using location override {locationOverride}.");
+                }
+
+                point.y = actor.Combat.MapMetaData.GetLerpedHeightAt(point, false);
+                actor.TeleportActor(point);
             }
-            point.y = actor.Combat.MapMetaData.GetLerpedHeightAt(point, false);
-            actor.TeleportActor(point);
+            else
+            {
+                Vector3 vector = actor.CurrentPosition;
+                vector.y = actor.Combat.MapMetaData.GetLerpedHeightAt(actor.CurrentPosition, false);
+                if (actor is Mech mech)
+                {
+                    MechDisplacementSequence sequence = new MechDisplacementSequence(mech, vector, mech.GameRep.thisTransform.rotation, carrier.GUID);
+                    mech.Combat.MessageCenter.PublishMessage(new AddParallelSequenceToStackMessage(sequence));
+                    return;
+                }
+                if (actor.GameRep != null)
+                {
+                    actor.GameRep.transform.position = vector;
+                }
+                actor.OnPositionUpdate(vector, actor.CurrentRotation, -1, true, null, false);
+            }
 
             if (!calledFromHandleDeath && !calledFromDeswarm && false) // dont think i need this, since the unit being dropped won't need to reset state ever?
             {
@@ -371,7 +404,7 @@ namespace StrategicOperations.Framework
             public void OnLandDetach()
             {
                 Actor.GameRep.transform.localScale = new Vector3(1f, 1f, 1f);
-                Carrier.DropAirliftedUnit(Actor, Vector3.zero, false, false, true);
+                Carrier.DropAirliftedUnit(Actor, Vector3.zero, false, false, false, true);
                 //Actor.GameRep.ToggleHeadlights(true); // maybe toggle headlights if internal?
             }
         }
@@ -474,14 +507,14 @@ namespace StrategicOperations.Framework
                 {
                     ModInit.modLog.LogTrace($"DetachFromAirliftCarrier call DropAirliftedUnit.");
                     //CALL DEFAULT ATTACH CODE
-                    carrier.DropAirliftedUnit(actor, Vector3.zero, false, false, true);
+                    carrier.DropAirliftedUnit(actor, Vector3.zero, false, false, false, true);
                 }
             }
             else
             {
                 ModInit.modLog.LogTrace($"DetachFromAirliftCarrier call DropAirliftedUnit.");
                 //CALL DEFAULT ATTACH CODE
-                carrier.DropAirliftedUnit(actor, Vector3.zero, false, false, true);
+                carrier.DropAirliftedUnit(actor, Vector3.zero, true, false, false, true);
                 //squad.DismountBA(carrier, Vector3.zero, false, false, true);
             }
         }

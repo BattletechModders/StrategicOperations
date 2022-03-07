@@ -23,7 +23,7 @@ namespace StrategicOperations.Framework
         {
             if (ModInit.modSettings.enableLogging)
             {
-                string ts = DateTime.Now.ToString("s", System.Globalization.CultureInfo.InvariantCulture);
+                string ts = DateTime.Now.ToString("s.ff", System.Globalization.CultureInfo.InvariantCulture);
                 logStreamWriter.WriteLine($"INFO: {ts} - {message}");
             }
         }
@@ -32,7 +32,7 @@ namespace StrategicOperations.Framework
         {
             if (ModInit.modSettings.enableTrace)
             {
-                string ts = DateTime.Now.ToString("s", System.Globalization.CultureInfo.InvariantCulture);
+                string ts = DateTime.Now.ToString("s.ff", System.Globalization.CultureInfo.InvariantCulture);
                 logStreamWriter.WriteLine($"TRACE: {ts} - {message}");
             }
         }
@@ -41,20 +41,20 @@ namespace StrategicOperations.Framework
         {
             if (ModInit.modSettings.DEVTEST_Logging)
             {
-                string ts = DateTime.Now.ToString("s", System.Globalization.CultureInfo.InvariantCulture);
+                string ts = DateTime.Now.ToString("s.ff", System.Globalization.CultureInfo.InvariantCulture);
                 logStreamWriter.WriteLine($"TRACE: {ts} - {message}");
             }
         }
 
         public void LogError(string message)
         {
-            string ts = DateTime.Now.ToString("s", System.Globalization.CultureInfo.InvariantCulture);
+            string ts = DateTime.Now.ToString("s.ff", System.Globalization.CultureInfo.InvariantCulture);
             logStreamWriter.WriteLine($"ERROR: {ts} - {message}");
         }
 
         public static void LogException(Exception exception)
         {
-            string ts = DateTime.Now.ToString("s", System.Globalization.CultureInfo.InvariantCulture);
+            string ts = DateTime.Now.ToString("s.ff", System.Globalization.CultureInfo.InvariantCulture);
             logStreamWriter.WriteLine($"CRITICAL: {ts} - {exception}");
         }
     }

@@ -103,7 +103,7 @@
     <Compile Include="Framework\Utils.cs" />
     <Compile Include="Framework\ModState.cs" />
     <Compile Include="Framework\TB_StrafeSequence.cs" />
-    <Compile Include="Framework\Logger.cs" />
+    <None Include="Framework\Logger.cs" />
     <Compile Include="ModInit.cs" />
     <Compile Include="Patches\AI_Patches.cs" />
     <Compile Include="Patches\BattleArmorPatches.cs" />

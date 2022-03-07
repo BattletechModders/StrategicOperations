@@ -8,6 +8,7 @@ using Abilifier;
 using Abilifier.Patches;
 using BattleTech;
 using BattleTech.Rendering;
+using BattleTech.Save;
 using BattleTech.UI;
 using CustAmmoCategories;
 using CustomActivatableEquipment;
@@ -23,9 +24,6 @@ using SVGImporter;
 using UnityEngine;
 using UnityEngine.UI;
 using MechStructureRules = BattleTech.MechStructureRules;
-using ObjectSpawnDataSelf = CustAmmoCategories.ObjectSpawnDataSelf;
-using Random = System.Random;
-using Text = Localize.Text;
 using TrooperSquad = CustomUnits.TrooperSquad;
 
 namespace StrategicOperations.Patches
@@ -106,8 +104,8 @@ namespace StrategicOperations.Patches
                     // Increment vision cost only slightly if it's inside our shell building
                     if (encounterLayerData.mapEncounterLayerDataCells[list[i].Z, list[i].X].HasSpecifiedBuilding(shellBuildingGUID))
                     {
-                        //Mod.Log.Trace?.Write($" Point x={list[i].X} z={list[i].Z} is inside the shell building, adding vision cost normally.");
-                        sumVisionCost += stepDelta;
+                        ModInit.modLog.LogTrace($" Point x={list[i].X} z={list[i].Z} is inside the shell building, adding vision cost normally.");
+                        //sumVisionCost += stepDelta;
                     }
                     else
                     {
@@ -149,7 +147,7 @@ namespace StrategicOperations.Patches
             {
                 if (source.isGarrisoned())
                 {
-                    //Mod.Log.Trace?.Write($"Turret {CombatantUtils.Label(turret)} is calculating it's LOF");
+                    ModInit.modLog.LogTrace($"unit {source.DisplayName} is calculating LOF to target {target.DisplayName} at x: {target.CurrentPosition.x}, z: {target.CurrentPosition.z}");
                     ModState.CurrentGarrisonSquadForLOF = source;
                 }
             }
@@ -174,8 +172,8 @@ namespace StrategicOperations.Patches
 
                 if (ModState.CurrentGarrisonSquadForLOF == null) return;
 
-                //Mod.Log.Trace?.Write($"Recalculating LOF from {CombatantUtils.Label(ModState.CurrentTurretForLOF)} due to collision on building shell. " +
-              //      $"CollisonWorldPos=> x={collisionWorldPos.X} z={collisionWorldPos.Z}");
+                ModInit.modLog.LogTrace($"Recalculating LOF from {ModState.CurrentGarrisonSquadForLOF.DisplayName} due to collision on building shell. " +
+                                        $"CollisonWorldPos=> x={collisionWorldPos.X} z={collisionWorldPos.Z}");
 
                 collisionWorldPos = p1;
 
@@ -210,13 +208,13 @@ namespace StrategicOperations.Patches
 
                     if (encounterLayerData.mapEncounterLayerDataCells[point.Z, point.X].HasSpecifiedBuilding(shellBuildingGUID))
                     {
-                        //Mod.Log.Trace?.Write($" Point x={point.X} z={point.Z} is inside the shell building, continuing.");
+                        ModInit.modLog.LogTrace($" Point x={point.X} z={point.Z} is inside the shell building, continuing.");
                         continue;
                     }
 
                     if (targetIsABuilding && encounterLayerData.mapEncounterLayerDataCells[point.Z, point.X].HasSpecifiedBuilding(targetedBuildingGuid))
                     {
-                        //Mod.Log.Trace?.Write($" Building {targetedBuildingGuid} conflicts with the LoS, collision at x={collisionWorldPos.X} z={collisionWorldPos.Z}");
+                        ModInit.modLog.LogTrace($" Building {targetedBuildingGuid} conflicts with the LoS, collision at x={collisionWorldPos.X} z={collisionWorldPos.Z}");
                         collisionWorldPos = bresenhamLinePoints[i];
                         __result = true;
                         return;
@@ -224,14 +222,14 @@ namespace StrategicOperations.Patches
 
                     if (mapMetaData.mapTerrainDataCells[point.Z, point.X].cachedHeight > collisionPointHeight)
                     {
-                        //Mod.Log.Trace?.Write($" Collision on terrain at position x={collisionWorldPos.X} z={collisionWorldPos.Z}");
+                        ModInit.modLog.LogTrace($" Collision on terrain at position x={collisionWorldPos.X} z={collisionWorldPos.Z}");
                         collisionWorldPos = bresenhamLinePoints[i];
                         __result = false;
                         return;
                     }
                 }
 
-                //Mod.Log.Trace?.Write($"No collision detected, changing LoF to true. CollisonWorldPos => x ={ collisionWorldPos.X} z ={ collisionWorldPos.Z}");
+                ModInit.modLog.LogTrace($"No collision detected, changing LoF to true. CollisonWorldPos => x ={ collisionWorldPos.X} z ={ collisionWorldPos.Z}");
 
                 __result = true;
                 return;
@@ -464,17 +462,24 @@ namespace StrategicOperations.Patches
                                     : settings.LocationDamageOverride;
                                 var reduction = settings.PilotingDamageReductionFactor *
                                                 swarmingUnitSquad.GetPilot().Piloting;
-                                var trooperLocs = swarmingUnitSquad.GetPossibleHitLocations(__instance.owningActor);
-                                for (int i = 0; i < trooperLocs.Count; i++)
+                                var dmgReduction = dmg * reduction;
+                                dmg -= dmgReduction;
+                                if (dmg > 0f)
                                 {
-                                    var hitinfo = new WeaponHitInfo(-1, -1, 0, 0, __instance.owningActor.GUID,
-                                        swarmingUnitSquad.GUID, 1, new float[1], new float[1], new float[1],
-                                        new bool[1], new int[trooperLocs[i]], new int[1], new AttackImpactQuality[1],
-                                        new AttackDirection[1], new Vector3[1], new string[1], new int[trooperLocs[i]]);
+                                    var trooperLocs = swarmingUnitSquad.GetPossibleHitLocations(__instance.owningActor);
+                                    for (int i = 0; i < trooperLocs.Count; i++)
+                                    {
+                                        var hitinfo = new WeaponHitInfo(-1, -1, 0, 0, __instance.owningActor.GUID,
+                                            swarmingUnitSquad.GUID, 1, new float[1], new float[1], new float[1],
+                                            new bool[1], new int[trooperLocs[i]], new int[1],
+                                            new AttackImpactQuality[1],
+                                            new AttackDirection[1], new Vector3[1], new string[1],
+                                            new int[trooperLocs[i]]);
 
-                                    swarmingUnitSquad.TakeWeaponDamage(hitinfo, trooperLocs[i],
-                                        swarmingUnitSquad.MeleeWeapon, dmg,
-                                        0, 0, DamageType.DFASelf);
+                                        swarmingUnitSquad.TakeWeaponDamage(hitinfo, trooperLocs[i],
+                                            swarmingUnitSquad.MeleeWeapon, dmg,
+                                            0, 0, DamageType.DFASelf);
+                                    }
                                 }
                             }
                         }
@@ -899,6 +904,91 @@ namespace StrategicOperations.Patches
             }
         }
 
+        [HarmonyPatch(typeof(CombatSelectionHandler), "TrySelectActor",
+            new Type[] {typeof(AbstractActor), typeof(bool)})]
+        public static class CombatSelectionHandler_TrySelectActor
+        {
+            public static bool Prefix(CombatSelectionHandler __instance, AbstractActor actor, bool manualSelection,
+                ref bool __result)
+            {
+                if (actor == null)
+                {
+                    return true;
+                }
+
+                if (!actor.Combat.LocalPlayerTeam.IsActive)
+                {
+                    return true;
+                }
+
+                if (actor.HasBegunActivation && !actor.HasActivatedThisRound)
+                {
+                    return true;
+                }
+
+                if (actor.IsMountedUnit())
+                {
+                    var carrier = actor.Combat.FindActorByGUID(ModState.PositionLockMount[actor.GUID]);
+                    if (!carrier.hasFiringPorts())
+                    {
+                        ModInit.modLog.LogTrace($"[CombatSelectionHandler.TrySelectActor] {actor.DisplayName} is mounted, does not have firing ports.");
+                        return true;
+                    }
+                    ModInit.modLog.LogTrace($"[CombatSelectionHandler.TrySelectActor] {actor.DisplayName} is mounted, DOES HAVE firing ports.");
+                }
+
+                if (!actor.isGarrisoned() && !actor.IsMountedUnit())
+                {
+                    ModInit.modLog.LogTrace($"[CombatSelectionHandler.TrySelectActor] {actor.DisplayName}is not mounted or garrisoned.");
+                    return true;
+                }
+
+                if (__instance.ActiveState is SelectionStateFire) return true;
+
+
+                if ((__instance.SelectedActor == null || __instance.IsSelectedActorChangeable) &&
+                    actor.team == actor.Combat.LocalPlayerTeam && actor != __instance.SelectedActor)
+                {
+                    if (__instance.IsCommandButtonActive)
+                    {
+                        __instance.UninvokeCommandTray();
+                    }
+                    else
+                    {
+                        Traverse.Create(__instance).Method("ClearSelectionStack").GetValue();
+                        //__instance.ClearSelectionStack();
+                    }
+
+                    __instance.ActivatedAbilityButtons.Clear();
+                    actor.Combat.MessageCenter.PublishMessage(new ActorSelectedMessage(actor.GUID));
+                    if (manualSelection)
+                    {
+                        AudioEventManager.PlayPilotVO(VOEvents.Mech_Chosen, actor, null, null, true);
+                    }
+                    var SelectionStack = Traverse.Create(__instance).Property("SelectionStack").GetValue<List<SelectionState>>();
+                    if (!SelectionStack.Any(x => x is SelectionStateDoneWithMech))
+                    {
+                        var HUD = Traverse.Create(__instance).Property("HUD").GetValue<CombatHUD>();
+                        var doneState = new SelectionStateDoneWithMech(actor.Combat, HUD,
+                            HUD.MechWarriorTray.DoneWithMechButton, actor);
+                        var addState = Traverse.Create(__instance)
+                            .Method("addNewState", new Type[] { typeof(SelectionState) });
+                        addState.GetValue(doneState);
+                    }
+                    __instance.AddFireState(actor);
+                    ModInit.modLog.LogTrace($"[CombatSelectionHandler.TrySelectActor] {actor.DisplayName} should be adding fire state.");
+                    if (ActiveOrDefaultSettings.CloudSettings.autoCenterOnSelection)
+                    {
+                        CameraControl.Instance.SetMovingToGroundPos(actor.CurrentPosition, 0.95f);
+                    }
+                    Traverse.Create(__instance).Method("logSelectionStack").GetValue();
+                    //__instance.logSelectionStack();
+                    __result = true;
+                    return false;
+                }
+                return true;
+            }
+        }
 
         [HarmonyPatch(typeof(CombatSelectionHandler), "AddSprintState",
             new Type[] {typeof(AbstractActor)})]
@@ -1402,7 +1492,7 @@ namespace StrategicOperations.Patches
                 {
                     if (!ModState.AirliftTrackers[source.GUID].IsCarriedInternal)
                     {
-                        list.Remove(source.Combat.FindActorByGUID(ModState.AirliftTrackers[source.GUID].TargetGUID));
+                        list.Remove(source.Combat.FindActorByGUID(ModState.AirliftTrackers[source.GUID].CarrierGUID));
                     }
                 }
 
@@ -1509,26 +1599,7 @@ namespace StrategicOperations.Patches
             }
         }
 
-        [HarmonyPatch(typeof(WeaponRangeIndicators), "DrawLine")]
-        public static class FiringPreviewManager_AllPossibleTargets
-        {
-            static bool Prepare() => false; //disabled for now. might not be needed?
-            public static bool Prefix(WeaponRangeIndicators __instance, Vector3 position, Quaternion rotation, bool isPositionLocked, AbstractActor selectedActor, ICombatant target, bool usingMultifire, bool isLocked, bool isMelee)
-            {
-                if (target is AbstractActor targetActor && targetActor.IsSwarmingUnit())
-                {
-                    if (ModState.PositionLockSwarm.ContainsKey(targetActor.GUID) &&
-                        ModState.PositionLockSwarm[targetActor.GUID] == selectedActor.GUID)
-                    {
-                        return false;
-                    }
-                }
-                //alter result to remove currently swarming units from firinglines (this might not be the best place to do it)
-                return true;
-            }
-        }
-
-        [HarmonyPatch(typeof(LOFCache), "GetLineOfFire")]
+       [HarmonyPatch(typeof(LOFCache), "GetLineOfFire")]
         public static class LOFCache_GetLineOfFire
         {
             //static bool Prepare() => false;
@@ -1540,7 +1611,7 @@ namespace StrategicOperations.Patches
                 {
                     if (!ModState.AirliftTrackers[source.GUID].IsCarriedInternal)
                     {
-                        var carrier = source.Combat.FindActorByGUID(ModState.AirliftTrackers[source.GUID].TargetGUID);
+                        var carrier = source.Combat.FindActorByGUID(ModState.AirliftTrackers[source.GUID].CarrierGUID);
                         __result = source.Combat.LOFCache.GetLineOfFire(carrier, carrier.CurrentPosition, target,
                             targetPosition, targetRotation, out collisionWorldPos);
                     }
@@ -1557,15 +1628,15 @@ namespace StrategicOperations.Patches
                     }
                 }
 
-                else if (source.isGarrisoned())
-                {
-                    var carrier = source.Combat.FindCombatantByGUID(ModState.PositionLockGarrison[source.GUID].BuildingGUID);
-                    
-                        __result = carrier.GetLineOfFireForGarrison(source, carrier.CurrentPosition, target,
-                            targetPosition, targetRotation, out collisionWorldPos);
-                        //ModInit.modLog.LogDev($"[LOFCache.GetLineOfFire] returning LOF {__result} from carrier {carrier.DisplayName} for squad {source.DisplayName}");
-                    
-                }
+                //                else if (source.isGarrisoned())
+                //                {
+
+//                    var carrier = source.Combat.FindCombatantByGUID(ModState.PositionLockGarrison[source.GUID].BuildingGUID);
+//                        __result = carrier.GetLineOfFireForGarrison(source, carrier.CurrentPosition, target,
+//                            targetPosition, targetRotation, out collisionWorldPos);
+//ModInit.modLog.LogDev($"[LOFCache.GetLineOfFire] returning LOF {__result} from carrier {carrier.DisplayName} for squad {source.DisplayName}");
+
+                //                }
                 //__result = LineOfFireLevel.LOFClear;
             }
         }

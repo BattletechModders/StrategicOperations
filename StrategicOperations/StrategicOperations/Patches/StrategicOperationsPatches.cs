@@ -204,7 +204,7 @@ namespace StrategicOperations.Patches
                 if (____parentActor.HasAirliftedEnemy() || ____parentActor.HasAirliftedFriendly())
                 {
                     var airliftedUnits= ModState.AirliftTrackers.Where(x =>
-                        x.Value.TargetGUID == ____parentActor.GUID);
+                        x.Value.CarrierGUID == ____parentActor.GUID);
                     foreach (var trackerInfo in airliftedUnits)
                     {
                         var targetActor = combat.FindActorByGUID(trackerInfo.Key);
@@ -394,6 +394,21 @@ namespace StrategicOperations.Patches
                 {
                     if (target is AbstractActor targetActor)
                     {
+//                        if (creator.IsAirliftedEnemy())
+//                        {
+//                            if (!string.IsNullOrEmpty(ModInit.modSettings.AirliftWiggleConfiguration.AbilityDefID) && __instance.Def.Id == ModInit.modSettings.AirliftWiggleConfiguration.AbilityDefID)
+//                            {
+//                                var carrier = creator.Combat.FindActorByGUID(ModState.AirliftTrackers[creator.GUID].CarrierGUID);
+//                                creator.ProcessWiggleWiggle(carrier);
+//                                if (creator.team.IsLocalPlayer)
+//                                {
+//                                    var sequence = creator.DoneWithActor();
+//                                    creator.Combat.MessageCenter.PublishMessage(new AddSequenceToStackMessage(sequence));
+//                                    //creator.OnActivationEnd(creator.GUID, -1);
+//                                }
+//                                return;
+//                            }
+//                        }
                         if (creator.HasSwarmingUnits() && creator.GUID == targetActor.GUID)
                         {
                             ModInit.modLog.LogTrace($"[Ability.Activate - Unit has sawemers].");
@@ -402,11 +417,13 @@ namespace StrategicOperations.Patches
                             if (__instance.Def.Id == ModInit.modSettings.BattleArmorDeSwarmRoll)
                             {
                                 creator.ProcessDeswarmRoll(swarmingUnits);
+                                return;
                             }
 
                             else if (__instance.Def.Id == ModInit.modSettings.BattleArmorDeSwarmSwat)
                             {
                                 creator.ProcessDeswarmSwat(swarmingUnits);
+                                return;
                             }
 
                             else if (__instance.Def.Id == ModInit.modSettings.DeswarmMovementConfig.AbilityDefID)
@@ -595,17 +612,26 @@ namespace StrategicOperations.Patches
 
                 dm.PilotDefs.TryGet(pilotID, out var supportPilotDef);
 
-                if (__instance.Combat.Teams.All(x => x.GUID != "61612bb3-abf9-4586-952a-0559fa9dcd75"))
+
+                //if (__instance.Combat.Teams.All(x => x.GUID != "61612bb3-abf9-4586-952a-0559fa9dcd75"))
+                //{
+                //Utils.CreateOrUpdateNeutralTeam();
+                Team supportTeam;
+                if (team.IsLocalPlayer)
                 {
-                    Utils.CreateOrUpdateNeutralTeam();
+                    supportTeam = team.SupportTeam;
+                }
+                else
+                {
+                    supportTeam = Utils.CreateOrUpdateAISupportTeam(team);
                 }
 
-                var neutralTeam =
-                    __instance.Combat.Teams.FirstOrDefault(
-                        x => x.GUID == "61612bb3-abf9-4586-952a-0559fa9dcd75");
+                //}
 
-                ModInit.modLog.LogMessage($"Team neturalTeam = {neutralTeam?.DisplayName}");
-                var cmdLance = Utils.CreateOrFetchCMDLance(neutralTeam);
+                //var supportTeam = __instance.Combat.Teams.FirstOrDefault(x => x.GUID == "61612bb3-abf9-4586-952a-0559fa9dcd75");
+
+                ModInit.modLog.LogMessage($"Team neturalTeam = {supportTeam?.DisplayName}");
+                var cmdLance = Utils.CreateOrFetchCMDLance(supportTeam);
                 var actorResource = __instance.Def.ActorResource;
                 var strafeWaves = ModInit.modSettings.strafeWaves;
                 if (ModState.StrafeWaves > 0)
@@ -639,7 +665,7 @@ namespace StrategicOperations.Patches
 
                     var parentSequenceID = Guid.NewGuid().ToString();
                     var newWave = new PendingStrafeWave(strafeWaves - 1, __instance, team, positionA,
-                        positionB, radius, actorResource, neutralTeam, cmdLance, supportPilotDef, supportHeraldryDef,
+                        positionB, radius, actorResource, supportTeam, cmdLance, supportPilotDef, supportHeraldryDef,
                         dm);
                     ModState.PendingStrafeWaves.Add(parentSequenceID, newWave);
                     Utils.InitiateStrafe(parentSequenceID, newWave);

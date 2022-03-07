@@ -352,13 +352,15 @@ namespace StrategicOperations.Framework
             combat.ItemRegistry.AddItem(aiteam);
         }
 
-        public static void CreateOrUpdateAISupportTeam()
+        public static Team CreateOrUpdateAISupportTeam(Team team)
         {
             AITeam aiteam = null;
             var combat = UnityGameInstance.BattleTechGame.Combat;
             aiteam = new AITeam("Opfor Support", Color.black, Guid.NewGuid().ToString(), true, combat);
             combat.TurnDirector.AddTurnActor(aiteam);
             combat.ItemRegistry.AddItem(aiteam);
+            team.SetSupportTeam(aiteam);
+            return aiteam;
         }
 
         public static List<MechComponentRef> GetOwnedDeploymentBeacons()
@@ -571,7 +573,14 @@ namespace StrategicOperations.Framework
             startLeft.y = ability.Combat.MapMetaData.GetLerpedHeightAt(startLeft, false);
             startRight.y = ability.Combat.MapMetaData.GetLerpedHeightAt(startRight, false);
             List<ObjectSpawnData> list = new List<ObjectSpawnData>();
-            for (int i = 0; i < numFlares; i++)
+
+            //add endcap radii, also for babbies
+            var start = vector - b;
+            start.y = ability.Combat.MapMetaData.GetLerpedHeightAt(vector, false);
+            ObjectSpawnData outsideStartFlare = new ObjectSpawnData(prefabName, start, Quaternion.identity, true, false);
+            list.Add(outsideStartFlare);
+
+            for (int i = 0; i < numFlares + 1; i++)
             {
                 ObjectSpawnData item = new ObjectSpawnData(prefabName, vector, Quaternion.identity, true, false);
                 list.Add(item);

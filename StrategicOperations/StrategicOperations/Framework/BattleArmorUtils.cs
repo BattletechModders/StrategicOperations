@@ -705,7 +705,7 @@ namespace StrategicOperations.Framework
             }
         }
 
-        public static void DismountGarrison(this TrooperSquad squad, ICombatant carrier, Vector3 locationOverride,
+        public static void DismountGarrison(this TrooperSquad squad, BattleTech.Building building, Vector3 locationOverride,
             bool calledFromHandleDeath = false)
         {
             var em = squad.Combat.EffectManager;
@@ -725,7 +725,7 @@ namespace StrategicOperations.Framework
             var hud = Traverse.Create(CameraControl.Instance).Property("HUD").GetValue<CombatHUD>();
             //actor.GameRep.IsTargetable = true;
 
-            carrier.RemoveFromTeam();
+            building.RemoveFromTeam();
 
             foreach (var loc in ModState.PositionLockGarrison[squad.GUID].InitialLocArmor)
             {
@@ -736,17 +736,22 @@ namespace StrategicOperations.Framework
                 }
             }
 
+            if (building.CurrentStructure > ModState.PositionLockGarrison[squad.GUID].InitialBuildingStructure)
+            {
+                building.StatCollection.Set("Structure", ModState.PositionLockGarrison[squad.GUID].InitialBuildingStructure);
+            }
+            
             ModState.PositionLockGarrison.Remove(squad.GUID);
 
             squad.GameRep.transform.localScale = new Vector3(1f, 1f, 1f);
             squad.GameRep.ToggleHeadlights(true);
 
-            if (carrier is BattleTech.Building building)
+            if (!calledFromHandleDeath)
             {
                 locationOverride = squad.GetEvacBuildingLocation(building);
             }
             
-            var point = carrier.CurrentPosition;
+            var point = building.CurrentPosition;
             if (locationOverride != Vector3.zero)
             {
                 point = locationOverride;
@@ -772,7 +777,7 @@ namespace StrategicOperations.Framework
             squad.VisibilityCache.UpdateCacheReciprocal(squad.Combat.GetAllLivingCombatants());
 
             ModInit.modLog.LogMessage(
-                $"[DismountGarrison] Removing PositionLock with rider  {squad.DisplayName} {squad.GUID} and carrier {carrier.DisplayName} {carrier.GUID} and rebuilding visibility cache.");
+                $"[DismountGarrison] Removing PositionLock with rider  {squad.DisplayName} {squad.GUID} and carrier {building.DisplayName} {building.GUID} and rebuilding visibility cache.");
             
         }
 
@@ -814,10 +819,6 @@ namespace StrategicOperations.Framework
             return new Ability(new AbilityDef());
         }
 
-        public static void ProcessWiggleWiggle(this AbstractActor creator, AbstractActor carrier)
-        {
-
-        }
         public static void ProcessDeswarmRoll(this AbstractActor creator, List<KeyValuePair<string, string>> swarmingUnits)
         {
             var finalChance = 0f;
@@ -1025,9 +1026,11 @@ namespace StrategicOperations.Framework
                     }
                 }
             }
-
             var pos = targetBuilding.CurrentPosition;
-            pos.y = creator.Combat.MapMetaData.GetLerpedHeightAt(pos) + 5f;
+            var buildingLerpedHeight = creator.Combat.MapMetaData.GetLerpedHeightAt(pos);
+            var buildingHeight = buildingLerpedHeight - creator.Combat.MapMetaData.GetLerpedHeightAt(pos, true);
+            var setHeight = buildingHeight * 0.3f;
+            pos.y = buildingLerpedHeight - setHeight;
             creator.TeleportActor(pos);
 
             ModState.PositionLockGarrison.Add(creator.GUID, new Classes.BA_GarrisonInfo(targetBuilding, creator));
@@ -1046,6 +1049,10 @@ namespace StrategicOperations.Framework
             var additionalArmorPerLoc = (targetBuilding.CurrentStructure + targetBuilding.CurrentArmor) /
                 currentSquadLocs.Count * ModInit.modSettings.GarrisonBuildingArmorFactor;
 
+            var additionalBldgStructure = (creator.SummaryArmorCurrent + creator.SummaryStructureCurrent) *
+                                          ModInit.modSettings.GarrisonBuildingArmorFactor;
+            targetBuilding.StatCollection.Set("Structure", targetBuilding.CurrentStructure + additionalBldgStructure);
+
             foreach (var location in creator.GetPossibleHitLocations(creator))
             {
                 var currentArmor = creator.GetCurrentArmor((ArmorLocation)location);
@@ -1053,7 +1060,6 @@ namespace StrategicOperations.Framework
                     currentArmor + additionalArmorPerLoc);
             }
 
-            
             ModInit.modLog.LogMessage(
                 $"[ProcessGarrisonBuilding] Added garrision info with unit {creator.DisplayName} {creator.GUID} and building {targetBuilding.DisplayName} {targetBuilding.GUID} at position {targetBuilding.CurrentPosition}.");
 
@@ -1261,11 +1267,9 @@ namespace StrategicOperations.Framework
             var evacLoc = posToCheck[0];
             foreach (var pos in posToCheck)
             {
-                var point = new Point(
-                    squad.Combat.MapMetaData.GetXIndex(pos.x),
-                    squad.Combat.MapMetaData.GetZIndex(pos.z));
+                ModInit.modLog.LogTrace($"[GetEvacBuildingLocation] Checking position {pos}, is {Vector3.Distance(pos, building.CurrentPosition)} from building source.");
                 var encounterLayerDataCell =
-                    squad.Combat.EncounterLayerData.mapEncounterLayerDataCells[point.Z, point.X];
+                    squad.Combat.EncounterLayerData.GetCellAt(pos);
                 if (encounterLayerDataCell.HasBuilding) continue;
                 if (Vector3.Distance(pos, building.CurrentPosition) <
                     Vector3.Distance(evacLoc, building.CurrentPosition))
