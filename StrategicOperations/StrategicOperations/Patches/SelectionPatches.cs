@@ -47,7 +47,7 @@ namespace StrategicOperations.Patches
 
                 while (ReticleGOs.Count < count)
                 {
-                    ModInit.modLog.LogTrace($"[InitReticle] Need to init new reticles; have {ReticleGOs.Count}");
+                    ModInit.modLog?.Trace?.Write($"[InitReticle] Need to init new reticles; have {ReticleGOs.Count}");
                     GameObject reticleGO = new GameObject("StrategicReticle"); //was Circle
                     StrategicTargetReticle reticle = reticleGO.AddComponent<StrategicTargetReticle>();
                     //reticle.transform.SetParent(reticleGO.transform);
@@ -88,7 +88,7 @@ namespace StrategicOperations.Patches
                 base.transform.position = loc;
                 ReticleObject.SetActive(true);
                 ReticleObject.gameObject.SetActive(true);
-                ModInit.modLog.LogTrace($"[SetScaleAndLocation] Set location to {loc}");
+                ModInit.modLog?.Trace?.Write($"[SetScaleAndLocation] Set location to {loc}");
             }
 
             public void UpdateColorAndStyle(bool IsFriendly)
@@ -193,7 +193,7 @@ namespace StrategicOperations.Patches
                         var isFriendly = mountTargets[index].team.IsFriendly(SelectedActor.team);
                         reticle.SetScaleAndLocation(mountTargets[index].CurrentPosition, 10f);
                         reticle.UpdateColorAndStyle(isFriendly);
-                        ModInit.modLog.LogTrace($"[HighlightPotentialTargets] Updating reticle at index {index}, isFriendly {isFriendly}.");
+                        ModInit.modLog?.Trace?.Write($"[HighlightPotentialTargets] Updating reticle at index {index}, isFriendly {isFriendly}.");
                     }
                     StrategicTargetIndicatorsManager.ShowRoot();
                 }
@@ -511,7 +511,7 @@ namespace StrategicOperations.Patches
                         {
                             var result = base.ProcessClickedCombatant(newUnitSelection);
                             //return false;  // should i be returning true here?
-                            ModInit.modLog.LogTrace($"[ProcessClickedCombatant] Selected combatant should now be {newUnitSelection.DisplayName}. base ProcessClickedCombatant {result}");
+                            ModInit.modLog?.Trace?.Write($"[ProcessClickedCombatant] Selected combatant should now be {newUnitSelection.DisplayName}. base ProcessClickedCombatant {result}");
                             return result;
                         }
                         return false;
@@ -554,7 +554,7 @@ namespace StrategicOperations.Patches
                             var chance = creatorMech.Combat.ToHit.GetToHitChance(creatorMech,
                                 creatorMech.MeleeWeapon, combatant, creatorMech.CurrentPosition,
                                 combatant.CurrentPosition, 1, MeleeAttackType.Charge, false);
-                            ModInit.modLog.LogTrace(
+                            ModInit.modLog?.Trace?.Write(
                                 $"[SelectionState.ShowFireButton - Swarm Success calculated as {chance}, storing in state.");
                             ModState.SwarmSuccessChance = chance;
                             var chanceDisplay = (float) Math.Round(chance, 2) * 100;
@@ -564,7 +564,7 @@ namespace StrategicOperations.Patches
                     }
                 }
                 var result2 = base.ProcessClickedCombatant(combatant);
-                ModInit.modLog.LogTrace($"[ProcessClickedCombatant] base ProcessClickedCombatant {result2}");
+                ModInit.modLog?.Trace?.Write($"[ProcessClickedCombatant] base ProcessClickedCombatant {result2}");
                 return result2;
                 //return false;  // should i be returning true here?
             }

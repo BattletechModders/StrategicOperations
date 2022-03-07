@@ -22,23 +22,23 @@ namespace StrategicOperations.Framework
             var sprintGrid = Traverse.Create(pathing).Property("SprintingGrid").GetValue<PathNodeGrid>();
             var nodes = Traverse.Create(sprintGrid).Field("pathNodes").GetValue<PathNode[,]>();
             var usableNodes = new List<Classes.SpawnCoords>();
-            ModInit.modLog.LogTrace($"There are {nodes.Length} nodes to check.");
+            ModInit.modLog?.Trace?.Write($"There are {nodes.Length} nodes to check.");
             foreach (var node in nodes)
             {
-                ModInit.modLog.LogTrace($"Checking node {node}.");
+                ModInit.modLog?.Trace?.Write($"Checking node {node}.");
                 if (node != null)
                 {
-                    ModInit.modLog.LogTrace($"Checking node {node.Position} for valid dest and occupying actors.");
+                    ModInit.modLog?.Trace?.Write($"Checking node {node.Position} for valid dest and occupying actors.");
                     if (node.IsValidDestination && node.OccupyingActor == null)
                     {
                         var distNodeToTarget = Vector3.Distance(node.Position, target.CurrentPosition);
                         var distNodeToSource = Vector3.Distance(node.Position, source.CurrentPosition);
-                        ModInit.modLog.LogTrace($"node {node.Position} is {distNodeToTarget} from target vs min {minRange} and max {maxRange}.");
+                        ModInit.modLog?.Trace?.Write($"node {node.Position} is {distNodeToTarget} from target vs min {minRange} and max {maxRange}.");
                         if (distNodeToTarget >= minRange && distNodeToSource <= maxRange)
                         {
                             var coord = new Classes.SpawnCoords(Guid.NewGuid().ToString(), node.Position, distNodeToTarget);
                             usableNodes.Add(coord);
-                            ModInit.modLog.LogTrace($"Added node {node.Position} to potential list.");
+                            ModInit.modLog?.Trace?.Write($"Added node {node.Position} to potential list.");
                         }
                     }
                 }
@@ -46,7 +46,7 @@ namespace StrategicOperations.Framework
 
             if (usableNodes.Count == 0)
             {
-                ModInit.modLog.LogTrace($"No usable nodes. Just plonking the actor down on top of the target.");
+                ModInit.modLog?.Trace?.Write($"No usable nodes. Just plonking the actor down on top of the target.");
                 return target.CurrentPosition;
             }
 
@@ -54,11 +54,11 @@ namespace StrategicOperations.Framework
 
             if (ModInit.modSettings.debugFlares && ModInit.modSettings.enableTrace)
             {
-                ModInit.modLog.LogTrace($"Doing a useless loop and printing 1st 10 locs");
+                ModInit.modLog?.Trace?.Write($"Doing a useless loop and printing 1st 10 locs");
                 {
                     for (int i = 0; i < usableNodes.Count || i < 10; i++)
                     {
-                        ModInit.modLog.LogTrace($"Distance at index {i} is {usableNodes[i].DistFromTarget}");
+                        ModInit.modLog?.Trace?.Write($"Distance at index {i} is {usableNodes[i].DistFromTarget}");
                     }
                 }
             }

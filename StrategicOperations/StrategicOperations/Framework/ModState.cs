@@ -113,13 +113,13 @@ namespace StrategicOperations.Framework
             BA_MountSwarmEffects = new List<BA_TargetEffect>();
             foreach (var BA_Effect in ModInit.modSettings.BATargetEffects)
             {
-                ModInit.modLog.LogTrace($"[Initializing BATargetEffects] Adding effects for {BA_Effect.ID}!");
+                ModInit.modLog?.Trace?.Write($"[Initializing BATargetEffects] Adding effects for {BA_Effect.ID}!");
                 foreach (var jObject in BA_Effect.effectDataJO)
                 {
                     var effectData = new EffectData();
                     effectData.FromJSON(jObject.ToString());
                     BA_Effect.effects.Add(effectData);
-                    ModInit.modLog.LogTrace($"EffectData statname: {effectData?.statisticData?.statName}");
+                    ModInit.modLog?.Trace?.Write($"EffectData statname: {effectData?.statisticData?.statName}");
                 }
                 BA_MountSwarmEffects.Add(BA_Effect);
             }
@@ -127,13 +127,13 @@ namespace StrategicOperations.Framework
             OnGarrisonCollapseEffects = new List<BA_TargetEffect>();
             foreach (var BA_Effect in ModInit.modSettings.OnGarrisonCollapseEffects)
             {
-                ModInit.modLog.LogTrace($"[Initializing OnGarrisonCollapseEffects] Adding effects for {BA_Effect.ID}!");
+                ModInit.modLog?.Trace?.Write($"[Initializing OnGarrisonCollapseEffects] Adding effects for {BA_Effect.ID}!");
                 foreach (var jObject in BA_Effect.effectDataJO)
                 {
                     var effectData = new EffectData();
                     effectData.FromJSON(jObject.ToString());
                     BA_Effect.effects.Add(effectData);
-                    ModInit.modLog.LogTrace($"EffectData statname: {effectData?.statisticData?.statName}");
+                    ModInit.modLog?.Trace?.Write($"EffectData statname: {effectData?.statisticData?.statName}");
                 }
                 OnGarrisonCollapseEffects.Add(BA_Effect);
             }
@@ -141,13 +141,13 @@ namespace StrategicOperations.Framework
             AirliftEffects = new List<AirliftTargetEffect>();
             foreach (var airliftEffect in ModInit.modSettings.AirliftTargetEffects)
             {
-                ModInit.modLog.LogTrace($"[Initializing AirliftTargetEffects] Adding effects for {airliftEffect.ID}!");
+                ModInit.modLog?.Trace?.Write($"[Initializing AirliftTargetEffects] Adding effects for {airliftEffect.ID}!");
                 foreach (var jObject in airliftEffect.effectDataJO)
                 {
                     var effectData = new EffectData();
                     effectData.FromJSON(jObject.ToString());
                     airliftEffect.effects.Add(effectData);
-                    ModInit.modLog.LogTrace($"EffectData statname: {effectData?.statisticData?.statName}");
+                    ModInit.modLog?.Trace?.Write($"EffectData statname: {effectData?.statisticData?.statName}");
                 }
                 AirliftEffects.Add(airliftEffect);
             }

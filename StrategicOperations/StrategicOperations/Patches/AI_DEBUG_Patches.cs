@@ -30,7 +30,7 @@ namespace StrategicOperations.Patches
             public static void Postfix(ref BehaviorTreeResults __result, string ___name,
                 AbstractActor ___unit)
             {
-                ModInit.modLog.LogDev(
+                ModInit.modLog?.Debug?.Write(
                     $"[SortMoveCandidatesByInfMapNode Tick] Sorting finished. Actor {___unit.DisplayName} eval'd highest weighted position as {___unit.BehaviorTree.influenceMapEvaluator.WorkspaceEvaluationEntries[0].Position} with weight {___unit.BehaviorTree.influenceMapEvaluator.WorkspaceEvaluationEntries[0].GetHighestAccumulator()}");
             }
         }
@@ -49,9 +49,9 @@ namespace StrategicOperations.Patches
             public static void Postfix(ref BehaviorTreeResults __result, string ___name,
                 AbstractActor ___unit)
             {
-                ModInit.modLog.LogDev(
+                ModInit.modLog?.Debug?.Write(
                     $"[MoveTowardsHighestPriorityMoveCandidateNode Tick] Moving towards highest eval'd position: Actor {___unit.DisplayName} eval'd highest weighted position as {___unit.BehaviorTree.influenceMapEvaluator.WorkspaceEvaluationEntries[0].Position} with weight {___unit.BehaviorTree.influenceMapEvaluator.WorkspaceEvaluationEntries[0].GetHighestAccumulator()}");
-                ModInit.modLog.LogDev(
+                ModInit.modLog?.Debug?.Write(
                     $"[MoveTowardsHighestPriorityMoveCandidateNode Tick] Moving towards highest eval'd position: Actor {___unit.DisplayName} eval'd highest weighted position as {___unit.BehaviorTree.influenceMapEvaluator.WorkspaceEvaluationEntries[0].Position} with weight {___unit.BehaviorTree.influenceMapEvaluator.WorkspaceEvaluationEntries[0].GetHighestAccumulator()}");
             }
         }
@@ -67,13 +67,13 @@ namespace StrategicOperations.Patches
                     if (__instance is TrooperSquad squad)
                     {
                         var countJets = squad.workingJumpsLocations().Count;
-                        ModInit.modLog.LogTrace(
+                        ModInit.modLog?.Trace?.Write(
                             $"[Mech_JumpDistance PREFIX] value from mech {squad.DisplayName} - {squad.Description.Id} before calcs was {__result}, jets count: {countJets} ");
                     }
                 }
                 catch (Exception ex)
                 {
-                    ModInit.modLog.LogError(ex.ToString());
+                    ModInit.modLog?.Error?.Write(ex.ToString());
                 }
             }
 
@@ -84,16 +84,16 @@ namespace StrategicOperations.Patches
                     try
                     {
                         var countJets = squad.workingJumpsLocations().Count;
-                        ModInit.modLog.LogTrace(
+                        ModInit.modLog?.Trace?.Write(
                             $"[Mech_JumpDistance POSTFIX] value from mech {squad.DisplayName} - {squad.Description.Id} before calcs was {__result}, jets count: {countJets} ");
                         if (float.IsPositiveInfinity(__result))
                         {
-                            ModInit.modLog.LogTrace($"[Mech_JumpDistance POSTFIX] INFINITY STONES!");
+                            ModInit.modLog?.Trace?.Write($"[Mech_JumpDistance POSTFIX] INFINITY STONES!");
                         }
                     }
                     catch (Exception ex)
                     {
-                        ModInit.modLog.LogError(ex.ToString());
+                        ModInit.modLog?.Error?.Write(ex.ToString());
                     }
                 }
             }

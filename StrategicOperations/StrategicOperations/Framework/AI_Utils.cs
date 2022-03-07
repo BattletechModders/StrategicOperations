@@ -21,12 +21,12 @@ namespace StrategicOperations.Framework
                 {
                     if (dm.Exists(BattleTechResourceType.MechDef, beaconType.UnitDefID) || beaconType.UnitDefID == "BEACON_EMPTY")
                     {
-                        ModInit.modLog.LogTrace(
+                        ModInit.modLog?.Trace?.Write(
                             $"[ProcessAIBeaconWeights - MechDef] Processing spawn weights for {beaconType.UnitDefID} and weight {beaconType.Weight}");
                         for (int i = 0; i < beaconType.Weight; i++)
                         {
                             ModState.CachedFactionCommandBeacons[BeaconWeights.AbilityDefID][factionID].Add(beaconType);
-                            ModInit.modLog.LogTrace(
+                            ModInit.modLog?.Trace?.Write(
                                 $"[ProcessAIBeaconWeights - MechDef] spawn list has {ModState.CachedFactionCommandBeacons[BeaconWeights.AbilityDefID][factionID].Count} entries");
                         }
                     }
@@ -35,12 +35,12 @@ namespace StrategicOperations.Framework
                 {
                     if (dm.Exists(BattleTechResourceType.VehicleDef, beaconType.UnitDefID) || beaconType.UnitDefID == "BEACON_EMPTY")
                     {
-                        ModInit.modLog.LogTrace(
+                        ModInit.modLog?.Trace?.Write(
                             $"[ProcessAIBeaconWeights - VehicleDef] Processing spawn weights for {beaconType.UnitDefID} and weight {beaconType.Weight}");
                         for (int i = 0; i < beaconType.Weight; i++)
                         {
                             ModState.CachedFactionCommandBeacons[BeaconWeights.AbilityDefID][factionID].Add(beaconType);
-                            ModInit.modLog.LogTrace(
+                            ModInit.modLog?.Trace?.Write(
                                 $"[ProcessAIBeaconWeights - VehicleDef] spawn list has {ModState.CachedFactionCommandBeacons[BeaconWeights.AbilityDefID][factionID].Count} entries");
                         }
                     }
@@ -49,12 +49,12 @@ namespace StrategicOperations.Framework
                 {
                     if (dm.Exists(BattleTechResourceType.TurretDef, beaconType.UnitDefID) || beaconType.UnitDefID == "BEACON_EMPTY")
                     {
-                        ModInit.modLog.LogTrace(
+                        ModInit.modLog?.Trace?.Write(
                             $"[ProcessAIBeaconWeights - TurretDef] Processing spawn weights for {beaconType.UnitDefID} and weight {beaconType.Weight}");
                         for (int i = 0; i < beaconType.Weight; i++)
                         {
                             ModState.CachedFactionCommandBeacons[BeaconWeights.AbilityDefID][factionID].Add(beaconType);
-                            ModInit.modLog.LogTrace(
+                            ModInit.modLog?.Trace?.Write(
                                 $"[ProcessAIBeaconWeights - TurretDef] spawn list has {ModState.CachedFactionCommandBeacons[BeaconWeights.AbilityDefID][factionID].Count} entries");
                         }
                     }
@@ -82,7 +82,7 @@ namespace StrategicOperations.Framework
             var dm = unit.Combat.DataManager;
 
             //check for BA equipment. if present, we're going to spawn BA and mount it to AI
-            ModInit.modLog.LogMessage($"Checking if unit {unit.DisplayName} {unit.GUID} should spawn Battle Armor.");
+            ModInit.modLog?.Info?.Write($"Checking if unit {unit.DisplayName} {unit.GUID} should spawn Battle Armor.");
 
             if (!ModInit.modSettings.AI_BattleArmorExcludedContractIDs.Contains(unit.Combat.ActiveContract.Override
                     .ID) && !ModInit.modSettings.AI_BattleArmorExcludedContractTypes.Contains(unit.Combat.ActiveContract
@@ -104,12 +104,12 @@ namespace StrategicOperations.Framework
                                 x.FactionIDs.Contains(unit.team.FactionValue.Name));
                         if (baConfig == null)
                         {
-                            ModInit.modLog.LogError(
+                            ModInit.modLog?.Error?.Write(
                                 $"[GenerateAIStrategicAbilities] - something broken trying to process BA Faction Association. baConfig was null.");
                             return;
                         }
 
-                        ModInit.modLog.LogTrace($"Found config for {unit.team.FactionValue.Name}.");
+                        ModInit.modLog?.Trace?.Write($"Found config for {unit.team.FactionValue.Name}.");
 
                         var baLance = Utils.CreateOrFetchCMDLance(unit.team);
                         var spawnChance = baConfig.SpawnChanceBase +
@@ -118,7 +118,7 @@ namespace StrategicOperations.Framework
                         var internalSpace = unit.getAvailableInternalBASpace();
                         if (internalSpace > 0)
                         {
-                            ModInit.modLog.LogTrace($"Unit has {internalSpace} internal space.");
+                            ModInit.modLog?.Trace?.Write($"Unit has {internalSpace} internal space.");
                             for (int i = 0; i < internalSpace; i++)
                             {
                                 var chosenInt = baConfig.ProcessBattleArmorSpawnWeights(dm, unit.team.FactionValue.Name,
@@ -128,7 +128,7 @@ namespace StrategicOperations.Framework
                                     var baRollInt = ModInit.Random.NextDouble();
                                     if (baRollInt <= spawnChance)
                                     {
-                                        ModInit.modLog.LogMessage(
+                                        ModInit.modLog?.Info?.Write(
                                             $"Roll {baRollInt} <= {spawnChance}, choosing BA from InternalBattleArmorWeight for slot {i} of {internalSpace}.");
                                         if (chosenInt != "BA_EMPTY")
                                         {
@@ -138,41 +138,41 @@ namespace StrategicOperations.Framework
                                                 var spawner = new Classes.CustomSpawner(unit.Combat, unit, chosenInt, baLance);
                                                 spawner.SpawnBattleArmorAtActor();
                                                 ModState.CurrentBattleArmorSquads[unit.team.FactionValue.Name] += 1;
-                                                ModInit.modLog.LogMessage(
+                                                ModInit.modLog?.Info?.Write(
                                                     $"Spawning {chosenInt}, incrementing CurrentBattleArmorSquads to {ModState.CurrentBattleArmorSquads[unit.team.FactionValue.Name]}.");
                                             }
                                             else
                                             {
-                                                ModInit.modLog.LogMessage(
+                                                ModInit.modLog?.Info?.Write(
                                                     $"{ModState.CurrentBattleArmorSquads[unit.team.FactionValue.Name]} is max {baConfig.MaxSquadsPerContract} per contract.");
                                             }
                                         }
                                         else
                                         {
-                                            ModInit.modLog.LogMessage($"Chose {chosenInt}.");
+                                            ModInit.modLog?.Info?.Write($"Chose {chosenInt}.");
                                         }
                                     }
                                     else
                                     {
-                                        ModInit.modLog.LogMessage(
+                                        ModInit.modLog?.Info?.Write(
                                             $"Roll {baRollInt} > {spawnChance}, not adding BA internally.");
                                     }
                                 }
                                 else
                                 {
-                                    ModInit.modLog.LogMessage(
+                                    ModInit.modLog?.Info?.Write(
                                         $"No config for internal BA for faction {unit.team.FactionValue.Name}.");
                                 }
                             }
                         }
                         else
                         {
-                            ModInit.modLog.LogTrace($"Unit dont has internal space.");
+                            ModInit.modLog?.Trace?.Write($"Unit dont has internal space.");
                         }
 
                         if (unit.getHasBattleArmorMounts())
                         {
-                            ModInit.modLog.LogTrace($"Unit has mounts.");
+                            ModInit.modLog?.Trace?.Write($"Unit has mounts.");
 
                             var chosenMount = baConfig.ProcessBattleArmorSpawnWeights(dm, unit.team.FactionValue.Name,
                                 "MountedBattleArmorWeight");
@@ -181,7 +181,7 @@ namespace StrategicOperations.Framework
                                 var baRollMount = ModInit.Random.NextDouble();
                                 if (baRollMount <= spawnChance)
                                 {
-                                    ModInit.modLog.LogMessage(
+                                    ModInit.modLog?.Info?.Write(
                                         $"Roll {baRollMount} <= {spawnChance}, choosing BA from MountedBattleArmorWeight.");
                                     if (chosenMount != "BA_EMPTY")
                                     {
@@ -191,35 +191,35 @@ namespace StrategicOperations.Framework
                                             var spawner = new Classes.CustomSpawner(unit.Combat, unit, chosenMount, baLance);
                                             spawner.SpawnBattleArmorAtActor();
                                             ModState.CurrentBattleArmorSquads[unit.team.FactionValue.Name] += 1;
-                                            ModInit.modLog.LogMessage(
+                                            ModInit.modLog?.Info?.Write(
                                                 $"Spawning {chosenMount}, incrementing CurrentBattleArmorSquads to {ModState.CurrentBattleArmorSquads[unit.team.FactionValue.Name]}.");
                                         }
                                         else
                                         {
-                                            ModInit.modLog.LogMessage(
+                                            ModInit.modLog?.Info?.Write(
                                                 $"{ModState.CurrentBattleArmorSquads[unit.team.FactionValue.Name]} is max {baConfig.MaxSquadsPerContract} per contract.");
                                         }
                                     }
                                     else
                                     {
-                                        ModInit.modLog.LogMessage($"Chose {chosenMount}.");
+                                        ModInit.modLog?.Info?.Write($"Chose {chosenMount}.");
                                     }
                                 }
                                 else
                                 {
-                                    ModInit.modLog.LogMessage(
+                                    ModInit.modLog?.Info?.Write(
                                         $"Roll {baRollMount} > {spawnChance}, not adding BA to mounts.");
                                 }
                             }
                             else
                             {
-                                ModInit.modLog.LogMessage(
+                                ModInit.modLog?.Info?.Write(
                                     $"No config for mounted BA for faction {unit.team.FactionValue.Name}.");
                             }
                         }
                         else if (!(unit is TrooperSquad))
                         {
-                            ModInit.modLog.LogTrace($"Unit dont has mounts.");
+                            ModInit.modLog?.Trace?.Write($"Unit dont has mounts.");
                             var chosenHandsy = baConfig.ProcessBattleArmorSpawnWeights(dm, unit.team.FactionValue.Name,
                                 "HandsyBattleArmorWeight");
                             if (!string.IsNullOrEmpty(chosenHandsy))
@@ -227,7 +227,7 @@ namespace StrategicOperations.Framework
                                 var baRollHandsy = ModInit.Random.NextDouble();
                                 if (baRollHandsy <= spawnChance)
                                 {
-                                    ModInit.modLog.LogMessage(
+                                    ModInit.modLog?.Info?.Write(
                                         $"Roll {baRollHandsy} <= {spawnChance}, choosing BA from HandsyBattleArmorWeight.");
                                     if (chosenHandsy != "BA_EMPTY")
                                     {
@@ -237,29 +237,29 @@ namespace StrategicOperations.Framework
                                             var spawner = new Classes.CustomSpawner(unit.Combat, unit, chosenHandsy, baLance);
                                             spawner.SpawnBattleArmorAtActor();
                                             ModState.CurrentBattleArmorSquads[unit.team.FactionValue.Name] += 1;
-                                            ModInit.modLog.LogMessage(
+                                            ModInit.modLog?.Info?.Write(
                                                 $"Spawning {chosenHandsy}, incrementing CurrentBattleArmorSquads to {ModState.CurrentBattleArmorSquads[unit.team.FactionValue.Name]}.");
                                         }
                                         else
                                         {
-                                            ModInit.modLog.LogMessage(
+                                            ModInit.modLog?.Info?.Write(
                                                 $"{ModState.CurrentBattleArmorSquads[unit.team.FactionValue.Name]} is max {baConfig.MaxSquadsPerContract} per contract.");
                                         }
                                     }
                                     else
                                     {
-                                        ModInit.modLog.LogMessage($"Chose {chosenHandsy}.");
+                                        ModInit.modLog?.Info?.Write($"Chose {chosenHandsy}.");
                                     }
                                 }
                                 else
                                 {
-                                    ModInit.modLog.LogMessage(
+                                    ModInit.modLog?.Info?.Write(
                                         $"Roll {baRollHandsy} > {spawnChance}, not adding handsy BA.");
                                 }
                             }
                             else
                             {
-                                ModInit.modLog.LogMessage(
+                                ModInit.modLog?.Info?.Write(
                                     $"No config for handsy BA for faction {unit.team.FactionValue.Name}.");
                             }
                         }
@@ -268,7 +268,7 @@ namespace StrategicOperations.Framework
             }
             else
             {
-                ModInit.modLog.LogMessage($"Contract ID {unit.Combat.ActiveContract.Override.ID} or Type {unit.Combat.ActiveContract.ContractTypeValue.Name} found in AI Battle Armor spawn exclusion list.");
+                ModInit.modLog?.Info?.Write($"Contract ID {unit.Combat.ActiveContract.Override.ID} or Type {unit.Combat.ActiveContract.ContractTypeValue.Name} found in AI Battle Armor spawn exclusion list.");
             }
 
             //give AI mechs ability to swat or roll
@@ -283,7 +283,7 @@ namespace StrategicOperations.Framework
                     {
                         dm.AbilityDefs.TryGet(ModInit.modSettings.BattleArmorDeSwarmSwat, out var def);
                         var ability = new Ability(def);
-                        ModInit.modLog.LogTrace(
+                        ModInit.modLog?.Trace?.Write(
                             $"Adding {ability.Def?.Description?.Id} to {unit.Description?.Name}.");
                         ability.Init(unit.Combat);
                         unit.GetPilot().Abilities.Add(ability);
@@ -300,7 +300,7 @@ namespace StrategicOperations.Framework
                     {
                         dm.AbilityDefs.TryGet(ModInit.modSettings.BattleArmorDeSwarmRoll, out var def);
                         var ability = new Ability(def);
-                        ModInit.modLog.LogTrace(
+                        ModInit.modLog?.Trace?.Write(
                             $"Adding {ability.Def?.Description?.Id} to {unit.Description?.Name}.");
                         ability.Init(unit.Combat);
                         unit.GetPilot().Abilities.Add(ability);
@@ -319,7 +319,7 @@ namespace StrategicOperations.Framework
                     unit.Combat.DataManager.AbilityDefs.TryGet(ModInit.modSettings.DeswarmMovementConfig.AbilityDefID,
                         out var def);
                     var ability = new Ability(def);
-                    ModInit.modLog.LogTrace(
+                    ModInit.modLog?.Trace?.Write(
                         $"Adding {ability.Def?.Description?.Id} to {unit.Description?.Name}.");
                     ability.Init(unit.Combat);
                     unit.GetPilot().Abilities.Add(ability);
@@ -333,7 +333,7 @@ namespace StrategicOperations.Framework
                     .ID) || ModInit.modSettings.BeaconExcludedContractTypes.Contains(unit.Combat.ActiveContract
                     .ContractTypeValue.Name))
             {
-                ModInit.modLog.LogMessage($"Contract ID {unit.Combat.ActiveContract.Override.ID} or Type {unit.Combat.ActiveContract.ContractTypeValue.Name} found in command ability exclusion list.");
+                ModInit.modLog?.Info?.Write($"Contract ID {unit.Combat.ActiveContract.Override.ID} or Type {unit.Combat.ActiveContract.ContractTypeValue.Name} found in command ability exclusion list.");
                 return;
             }
             if (unit.Combat.TurnDirector.CurrentRound > 1) return; // don't give abilities to reinforcements?
@@ -341,20 +341,20 @@ namespace StrategicOperations.Framework
                                                                                   // 
             if (!ModInit.modSettings.commandAbilities_AI.Any(x=>x.FactionIDs.Contains(unit.team.FactionValue.Name)))
             {
-                ModInit.modLog.LogMessage($"No settings for command abilities for {unit.team.FactionValue.Name}, skipping.");
+                ModInit.modLog?.Info?.Write($"No settings for command abilities for {unit.team.FactionValue.Name}, skipping.");
                 return;
             }
 
             ModState.CurrentFactionSettingsList = new List<Classes.AI_FactionCommandAbilitySetting>(new List<Classes.AI_FactionCommandAbilitySetting>(
                 ModInit.modSettings.commandAbilities_AI.Where(x=>x.FactionIDs.Contains(unit.team.FactionValue.Name))).OrderBy(y=>y.AddChance));
-            ModInit.modLog.LogTrace($"Ordering setting dictionary.");
+            ModInit.modLog?.Trace?.Write($"Ordering setting dictionary.");
 
             if (unit.GetPilot().Abilities.All(x => x.Def.Resource != AbilityDef.ResourceConsumed.CommandAbility))
             {
-                ModInit.modLog.LogTrace($"No command abilities on pilot.");
+                ModInit.modLog?.Trace?.Write($"No command abilities on pilot.");
                 if (unit.ComponentAbilities.All(x => x.Def.Resource != AbilityDef.ResourceConsumed.CommandAbility))
                 {
-                    ModInit.modLog.LogTrace($"No command abilities on unit from Components.");
+                    ModInit.modLog?.Trace?.Write($"No command abilities on unit from Components.");
                     foreach (var abilitySetting in ModState.CurrentFactionSettingsList)
                     {
                         if (!ModState.CurrentCommandUnits.ContainsKey(abilitySetting.AbilityDefID))
@@ -386,7 +386,7 @@ namespace StrategicOperations.Framework
                                      (abilitySetting.DiffMod * unit.Combat.ActiveContract.Override.finalDifficulty);
                         if (roll <= chance)
                         {
-                            ModInit.modLog.LogTrace($"Rolled {roll}, < {chance}.");
+                            ModInit.modLog?.Trace?.Write($"Rolled {roll}, < {chance}.");
 
 
                             if (!dm.AbilityDefs.TryGet(abilitySetting.AbilityDefID, out var def))
@@ -396,12 +396,12 @@ namespace StrategicOperations.Framework
                                 loadRequest.ProcessRequests(1000U);
                                 if (!dm.AbilityDefs.TryGet(abilitySetting.AbilityDefID, out def))
                                 {
-                                    ModInit.modLog.LogMessage($"couldnt find {abilitySetting.AbilityDefID} in DataManager after loadrequest.");
+                                    ModInit.modLog?.Info?.Write($"couldnt find {abilitySetting.AbilityDefID} in DataManager after loadrequest.");
                                     return;
                                 }
                             };
                             var ability = new Ability(def);
-                            ModInit.modLog.LogMessage(
+                            ModInit.modLog?.Info?.Write(
                                 $"Adding {ability.Def?.Description?.Id} to {unit.Description?.Name}.");
                             ModState.CurrentCommandUnits[abilitySetting.AbilityDefID][unit.team.FactionValue.Name] += 1;
                             ability.Init(unit.Combat);
@@ -428,22 +428,22 @@ namespace StrategicOperations.Framework
                                 [factionName];
                         var chosen = beaconsToCheck.GetRandomElement();
                         waves = chosen.StrafeWaves;
-                        ModInit.modLog.LogTrace($"Chose {chosen} for this activation.");
+                        ModInit.modLog?.Trace?.Write($"Chose {chosen} for this activation.");
 
                         LoadRequest loadRequest = dm.CreateLoadRequest();
                         if (chosen.UnitDefID.StartsWith("mechdef_"))
                         {
-                            ModInit.modLog.LogTrace($"Added loadrequest for MechDef: {chosen.UnitDefID}");
+                            ModInit.modLog?.Trace?.Write($"Added loadrequest for MechDef: {chosen.UnitDefID}");
                             loadRequest.AddBlindLoadRequest(BattleTechResourceType.MechDef, chosen.UnitDefID);
                         }
                         else if (chosen.UnitDefID.StartsWith("vehicledef_"))
                         {
-                            ModInit.modLog.LogTrace($"Added loadrequest for VehicleDef: {chosen.UnitDefID}");
+                            ModInit.modLog?.Trace?.Write($"Added loadrequest for VehicleDef: {chosen.UnitDefID}");
                             loadRequest.AddBlindLoadRequest(BattleTechResourceType.VehicleDef, chosen.UnitDefID);
                         }
                         else if (chosen.UnitDefID.StartsWith("turretdef_"))
                         {
-                            ModInit.modLog.LogTrace($"Added loadrequest for TurretDef: {chosen.UnitDefID}");
+                            ModInit.modLog?.Trace?.Write($"Added loadrequest for TurretDef: {chosen.UnitDefID}");
                             loadRequest.AddBlindLoadRequest(BattleTechResourceType.TurretDef, chosen.UnitDefID);
                         }
                         loadRequest.ProcessRequests(1000U);
@@ -451,12 +451,12 @@ namespace StrategicOperations.Framework
                         return chosen.UnitDefID;
                     }
 
-                    ModInit.modLog.LogTrace($"No setting in AI_FactionBeacons for {ability.Def.Id} and {factionName}, using only default {ability.Def.ActorResource}");
+                    ModInit.modLog?.Trace?.Write($"No setting in AI_FactionBeacons for {ability.Def.Id} and {factionName}, using only default {ability.Def.ActorResource}");
                     waves = ModInit.modSettings.strafeWaves;
                     return ability.Def.ActorResource;
                 }
 
-                ModInit.modLog.LogTrace($"No setting in AI_FactionBeacons for {ability.Def.Id} and {factionName}, using only default {ability.Def.ActorResource}");
+                ModInit.modLog?.Trace?.Write($"No setting in AI_FactionBeacons for {ability.Def.Id} and {factionName}, using only default {ability.Def.ActorResource}");
                 waves = ModInit.modSettings.strafeWaves;
                 return ability.Def.ActorResource;
             }
@@ -575,7 +575,7 @@ namespace StrategicOperations.Framework
                     }
                     else
                     {
-                        ModInit.modLog.LogTrace($"[TargetsForStrafe] Unit #{k} {enemyUnits[k].DisplayName} > {maxRange} from starting unit, can't use as starting position.");
+                        ModInit.modLog?.Trace?.Write($"[TargetsForStrafe] Unit #{k} {enemyUnits[k].DisplayName} > {maxRange} from starting unit, can't use as starting position.");
                         continue;
                     }
 
@@ -583,7 +583,7 @@ namespace StrategicOperations.Framework
                     var currentSavedEndVector = new Vector3();
                     var currentSavedStartVector = new Vector3();
                     var currentMaxCount = 0;
-                    ModInit.modLog.LogTrace($"[TargetsForStrafe] Evaluating strafe start position at combatant #{k} {enemyUnits[k].DisplayName} pos {possibleStart}.");
+                    ModInit.modLog?.Trace?.Write($"[TargetsForStrafe] Evaluating strafe start position at combatant #{k} {enemyUnits[k].DisplayName} pos {possibleStart}.");
                     for (var index = 0; index < vectors.Length; index++)
                     {
                         var vector = vectors[index];
@@ -600,7 +600,7 @@ namespace StrategicOperations.Framework
                                 {
                                     rectTargets.Add(newTarget.GUID);
                                     targetCount += 1;
-                                    ModInit.modLog.LogTrace($"[TargetsForStrafe] Unit #{k}, VectorStart {possibleStart} VectorEnd {vector}: {targetCount} targets.");
+                                    ModInit.modLog?.Trace?.Write($"[TargetsForStrafe] Unit #{k}, VectorStart {possibleStart} VectorEnd {vector}: {targetCount} targets.");
                                 }
                             }
                         }
@@ -610,7 +610,7 @@ namespace StrategicOperations.Framework
                             currentMaxCount = targetCount;
                             currentSavedEndVector = vector;
                             currentSavedStartVector = possibleStart;
-                            ModInit.modLog.LogTrace(
+                            ModInit.modLog?.Trace?.Write(
                                 $"TargetsForStrafe] Unit #{k}, possibleStart {currentSavedStartVector} currentSavedEndVector {currentSavedEndVector}: Current highest target count in vector {index} is {currentMaxCount} from start {currentSavedStartVector} and end {currentSavedEndVector}.");
                         }
                     }
@@ -620,7 +620,7 @@ namespace StrategicOperations.Framework
                         maxCount = currentMaxCount;
                         savedEndVector = currentSavedEndVector;
                         savedStartVector = currentSavedStartVector;
-                        ModInit.modLog.LogTrace($"[TargetsForStrafe] Unit #{k}:  Current highest target count is {maxCount} from start {savedStartVector} and end {savedEndVector}.");
+                        ModInit.modLog?.Trace?.Write($"[TargetsForStrafe] Unit #{k}:  Current highest target count is {maxCount} from start {savedStartVector} and end {savedEndVector}.");
                     }
                 }
                 // should probably try to evaluate how many allied units it could hit and offset?
@@ -629,7 +629,7 @@ namespace StrategicOperations.Framework
                 endPos = savedEndVector;
                 // ModState.selectedAIVectors.Add(savedStartVector);
                 // ModState.selectedAIVectors.Add(savedEndVector);
-                ModInit.modLog.LogTrace($"[TargetsForStrafe] Final highest target count is {maxCount} from start {startPos} and end {endPos}.");
+                ModInit.modLog?.Trace?.Write($"[TargetsForStrafe] Final highest target count is {maxCount} from start {startPos} and end {endPos}.");
                 return maxCount;
             }
 
@@ -708,10 +708,10 @@ namespace StrategicOperations.Framework
                 var maxRange = ability.Def.IntParam2;
                 //var enemyActors = new List<AbstractActor>(actor.Combat.AllEnemies);
                 var enemyActors = actor.team.VisibilityCache.GetAllDetectedEnemies(actor);
-                ModInit.modLog.LogTrace(
+                ModInit.modLog?.Trace?.Write(
                     $"found {enemyActors.Count} to eval");
                 enemyActors.RemoveAll(x => x.WasDespawned || x.IsDead || x.IsFlaggedForDeath || x.WasEjected);
-                ModInit.modLog.LogTrace(
+                ModInit.modLog?.Trace?.Write(
                     $"found {enemyActors.Count} after eval");
                 var avgCenter = new Vector3();
                 var theCenter = new Vector3();
@@ -725,7 +725,7 @@ namespace StrategicOperations.Framework
 
                     if (targetEnemy != null)
                     {
-                        ModInit.modLog.LogTrace(
+                        ModInit.modLog?.Trace?.Write(
                             $"Target enemy {targetEnemy.DisplayName}");
                         theCenter = targetEnemy.CurrentPosition;
                         count = 1;
@@ -734,12 +734,12 @@ namespace StrategicOperations.Framework
                     if (Vector3.Distance(actor.CurrentPosition, theCenter) > maxRange)
                     {
                         theCenter = Utils.LerpByDistance(actor.CurrentPosition, theCenter, maxRange);
-                        ModInit.modLog.LogTrace(
+                        ModInit.modLog?.Trace?.Write(
                             $"Chosen point is {Vector3.Distance(actor.CurrentPosition, theCenter)} from source after LerpByDist");
                     }
                     else
                     {
-                        ModInit.modLog.LogTrace(
+                        ModInit.modLog?.Trace?.Write(
                             $"Chosen point is {Vector3.Distance(actor.CurrentPosition, theCenter)} from source, should be < {maxRange}");
                     }
 
@@ -762,13 +762,13 @@ namespace StrategicOperations.Framework
                     {
                         center += friendly.CurrentPosition;
                         count++;
-                        ModInit.modLog.LogTrace(
+                        ModInit.modLog?.Trace?.Write(
                             $"friendlyActors count = {count}");
                     }
 
                     if (count == 0)
                     {
-                        ModInit.modLog.LogTrace(
+                        ModInit.modLog?.Trace?.Write(
                             $"FINAL friendlyActors count = {count}");
                         theCenter = actor.CurrentPosition;
                         finalOrientation = orientation;
@@ -780,13 +780,13 @@ namespace StrategicOperations.Framework
                     if (Vector3.Distance(actor.CurrentPosition, avgCenter) > maxRange)
                     {
                         theCenter = Utils.LerpByDistance(actor.CurrentPosition, avgCenter, maxRange);
-                        ModInit.modLog.LogTrace(
+                        ModInit.modLog?.Trace?.Write(
                             $"Chosen point is {Vector3.Distance(actor.CurrentPosition, theCenter)} from source after LerpByDist");
                     }
                     else
                     {
                         theCenter = avgCenter;
-                        ModInit.modLog.LogTrace(
+                        ModInit.modLog?.Trace?.Write(
                             $"Chosen point is {Vector3.Distance(actor.CurrentPosition, theCenter)} from source, should be < {maxRange}");
                     }
 
@@ -813,13 +813,13 @@ namespace StrategicOperations.Framework
                     {
                         center += enemy.CurrentPosition;
                         count++;
-                        ModInit.modLog.LogTrace(
+                        ModInit.modLog?.Trace?.Write(
                             $"enemyActors count = {count}");
                     }
 
                     if (count == 0)
                     {
-                        ModInit.modLog.LogTrace(
+                        ModInit.modLog?.Trace?.Write(
                             $"FINAL enemyActors count = {count}");
                         theCenter = actor.CurrentPosition;
                         finalOrientation = orientation;
@@ -831,13 +831,13 @@ namespace StrategicOperations.Framework
                     if (Vector3.Distance(actor.CurrentPosition, avgCenter) > maxRange)
                     {
                         theCenter = Utils.LerpByDistance(actor.CurrentPosition, avgCenter, maxRange);
-                        ModInit.modLog.LogTrace(
+                        ModInit.modLog?.Trace?.Write(
                             $"Chosen point is {Vector3.Distance(actor.CurrentPosition, theCenter)} from source after LerpByDist");
                     }
                     else
                     {
                         theCenter = avgCenter;
-                        ModInit.modLog.LogTrace(
+                        ModInit.modLog?.Trace?.Write(
                             $"Chosen point is {Vector3.Distance(actor.CurrentPosition, theCenter)} from source, should be < {maxRange}");
                     }
 

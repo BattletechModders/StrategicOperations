@@ -76,25 +76,25 @@ namespace StrategicOperations.Patches
                 LoadRequest loadRequest = dm.CreateLoadRequest();
 
                 loadRequest.AddBlindLoadRequest(BattleTechResourceType.PilotDef, "pilot_sim_starter_dekker");
-                ModInit.modLog.LogMessage($"Added loadrequest for PilotDef: pilot_sim_starter_dekker (hardcoded)");
+                ModInit.modLog?.Info?.Write($"Added loadrequest for PilotDef: pilot_sim_starter_dekker (hardcoded)");
                 if (!string.IsNullOrEmpty(ModInit.modSettings.customSpawnReticleAsset))
                 {
                     loadRequest.AddBlindLoadRequest(BattleTechResourceType.Texture2D, ModInit.modSettings.customSpawnReticleAsset);
-                    ModInit.modLog.LogMessage($"Added loadrequest for Texture2D: {ModInit.modSettings.customSpawnReticleAsset}");
+                    ModInit.modLog?.Info?.Write($"Added loadrequest for Texture2D: {ModInit.modSettings.customSpawnReticleAsset}");
                 }
                 if (!string.IsNullOrEmpty(ModInit.modSettings.MountIndicatorAsset))
                 {
                     loadRequest.AddBlindLoadRequest(BattleTechResourceType.Texture2D, ModInit.modSettings.MountIndicatorAsset);
-                    ModInit.modLog.LogMessage($"Added loadrequest for Texture2D: {ModInit.modSettings.MountIndicatorAsset}");
+                    ModInit.modLog?.Info?.Write($"Added loadrequest for Texture2D: {ModInit.modSettings.MountIndicatorAsset}");
                 }
                 if (!string.IsNullOrEmpty(ModInit.modSettings.SwarmIndicatorAsset))
                 {
                     loadRequest.AddBlindLoadRequest(BattleTechResourceType.Texture2D, ModInit.modSettings.SwarmIndicatorAsset);
-                    ModInit.modLog.LogMessage($"Added loadrequest for Texture2D: {ModInit.modSettings.SwarmIndicatorAsset}");
+                    ModInit.modLog?.Info?.Write($"Added loadrequest for Texture2D: {ModInit.modSettings.SwarmIndicatorAsset}");
                 }
 
-                ModInit.modLog.LogMessage($"Added loadrequest for Texture2D: triangle_icon_512 (hardcoded)");
-                ModInit.modLog.LogMessage($"Added loadrequest for Texture2D: pentagon_icon_512 (hardcoded)");
+                ModInit.modLog?.Info?.Write($"Added loadrequest for Texture2D: triangle_icon_512 (hardcoded)");
+                ModInit.modLog?.Info?.Write($"Added loadrequest for Texture2D: pentagon_icon_512 (hardcoded)");
 
 
                 foreach (var abilityDef in dm.AbilityDefs.Where(x => x.Key.StartsWith("AbilityDefCMD_")))
@@ -104,25 +104,25 @@ namespace StrategicOperations.Patches
                     if (!string.IsNullOrEmpty(ability.Def.getAbilityDefExtension().CMDPilotOverride))
                     {
                         var pilotID = ability.Def.getAbilityDefExtension().CMDPilotOverride;
-                        ModInit.modLog.LogMessage($"Added loadrequest for PilotDef: {pilotID}");
+                        ModInit.modLog?.Info?.Write($"Added loadrequest for PilotDef: {pilotID}");
                         loadRequest.AddBlindLoadRequest(BattleTechResourceType.PilotDef, pilotID);
                     }
 
                     if (ability.Def.ActorResource.StartsWith("mechdef_"))
                     {
-                        ModInit.modLog.LogMessage($"Added loadrequest for MechDef: {ability.Def.ActorResource}");
+                        ModInit.modLog?.Info?.Write($"Added loadrequest for MechDef: {ability.Def.ActorResource}");
                         loadRequest.AddBlindLoadRequest(BattleTechResourceType.MechDef, ability.Def.ActorResource);
                     }
 
                     if (ability.Def.ActorResource.StartsWith("vehicledef_"))
                     {
-                        ModInit.modLog.LogMessage($"Added loadrequest for VehicleDef: {ability.Def.ActorResource}");
+                        ModInit.modLog?.Info?.Write($"Added loadrequest for VehicleDef: {ability.Def.ActorResource}");
                         loadRequest.AddBlindLoadRequest(BattleTechResourceType.VehicleDef, ability.Def.ActorResource);
                     }
 
                     if (ability.Def.ActorResource.StartsWith("turretdef_"))
                     {
-                        ModInit.modLog.LogMessage($"Added loadrequest for TurretDef: {ability.Def.ActorResource}");
+                        ModInit.modLog?.Info?.Write($"Added loadrequest for TurretDef: {ability.Def.ActorResource}");
                         loadRequest.AddBlindLoadRequest(BattleTechResourceType.TurretDef, ability.Def.ActorResource);
                     }
                 }
@@ -134,7 +134,7 @@ namespace StrategicOperations.Patches
                         ?.Remove(0, 14);
                     if (!string.IsNullOrEmpty(pilotID))
                     {
-                        ModInit.modLog.LogMessage($"Added loadrequest for PilotDef: {pilotID}");
+                        ModInit.modLog?.Info?.Write($"Added loadrequest for PilotDef: {pilotID}");
                         loadRequest.AddBlindLoadRequest(BattleTechResourceType.PilotDef, pilotID);
                     }
 
@@ -145,17 +145,17 @@ namespace StrategicOperations.Patches
 
                     if (id.StartsWith("mechdef_"))
                     {
-                        ModInit.modLog.LogMessage($"Added loadrequest for MechDef: {id}");
+                        ModInit.modLog?.Info?.Write($"Added loadrequest for MechDef: {id}");
                         loadRequest.AddBlindLoadRequest(BattleTechResourceType.MechDef, id);
                     }
                     else if (id.StartsWith("vehicledef_"))
                     {
-                        ModInit.modLog.LogMessage($"Added loadrequest for VehicleDef: {id}");
+                        ModInit.modLog?.Info?.Write($"Added loadrequest for VehicleDef: {id}");
                         loadRequest.AddBlindLoadRequest(BattleTechResourceType.VehicleDef, id);
                     }
                     else if (id.StartsWith("turretdef_"))
                     {
-                        ModInit.modLog.LogMessage($"Added loadrequest for TurretDef: {id}");
+                        ModInit.modLog?.Info?.Write($"Added loadrequest for TurretDef: {id}");
                         loadRequest.AddBlindLoadRequest(BattleTechResourceType.TurretDef, id);
                     }
 
@@ -177,12 +177,12 @@ namespace StrategicOperations.Patches
 
                 if (____parentActor?.spawnerGUID == null)
                 {
-                    //ModInit.modLog.LogMessage($"Couldn't find UnitSpawnPointGameLogic for {____parentActor?.DisplayName}. Should be CMD Ability actor; skipping safety teleport!");
+                    //ModInit.modLog?.Info?.Write($"Couldn't find UnitSpawnPointGameLogic for {____parentActor?.DisplayName}. Should be CMD Ability actor; skipping safety teleport!");
                     return false;
                 }
 
                 return registry.GetItemByGUID<UnitSpawnPointGameLogic>(____parentActor?.spawnerGUID) != null;
-                //ModInit.modLog.LogMessage($"Couldn't find UnitSpawnPointGameLogic for {____parentActor?.DisplayName}. Should be CMD Ability actor; skipping safety teleport!");
+                //ModInit.modLog?.Info?.Write($"Couldn't find UnitSpawnPointGameLogic for {____parentActor?.DisplayName}. Should be CMD Ability actor; skipping safety teleport!");
             }
 
             public static void Postfix(GameRepresentation __instance, AbstractActor ____parentActor)
@@ -221,7 +221,7 @@ namespace StrategicOperations.Patches
                             targetActor.TeleportActor(pos);
                         }
                         targetActor.MountedEvasion(____parentActor);
-                        ModInit.modLog.LogTrace($"PositionLockMount- Setting airlifted unit {targetActor.DisplayName} position to same as carrier unit {____parentActor.DisplayName}");
+                        ModInit.modLog?.Trace?.Write($"PositionLockMount- Setting airlifted unit {targetActor.DisplayName} position to same as carrier unit {____parentActor.DisplayName}");
 
                         if (!ModState.CachedUnitCoordinates.ContainsKey(____parentActor.GUID))
                         {
@@ -254,7 +254,7 @@ namespace StrategicOperations.Patches
                             targetActor.TeleportActor(____parentActor.CurrentPosition);
                         }
                         targetActor.MountedEvasion(____parentActor);
-                        ModInit.modLog.LogTrace($"PositionLockMount- Setting riding unit {targetActor.DisplayName} position to same as carrier unit {____parentActor.DisplayName}");
+                        ModInit.modLog?.Trace?.Write($"PositionLockMount- Setting riding unit {targetActor.DisplayName} position to same as carrier unit {____parentActor.DisplayName}");
 
                         if (!ModState.CachedUnitCoordinates.ContainsKey(____parentActor.GUID))
                         {
@@ -276,7 +276,7 @@ namespace StrategicOperations.Patches
                         if (targetActor == null) continue;
                         targetActor.TeleportActor(____parentActor.CurrentPosition);
                         targetActor.MountedEvasion(____parentActor);
-                        ModInit.modLog.LogTrace($"PositionLockMount- Setting riding unit {targetActor.DisplayName} position to same as carrier unit {____parentActor.DisplayName}");
+                        ModInit.modLog?.Trace?.Write($"PositionLockMount- Setting riding unit {targetActor.DisplayName} position to same as carrier unit {____parentActor.DisplayName}");
 
                         if (!ModState.CachedUnitCoordinates.ContainsKey(____parentActor.GUID))
                         {
@@ -300,7 +300,7 @@ namespace StrategicOperations.Patches
                 Ability ability = ModState.CommandAbilities.Find((Ability x) => x.Def.Id == msg.abilityID);
                 if (ability == null)
                 {
-                    ModInit.modLog.LogMessage(
+                    ModInit.modLog?.Info?.Write(
                         $"Tried to use a CommandAbility the team doesnt have?");
                     return false;
                 }
@@ -315,7 +315,7 @@ namespace StrategicOperations.Patches
                         ICombatant combatant = __instance.Combat.FindCombatantByGUID(msg.affectedObjectGuid, false);
                         if (combatant == null)
                         {
-                            ModInit.modLog.LogMessage(
+                            ModInit.modLog?.Info?.Write(
                                 $"Team.ActivateAbility couldn't find target with guid {msg.affectedObjectGuid}");
                             return false;
                         }
@@ -352,7 +352,7 @@ namespace StrategicOperations.Patches
                         throw new ArgumentOutOfRangeException();
                 }
 
-                ModInit.modLog.LogMessage(
+                ModInit.modLog?.Info?.Write(
                     $"Team.ActivateAbility needs to add handling for targetingtype {ability.Def.Targeting}");
                 return false;
                 publishAbilityConfirmed:
@@ -411,7 +411,7 @@ namespace StrategicOperations.Patches
 //                        }
                         if (creator.HasSwarmingUnits() && creator.GUID == targetActor.GUID)
                         {
-                            ModInit.modLog.LogTrace($"[Ability.Activate - Unit has sawemers].");
+                            ModInit.modLog?.Trace?.Write($"[Ability.Activate - Unit has sawemers].");
                             var swarmingUnits = ModState.PositionLockSwarm.Where(x => x.Value == creator.GUID).ToList();
 
                             if (__instance.Def.Id == ModInit.modSettings.BattleArmorDeSwarmRoll)
@@ -428,7 +428,7 @@ namespace StrategicOperations.Patches
 
                             else if (__instance.Def.Id == ModInit.modSettings.DeswarmMovementConfig.AbilityDefID)
                             {
-                                ModInit.modLog.LogTrace($"[Ability.Activate - BattleArmorDeSwarm Movement].");
+                                ModInit.modLog?.Trace?.Write($"[Ability.Activate - BattleArmorDeSwarm Movement].");
                                 creator.ProcessDeswarmMovement(
                                     swarmingUnits); // need to patch ActorMovementSequence complete AND JumpSequence complete AND DFASequencecomplete, and then do magic logic in there. or just do it on
                                 return; //return to avoid ending turn for player below. making AI use this properly is gonna suck hind tit.
@@ -484,7 +484,7 @@ namespace StrategicOperations.Patches
                             {
                                 if (creator is TrooperSquad squad)
                                 {
-                                    //ModInit.modLog.LogTrace($"[Ability.Activate] Called DetachFromCarrier.");
+                                    //ModInit.modLog?.Trace?.Write($"[Ability.Activate] Called DetachFromCarrier.");
                                     squad.DismountBA(targetActor, Vector3.zero, false, false, false);
                                     squad.DetachFromCarrier(targetActor, true);
                                 }
@@ -494,7 +494,7 @@ namespace StrategicOperations.Patches
                         }
                         else if (__instance.Def.Id == ModInit.modSettings.AirliftAbilityID)
                         {
-                            ModInit.modLog.LogTrace($"[Ability.Activate] - Creating airlift invocation for carrier {creator.DisplayName} and target {targetActor.DisplayName}.");
+                            ModInit.modLog?.Trace?.Write($"[Ability.Activate] - Creating airlift invocation for carrier {creator.DisplayName} and target {targetActor.DisplayName}.");
                             if (target.team.IsFriendly(creator.team))
                             {
                                 MessageCenterMessage invocation =
@@ -539,11 +539,11 @@ namespace StrategicOperations.Patches
         {
             public static bool Prefix(Ability __instance, AbstractActor creator, Vector3 positionA, Vector3 positionB)
             {
-                ModInit.modLog.LogMessage($"Running Ability.Activate; check if skirmish."); // need to add blocks for self-apply EffectData
+                ModInit.modLog?.Info?.Write($"Running Ability.Activate; check if skirmish."); // need to add blocks for self-apply EffectData
                 if (__instance.Combat.ActiveContract.ContractTypeValue.IsSkirmish) return true;
                 if (!__instance.IsAvailable)
                 {
-                    ModInit.modLog.LogMessage(
+                    ModInit.modLog?.Info?.Write(
                         $"Ability {__instance.Def.Description.Name} was unavailable, continuing to vanilla handling.");
                     return true;
                 }
@@ -553,7 +553,7 @@ namespace StrategicOperations.Patches
                     var popup = GenericPopupBuilder.Create(GenericPopupType.Info, $"Ability {__instance.Def.Description.Name} is unavailable during this contract!");
                     popup.AddButton("Confirm", null, true, null);
                     popup.IsNestedPopupWithBuiltInFader().CancelOnEscape().Render();
-                    ModInit.modLog.LogMessage($"Ability {__instance.Def.Description.Name} unavailable due to exclusion settings. Aborting.");
+                    ModInit.modLog?.Info?.Write($"Ability {__instance.Def.Description.Name} unavailable due to exclusion settings. Aborting.");
                     return false;
                 }
 
@@ -562,7 +562,7 @@ namespace StrategicOperations.Patches
                 {
                     Utils._activateStrafeMethod.Invoke(__instance,
                         new object[] {creator.team, positionA, positionB, __instance.Def.FloatParam1});
-                    ModInit.modLog.LogMessage($"{creator.Description?.Name}: ActivateStrafe invoked from Ability.Activate. Distance was {Vector3.Distance(positionA, positionB)}");
+                    ModInit.modLog?.Info?.Write($"{creator.Description?.Name}: ActivateStrafe invoked from Ability.Activate. Distance was {Vector3.Distance(positionA, positionB)}");
                     __instance.Combat.MessageCenter.PublishMessage(new AbilityActivatedMessage(creator.GUID,
                         creator.GUID, __instance.Def.Id, positionA, positionB));
                     __instance.ActivateCooldown();
@@ -574,7 +574,7 @@ namespace StrategicOperations.Patches
                 {
                     Utils._activateSpawnTurretMethod.Invoke(__instance,
                         new object[] {creator.team, positionA, positionB});
-                    ModInit.modLog.LogMessage($"{creator.Description?.Name}: ActivateSpawnTurret invoked from Ability.Activate. Distance was {Vector3.Distance(positionA, positionB)}");
+                    ModInit.modLog?.Info?.Write($"{creator.Description?.Name}: ActivateSpawnTurret invoked from Ability.Activate. Distance was {Vector3.Distance(positionA, positionB)}");
                     __instance.Combat.MessageCenter.PublishMessage(new AbilityActivatedMessage(creator.GUID,
                         creator.GUID, __instance.Def.Id, positionA, positionB));
                     __instance.ActivateCooldown();
@@ -595,7 +595,7 @@ namespace StrategicOperations.Patches
             public static bool Prefix(Ability __instance, Team team, Vector3 positionA, Vector3 positionB, float radius)
             {
                 if (__instance.Combat.ActiveContract.ContractTypeValue.IsSkirmish) return true;
-                ModInit.modLog.LogMessage($"Running Ability.ActivateStrafe");
+                ModInit.modLog?.Info?.Write($"Running Ability.ActivateStrafe");
                 var dm = __instance.Combat.DataManager;
                 var sim = UnityGameInstance.BattleTechGame.Simulation;
                 var pilotID = "pilot_sim_starter_dekker";
@@ -630,7 +630,7 @@ namespace StrategicOperations.Patches
 
                 //var supportTeam = __instance.Combat.Teams.FirstOrDefault(x => x.GUID == "61612bb3-abf9-4586-952a-0559fa9dcd75");
 
-                ModInit.modLog.LogMessage($"Team neturalTeam = {supportTeam?.DisplayName}");
+                ModInit.modLog?.Info?.Write($"Team neturalTeam = {supportTeam?.DisplayName}");
                 var cmdLance = Utils.CreateOrFetchCMDLance(supportTeam);
                 var actorResource = __instance.Def.ActorResource;
                 var strafeWaves = ModInit.modSettings.strafeWaves;
@@ -646,7 +646,7 @@ namespace StrategicOperations.Patches
                         ModState.PopupActorResource = "";
                     }
 
-                    ModInit.modLog.LogMessage($"Pilot should be {pilotID}");
+                    ModInit.modLog?.Info?.Write($"Pilot should be {pilotID}");
                     if (ModState.DeploymentAssetsStats.Any(x => x.ID == actorResource) && team.IsLocalPlayer)
                     {
                         var assetStatInfo = ModState.DeploymentAssetsStats.FirstOrDefault(x => x.ID == actorResource);
@@ -660,7 +660,7 @@ namespace StrategicOperations.Patches
                             }
                         }
 
-                        ModInit.modLog.LogMessage($"Decrementing count of {actorResource} in deploymentAssetsDict");
+                        ModInit.modLog?.Info?.Write($"Decrementing count of {actorResource} in deploymentAssetsDict");
                     }
 
                     var parentSequenceID = Guid.NewGuid().ToString();
@@ -669,7 +669,7 @@ namespace StrategicOperations.Patches
                         dm);
                     ModState.PendingStrafeWaves.Add(parentSequenceID, newWave);
                     Utils.InitiateStrafe(parentSequenceID, newWave);
-                    ModInit.modLog.LogMessage($"First time initializing strafe with GUID {parentSequenceID}");
+                    ModInit.modLog?.Info?.Write($"First time initializing strafe with GUID {parentSequenceID}");
                     if (__instance.Def.IntParam1 > 0)
                     {
                         Utils.SpawnFlares(__instance, positionA, positionB, ModInit.modSettings.flareResourceID,
@@ -686,7 +686,7 @@ namespace StrategicOperations.Patches
             public static bool Prefix(Ability __instance, Team team, Vector3 positionA, Vector3 positionB)
             {
                 if (__instance.Combat.ActiveContract.ContractTypeValue.IsSkirmish) return true;
-                ModInit.modLog.LogMessage($"Running Ability.ActivateSpawnTurret");
+                ModInit.modLog?.Info?.Write($"Running Ability.ActivateSpawnTurret");
                 var combat = UnityGameInstance.BattleTechGame.Combat;
                 var dm = combat.DataManager;
                 var sim = UnityGameInstance.BattleTechGame.Simulation;
@@ -718,7 +718,7 @@ namespace StrategicOperations.Patches
                         }
                     }
 
-                    ModInit.modLog.LogMessage($"Decrementing count of {actorResource} in deploymentAssetsDict");
+                    ModInit.modLog?.Info?.Write($"Decrementing count of {actorResource} in deploymentAssetsDict");
                 }
 
                 var instanceGUID =
@@ -726,7 +726,7 @@ namespace StrategicOperations.Patches
 
                 if (ModState.DeferredInvokeSpawns.All(x => x.Key != instanceGUID) && !ModState.DeferredSpawnerFromDelegate)
                 {
-                    ModInit.modLog.LogMessage(
+                    ModInit.modLog?.Info?.Write(
                         $"Deferred Spawner = null, creating delegate and returning false. Delegate should spawn {actorResource}");
 
                     void DeferredInvokeSpawn() =>
@@ -744,7 +744,7 @@ namespace StrategicOperations.Patches
                 if (!string.IsNullOrEmpty(ModState.DeferredActorResource))
                 {
                     actorResource = ModState.DeferredActorResource;
-                    ModInit.modLog.LogMessage($"{actorResource} restored from deferredActorResource");
+                    ModInit.modLog?.Info?.Write($"{actorResource} restored from deferredActorResource");
                 }
 
                 var pilotID = "pilot_sim_starter_dekker";
@@ -757,7 +757,7 @@ namespace StrategicOperations.Patches
                     pilotID = __instance.Def.getAbilityDefExtension().CMDPilotOverride;
                 }
 
-                ModInit.modLog.LogMessage($"Pilot should be {pilotID}");
+                ModInit.modLog?.Info?.Write($"Pilot should be {pilotID}");
                 dm.PilotDefs.TryGet(pilotID, out var supportPilotDef);
                 var cmdLance = Utils.CreateOrFetchCMDLance(teamSelection);
 
@@ -765,7 +765,7 @@ namespace StrategicOperations.Patches
 
                 if (actorResource.StartsWith("mechdef_") || actorResource.StartsWith("vehicledef_"))
                 {
-                    ModInit.modLog.LogMessage($"Attempting to spawn {actorResource} as mech.");
+                    ModInit.modLog?.Info?.Write($"Attempting to spawn {actorResource} as mech.");
                     var spawner = new Classes.CustomSpawner(team, __instance, combat, actorResource, cmdLance, teamSelection, positionA, quaternion, supportHeraldryDef, supportPilotDef);
                     spawner.SpawnBeaconUnitAtLocation();
                     return false;
@@ -773,7 +773,7 @@ namespace StrategicOperations.Patches
 
                 if (actorResource.StartsWith("mechdef_") && false)
                 {
-                    ModInit.modLog.LogMessage($"Attempting to spawn {actorResource} as mech.");
+                    ModInit.modLog?.Info?.Write($"Attempting to spawn {actorResource} as mech.");
                     dm.MechDefs.TryGet(actorResource, out var supportActorMechDef);
                     supportActorMechDef.Refresh();
                     var customEncounterTags = new TagSet(teamSelection.EncounterTags) {"SpawnedFromAbility"};
@@ -798,7 +798,7 @@ namespace StrategicOperations.Patches
                     __instance.Combat.MessageCenter.PublishMessage(message);
                     //supportActorMech.OnPlayerVisibilityChanged(VisibilityLevel.LOSFull);
 
-                    ModInit.modLog.LogMessage($"Added {supportActorMech?.MechDef?.Description?.Id} to SupportUnits");
+                    ModInit.modLog?.Info?.Write($"Added {supportActorMech?.MechDef?.Description?.Id} to SupportUnits");
 
                     ////////////////
 
@@ -819,14 +819,14 @@ namespace StrategicOperations.Patches
                     dropSpawner.DropPodPosition = positionA;
                     dropSpawner.DropPodRotation = quaternion;
 
-                    ModInit.modLog.LogTrace($"DropPodAnim location {positionA} is also {dropSpawner.DropPodPosition}");
-                    ModInit.modLog.LogTrace($"Is dropAnim null fuckin somehow? {dropSpawner == null}");
+                    ModInit.modLog?.Trace?.Write($"DropPodAnim location {positionA} is also {dropSpawner.DropPodPosition}");
+                    ModInit.modLog?.Trace?.Write($"Is dropAnim null fuckin somehow? {dropSpawner == null}");
                     dropSpawner.DropPodVfxPrefab = dropSpawner.Parent.DropPodVfxPrefab;
                     dropSpawner.DropPodLandedPrefab = dropSpawner.Parent.dropPodLandedPrefab;
                     dropSpawner.LoadDropPodPrefabs(dropSpawner.DropPodVfxPrefab, dropSpawner.DropPodLandedPrefab);
-                    ModInit.modLog.LogTrace($"loaded prefabs success");
+                    ModInit.modLog?.Trace?.Write($"loaded prefabs success");
                     dropSpawner.StartCoroutine(dropSpawner.StartDropPodAnimation(0f));
-                    ModInit.modLog.LogTrace($"started drop pod anim");
+                    ModInit.modLog?.Trace?.Write($"started drop pod anim");
 
                     
                     //supportActorMech.OnPlayerVisibilityChanged(VisibilityLevel.LOSFull);
@@ -852,7 +852,7 @@ namespace StrategicOperations.Patches
                                     __instance.Def.getAbilityDefExtension().CBillCost);
 
                             ModState.CommandUses.Add(commandUse);
-                            ModInit.modLog.LogMessage(
+                            ModInit.modLog?.Info?.Write(
                                 $"Added usage cost for {commandUse.CommandName} - {commandUse.UnitName}. UnitUseCost (unadjusted): {unitCost}. Ability Use Cost: {__instance.Def.getAbilityDefExtension().CBillCost}");
                         }
                         else
@@ -860,12 +860,12 @@ namespace StrategicOperations.Patches
                             var cmdUse = ModState.CommandUses.FirstOrDefault(x => x.UnitID == actorResource);
                             if (cmdUse == null)
                             {
-                                ModInit.modLog.LogMessage($"ERROR: cmdUseInfo was null");
+                                ModInit.modLog?.Info?.Write($"ERROR: cmdUseInfo was null");
                             }
                             else
                             {
                                 cmdUse.UseCount += 1;
-                                ModInit.modLog.LogMessage(
+                                ModInit.modLog?.Info?.Write(
                                     $"Added usage cost for {cmdUse.CommandName} - {cmdUse.UnitName}. UnitUseCost (unadjusted): {unitCost}. Ability Use Cost: {__instance.Def.getAbilityDefExtension().CBillCost}. Now used {cmdUse.UseCount} times.");
                             }
                         }
@@ -873,7 +873,7 @@ namespace StrategicOperations.Patches
                 }
                 else if (actorResource.StartsWith("vehicledef_") && false) //disable for CU
                 {
-                    ModInit.modLog.LogMessage($"Attempting to spawn {actorResource} as vehicle.");
+                    ModInit.modLog?.Info?.Write($"Attempting to spawn {actorResource} as vehicle.");
                     dm.VehicleDefs.TryGet(actorResource, out var supportActorVehicleDef);
                     supportActorVehicleDef.Refresh();
                     var customEncounterTags = new TagSet(teamSelection.EncounterTags) {"SpawnedFromAbility"};
@@ -902,7 +902,7 @@ namespace StrategicOperations.Patches
 
                     //Utils.DeployEvasion(supportActorVehicle);
 
-                    ModInit.modLog.LogMessage(
+                    ModInit.modLog?.Info?.Write(
                         $"Added {supportActorVehicle?.VehicleDef?.Description?.Id} to SupportUnits");
 
 
@@ -925,14 +925,14 @@ namespace StrategicOperations.Patches
                     dropSpawner.DropPodPosition = positionA;
                     dropSpawner.DropPodRotation = quaternion;
 
-                    ModInit.modLog.LogTrace($"DropPodAnim location {positionA} is also {dropSpawner.DropPodPosition}");
-                    ModInit.modLog.LogTrace($"Is dropAnim null fuckin somehow? {dropSpawner == null}");
+                    ModInit.modLog?.Trace?.Write($"DropPodAnim location {positionA} is also {dropSpawner.DropPodPosition}");
+                    ModInit.modLog?.Trace?.Write($"Is dropAnim null fuckin somehow? {dropSpawner == null}");
                     dropSpawner.DropPodVfxPrefab = dropSpawner.Parent.DropPodVfxPrefab;
                     dropSpawner.DropPodLandedPrefab = dropSpawner.Parent.dropPodLandedPrefab;
                     dropSpawner.LoadDropPodPrefabs(dropSpawner.DropPodVfxPrefab, dropSpawner.DropPodLandedPrefab);
-                    ModInit.modLog.LogTrace($"loaded prefabs success");
+                    ModInit.modLog?.Trace?.Write($"loaded prefabs success");
                     dropSpawner.StartCoroutine(dropSpawner.StartDropPodAnimation(0f));
-                    ModInit.modLog.LogTrace($"started drop pod anim");
+                    ModInit.modLog?.Trace?.Write($"started drop pod anim");
 
 
                     //supportActorMech.OnPlayerVisibilityChanged(VisibilityLevel.LOSFull);
@@ -958,7 +958,7 @@ namespace StrategicOperations.Patches
                                     __instance.Def.getAbilityDefExtension().CBillCost);
 
                             ModState.CommandUses.Add(commandUse);
-                            ModInit.modLog.LogMessage(
+                            ModInit.modLog?.Info?.Write(
                                 $"Added usage cost for {commandUse.CommandName} - {commandUse.UnitName}. UnitUseCost (unadjusted): {unitCost}. Ability Use Cost: {__instance.Def.getAbilityDefExtension().CBillCost}");
                         }
                         else
@@ -966,12 +966,12 @@ namespace StrategicOperations.Patches
                             var cmdUse = ModState.CommandUses.FirstOrDefault(x => x.UnitID == actorResource);
                             if (cmdUse == null)
                             {
-                                ModInit.modLog.LogMessage($"ERROR: cmdUseInfo was null");
+                                ModInit.modLog?.Info?.Write($"ERROR: cmdUseInfo was null");
                             }
                             else
                             {
                                 cmdUse.UseCount += 1;
-                                ModInit.modLog.LogMessage(
+                                ModInit.modLog?.Info?.Write(
                                     $"Added usage cost for {cmdUse.CommandName} - {cmdUse.UnitName}. UnitUseCost (unadjusted): {unitCost}. Ability Use Cost: {__instance.Def.getAbilityDefExtension().CBillCost}. Now used {cmdUse.UseCount} times.");
                             }
                         }
@@ -980,7 +980,7 @@ namespace StrategicOperations.Patches
 
                 else
                 {
-                    ModInit.modLog.LogMessage($"Attempting to spawn {actorResource} as turret.");
+                    ModInit.modLog?.Info?.Write($"Attempting to spawn {actorResource} as turret.");
                     var spawnTurretMethod = Traverse.Create(__instance).Method("SpawnTurret",
                         new object[] {teamSelection, actorResource, positionA, quaternion});
                     var turretActor = spawnTurretMethod.GetValue<AbstractActor>();
@@ -1018,14 +1018,14 @@ namespace StrategicOperations.Patches
                     dropSpawner.DropPodPosition = positionA;
                     dropSpawner.DropPodRotation = quaternion;
 
-                    ModInit.modLog.LogTrace($"DropPodAnim location {positionA} is also {dropSpawner.DropPodPosition}");
-                    ModInit.modLog.LogTrace($"Is dropAnim null fuckin somehow? {dropSpawner == null}");
+                    ModInit.modLog?.Trace?.Write($"DropPodAnim location {positionA} is also {dropSpawner.DropPodPosition}");
+                    ModInit.modLog?.Trace?.Write($"Is dropAnim null fuckin somehow? {dropSpawner == null}");
                     dropSpawner.DropPodVfxPrefab = dropSpawner.Parent.DropPodVfxPrefab;
                     dropSpawner.DropPodLandedPrefab = dropSpawner.Parent.dropPodLandedPrefab;
                     dropSpawner.LoadDropPodPrefabs(dropSpawner.DropPodVfxPrefab, dropSpawner.DropPodLandedPrefab);
-                    ModInit.modLog.LogTrace($"loaded prefabs success");
+                    ModInit.modLog?.Trace?.Write($"loaded prefabs success");
                     dropSpawner.StartCoroutine(dropSpawner.StartDropPodAnimation(0f));
-                    ModInit.modLog.LogTrace($"started drop pod anim");
+                    ModInit.modLog?.Trace?.Write($"started drop pod anim");
 
                     ///////////////
 
@@ -1050,7 +1050,7 @@ namespace StrategicOperations.Patches
                                     __instance.Def.getAbilityDefExtension().CBillCost);
 
                             ModState.CommandUses.Add(commandUse);
-                            ModInit.modLog.LogMessage(
+                            ModInit.modLog?.Info?.Write(
                                 $"Added usage cost for {commandUse.CommandName} - {commandUse.UnitName}. UnitUseCost (unadjusted): {unitCost}. Ability Use Cost: {__instance.Def.getAbilityDefExtension().CBillCost}");
                         }
                         else
@@ -1058,12 +1058,12 @@ namespace StrategicOperations.Patches
                             var cmdUse = ModState.CommandUses.FirstOrDefault(x => x.UnitID == actorResource);
                             if (cmdUse == null)
                             {
-                                ModInit.modLog.LogMessage($"ERROR: cmdUseInfo was null");
+                                ModInit.modLog?.Info?.Write($"ERROR: cmdUseInfo was null");
                             }
                             else
                             {
                                 cmdUse.UseCount += 1;
-                                ModInit.modLog.LogMessage(
+                                ModInit.modLog?.Info?.Write(
                                     $"Added usage cost for {cmdUse.CommandName} - {cmdUse.UnitName}. UnitUseCost (unadjusted): {unitCost}. Ability Use Cost: {__instance.Def.getAbilityDefExtension().CBillCost}. Now used {cmdUse.UseCount} times.");
                             }
                         }
@@ -1186,7 +1186,7 @@ namespace StrategicOperations.Patches
                     for (var index = 0; index < ModState.DeferredInvokeBattleArmor.Count; index++)
                     {
                         var spawn = ModState.DeferredInvokeBattleArmor[index].Value;
-                        ModInit.modLog.LogMessage(
+                        ModInit.modLog?.Info?.Write(
                             $"Found deferred spawner at index {index} of {ModState.DeferredInvokeBattleArmor.Count - 1}, invoking and trying to spawn a battle armor of some kind.");
                         ModState.DeferredBattleArmorSpawnerFromDelegate = true;
                         spawn();
@@ -1217,7 +1217,7 @@ namespace StrategicOperations.Patches
                             ModState.CommandAbilities.Add(ability);
                         }
 
-                        ModInit.modLog.LogMessage($"Added {ability?.Def?.Id} to CommandAbilities");
+                        ModInit.modLog?.Info?.Write($"Added {ability?.Def?.Id} to CommandAbilities");
 
                     }
                 }
@@ -1238,7 +1238,7 @@ namespace StrategicOperations.Patches
                         var spawn = ModState.DeferredInvokeSpawns[index].Value;
                         var resource = ModState.DeferredInvokeSpawns[index].Key.Split('@');
                         ModState.DeferredActorResource = resource[1];
-                        ModInit.modLog.LogMessage(
+                        ModInit.modLog?.Info?.Write(
                             $"Found deferred spawner at index {index} of {ModState.DeferredInvokeSpawns.Count - 1}, invoking and trying to spawn {ModState.DeferredActorResource}.");
                         ModState.DeferredSpawnerFromDelegate = true;
                         spawn();
@@ -1424,7 +1424,7 @@ namespace StrategicOperations.Patches
                     ModState.OutOfRange = true;
                     CombatSpawningReticle.Instance.HideReticle();
                     //CombatTargetingReticle.Instance.HideReticle();
-                    //                    ModInit.modLog.LogMessage($"Cannot spawn turret with coordinates farther than __instance.Ability.Def.IntParam2: {__instance.FromButton.Ability.Def.IntParam2}");
+                    //                    ModInit.modLog?.Info?.Write($"Cannot spawn turret with coordinates farther than __instance.Ability.Def.IntParam2: {__instance.FromButton.Ability.Def.IntParam2}");
                     return false;
                 }
 
@@ -1471,7 +1471,7 @@ namespace StrategicOperations.Patches
                 {
                     ModState.OutOfRange = true;
                     CombatTargetingReticle.Instance.HideReticle();
-//                    ModInit.modLog.LogMessage($"Cannot strafe with coordinates farther than __instance.Ability.Def.IntParam2: {__instance.FromButton.Ability.Def.IntParam2}");
+//                    ModInit.modLog?.Info?.Write($"Cannot strafe with coordinates farther than __instance.Ability.Def.IntParam2: {__instance.FromButton.Ability.Def.IntParam2}");
                     return false;
                 }
 
@@ -1536,7 +1536,7 @@ namespace StrategicOperations.Patches
 
 
 
-                    ModInit.modLog.LogMessage("sorted beacons at SSCT2Pts");
+                    ModInit.modLog?.Info?.Write("sorted beacons at SSCT2Pts");
 
                     for (var index = 0; index < beacons.Count; index++)
                     {
@@ -1587,7 +1587,7 @@ namespace StrategicOperations.Patches
                             .PopupBackfill));
                     popup.AlwaysOnTop = true;
                     popup.AddButton("1.", () => { });
-                    ModInit.modLog.LogMessage(
+                    ModInit.modLog?.Info?.Write(
                         $"Added button for 1.");
                     switch (beacons.Count)
                     {
@@ -1605,7 +1605,7 @@ namespace StrategicOperations.Patches
                                 ?.Remove(0, 14);
                             var waveString = beacon.Def.ComponentTags.FirstOrDefault(x => x.StartsWith("StrafeWaves_"));
                             int.TryParse(waveString?.Substring(11), out var waves);
-                                ModInit.modLog.LogMessage(
+                                ModInit.modLog?.Info?.Write(
                                 $"beacon for button 2. will be {beacon.Def.Description.Name}, ID will be {id}, pilot will be {pilotID}");
                             popup.AddButton("2.", (Action) (() =>
                             {
@@ -1614,7 +1614,7 @@ namespace StrategicOperations.Patches
                                 ModState.PilotOverride = pilotID;
                                 ModState.IsStrafeAOE = beacon.IsAOEStrafe(
                                     __instance.FromButton.Ability.Def.specialRules == AbilityDef.SpecialRules.Strafe);
-                                ModInit.modLog.LogMessage(
+                                ModInit.modLog?.Info?.Write(
                                     $"Player pressed {id} with pilot {pilotID}. Now -{ModState.PopupActorResource}- and pilot -{ModState.PilotOverride}- should be the same.");
                             }));
                             goto RenderNow;
@@ -1629,7 +1629,7 @@ namespace StrategicOperations.Patches
                                 ?.Remove(0, 14);
                             var waveString = beacon.Def.ComponentTags.FirstOrDefault(x => x.StartsWith("StrafeWaves_"));
                             int.TryParse(waveString?.Substring(11), out var waves);
-                                ModInit.modLog.LogMessage(
+                                ModInit.modLog?.Info?.Write(
                                 $"beacon for button 3. will be {beacon.Def.Description.Name}, ID will be {id}, pilot will be {pilotID}");
                             var id1 = id;
                             var pilotID1 = pilotID;
@@ -1642,7 +1642,7 @@ namespace StrategicOperations.Patches
                                 ModState.PilotOverride = pilotID1;
                                 ModState.IsStrafeAOE = beacon1.IsAOEStrafe(
                                     __instance.FromButton.Ability.Def.specialRules == AbilityDef.SpecialRules.Strafe);
-                                ModInit.modLog.LogMessage(
+                                ModInit.modLog?.Info?.Write(
                                     $"Player pressed {id1} with pilot {pilotID1}. Now -{ModState.PopupActorResource}- and pilot -{ModState.PilotOverride}- should be the same.");
                             }));
 
@@ -1654,7 +1654,7 @@ namespace StrategicOperations.Patches
                                 ?.Remove(0, 14);
                             waveString = beacon.Def.ComponentTags.FirstOrDefault(x => x.StartsWith("StrafeWaves_"));
                             int.TryParse(waveString?.Substring(11), out waves);
-                                ModInit.modLog.LogMessage(
+                                ModInit.modLog?.Info?.Write(
                                 $"beacon for button 2. will be {beacon.Def.Description.Name}, ID will be {id}, pilot will be {pilotID}");
                             popup.AddButton("2.", (Action) (() =>
                             {
@@ -1663,7 +1663,7 @@ namespace StrategicOperations.Patches
                                 ModState.PilotOverride = pilotID;
                                 ModState.IsStrafeAOE = beacon.IsAOEStrafe(
                                     __instance.FromButton.Ability.Def.specialRules == AbilityDef.SpecialRules.Strafe);
-                                ModInit.modLog.LogMessage(
+                                ModInit.modLog?.Info?.Write(
                                     $"Player pressed {id} with pilot {pilotID}. Now -{ModState.PopupActorResource}- and pilot -{ModState.PilotOverride}- should be the same.");
                             }));
 
@@ -1681,7 +1681,7 @@ namespace StrategicOperations.Patches
                             ?.Remove(0, 14);
                         var waveString = beacon.Def.ComponentTags.FirstOrDefault(x => x.StartsWith("StrafeWaves_"));
                         int.TryParse(waveString?.Substring(11), out var waves);
-                        ModInit.modLog.LogMessage(
+                        ModInit.modLog?.Info?.Write(
                             $"beacon for button 3. will be {beacon.Def.Description.Name}, ID will be {id}, pilot will be {pilotID}");
                         var id1 = id;
                         var pilotID1 = pilotID;
@@ -1694,7 +1694,7 @@ namespace StrategicOperations.Patches
                             ModState.PilotOverride = pilotID1;
                             ModState.IsStrafeAOE = beacon1.IsAOEStrafe(
                                 __instance.FromButton.Ability.Def.specialRules == AbilityDef.SpecialRules.Strafe);
-                            ModInit.modLog.LogMessage(
+                            ModInit.modLog?.Info?.Write(
                                 $"Player pressed {id1} with pilot {pilotID1}. Now -{ModState.PopupActorResource}- and pilot -{ModState.PilotOverride}- should be the same.");
                         }));
 
@@ -1706,7 +1706,7 @@ namespace StrategicOperations.Patches
                             ?.Remove(0, 14);
                         waveString = beacon.Def.ComponentTags.FirstOrDefault(x => x.StartsWith("StrafeWaves_"));
                         int.TryParse(waveString?.Substring(11), out waves);
-                        ModInit.modLog.LogMessage(
+                        ModInit.modLog?.Info?.Write(
                             $"beacon for button 2. will be {beacon.Def.Description.Name}, ID will be {id}, pilot will be {pilotID}");
                         var id2 = id;
                         var pilotID2 = pilotID;
@@ -1719,7 +1719,7 @@ namespace StrategicOperations.Patches
                             ModState.PilotOverride = pilotID2;
                             ModState.IsStrafeAOE = beacon2.IsAOEStrafe(
                                 __instance.FromButton.Ability.Def.specialRules == AbilityDef.SpecialRules.Strafe);
-                            ModInit.modLog.LogMessage(
+                            ModInit.modLog?.Info?.Write(
                                 $"Player pressed {id2} with pilot {pilotID2}. Now -{ModState.PopupActorResource}- and pilot -{ModState.PilotOverride}- should be the same.");
                         }));
 
@@ -1734,7 +1734,7 @@ namespace StrategicOperations.Patches
                                 ?.Remove(0, 14);
                             waveString = beacon.Def.ComponentTags.FirstOrDefault(x => x.StartsWith("StrafeWaves_"));
                             int.TryParse(waveString?.Substring(11), out waves);
-                            ModInit.modLog.LogMessage(
+                            ModInit.modLog?.Info?.Write(
                                 $"beacon for button {index + 2}. will be {beacon.Def.Description.Name}, ID will be {id}, pilot will be {pilotID}");
                             var buttonName = $"{index + 2}.";
                             if (string.IsNullOrEmpty(id)) continue;
@@ -1750,10 +1750,10 @@ namespace StrategicOperations.Patches
                                     ModState.PilotOverride = pilotID3;
                                     ModState.IsStrafeAOE = beacon3.IsAOEStrafe(
                                         __instance.FromButton.Ability.Def.specialRules == AbilityDef.SpecialRules.Strafe);
-                                    ModInit.modLog.LogMessage(
+                                    ModInit.modLog?.Info?.Write(
                                         $"Player pressed {id3} with pilot {pilotID3}. Now -{ModState.PopupActorResource}- and pilot -{ModState.PilotOverride}- should be the same.");
                                 }));
-                            ModInit.modLog.LogMessage(
+                            ModInit.modLog?.Info?.Write(
                                 $"Added button for {buttonName}");
                         }
                     }
@@ -1795,7 +1795,7 @@ namespace StrategicOperations.Patches
                 if (actor == null || ability == null) return;
                 //                if (button == __instance.FireButton)
                 //                {
-                //                   ModInit.modLog.LogTrace(
+                //                   ModInit.modLog?.Trace?.Write(
                 //                       $"Leaving Fire Button Enabled");
                 //                   return;
                 //                }
@@ -1845,7 +1845,7 @@ namespace StrategicOperations.Patches
                 if (actor == null || ability == null) return;
                 //                if (button == __instance.FireButton)
                 //                {
-                //                   ModInit.modLog.LogTrace(
+                //                   ModInit.modLog?.Trace?.Write(
                 //                       $"Leaving Fire Button Enabled");
                 //                   return;
                 //                }
@@ -1896,7 +1896,7 @@ namespace StrategicOperations.Patches
                 if (actor == null || ability == null) return;
                 //                if (button == __instance.FireButton)
                 //                {
-                //                   ModInit.modLog.LogTrace(
+                //                   ModInit.modLog?.Trace?.Write(
                 //                       $"Leaving Fire Button Enabled");
                 //                   return;
                 //                }

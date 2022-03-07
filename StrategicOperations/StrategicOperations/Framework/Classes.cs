@@ -98,7 +98,7 @@ namespace StrategicOperations.Framework
                 {
                     if (this.Target is BattleTech.Building building)
                     {
-                        ModInit.modLog.LogMessage(
+                        ModInit.modLog?.Info?.Write(
                             $"[StrategicMovementSequence] Called for BA movement to garrison building {building.DisplayName}.");
                         squad.ProcessGarrisonBuilding(building);
                         return;
@@ -109,7 +109,7 @@ namespace StrategicOperations.Framework
                 {
                     if (MountSwarmBA)
                     {
-                        ModInit.modLog.LogMessage(
+                        ModInit.modLog?.Info?.Write(
                             $"[StrategicMovementSequence] Called for BA movement to mount or swarm.");
                         if (base.owningActor is TrooperSquad squad2)
                         {
@@ -129,13 +129,13 @@ namespace StrategicOperations.Framework
                         }
                         else
                         {
-                            ModInit.modLog.LogMessage(
+                            ModInit.modLog?.Info?.Write(
                                 $"[StrategicMovementSequence] ERROR: called sequence for BA, but target actor is not TrooperSquad.");
                             return;
                         }
                     }
 
-                    ModInit.modLog.LogMessage(
+                    ModInit.modLog?.Info?.Write(
                         $"[StrategicMovementSequence] Called for airlift/dropoff for Target {this.Target.DisplayName}.");
 
                     if (targetActor.IsAirlifted())
@@ -220,7 +220,7 @@ namespace StrategicOperations.Framework
 
             public void OnStratOpsDepsFailed()
             {
-                ModInit.modLog.LogTrace($"Failed to load Dependencies for {ChosenUnit}. This shouldnt happen!");
+                ModInit.modLog?.Trace?.Write($"Failed to load Dependencies for {ChosenUnit}. This shouldnt happen!");
             }
             public void OnBADepsLoaded()
             {
@@ -249,7 +249,7 @@ namespace StrategicOperations.Framework
                 }
                 Actor.Combat.ItemRegistry.AddItem(newBattleArmor);
                 Actor.Combat.RebuildAllLists();
-                ModInit.modLog.LogMessage(
+                ModInit.modLog?.Info?.Write(
                     $"[SpawnBattleArmorAtActor] Added PositionLockMount with rider  {newBattleArmor.DisplayName} {newBattleArmor.GUID} and carrier {Actor.DisplayName} {Actor.GUID}.");
             }
 
@@ -257,7 +257,7 @@ namespace StrategicOperations.Framework
             {
                 LoadRequest loadRequest = DM.CreateLoadRequest();
                 loadRequest.AddBlindLoadRequest(BattleTechResourceType.MechDef, ChosenUnit);
-                ModInit.modLog.LogMessage($"Added loadrequest for MechDef: {ChosenUnit}");
+                ModInit.modLog?.Info?.Write($"Added loadrequest for MechDef: {ChosenUnit}");
                 loadRequest.ProcessRequests(1000U);
 
                 var instanceGUID =
@@ -267,7 +267,7 @@ namespace StrategicOperations.Framework
                 {
                     if (ModState.DeferredInvokeBattleArmor.All(x => x.Key != instanceGUID) && !ModState.DeferredBattleArmorSpawnerFromDelegate)
                     {
-                        ModInit.modLog.LogTrace(
+                        ModInit.modLog?.Trace?.Write(
                             $"Deferred BA Spawner missing, creating delegate and returning. Delegate should spawn {ChosenUnit}");
 
                         void DeferredInvokeBASpawn() =>
@@ -277,7 +277,7 @@ namespace StrategicOperations.Framework
                         ModState.DeferredInvokeBattleArmor.Add(kvp);
                         foreach (var value in ModState.DeferredInvokeBattleArmor)
                         {
-                            ModInit.modLog.LogTrace(
+                            ModInit.modLog?.Trace?.Write(
                                 $"there is a delegate {value.Key} here, with value {value.Value}");
                         }
                         return;
@@ -289,7 +289,7 @@ namespace StrategicOperations.Framework
                 var chosenpilotSourceMech = alliedActors.GetRandomElement();
                 var newPilotDefID = chosenpilotSourceMech.pilot.pilotDef.Description.Id;
                 DM.PilotDefs.TryGet(newPilotDefID, out this.NewPilotDef);
-                ModInit.modLog.LogMessage($"Attempting to spawn {ChosenUnit} with pilot {NewPilotDef.Description.Callsign}.");
+                ModInit.modLog?.Info?.Write($"Attempting to spawn {ChosenUnit} with pilot {NewPilotDef.Description.Callsign}.");
                 DM.MechDefs.TryGet(ChosenUnit, out NewUnitDef);
                 NewUnitDef.Refresh();
                 //var injectedDependencyLoadRequest = new DataManager.InjectedDependencyLoadRequest(dm);
@@ -351,14 +351,14 @@ namespace StrategicOperations.Framework
                 dropSpawner.DropPodPosition = SpawnLoc;
                 dropSpawner.DropPodRotation = SpawnRotation;
 
-                ModInit.modLog.LogTrace($"DropPodAnim location {SpawnLoc} is also {dropSpawner.DropPodPosition}");
-                ModInit.modLog.LogTrace($"Is dropAnim null fuckin somehow? {dropSpawner == null}");
+                ModInit.modLog?.Trace?.Write($"DropPodAnim location {SpawnLoc} is also {dropSpawner.DropPodPosition}");
+                ModInit.modLog?.Trace?.Write($"Is dropAnim null fuckin somehow? {dropSpawner == null}");
                 dropSpawner.DropPodVfxPrefab = dropSpawner.Parent.DropPodVfxPrefab;
                 dropSpawner.DropPodLandedPrefab = dropSpawner.Parent.dropPodLandedPrefab;
                 dropSpawner.LoadDropPodPrefabs(dropSpawner.DropPodVfxPrefab, dropSpawner.DropPodLandedPrefab);
-                ModInit.modLog.LogTrace($"loaded prefabs success");
+                ModInit.modLog?.Trace?.Write($"loaded prefabs success");
                 dropSpawner.StartCoroutine(dropSpawner.StartDropPodAnimation(0f));
-                ModInit.modLog.LogTrace($"started drop pod anim");
+                ModInit.modLog?.Trace?.Write($"started drop pod anim");
 
                 if (SourceTeam.IsLocalPlayer && (ModInit.modSettings.commandUseCostsMulti > 0 ||
                                                SourceAbility.Def.getAbilityDefExtension().CBillCost > 0))
@@ -378,7 +378,7 @@ namespace StrategicOperations.Framework
                                 SourceAbility.Def.getAbilityDefExtension().CBillCost);
 
                         ModState.CommandUses.Add(commandUse);
-                        ModInit.modLog.LogMessage(
+                        ModInit.modLog?.Info?.Write(
                             $"Added usage cost for {commandUse.CommandName} - {commandUse.UnitName}. UnitUseCost (unadjusted): {unitCost}. Ability Use Cost: {SourceAbility.Def.getAbilityDefExtension().CBillCost}");
                     }
                     else
@@ -386,12 +386,12 @@ namespace StrategicOperations.Framework
                         var cmdUse = ModState.CommandUses.FirstOrDefault(x => x.UnitID == ChosenUnit);
                         if (cmdUse == null)
                         {
-                            ModInit.modLog.LogMessage($"ERROR: cmdUseInfo was null");
+                            ModInit.modLog?.Info?.Write($"ERROR: cmdUseInfo was null");
                         }
                         else
                         {
                             cmdUse.UseCount += 1;
-                            ModInit.modLog.LogMessage(
+                            ModInit.modLog?.Info?.Write(
                                 $"Added usage cost for {cmdUse.CommandName} - {cmdUse.UnitName}. UnitUseCost (unadjusted): {unitCost}. Ability Use Cost: {SourceAbility.Def.getAbilityDefExtension().CBillCost}. Now used {cmdUse.UseCount} times.");
                         }
                     }
@@ -402,7 +402,7 @@ namespace StrategicOperations.Framework
             {
                 LoadRequest loadRequest = DM.CreateLoadRequest();
                 loadRequest.AddBlindLoadRequest(BattleTechResourceType.MechDef, ChosenUnit);
-                ModInit.modLog.LogMessage($"Added loadrequest for MechDef: {ChosenUnit}");
+                ModInit.modLog?.Info?.Write($"Added loadrequest for MechDef: {ChosenUnit}");
                 loadRequest.ProcessRequests(1000U);
 
                 if (false) // maybe dont need? initial invoke should already be deferred, and we cant do this round 1 anyway
@@ -415,7 +415,7 @@ namespace StrategicOperations.Framework
                         if (ModState.DeferredInvokeBattleArmor.All(x => x.Key != instanceGUID) &&
                             !ModState.DeferredBattleArmorSpawnerFromDelegate)
                         {
-                            ModInit.modLog.LogTrace(
+                            ModInit.modLog?.Trace?.Write(
                                 $"Deferred BA Spawner missing, creating delegate and returning. Delegate should spawn {ChosenUnit}");
 
                             void DeferredInvokeBASpawn() =>
@@ -425,7 +425,7 @@ namespace StrategicOperations.Framework
                             ModState.DeferredInvokeBattleArmor.Add(kvp);
                             foreach (var value in ModState.DeferredInvokeBattleArmor)
                             {
-                                ModInit.modLog.LogTrace(
+                                ModInit.modLog?.Trace?.Write(
                                     $"there is a delegate {value.Key} here, with value {value.Value}");
                             }
 
@@ -438,7 +438,7 @@ namespace StrategicOperations.Framework
                 //var chosenpilotSourceMech = alliedActors.GetRandomElement();
                 //var newPilotDefID = chosenpilotSourceMech.pilot.pilotDef.Description.Id;
                 //DM.PilotDefs.TryGet(newPilotDefID, out this.NewPilotDef);
-                ModInit.modLog.LogMessage($"Attempting to spawn {ChosenUnit} with pilot {NewPilotDef.Description.Callsign}.");
+                ModInit.modLog?.Info?.Write($"Attempting to spawn {ChosenUnit} with pilot {NewPilotDef.Description.Callsign}.");
                 DM.MechDefs.TryGet(ChosenUnit, out NewUnitDef);
                 NewUnitDef.Refresh();
                 //var injectedDependencyLoadRequest = new DataManager.InjectedDependencyLoadRequest(dm);
@@ -481,7 +481,7 @@ namespace StrategicOperations.Framework
                         this.StrafeWave.Ability.Combat.BattleTechGame, newUnit,
                         BehaviorTreeIDEnum.DoNothingTree);
                 var eventID = Guid.NewGuid().ToString();
-                ModInit.modLog.LogMessage($"Initializing Strafing Run (wave) with id {eventID}!");
+                ModInit.modLog?.Info?.Write($"Initializing Strafing Run (wave) with id {eventID}!");
                 TB_StrafeSequence eventSequence =
                     new TB_StrafeSequence(this.ParentSequenceIDForStrafe, eventID, newUnit, SpawnLoc,
                         this.StrafeWave.PositionB, this.StrafeWave.Radius, this.StrafeWave.Team, ModState.IsStrafeAOE, this.StrafeWave.Ability.Def.IntParam1);
@@ -499,7 +499,7 @@ namespace StrategicOperations.Framework
                     unitName = NewUnitDef.Description.UIName;
                     unitID = NewUnitDef.Description.Id;
                     unitCost = NewUnitDef.Chassis.Description.Cost;
-                    ModInit.modLog.LogMessage($"Usage cost will be {unitCost}");
+                    ModInit.modLog?.Info?.Write($"Usage cost will be {unitCost}");
 
                     if (ModState.CommandUses.All(x => x.UnitID != this.StrafeWave.ActorResource))
                     {
@@ -508,7 +508,7 @@ namespace StrategicOperations.Framework
                             unitCost, this.StrafeWave.Ability.Def.getAbilityDefExtension().CBillCost);
 
                         ModState.CommandUses.Add(commandUse);
-                        ModInit.modLog.LogMessage(
+                        ModInit.modLog?.Info?.Write(
                             $"Added usage cost for {commandUse.CommandName} - {commandUse.UnitName}");
                     }
                     else
@@ -516,12 +516,12 @@ namespace StrategicOperations.Framework
                         var cmdUse = ModState.CommandUses.FirstOrDefault(x => x.UnitID == this.StrafeWave.ActorResource);
                         if (cmdUse == null)
                         {
-                            ModInit.modLog.LogMessage($"ERROR: cmdUseInfo was null");
+                            ModInit.modLog?.Info?.Write($"ERROR: cmdUseInfo was null");
                         }
                         else
                         {
                             cmdUse.UseCount += 1;
-                            ModInit.modLog.LogMessage(
+                            ModInit.modLog?.Info?.Write(
                                 $"Added usage cost for {cmdUse.CommandName} - {cmdUse.UnitName}, used {cmdUse.UseCount} times");
                         }
                     }
@@ -532,7 +532,7 @@ namespace StrategicOperations.Framework
             {
                 LoadRequest loadRequest = DM.CreateLoadRequest();
                 loadRequest.AddBlindLoadRequest(BattleTechResourceType.MechDef, this.StrafeWave.ActorResource);
-                ModInit.modLog.LogMessage($"Added loadrequest for MechDef: {this.StrafeWave.ActorResource}");
+                ModInit.modLog?.Info?.Write($"Added loadrequest for MechDef: {this.StrafeWave.ActorResource}");
                 loadRequest.ProcessRequests(1000U);
 
                 if (false) // maybe dont need? initial invoke should already be deferred, and we cant do this round 1 anyway
@@ -545,7 +545,7 @@ namespace StrategicOperations.Framework
                         if (ModState.DeferredInvokeBattleArmor.All(x => x.Key != instanceGUID) &&
                             !ModState.DeferredBattleArmorSpawnerFromDelegate)
                         {
-                            ModInit.modLog.LogTrace(
+                            ModInit.modLog?.Trace?.Write(
                                 $"Deferred BA Spawner missing, creating delegate and returning. Delegate should spawn {ChosenUnit}");
 
                             void DeferredInvokeBASpawn() =>
@@ -555,7 +555,7 @@ namespace StrategicOperations.Framework
                             ModState.DeferredInvokeBattleArmor.Add(kvp);
                             foreach (var value in ModState.DeferredInvokeBattleArmor)
                             {
-                                ModInit.modLog.LogTrace(
+                                ModInit.modLog?.Trace?.Write(
                                     $"there is a delegate {value.Key} here, with value {value.Value}");
                             }
 
@@ -568,7 +568,7 @@ namespace StrategicOperations.Framework
                 //var chosenpilotSourceMech = alliedActors.GetRandomElement();
                 //var newPilotDefID = chosenpilotSourceMech.pilot.pilotDef.Description.Id;
                 //DM.PilotDefs.TryGet(newPilotDefID, out this.NewPilotDef);
-                ModInit.modLog.LogMessage($"Attempting to spawn {ChosenUnit} with pilot {NewPilotDef.Description.Callsign}.");
+                ModInit.modLog?.Info?.Write($"Attempting to spawn {ChosenUnit} with pilot {NewPilotDef.Description.Callsign}.");
                 DM.MechDefs.TryGet(ChosenUnit, out NewUnitDef);
                 NewUnitDef.Refresh();
                 //var injectedDependencyLoadRequest = new DataManager.InjectedDependencyLoadRequest(dm);

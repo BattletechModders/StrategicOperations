@@ -3,6 +3,7 @@ using System.IO;
 
 namespace StrategicOperations.Framework
 {
+    //old logger, now unused and set to not compile
     internal class Logger
     {
         private static StreamWriter logStreamWriter;

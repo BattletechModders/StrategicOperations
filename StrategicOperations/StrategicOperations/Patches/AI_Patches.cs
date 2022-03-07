@@ -36,7 +36,7 @@ namespace StrategicOperations.Patches
                                 unit.Combat.DataManager.AbilityDefs.TryGet(ModInit.modSettings.BattleArmorDeSwarmSwat,
                                     out var def);
                                 var ability = new Ability(def);
-                                ModInit.modLog.LogTrace(
+                                ModInit.modLog?.Trace?.Write(
                                     $"Adding {ability.Def?.Description?.Id} to {unit.Description?.Name}.");
                                 ability.Init(unit.Combat);
                                 unit.GetPilot().Abilities.Add(ability);
@@ -54,7 +54,7 @@ namespace StrategicOperations.Patches
                                 unit.Combat.DataManager.AbilityDefs.TryGet(ModInit.modSettings.BattleArmorDeSwarmRoll,
                                     out var def);
                                 var ability = new Ability(def);
-                                ModInit.modLog.LogTrace(
+                                ModInit.modLog?.Trace?.Write(
                                     $"Adding {ability.Def?.Description?.Id} to {unit.Description?.Name}.");
                                 ability.Init(unit.Combat);
                                 unit.GetPilot().Abilities.Add(ability);
@@ -74,7 +74,7 @@ namespace StrategicOperations.Patches
                             unit.Combat.DataManager.AbilityDefs.TryGet(ModInit.modSettings.DeswarmMovementConfig.AbilityDefID,
                                 out var def);
                             var ability = new Ability(def);
-                            ModInit.modLog.LogTrace(
+                            ModInit.modLog?.Trace?.Write(
                                 $"Adding {ability.Def?.Description?.Id} to {unit.Description?.Name}.");
                             ability.Init(unit.Combat);
                             unit.GetPilot().Abilities.Add(ability);
@@ -109,7 +109,7 @@ namespace StrategicOperations.Patches
                     unit.canSwarm())
                 {
                     var result = 9001 * (1 / unit.DistanceToClosestDetectedEnemy(position));
-                    ModInit.modLog.LogDev(
+                    ModInit.modLog?.Debug?.Write(
                         $"[PreferFarthestAwayFromClosestHostilePositionFactor] Actor {unit.DisplayName} evaluating position {position}, should return {result}");
                     __result = result;
                     return false;
@@ -131,7 +131,7 @@ namespace StrategicOperations.Patches
                     unit.canSwarm())
                 {
                     var result = 9001 * (1 / unit.DistanceToClosestDetectedEnemy(position));
-                    ModInit.modLog.LogDev(
+                    ModInit.modLog?.Debug?.Write(
                         $"[PreferLowerMovementFactor] Actor {unit.DisplayName} evaluating position {position}, should return {result}");
                     __result = result;
                     return false;
@@ -153,7 +153,7 @@ namespace StrategicOperations.Patches
                     unit.canSwarm())
                 {
                     var result = 9001 * (1 / unit.DistanceToClosestDetectedEnemy(position));
-                    ModInit.modLog.LogDev(
+                    ModInit.modLog?.Debug?.Write(
                         $"[PreferOptimalDistanceToAllyFactor] Actor {unit.DisplayName} evaluating position {position}, should return {result}");
                     __result = result;
                     return false;
@@ -176,7 +176,7 @@ namespace StrategicOperations.Patches
                     unit.canSwarm())
                 {
                     var result = 9001 * (1 / unit.DistanceToClosestDetectedEnemy(position));
-                    ModInit.modLog.LogDev(
+                    ModInit.modLog?.Debug?.Write(
                         $"[PreferFarthestAwayFromClosestHostilePositionFactor] Actor {unit.DisplayName} evaluating position {position}, should return {result}");
                     __result = result;
                     return false;
@@ -199,7 +199,7 @@ namespace StrategicOperations.Patches
                     unit.canSwarm())
                 {
                     var result = 9001 * (1 / unit.DistanceToClosestDetectedEnemy(position));
-                    ModInit.modLog.LogDev(
+                    ModInit.modLog?.Debug?.Write(
                         $"[PreferNoCloserThanMinDistToHostileFactor] Actor {unit.DisplayName} evaluating position {position}, should return {result}");
                     __result = result;
                     return false;
@@ -222,7 +222,7 @@ namespace StrategicOperations.Patches
                 {
                     var result = 9001 * (1 / unit.DistanceToClosestDetectedEnemy(position));
                     __result = result;
-                    ModInit.modLog.LogDev(
+                    ModInit.modLog?.Debug?.Write(
                         $"[PreferOptimalDistanceToHostileFactor] Actor {unit.DisplayName} evaluating position {position}, should return {result}");
                     return false;
                 }
@@ -248,7 +248,7 @@ namespace StrategicOperations.Patches
 
                 if (___unit.IsAirlifted())
                 {
-                    ModInit.modLog.LogTrace(
+                    ModInit.modLog?.Trace?.Write(
                         $"[CanMoveAndShootWithoutOverheatingNode] Actor {___unit.DisplayName} is currently being airlifted. Doing nothing.");
                     __result = new BehaviorTreeResults(BehaviorNodeState.Failure);
                     return false;
@@ -263,7 +263,7 @@ namespace StrategicOperations.Patches
                     {
                         if (___unit.IsSwarmingUnit())
                         {
-                            ModInit.modLog.LogTrace(
+                            ModInit.modLog?.Trace?.Write(
                                 $"[CanMoveAndShootWithoutOverheatingNode] Actor {___unit.DisplayName} is currently swarming. Doing nothing.");
                             //if currently swarming, dont do anything else.
                             __result = new BehaviorTreeResults(BehaviorNodeState.Failure);
@@ -288,16 +288,16 @@ namespace StrategicOperations.Patches
                             battleArmorAbility.Def.IntParam2
                         }.Max();
 
-                        ModInit.modLog.LogTrace(
+                        ModInit.modLog?.Trace?.Write(
                             $"[CanMoveAndShootWithoutOverheatingNode] Actor {___unit.DisplayName} maxRange to be used is {maxRange}, largest of: MaxWalkDistance - {___unit.MaxWalkDistance}, MaxSprintDistance - {___unit.MaxSprintDistance}, JumpDistance - {jumpdist}, and Ability Override {battleArmorAbility.Def.IntParam2}");
 
                         if (___unit.IsMountedUnit())
                         {
-                            ModInit.modLog.LogTrace(
+                            ModInit.modLog?.Trace?.Write(
                                 $"[CanMoveAndShootWithoutOverheatingNode] Actor {___unit.DisplayName} is currently mounted. Evaluating range to nearest enemy.");
                             if (distance <= 1.25 * maxRange)
                             {
-                                ModInit.modLog.LogTrace(
+                                ModInit.modLog?.Trace?.Write(
                                     $"[CanMoveAndShootWithoutOverheatingNode] Actor {___unit.DisplayName} is {distance} from nearest enemy, maxrange was {maxRange} * 1.25.");
                                 var carrier = ___unit.Combat.FindActorByGUID(ModState.PositionLockMount[___unit.GUID]);
                                 if (ModState.AiBattleArmorAbilityCmds.ContainsKey(___unit.GUID))
@@ -329,7 +329,7 @@ namespace StrategicOperations.Patches
                         //if it isnt mounted, its on the ground and should try to swarm.
                         if (distance <= maxRange && !(closestEnemy is TrooperSquad))
                         {
-                            ModInit.modLog.LogTrace(
+                            ModInit.modLog?.Trace?.Write(
                                 $"[CanMoveAndShootWithoutOverheatingNode] Actor {___unit.DisplayName} is on the ground, trying to swarm at {distance} from nearest enemy, maxrange was {maxRange} * 1.25.");
                             if (ModState.AiBattleArmorAbilityCmds.ContainsKey(___unit.GUID))
                             {
@@ -457,7 +457,7 @@ namespace StrategicOperations.Patches
                         if (ability.IsAvailable && !ability.IsActive)
                         {
                             ability.Activate(unit, unit);
-                            ModInit.modLog.LogMessage($"{unit.DisplayName} {unit.GUID} is vehicle being swarmed. Found movement order, activating erratic maneuvers ability.");
+                            ModInit.modLog?.Info?.Write($"{unit.DisplayName} {unit.GUID} is vehicle being swarmed. Found movement order, activating erratic maneuvers ability.");
                             return true;
                         }
                     }
@@ -467,7 +467,7 @@ namespace StrategicOperations.Patches
                         ModState.AiDealWithBattleArmorCmds[unit.GUID].ability.Activate(unit, unit);
                         //     ModState.AiDealWithBattleArmorCmds[unit.GUID].targetActor);
 
-                        ModInit.modLog.LogMessage(
+                        ModInit.modLog?.Info?.Write(
                             $"activated {ModState.AiDealWithBattleArmorCmds[unit.GUID].ability.Def.Description.Id} on actor {unit.DisplayName} {unit.GUID}");
 
                         if (!unit.HasMovedThisRound)
@@ -502,7 +502,7 @@ namespace StrategicOperations.Patches
                         return false;
                     }
 
-                    ModInit.modLog.LogMessage(
+                    ModInit.modLog?.Info?.Write(
                         $"[AITeam.makeInvocationFromOrders] Actor {unit.DisplayName} has active swarm attack on {target.DisplayName}");
                     foreach (var weapon in unit.Weapons)
                     {
@@ -532,19 +532,19 @@ namespace StrategicOperations.Patches
                 {
                     if (ModState.AiBattleArmorAbilityCmds[unit.GUID].active)
                     {
-                        ModInit.modLog.LogTrace(
+                        ModInit.modLog?.Trace?.Write(
                             $"BA AI Swarm/Mount Ability DUMP: {ModState.AiBattleArmorAbilityCmds[unit.GUID].active}, {ModState.AiBattleArmorAbilityCmds[unit.GUID].targetActor.DisplayName}.");
-                        ModInit.modLog.LogTrace(
+                        ModInit.modLog?.Trace?.Write(
                             $"BA AI Swarm/Mount Ability DUMP: {ModState.AiBattleArmorAbilityCmds[unit.GUID].ability} {ModState.AiBattleArmorAbilityCmds[unit.GUID].ability.Def.Id}, Combat is not null? {ModState.AiBattleArmorAbilityCmds[unit.GUID].ability.Combat != null}");
 
                         ModState.AiBattleArmorAbilityCmds[unit.GUID].ability.Activate(unit,
                             ModState.AiBattleArmorAbilityCmds[unit.GUID].targetActor);
-                        ModInit.modLog.LogMessage(
+                        ModInit.modLog?.Info?.Write(
                             $"activated {ModState.AiBattleArmorAbilityCmds[unit.GUID].ability.Def.Description.Id} on actor {ModState.AiBattleArmorAbilityCmds[unit.GUID].targetActor.DisplayName} {ModState.AiBattleArmorAbilityCmds[unit.GUID].targetActor.GUID}");
 
                         if (unit.IsSwarmingUnit() && ModInit.modSettings.AttackOnSwarmSuccess && !unit.HasFiredThisRound)
                         {
-                            ModInit.modLog.LogTrace(
+                            ModInit.modLog?.Trace?.Write(
                                 $"[makeInvocationFromOrders] - found freshly swarmed unit; trying to make attack invocation for same round. Fingies crossed!");
                             var target = unit.Combat.FindActorByGUID(ModState.PositionLockSwarm[unit.GUID]);
                             foreach (var weapon in unit.Weapons)
@@ -589,14 +589,14 @@ namespace StrategicOperations.Patches
                 ModState.StrafeWaves = waves;
                 //assign waves here if needed
 
-                ModInit.modLog.LogTrace(
+                ModInit.modLog?.Trace?.Write(
                     $"AICMD DUMP: {ModState.AiCmds[unit.GUID].active}, {ModState.AiCmds[unit.GUID].vectorOne}, {ModState.AiCmds[unit.GUID].vectorTwo}.");
-                ModInit.modLog.LogTrace(
+                ModInit.modLog?.Trace?.Write(
                     $"CMD Ability DUMP: {ModState.AiCmds[unit.GUID].ability} {ModState.AiCmds[unit.GUID].ability.Def.Id}, Combat is not null? {ModState.AiCmds[unit.GUID].ability.Combat != null}");
 
                 ModState.AiCmds[unit.GUID].ability.Activate(unit, ModState.AiCmds[unit.GUID].vectorOne,
                     ModState.AiCmds[unit.GUID].vectorTwo);
-                ModInit.modLog.LogMessage(
+                ModInit.modLog?.Info?.Write(
                     $"activated {ModState.AiCmds[unit.GUID].ability.Def.Description.Id} at pos {ModState.AiCmds[unit.GUID].vectorOne.x}, {ModState.AiCmds[unit.GUID].vectorOne.y}, {ModState.AiCmds[unit.GUID].vectorOne.z} and {ModState.AiCmds[unit.GUID].vectorTwo.x}, {ModState.AiCmds[unit.GUID].vectorTwo.y}, {ModState.AiCmds[unit.GUID].vectorTwo.z}, dist = {ModState.AiCmds[unit.GUID].dist}");
 
                 if (!unit.HasMovedThisRound)
@@ -623,7 +623,7 @@ namespace StrategicOperations.Patches
                 {
                     if (actor.IsSwarmingUnit() || actor.IsMountedUnit()) // i could force visibility to zero for BA? unsure what i want to do here since i dont think the AI is smart enough to directly target the building. have to see how it plays/maybe give garrisoned BA some DR or something.
                     {
-                        ModInit.modLog.LogTrace(
+                        ModInit.modLog?.Trace?.Write(
                             $"[AIUtil.UnitHasVisibilityToTargetFromCurrentPosition] DUMP: Target {target.DisplayName} is either mounted or swarming, forcing AI visibility to zero for this node.");
                         __result = false;
                     }

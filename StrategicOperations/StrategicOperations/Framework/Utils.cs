@@ -168,7 +168,7 @@ namespace StrategicOperations.Framework
             {
                 if (cache.CachedVisibilityToTarget(enemy).VisibilityLevel > 0 && actor.team.IsEnemy(enemy.team) && !enemy.IsDead && !enemy.IsFlaggedForDeath)
                 {
-                    ModInit.modLog.LogDev($"unit {enemy.DisplayName} is enemy of {actor.DisplayName}.");
+                    ModInit.modLog?.Debug?.Write($"unit {enemy.DisplayName} is enemy of {actor.DisplayName}.");
                     detectedEnemies.Add(enemy);
                 }
             }
@@ -184,7 +184,7 @@ namespace StrategicOperations.Framework
                 {
                     if (Vector3.Distance(actor.CurrentPosition, enemy.CurrentPosition) <= range)
                     {
-                        ModInit.modLog.LogDev($"unit {enemy.DisplayName} is enemy of {actor.DisplayName}.");
+                        ModInit.modLog?.Debug?.Write($"unit {enemy.DisplayName} is enemy of {actor.DisplayName}.");
                         detectedEnemies.Add(enemy);
                     }
                 }
@@ -201,7 +201,7 @@ namespace StrategicOperations.Framework
                 {
                     if (Vector3.Distance(actor.CurrentPosition, friendly.CurrentPosition) <= range)
                     {
-                        ModInit.modLog.LogDev($"unit {friendly.DisplayName} is friendly of {actor.DisplayName}.");
+                        ModInit.modLog?.Debug?.Write($"unit {friendly.DisplayName} is friendly of {actor.DisplayName}.");
                         detectedFriendlies.Add(friendly);
                     }
                 }
@@ -216,7 +216,7 @@ namespace StrategicOperations.Framework
             {
                 if (actor.team.IsFriendly(friendly.team) && !friendly.IsDead && !friendly.IsFlaggedForDeath)
                 {
-                    ModInit.modLog.LogDev($"unit {friendly.DisplayName} is friendly of {actor.DisplayName}.");
+                    ModInit.modLog?.Debug?.Write($"unit {friendly.DisplayName} is friendly of {actor.DisplayName}.");
                     friendlyActors.Add(friendly);
                 }
             }
@@ -230,7 +230,7 @@ namespace StrategicOperations.Framework
             {
                 if (team.IsEnemy(enemy.team) && !enemy.IsDead && !enemy.IsFlaggedForDeath)
                 {
-                    ModInit.modLog.LogDev($"unit {enemy.DisplayName} is enemy of {team.DisplayName}.");
+                    ModInit.modLog?.Debug?.Write($"unit {enemy.DisplayName} is enemy of {team.DisplayName}.");
                     enemyActors.Add(enemy);
                 }
             }
@@ -251,7 +251,7 @@ namespace StrategicOperations.Framework
                 var newPos = start + spawnDir * radius;
                 vectors.Add(newPos);
                 if (ModInit.modSettings.debugFlares) Utils.SpawnDebugFlare(newPos, "vfxPrfPrtl_artillerySmokeSignal_loop", 3);
-                ModInit.modLog.LogTrace($"Distance from possibleStart to ray endpoint is {Vector3.Distance(start, newPos)}.");
+                ModInit.modLog?.Trace?.Write($"Distance from possibleStart to ray endpoint is {Vector3.Distance(start, newPos)}.");
             }
 
             return vectors.ToArray();
@@ -263,7 +263,7 @@ namespace StrategicOperations.Framework
             var rectangles = new List<Rect>();
             Vector3 line = end - start;
             float length = Vector3.Distance(start, end);
-            ModInit.modLog.LogTrace($"Rectangle length should be {length}.");
+            ModInit.modLog?.Trace?.Write($"Rectangle length should be {length}.");
             Vector3 left = Vector3.Cross(line, Vector3.up).normalized;
             Vector3 right = -left;
             var startLeft = start + (left * width);
@@ -286,7 +286,7 @@ namespace StrategicOperations.Framework
             var tertiaryID = def.secondaryMechColorID;
             var primaryID = def.tertiaryMechColorID;
 
-            ModInit.modLog.LogMessage($"Creating new heraldry for support. {primaryID} was tertiary, now primary. {secondaryID} was primary, now secondary. {tertiaryID} was secondary, now tertiary.");
+            ModInit.modLog?.Info?.Write($"Creating new heraldry for support. {primaryID} was tertiary, now primary. {secondaryID} was primary, now secondary. {tertiaryID} was secondary, now tertiary.");
             var newHeraldry = new HeraldryDef(def.Description, def.textureLogoID, primaryID, secondaryID, tertiaryID);
 
             newHeraldry.DataManager = dataManager;
@@ -314,7 +314,7 @@ namespace StrategicOperations.Framework
                 var combat = UnityGameInstance.BattleTechGame.Combat;
                 combat.ItemRegistry.AddItem(lance);
                 team.lances.Add(lance);
-                ModInit.modLog.LogMessage($"Created lance {lance.DisplayName} for Team {team.DisplayName}.");
+                ModInit.modLog?.Info?.Write($"Created lance {lance.DisplayName} for Team {team.DisplayName}.");
                 return lance;
             }
             return team.lances.FirstOrDefault(x => x.GUID.EndsWith($"{team.GUID}_StratOps"));
@@ -400,7 +400,7 @@ namespace StrategicOperations.Framework
                                 var value = sgs.CompanyStats.GetValue<int>(stat);
                                 var newStat = new CmdUseStat(id, stat, consumeOnUse, value, value, pilotID);
                                 ModState.DeploymentAssetsStats.Add(newStat);
-                                ModInit.modLog.LogMessage($"Added {id} to deploymentAssetsDict with value {value}.");
+                                ModInit.modLog?.Info?.Write($"Added {id} to deploymentAssetsDict with value {value}.");
                                 beacons.Add(mechComponentRef);
                             }
                             var assetStatInfo = ModState.DeploymentAssetsStats.FirstOrDefault(x => x.ID == id);
@@ -451,7 +451,7 @@ namespace StrategicOperations.Framework
                                 x.StartsWith("turretdef_"));
                             if (!id.StartsWith(type))
                             {
-//                                ModInit.modLog.LogMessage($"{id} != {type}, ignoring.");
+//                                ModInit.modLog?.Info?.Write($"{id} != {type}, ignoring.");
                                 continue;
                             }
 
@@ -467,7 +467,7 @@ namespace StrategicOperations.Framework
                                 var value = sgs.CompanyStats.GetValue<int>(stat);
                                 var newStat = new CmdUseStat(id, stat, consumeOnUse, value, value, pilotID);
                                 ModState.DeploymentAssetsStats.Add(newStat);
-                                ModInit.modLog.LogMessage($"Added {id} to deploymentAssetsDict with value {value}.");
+                                ModInit.modLog?.Info?.Write($"Added {id} to deploymentAssetsDict with value {value}.");
                                 beacons.Add(mechComponentRef);
                             }
                             var assetStatInfo = ModState.DeploymentAssetsStats.FirstOrDefault(x => x.ID == id);
@@ -489,17 +489,17 @@ namespace StrategicOperations.Framework
 
         public static void DeployEvasion(AbstractActor actor)
         {
-            ModInit.modLog.LogMessage($"Adding deploy protection to {actor.DisplayName}.");
+            ModInit.modLog?.Info?.Write($"Adding deploy protection to {actor.DisplayName}.");
             
             if (actor is Turret turret)
             {
-                ModInit.modLog.LogMessage($"{actor.DisplayName} is a turret, skipping.");
+                ModInit.modLog?.Info?.Write($"{actor.DisplayName} is a turret, skipping.");
                 return;
             }
 
             if (ModInit.modSettings.deployProtection > 0)
             {
-                ModInit.modLog.LogMessage($"Adding {ModInit.modSettings.deployProtection} evasion pips");
+                ModInit.modLog?.Info?.Write($"Adding {ModInit.modSettings.deployProtection} evasion pips");
                 actor.EvasivePipsCurrent = ModInit.modSettings.deployProtection;
                 Traverse.Create(actor).Property("EvasivePipsTotal").SetValue(actor.EvasivePipsCurrent);
                 actor.Combat.MessageCenter.PublishMessage(new EvasiveChangedMessage(actor.GUID, actor.EvasivePipsCurrent));
@@ -508,16 +508,16 @@ namespace StrategicOperations.Framework
 
         public static void MountedEvasion(this AbstractActor actor, AbstractActor carrier)
         {
-            ModInit.modLog.LogMessage($"Adding BA mounted protection to {actor.DisplayName}.");
+            ModInit.modLog?.Info?.Write($"Adding BA mounted protection to {actor.DisplayName}.");
 
             if (actor is Turret turret)
             {
-                ModInit.modLog.LogMessage($"{actor.DisplayName} is a turret, skipping.");
+                ModInit.modLog?.Info?.Write($"{actor.DisplayName} is a turret, skipping.");
                 return;
             }
 
             var carrierEvasion = carrier.EvasivePipsCurrent;
-            ModInit.modLog.LogMessage($"Setting evasion to {carrierEvasion} from carrier");
+            ModInit.modLog?.Info?.Write($"Setting evasion to {carrierEvasion} from carrier");
             actor.EvasivePipsCurrent = carrierEvasion;
             Traverse.Create(actor).Property("EvasivePipsTotal").SetValue(actor.EvasivePipsCurrent);
         }
@@ -620,7 +620,7 @@ namespace StrategicOperations.Framework
         {
             if (ModState.PendingStrafeWaves.ContainsKey(parentID))
             {
-                ModInit.modLog.LogMessage($"Strafe Sequence with parent {parentID} and ID {currentID} complete. Remaining waves: {ModState.PendingStrafeWaves[parentID].RemainingWaves}");
+                ModInit.modLog?.Info?.Write($"Strafe Sequence with parent {parentID} and ID {currentID} complete. Remaining waves: {ModState.PendingStrafeWaves[parentID].RemainingWaves}");
                 if (ModState.PendingStrafeWaves[parentID].RemainingWaves > 0)
                 {
                     ModState.PendingStrafeWaves[parentID].RemainingWaves--;
@@ -628,7 +628,7 @@ namespace StrategicOperations.Framework
                 }
                 else
                 {
-                    ModInit.modLog.LogMessage($"Strafe Sequence with parent {parentID} and ID {currentID} complete. No remaining waves, removing from state.");
+                    ModInit.modLog?.Info?.Write($"Strafe Sequence with parent {parentID} and ID {currentID} complete. No remaining waves, removing from state.");
                     ModState.PendingStrafeWaves.Remove(parentID);
                 }
             }
@@ -678,7 +678,7 @@ namespace StrategicOperations.Framework
                         wave.Ability.Combat.BattleTechGame, supportActorMech,
                         BehaviorTreeIDEnum.DoNothingTree);
                     var eventID = Guid.NewGuid().ToString();
-                    ModInit.modLog.LogMessage($"Initializing Strafing Run (wave) with id {eventID}!");
+                    ModInit.modLog?.Info?.Write($"Initializing Strafing Run (wave) with id {eventID}!");
                     TB_StrafeSequence eventSequence =
                         new TB_StrafeSequence(parentSequenceID, eventID, supportActorMech, wave.PositionA,
                             wave.PositionB, wave.Radius, wave.Team, ModState.IsStrafeAOE, wave.Ability.Def.IntParam1);
@@ -696,7 +696,7 @@ namespace StrategicOperations.Framework
                         unitName = supportActorMechDef.Description.UIName;
                         unitID = supportActorMechDef.Description.Id;
                         unitCost = supportActorMechDef.Chassis.Description.Cost;
-                        ModInit.modLog.LogMessage($"Usage cost will be {unitCost}");
+                        ModInit.modLog?.Info?.Write($"Usage cost will be {unitCost}");
 
                         if (ModState.CommandUses.All(x => x.UnitID != wave.ActorResource))
                         {
@@ -705,7 +705,7 @@ namespace StrategicOperations.Framework
                                 unitCost, wave.Ability.Def.getAbilityDefExtension().CBillCost);
 
                             ModState.CommandUses.Add(commandUse);
-                            ModInit.modLog.LogMessage(
+                            ModInit.modLog?.Info?.Write(
                                 $"Added usage cost for {commandUse.CommandName} - {commandUse.UnitName}");
                         }
                         else
@@ -713,12 +713,12 @@ namespace StrategicOperations.Framework
                             var cmdUse = ModState.CommandUses.FirstOrDefault(x => x.UnitID == wave.ActorResource);
                             if (cmdUse == null)
                             {
-                                ModInit.modLog.LogMessage($"ERROR: cmdUseInfo was null");
+                                ModInit.modLog?.Info?.Write($"ERROR: cmdUseInfo was null");
                             }
                             else
                             {
                                 cmdUse.UseCount += 1;
-                                ModInit.modLog.LogMessage(
+                                ModInit.modLog?.Info?.Write(
                                     $"Added usage cost for {cmdUse.CommandName} - {cmdUse.UnitName}, used {cmdUse.UseCount} times");
                             }
                         }
@@ -746,7 +746,7 @@ namespace StrategicOperations.Framework
                         BehaviorTreeIDEnum.DoNothingTree);
 
                     var eventID = Guid.NewGuid().ToString();
-                    ModInit.modLog.LogMessage($"Initializing Strafing Run (wave) with id {eventID}!");
+                    ModInit.modLog?.Info?.Write($"Initializing Strafing Run (wave) with id {eventID}!");
                     TB_StrafeSequence eventSequence =
                         new TB_StrafeSequence(parentSequenceID, eventID, supportActorVehicle, wave.PositionA,
                             wave.PositionB, wave.Radius, wave.Team, ModState.IsStrafeAOE, wave.Ability.Def.IntParam1);
@@ -764,7 +764,7 @@ namespace StrategicOperations.Framework
                         unitName = supportActorVehicleDef.Description.UIName;
                         unitID = supportActorVehicleDef.Description.Id;
                         unitCost = supportActorVehicleDef.Chassis.Description.Cost;
-                        ModInit.modLog.LogMessage(
+                        ModInit.modLog?.Info?.Write(
                             $"Usage cost will be {unitCost} + {wave.Ability.Def.getAbilityDefExtension().CBillCost}");
 
 
@@ -775,7 +775,7 @@ namespace StrategicOperations.Framework
                                 unitCost, wave.Ability.Def.getAbilityDefExtension().CBillCost);
 
                             ModState.CommandUses.Add(commandUse);
-                            ModInit.modLog.LogMessage(
+                            ModInit.modLog?.Info?.Write(
                                 $"Added usage cost for {commandUse.CommandName} - {commandUse.UnitName}");
                         }
                         else
@@ -783,12 +783,12 @@ namespace StrategicOperations.Framework
                             var cmdUse = ModState.CommandUses.FirstOrDefault(x => x.UnitID == wave.ActorResource);
                             if (cmdUse == null)
                             {
-                                ModInit.modLog.LogMessage($"ERROR: cmdUseInfo was null");
+                                ModInit.modLog?.Info?.Write($"ERROR: cmdUseInfo was null");
                             }
                             else
                             {
                                 cmdUse.UseCount += 1;
-                                ModInit.modLog.LogMessage(
+                                ModInit.modLog?.Info?.Write(
                                     $"Added usage cost for {cmdUse.CommandName} - {cmdUse.UnitName}, used {cmdUse.UseCount} times");
                             }
                         }
@@ -816,7 +816,7 @@ namespace StrategicOperations.Framework
                     BehaviorTreeIDEnum.DoNothingTree);
 
                 var eventID = Guid.NewGuid().ToString();
-                ModInit.modLog.LogMessage($"Initializing Strafing Run (wave) with id {eventID}!");
+                ModInit.modLog?.Info?.Write($"Initializing Strafing Run (wave) with id {eventID}!");
                 TB_StrafeSequence eventSequence =
                     new TB_StrafeSequence(parentSequenceID, eventID, supportActorTurret, wave.PositionA, wave.PositionB, wave.Radius, wave.Team, ModState.IsStrafeAOE, wave.Ability.Def.IntParam1);
                 TurnEvent tEvent = new TurnEvent(eventID, wave.Ability.Combat,
@@ -842,7 +842,7 @@ namespace StrategicOperations.Framework
                             unitCost, wave.Ability.Def.getAbilityDefExtension().CBillCost);
 
                         ModState.CommandUses.Add(commandUse);
-                        ModInit.modLog.LogMessage(
+                        ModInit.modLog?.Info?.Write(
                             $"Added usage cost for {commandUse.CommandName} - {commandUse.UnitName}. UnitUseCost (unadjusted): {unitCost}. wave.Ability Use Cost: {wave.Ability.Def.getAbilityDefExtension().CBillCost}");
                     }
                     else
@@ -850,12 +850,12 @@ namespace StrategicOperations.Framework
                         var cmdUse = ModState.CommandUses.FirstOrDefault(x => x.UnitID == wave.ActorResource);
                         if (cmdUse == null)
                         {
-                            ModInit.modLog.LogMessage($"ERROR: cmdUseInfo was null");
+                            ModInit.modLog?.Info?.Write($"ERROR: cmdUseInfo was null");
                         }
                         else
                         {
                             cmdUse.UseCount += 1;
-                            ModInit.modLog.LogMessage(
+                            ModInit.modLog?.Info?.Write(
                                 $"Added usage cost for {cmdUse.CommandName} - {cmdUse.UnitName}. UnitUseCost (unadjusted): {unitCost}. wave.Ability Use Cost: {wave.Ability.Def.getAbilityDefExtension().CBillCost}. Now used {cmdUse.UseCount} times");
                         }
                     }

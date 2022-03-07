@@ -40,7 +40,7 @@ namespace StrategicOperations.Patches
                 foreach (var cmdUse in ModState.CommandUses)
                 {
                     finalCommandCosts += cmdUse.TotalCost;
-                    ModInit.modLog.LogMessage($"{cmdUse.TotalCost} in command costs for {cmdUse.CommandName}: {cmdUse.UnitName}. Current Total Command Cost: {finalCommandCosts}");
+                    ModInit.modLog?.Info?.Write($"{cmdUse.TotalCost} in command costs for {cmdUse.CommandName}: {cmdUse.UnitName}. Current Total Command Cost: {finalCommandCosts}");
                 }
 
                 var moneyResults = __instance.MoneyResults - finalCommandCosts;

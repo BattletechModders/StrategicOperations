@@ -36,7 +36,7 @@ namespace StrategicOperations.Patches
             {
                 if (__result == ArmorLocation.None)
                 {
-                    ModInit.modLog.LogMessage($"[HitLocation.GetHitLocation]: Running shitty bypass due to GetHitLocation ArmorLocation.None, defaulting to ArmorLocation.CenterTorso");
+                    ModInit.modLog?.Info?.Write($"[HitLocation.GetHitLocation]: Running shitty bypass due to GetHitLocation ArmorLocation.None, defaulting to ArmorLocation.CenterTorso");
                     __result = ArmorLocation.CenterTorso;
                 }
                 
@@ -58,7 +58,7 @@ namespace StrategicOperations.Patches
             {
                 if (__result == VehicleChassisLocations.None)
                 {
-                    ModInit.modLog.LogMessage($"[HitLocation.GetHitLocation]: Running shitty bypass due to GetHitLocation VehicleChassisLocations.None, defaulting to VehicleChassisLocations.Front");
+                    ModInit.modLog?.Info?.Write($"[HitLocation.GetHitLocation]: Running shitty bypass due to GetHitLocation VehicleChassisLocations.None, defaulting to VehicleChassisLocations.Front");
                     __result = VehicleChassisLocations.Front;
                 }
 
@@ -139,7 +139,7 @@ namespace StrategicOperations.Patches
             {
                 if (__instance.targetRound != combatGameState.TurnDirector.CurrentRound)
                 {
-                    ModInit.modLog.LogMessage($"[ReserveActorInvocation.Invoke]: Running shitty bypass");
+                    ModInit.modLog?.Info?.Write($"[ReserveActorInvocation.Invoke]: Running shitty bypass");
                     var actor = combatGameState.FindActorByGUID(__instance.targetGUID);
                     if (!actor.team.IsLocalPlayer)
                     {
