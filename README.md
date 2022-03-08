@@ -414,7 +414,11 @@ settings in the mod.json:
 	"UsingMechAffinityForSwarmBreach": true,
 	"AirliftAbilityID": "AbilityDefAirliftActivate",
 	"AirliftCapacityByTonnage": false,
-	"CanDropOffAfterMoving": true
+	"CanDropOffAfterMoving": true,
+	"AirliftImmuneTags": [
+		"unit_vtol",
+		"unit_turret"
+	]
 ```
 
 `enableLogging` - bool, enable logging
@@ -606,6 +610,8 @@ Using the following settings, ClanGhostBear and ClanWolf have baseline 30% chanc
 
 `CanDropOffAfterMoving` - if true, airlift units can move and _then_ drop their airlifted units at final location. if false, airlifted units must drop units before moving that round.
 
+`AirliftImmuneTags` - list of unit def tags that render that unit immune to airlifting. use for vtols and turrets, stuff like that. although airlifting turrets *is* pretty amusing
+	
 ## Spawns
 
 Spawns are basically what they sound like: spawning reinforcement units at the selected location. These units will be AI-controlled (allied). Exactly <i>what</i> unit gets deployed depends on a few things.
@@ -1051,4 +1057,10 @@ After unit movement is complete, roll processes to determine if de-swarm occurs.
 
 New in v3.0.0.0, units (not just BA but mechs and vehicles!) can be picked up and redeployed by other units. Unlike the mount/swarm mechanic with BA, this ability rests on the *carrying* unit, and is *NOT* incorporated into the AI decision-making at all. It is strictly a player gimmick, and will remain so for the forseeable future. The basic usage is very similar to mount/swarm in that the carrier presses the appropriate component ability button, then selects the unit they want to pick up. Viable targets and range are indicated in the same way as mount/swarm targets for BA. The carrier will then move to that units position and pick it up. Setting the unit down is the same, with the caveat that if the setting `CanDropOffAfterMoving` is true, the carrier can move to a position AND drop off a unit in the same activation. Dropping off does not *end* the activation, and the carrying unit can still shoot, etc.
 	
-In order for a unit to be
+In order for a unit to be airlift, it needs to *NOT* have any of the tags listed in `AirliftImmuneTags`. Likewise, the carrier must a) have the ability from `AirliftAbilityID` and b) have one or both of `InternalLiftCapacity` and `ExternalLiftCapacity` set to some non-zero value. Internal lift capacity functions similarly to internal mounted BA, in that the unitreps are shrunk so as to be basically invisible, and the units themselves are not directly targetable and cannot shoot. Externally airlifted units ARE targetable and CAN shoot. For carriers with both internal and external capacity, internal "spots" will be filled first, then external.
+
+If `AirliftCapacityByTonnage` is set true, airlift capacity will be determined by the sum tonnage of units being airlifted. If false, it will be dictated by absolute number of units (which is how BA mount capacity works).
+	
+Hostile units *can* be airlifted provided the carrier unit has the unit stat `CanAirliftHostiles` set to true; hostile units are only mounted externally, and are not prevented from shooting or using abilities; hostile AI likewise relies on properly setting the irbtmu_immobile_unit stat to true under `AirliftTargetEffects` to keep them immobile while airlifting (the effect will be canceled when they are dropped).
+
+Speaking of dropping, hostile airlifted units are literally **dropped** from the VTOL's height when the airlift is halted, dealing appropriate DFA self-damage as if they'd fallen from a building. In the case of turrets and vehicles the damage is equal to their tonnage, while mechs recieve whatever their DFA selfdamage is listed in the chassisdef.
