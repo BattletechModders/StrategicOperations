@@ -1046,7 +1046,9 @@ After unit movement is complete, roll processes to determine if de-swarm occurs.
 	"Priority": 0
 }
 ```
-## Airlifts! aka Operation Drop It Like It's Hoooooooot
+## Airlifts! aka Operation Drop It Like It's Hawwwwt?
 #### (but also just ground transport I guess)
 
-New in v3.0.0.0, units (not just BA but mechs and vehicles!) can be picked up and redeployed by other units. Unlike the mount/swarm mechanic with BA, this ability rests on the *carrying* unit, and is *NOT* incorporated into the AI decision-making at all. It is strictly a player gimmick, and will remain so for the forseeable future. The basic usage is very similar to mount/swarm in that the carrier presses the appropriate component ability button, then selects the unit they want to pick up. Viable targets and range are indicated in the same way as mount/swarm targets for BA. The carrier will then move to that units position and pick it up. Setting the unit down is the same, with the caveat that if the setting `CanDropOffAfterMoving` is true, the carrier can move to a position AND drop off a unit in the same activation. Dropping off does not *end* the activation, and hte carrying unit can still shoot, etc.
+New in v3.0.0.0, units (not just BA but mechs and vehicles!) can be picked up and redeployed by other units. Unlike the mount/swarm mechanic with BA, this ability rests on the *carrying* unit, and is *NOT* incorporated into the AI decision-making at all. It is strictly a player gimmick, and will remain so for the forseeable future. The basic usage is very similar to mount/swarm in that the carrier presses the appropriate component ability button, then selects the unit they want to pick up. Viable targets and range are indicated in the same way as mount/swarm targets for BA. The carrier will then move to that units position and pick it up. Setting the unit down is the same, with the caveat that if the setting `CanDropOffAfterMoving` is true, the carrier can move to a position AND drop off a unit in the same activation. Dropping off does not *end* the activation, and the carrying unit can still shoot, etc.
+	
+In order for a unit to be
