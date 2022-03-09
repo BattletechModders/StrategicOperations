@@ -1053,7 +1053,7 @@ After unit movement is complete, roll processes to determine if de-swarm occurs.
 }
 ```
 ## Airlifts! aka Operation Drop It Like It's Hawwwwt?
-#### (but also just ground transport I guess)
+#### (but also just ground transport I guess. I jhust refer to it as airlift throughout, but it could also be a ground-based unit doing so)
 
 New in v3.0.0.0, units (not just BA but mechs and vehicles!) can be picked up and redeployed by other units. Unlike the mount/swarm mechanic with BA, this ability rests on the *carrying* unit, and is *NOT* incorporated into the AI decision-making at all. It is strictly a player gimmick, and will remain so for the forseeable future. The basic usage is very similar to mount/swarm in that the carrier presses the appropriate component ability button, then selects the unit they want to pick up. Viable targets and range are indicated in the same way as mount/swarm targets for BA. The carrier will then move to that units position and pick it up. Setting the unit down is the same, with the caveat that if the setting `CanDropOffAfterMoving` is true, the carrier can move to a position AND drop off a unit in the same activation. Dropping off does not *end* the activation, and the carrying unit can still shoot, etc.
 	
@@ -1061,6 +1061,8 @@ In order for a unit to be airlift, it needs to *NOT* have any of the tags listed
 
 If `AirliftCapacityByTonnage` is set true, airlift capacity will be determined by the sum tonnage of units being airlifted. If false, it will be dictated by absolute number of units (which is how BA mount capacity works).
 	
+When dropping off units, a popup will display allowing the player to select which currently airlifted unit is to be dropped off.
+	
 Hostile units *can* be airlifted provided the carrier unit has the unit stat `CanAirliftHostiles` set to true; hostile units are only mounted externally, and are not prevented from shooting or using abilities; hostile AI likewise relies on properly setting the irbtmu_immobile_unit stat to true under `AirliftTargetEffects` to keep them immobile while airlifting (the effect will be canceled when they are dropped).
 
-Speaking of dropping, hostile airlifted units are literally **dropped** from the VTOL's height when the airlift is halted, dealing appropriate DFA self-damage as if they'd fallen from a building. In the case of turrets and vehicles the damage is equal to their tonnage, while mechs recieve the DFA selfdamage listed in their chassisdef.
+Speaking of dropping, hostile airlifted units are literally **dropped** from the VTOL's height when the airlift is halted, dealing appropriate DFA self-damage as if they'd fallen from a building. In the case of turrets and vehicles the damage is equal to their tonnage, while mechs recieve the DFA selfdamage listed in their chassisdef. It is up to modpack authors to config properly so as to not allow ground-based units to transport hostiles, since such units would still recieve damage when being "dropped" even though theyre already on the ground.
