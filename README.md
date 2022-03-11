@@ -411,6 +411,7 @@ settings in the mod.json:
 			"SoloDuel"
 		],
 	"BeaconExcludedContractIDs": [],
+	"GarrisonBuildingArmorFactor": 0.5,
 	"UsingMechAffinityForSwarmBreach": true,
 	"AirliftAbilityID": "AbilityDefAirliftActivate",
 	"AirliftCapacityByTonnage": false,
@@ -602,6 +603,9 @@ Using the following settings, ClanGhostBear and ClanWolf have baseline 30% chanc
 `BeaconExcludedContractIDs` - List of contract IDs where deployment or strafing beacons are not allowed to be used
 
 **new/changed in 3.0.0.0**
+	
+`GarrisonBuildingArmorFactor` - float, multiplier of BA squad armor+structure to be added to buildings they are garrisoning
+	
 `UsingMechAffinityForSwarmBreach` - use MechAffinity implementation to give BA swarms breaching shot (if using MechAffinity, need to have BATargetEffect on swarm that sets the appropriate stat to true).
 
 `AirliftAbilityID` - abilityDef ID for airlift ability
@@ -919,7 +923,9 @@ Carrier units with actor bool statistic `HasFiringPorts` set to true will allow 
 
 #### Garrisons - new in v3.0.0.0
 
-BA can now occupy buildings. Each building can only hold a single squad of BA because reasons. Because getting the AI to shoot at the damn _building_ is a pain in the ass, I've chosen to allow the AI to target the BA squads directly; however the BA squads <i>also</i> get the building HP added to their own armor (divided amongst the squad). If the building itself is destroyed with the BA still occupying it, they take their chassis DFA self-damage to each location, and receive any effects defined in `OnGarrisonCollapseEffects`. If players choose to voluntarily exit the garrisoned building, they will exfil to a random adjacent hex. I am not planning on giving the AI the ability to garrison buildings at this time; this is strictly a player gimmick.
+BA can now occupy buildings. Each building can only hold a single squad of BA because reasons. Because getting the AI to shoot at the damn _building_ is a pain in the ass, I've chosen to allow the AI to target the BA squads directly; however BA squads garrisoned in buildings get incoming damage redirected to the building. Likewise, the building itself will recieve bonus structure points in the form of (squad.Structure + squad.Armor) x GarrisonBuildingArmorFactor
+	
+	If the building itself is destroyed with the BA still occupying it, they take their chassis DFA self-damage to each location, and receive any effects defined in `OnGarrisonCollapseEffects`. If players choose to voluntarily exit the garrisoned building, they will exfil to a random adjacent hex. I am not planning on giving the AI the ability to garrison buildings at this time; this is strictly a player gimmick.
 
 #### Countering Mount/Swarm
 
