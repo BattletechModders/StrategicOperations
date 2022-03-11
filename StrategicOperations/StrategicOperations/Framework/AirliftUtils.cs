@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
 using BattleTech;
@@ -148,10 +149,29 @@ namespace StrategicOperations.Framework
             }
             return results;
         }
+        public static void HandleTurretFallingDamage(this Turret turret)
+        {
+            var dmg = turret.TurretDef.Chassis.Tonnage;
+
+            var fallingWeapon = new Weapon(turret, turret.Combat, turret.TurretDef.Inventory.First(), "TurretFallingFakeWeapon");
+            // Initialize a game representation to prevent warnings in CAC logs
+            fallingWeapon.Init();
+            fallingWeapon.InitStats();
+            fallingWeapon.InitGameRep(fallingWeapon.baseComponentRef.prefabName, turret.GameRep.TurretAttach, turret.LogDisplayName);
+
+            var hitinfo = new WeaponHitInfo(-1, -1, 0, 0, turret.GUID,
+                turret.GUID, 1, new float[1], new float[1], new float[1],
+                new bool[1], new int[1], new int[1], new AttackImpactQuality[1],
+                new AttackDirection[1], new Vector3[1], new string[1], new int[1]);
+
+            turret.TakeWeaponDamage(hitinfo, 1,
+                fallingWeapon, dmg,
+                0, 0, DamageType.DFASelf);
+        }
 
         public static void MountUnitToAirliftCarrier(this AbstractActor carrier, AbstractActor targetUnit, bool isFriendly)
         {
-            if (targetUnit is Mech targetMech)
+            if (targetUnit is Mech targetMech) //handle turret also below this
             {
                 foreach (var airliftEffect in ModState.AirliftEffects)
                 {
@@ -243,6 +263,100 @@ namespace StrategicOperations.Framework
                                 $"[MountUnitToAirliftCarrier] - target unit {carrier.DisplayName} has available external lift capacity of {availableExternalCapacity}; mounting {targetMech.DisplayName} externally. Offset calculated at {offset}");
                             carrier.modifyUsedExternalLiftCapacity(1);
                             ModState.AirliftTrackers.Add(targetMech.GUID, new Classes.AirliftTracker(carrier.GUID, false, true, offset));
+                        }
+                    }
+                }
+            }
+            else if (targetUnit is Turret targetTurret) //handle turret also below this
+            {
+                foreach (var airliftEffect in ModState.AirliftEffects)
+                {
+                    if (airliftEffect.FriendlyAirlift && isFriendly)
+                    {
+                        foreach (var effectData in airliftEffect.effects)
+                        {
+                            targetTurret.Combat.EffectManager.CreateEffect(effectData,
+                                effectData.Description.Id,
+                                -1, targetTurret, targetTurret, default(WeaponHitInfo), 1);
+                        }
+                    }
+                    else if (!airliftEffect.FriendlyAirlift && !isFriendly)
+                    {
+                        foreach (var effectData in airliftEffect.effects)
+                        {
+                            targetTurret.Combat.EffectManager.CreateEffect(effectData,
+                                effectData.Description.Id,
+                                -1, targetTurret, targetTurret, default(WeaponHitInfo), 1);
+                        }
+                    }
+                }
+                var availableInternalCapacity = carrier.getAvailableInternalLiftCapacity();
+                var availableExternalCapacity = carrier.getAvailableExternalLiftCapacity();
+                var unitTonnage = Mathf.RoundToInt(targetTurret.TurretDef.Chassis.Tonnage);
+                var offset = targetUnit.GetVerticalOffsetForExternalMount();
+                if (isFriendly)
+                {
+                    if (ModInit.modSettings.AirliftCapacityByTonnage)
+                    {
+                        if (availableInternalCapacity >= unitTonnage)
+                        {
+                            ModInit.modLog?.Info?.Write(
+                                $"[MountUnitToAirliftCarrier] - target unit {carrier.DisplayName} has available internal lift capacity of {availableInternalCapacity}; mounting {targetTurret.DisplayName} internally.");
+                            carrier.modifyUsedInternalLiftCapacity(unitTonnage);
+                            ModState.AirliftTrackers.Add(targetTurret.GUID, new Classes.AirliftTracker(carrier.GUID, true, true, 0f));
+                            //shrinkadink
+                            targetTurret.GameRep.transform.localScale = new Vector3(.01f, .01f, .01f);
+                            return;
+                        }
+                        if (availableExternalCapacity >= unitTonnage)
+                        {
+                            ModInit.modLog?.Info?.Write(
+                                $"[MountUnitToAirliftCarrier] - target unit {carrier.DisplayName} has available external lift capacity of {availableExternalCapacity}; mounting {targetTurret.DisplayName} externally. Offset calculated at {offset}");
+                            carrier.modifyUsedExternalLiftCapacity(unitTonnage);
+                            ModState.AirliftTrackers.Add(targetTurret.GUID, new Classes.AirliftTracker(carrier.GUID, false, true, offset));
+                        }
+                    }
+                    else
+                    {
+                        if (availableInternalCapacity > 0)
+                        {
+                            ModInit.modLog?.Info?.Write(
+                                $"[MountUnitToAirliftCarrier] - target unit {carrier.DisplayName} has available internal lift capacity of {availableInternalCapacity}; mounting {targetTurret.DisplayName} internally.");
+                            carrier.modifyUsedInternalLiftCapacity(1);
+                            ModState.AirliftTrackers.Add(targetTurret.GUID, new Classes.AirliftTracker(carrier.GUID, false, true, 0f));
+                            //shrinkadink
+                            targetTurret.GameRep.transform.localScale = new Vector3(.01f, .01f, .01f);
+                            return;
+                        }
+                        if (availableExternalCapacity > 0)
+                        {
+                            ModInit.modLog?.Info?.Write(
+                                $"[MountUnitToAirliftCarrier] - target unit {carrier.DisplayName} has available external lift capacity of {availableExternalCapacity}; mounting {targetTurret.DisplayName} externally. Offset calculated at {offset}");
+                            carrier.modifyUsedExternalLiftCapacity(1);
+                            ModState.AirliftTrackers.Add(targetTurret.GUID, new Classes.AirliftTracker(carrier.GUID, false, true, offset));
+                        }
+                    }
+                }
+                else
+                {
+                    if (ModInit.modSettings.AirliftCapacityByTonnage)
+                    {
+                        if (availableExternalCapacity >= unitTonnage)
+                        {
+                            ModInit.modLog?.Info?.Write(
+                                $"[MountUnitToAirliftCarrier] - target unit {carrier.DisplayName} has available external lift capacity of {availableExternalCapacity}; mounting {targetTurret.DisplayName} externally. Offset calculated at {offset}");
+                            carrier.modifyUsedExternalLiftCapacity(unitTonnage);
+                            ModState.AirliftTrackers.Add(targetTurret.GUID, new Classes.AirliftTracker(carrier.GUID, false, true, offset));
+                        }
+                    }
+                    else
+                    {
+                        if (availableExternalCapacity > 0)
+                        {
+                            ModInit.modLog?.Info?.Write(
+                                $"[MountUnitToAirliftCarrier] - target unit {carrier.DisplayName} has available external lift capacity of {availableExternalCapacity}; mounting {targetTurret.DisplayName} externally. Offset calculated at {offset}");
+                            carrier.modifyUsedExternalLiftCapacity(1);
+                            ModState.AirliftTrackers.Add(targetTurret.GUID, new Classes.AirliftTracker(carrier.GUID, false, true, offset));
                         }
                     }
                 }
@@ -341,11 +455,20 @@ namespace StrategicOperations.Framework
             {
                 Vector3 vector = actor.CurrentPosition;
                 vector.y = actor.Combat.MapMetaData.GetLerpedHeightAt(actor.CurrentPosition, false);
-                if (actor is Mech mech)
+                if (actor is TrooperSquad squad)
+                {
+                    squad.HandleBattleArmorFallingDamage();
+                }
+                else if (actor is Mech mech)
                 {
                     MechDisplacementSequence sequence = new MechDisplacementSequence(mech, vector, mech.GameRep.thisTransform.rotation, carrier.GUID);
                     mech.Combat.MessageCenter.PublishMessage(new AddParallelSequenceToStackMessage(sequence));
-                    return;
+                    //return; // handle turrets here too to give them damage. maybe also double check that BA will receive proper DFA self damage.
+                    //also airlifting turrets doesnt seem to work, so figiure that out
+                }
+                else if (actor is Turret turret)
+                {
+                    turret.HandleTurretFallingDamage();
                 }
                 if (actor.GameRep != null)
                 {

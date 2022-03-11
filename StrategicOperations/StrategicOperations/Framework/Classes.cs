@@ -77,7 +77,7 @@ namespace StrategicOperations.Framework
             public ICombatant Target;
             public bool IsFriendly;
             public bool MountSwarmBA;
-            public override bool ConsumesActivation => false;
+            public override bool ConsumesActivation => true;
 
             //public new virtual bool ForceActivationEnd => false;
 
@@ -93,6 +93,11 @@ namespace StrategicOperations.Framework
                 base.owningActor.AutoBrace = false;
                 base.CompleteOrders();
                 base.owningActor.ResetPathing(false);
+
+                if (base.owningActor.team.IsLocalPlayer)
+                {
+
+                }
 
                 if (MountSwarmBA && owningActor is TrooperSquad squad)
                 {
@@ -311,9 +316,12 @@ namespace StrategicOperations.Framework
                         NewPilotDef.GatherDependencies(DM, dependencyLoad, 1000U);
                     }
                     DM.InjectDependencyLoader(dependencyLoad, 1000U);
-                    return;
                 }
-                this.OnBADepsLoaded();
+                else
+                {
+                    this.OnBADepsLoaded();
+                }
+                
             }
 
             public void OnBeaconDepsLoaded()
@@ -460,9 +468,11 @@ namespace StrategicOperations.Framework
                         NewPilotDef.GatherDependencies(DM, dependencyLoad, 1000U);
                     }
                     DM.InjectDependencyLoader(dependencyLoad, 1000U);
-                    return;
                 }
-                this.OnBeaconDepsLoaded();
+                else
+                {
+                    this.OnBeaconDepsLoaded();
+                }
             }
 
             public void OnStrafeDepsLoaded()
@@ -590,9 +600,11 @@ namespace StrategicOperations.Framework
                         NewPilotDef.GatherDependencies(DM, dependencyLoad, 1000U);
                     }
                     DM.InjectDependencyLoader(dependencyLoad, 1000U);
-                    return;
                 }
-                this.OnStrafeDepsLoaded();
+                else
+                {
+                    this.OnStrafeDepsLoaded();
+                }
             }
         }
 

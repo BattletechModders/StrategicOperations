@@ -22,6 +22,23 @@ namespace StrategicOperations.Framework
 {
     public static class BattleArmorUtils
     {
+        public static void HandleBattleArmorFallingDamage(this TrooperSquad squad)
+        {
+            var dmg = squad.StatCollection.GetValue<float>("DFASelfDamage");
+            var trooperLocs = squad.GetPossibleHitLocations(squad);
+            for (int i = 0; i < trooperLocs.Count; i++)
+            {
+                var hitinfo = new WeaponHitInfo(-1, -1, 0, 0, squad.GUID,
+                    squad.GUID, 1, new float[1], new float[1], new float[1],
+                    new bool[1], new int[trooperLocs[i]], new int[1], new AttackImpactQuality[1],
+                    new AttackDirection[1], new Vector3[1], new string[1], new int[trooperLocs[i]]);
+
+                squad.TakeWeaponDamage(hitinfo, trooperLocs[i],
+                    squad.MeleeWeapon, dmg,
+                    0, 0, DamageType.DFASelf);
+            }
+        }
+
         public static float[] CalculateClusterDamages(float totalDamage, int clusters, List<int> possibleLocs, out int[] locs)
         {
             ModInit.modLog?.Trace?.Write($"[CalculateClusterDamages] Generating {totalDamage} total damage in {clusters} clusters");

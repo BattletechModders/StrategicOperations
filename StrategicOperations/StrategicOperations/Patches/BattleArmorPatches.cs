@@ -283,7 +283,7 @@ namespace StrategicOperations.Patches
         [HarmonyPatch(typeof(SelectionStateTargetSingleCombatantBase), "ProcessClickedCombatant", new Type[] {typeof(ICombatant)})]
         public static class SelectionStateTargetSingleCombatantBase_ProcessClickedCombatant
         {
-            private static bool Prepare() => false;
+            //private static bool Prepare() => false;
             public static void Postfix(SelectionStateTargetSingleCombatantBase __instance, ICombatant combatant)
             {
                 if (__instance.FromButton.Ability.Def.Id == ModInit.modSettings.BattleArmorMountAndSwarmID)

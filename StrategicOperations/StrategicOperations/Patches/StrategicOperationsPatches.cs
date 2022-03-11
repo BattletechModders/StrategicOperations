@@ -673,7 +673,7 @@ namespace StrategicOperations.Patches
                     if (__instance.Def.IntParam1 > 0)
                     {
                         Utils.SpawnFlares(__instance, positionA, positionB, ModInit.modSettings.flareResourceID,
-                            __instance.Def.IntParam1, __instance.Def.ActivationETA * strafeWaves, team.IsLocalPlayer); // make smoke last for all strafe waves because babies
+                            __instance.Def.IntParam1, Math.Max(__instance.Def.ActivationETA * strafeWaves, strafeWaves), team.IsLocalPlayer); // make smoke last for all strafe waves because babies
                     }
                 }
                 return false;

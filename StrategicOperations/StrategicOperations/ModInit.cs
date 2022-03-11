@@ -121,6 +121,7 @@ namespace StrategicOperations
         public string AirliftAbilityID = "";
         public bool CanDropOffAfterMoving = false;
         public bool AirliftCapacityByTonnage = false;
+        public List<string> AirliftImmuneTags = new List<string>(); //e.g. unit_vtol or big_chungus. also probably put turrets unless you want to move turrets artound... havent tried it but could be hilarious.
 
 //        public AirliftWiggleConfig AirliftWiggleConfiguration = new AirliftWiggleConfig();
     }

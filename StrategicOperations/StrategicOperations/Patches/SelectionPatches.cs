@@ -7,6 +7,7 @@ using Abilifier.Patches;
 using BattleTech;
 using BattleTech.Rendering;
 using BattleTech.UI;
+using CustomAmmoCategoriesPatches;
 using CustomUnits;
 using Harmony;
 using HBS;
@@ -373,6 +374,8 @@ namespace StrategicOperations.Patches
                 {
                     if (potentialTarget is AbstractActor targetActor)
                     {
+                        if (targetActor.GetTags().Any(x => ModInit.modSettings.AirliftImmuneTags.Contains(x)))
+                            return false;
                         if (SelectedActor.HasActivatedThisRound) return false;
                         if (SelectedActor.IsAirliftingTargetUnit(targetActor))
                         {
