@@ -411,6 +411,7 @@ settings in the mod.json:
 			"SoloDuel"
 		],
 	"BeaconExcludedContractIDs": [],
+	"DisableGarrisons": false,
 	"GarrisonBuildingArmorFactor": 0.5,
 	"UsingMechAffinityForSwarmBreach": true,
 	"AirliftAbilityID": "AbilityDefAirliftActivate",
@@ -604,6 +605,8 @@ Using the following settings, ClanGhostBear and ClanWolf have baseline 30% chanc
 
 **new/changed in 3.0.0.0**
 	
+`DisableGarrisons` - bool, if true BA cannot garrison buildings
+
 `GarrisonBuildingArmorFactor` - float, multiplier of BA squad armor+structure to be added to buildings they are garrisoning
 	
 `UsingMechAffinityForSwarmBreach` - use MechAffinity implementation to give BA swarms breaching shot (if using MechAffinity, need to have BATargetEffect on swarm that sets the appropriate stat to true).
