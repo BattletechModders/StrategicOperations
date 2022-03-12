@@ -442,7 +442,7 @@ settings in the mod.json:
 
 `strafeNeutralBuildingsChance` - float, probability that strafing targets non-objective buildings (friendly buildings are covered by `strafeTargetsFriendliesChance`)
 
-`strafeTargetsFriendliesChance` - float, probability that strafing targets mission objective buildings
+`strafeObjectiveBuildingsChance` - float, probability that strafing targets mission objective buildings
 
 `strafeSensorFactor` - float, multiplier of strafing units base sensor range for revealing sensor blips of hostiles as it flies over them.
 
