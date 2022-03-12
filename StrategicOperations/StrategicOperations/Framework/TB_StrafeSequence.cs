@@ -260,7 +260,7 @@ namespace StrategicOperations.Framework
                     if (isObjective)
                     {
                         var chanceBuilding = ModInit.modSettings.strafeObjectiveBuildingsChance;
-                        if (rollBuilding >= chanceBuilding && allCombatants[i].team.IsNeutral(this.StrafingTeam))
+                        if (rollBuilding >= chanceBuilding)
                         {
                             ModInit.modLog?.Info?.Write($"Roll {rollBuilding} >= strafeObjectiveBuildingsChance {chanceBuilding}, skipping.");
                             continue;
