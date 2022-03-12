@@ -116,6 +116,7 @@ namespace StrategicOperations
 
         public bool UsingMechAffinityForSwarmBreach = false;
 
+        public bool DisableGarrisons = false;
         public float GarrisonBuildingArmorFactor = 1f;
 
         public string AirliftAbilityID = "";
