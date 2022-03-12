@@ -15,6 +15,7 @@ settings in the mod.json:
 	"spawnTurretEndsActivation": true,
 	"deployProtection": 8,
 	"strafeTargetsFriendliesChance": 1.0,
+	"strafeObjectiveBuildingsChance": 0.1,
 	"strafeNeutralBuildingsChance": 0.2,
 	"strafeSensorFactor": 4.0,
 	"strafeVelocityDefault": 150.0,
@@ -440,6 +441,8 @@ settings in the mod.json:
 `strafeTargetsFriendliesChance` - float, probability that strafing targets friendly units
 
 `strafeNeutralBuildingsChance` - float, probability that strafing targets non-objective buildings (friendly buildings are covered by `strafeTargetsFriendliesChance`)
+
+`strafeTargetsFriendliesChance` - float, probability that strafing targets mission objective buildings
 
 `strafeSensorFactor` - float, multiplier of strafing units base sensor range for revealing sensor blips of hostiles as it flies over them.
 
