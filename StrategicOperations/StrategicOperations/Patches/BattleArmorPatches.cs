@@ -1053,7 +1053,10 @@ namespace StrategicOperations.Patches
                         var bldgCombatant = squad.Combat.FindCombatantByGUID(ModState.PositionLockGarrison[squad.GUID].BuildingGUID);
                         if (bldgCombatant is BattleTech.Building building)
                         {
+                            ModInit.modLog?.Trace?.Write($"[Mech.DamageLocation] Redirecting {totalArmorDamage} armor and {directStructureDamage} structure damaghe from squad {squad.DisplayName} {squad.GUID} to garrisoned building {bldgCombatant.DisplayName}");
                             building.TakeWeaponDamage(hitInfo, 1, weapon, totalArmorDamage, directStructureDamage, hitIndex, damageType);
+                            totalArmorDamage = 0f;
+                            directStructureDamage = 0f;
                         }
                     }
                 }

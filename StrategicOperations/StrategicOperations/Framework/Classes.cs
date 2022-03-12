@@ -675,19 +675,11 @@ namespace StrategicOperations.Framework
         public class BA_GarrisonInfo
         {
             public string BuildingGUID = ""; //guid of building
-            public Dictionary<int, float> InitialLocArmor;
-            public float InitialBuildingStructure;
+            public Vector3 OriginalSquadPos = new Vector3(); // original position of squad. when exiting, squad will move here because pathing sucks and i hate it.
             public BA_GarrisonInfo(BattleTech.Building building, TrooperSquad squad)
             {
                 BuildingGUID = building.GUID;
-                InitialLocArmor = new Dictionary<int, float>();
-                foreach (var loc in squad.GetPossibleHitLocations(squad))
-                {
-                    var currentArmor = squad.GetCurrentArmor((ArmorLocation) loc);
-                    InitialLocArmor.Add(loc, currentArmor);
-                }
-
-                InitialBuildingStructure = building.CurrentArmor + building.CurrentStructure;
+                OriginalSquadPos = squad.CurrentPosition;
             }
         }
 

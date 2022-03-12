@@ -263,6 +263,7 @@ namespace StrategicOperations.Patches
 
                     if (potentialTarget is BattleTech.Building building)
                     {
+                        if (!Combat.EncounterLayerData.IsInEncounterBounds(building.CurrentPosition)) return false;
                         if (SelectedActor.isGarrisonedInTargetBuilding(building)) return true;
                         if (building.hasGarrisonedUnits()) return false;
                         if (building.team.IsNeutral(SelectedActor.team) || building.team.IsFriendly(SelectedActor.team))

@@ -500,7 +500,7 @@ namespace StrategicOperations.Framework
                 //actor.OnActivationEnd(actor.GUID, -1);
             }
 
-            actor.VisibilityCache.UpdateCacheReciprocal(actor.Combat.GetAllLivingCombatants());
+            //actor.VisibilityCache.UpdateCacheReciprocal(actor.Combat.GetAllLivingCombatants());
 
             ModInit.modLog?.Info?.Write(
                 $"[DropAirliftedUnit] Removing PositionLock with rider  {actor.DisplayName} {actor.GUID} and carrier {carrier.DisplayName} {carrier.GUID} and rebuilding visibility cache.");
