@@ -254,7 +254,7 @@ namespace StrategicOperations.Patches
                         {
                             if (trooperSquad.IsSwarmingUnit() && ModState.PositionLockSwarm[trooperSquad.GUID] == component.parent.GUID)
                             {
-                                trooperSquad.DismountBA(component.parent, Vector3.zero, true);
+                                trooperSquad.DismountBA(component.parent, Vector3.zero, false, true);
                             }
                             
                             var baLoc = trooperSquad.GetPossibleHitLocations(component.parent);
@@ -411,7 +411,7 @@ namespace StrategicOperations.Patches
                                 var selectedWaypoint = waypoints.GetRandomElement();
                                 ModInit.modLog?.Info?.Write(
                                     $"[ActorMovementSequence.CompleteOrders] Roll succeeded, plonking {swarmingUnit.DisplayName} at {selectedWaypoint.Position}");
-                                swarmingUnit.DismountBA(__instance.owningActor, selectedWaypoint.Position, true);
+                                swarmingUnit.DismountBA(__instance.owningActor, selectedWaypoint.Position, false, true);
                             }
                         }
                         ModState.DeSwarmMovementInfo = new Classes.BA_DeswarmMovementInfo();
@@ -454,7 +454,7 @@ namespace StrategicOperations.Patches
                             finalDestination.y = swarmingUnit.Combat.MapMetaData.GetLerpedHeightAt(finalDestination, false); //set proper height on ground.
                             ModInit.modLog?.Info?.Write(
                                 $"[ActorMovementSequence.CompleteOrders] Roll succeeded, plonking {swarmingUnit.DisplayName} at {finalDestination}");
-                            swarmingUnit.DismountBA(__instance.owningActor, finalDestination, true);
+                            swarmingUnit.DismountBA(__instance.owningActor, finalDestination, false, true);
                             if (swarmingUnit is TrooperSquad swarmingUnitSquad)
                             {
                                 var dmg = settings.UseDFADamage
@@ -726,7 +726,7 @@ namespace StrategicOperations.Patches
                             BattleArmorAsMech.NukeStructureLocation(hitInfo, 1, BALocStruct, attackDirection,
                                 damageType);
                         }
-                        BattleArmorAsMech.DismountBA(__instance, Vector3.zero, false, true);
+                        BattleArmorAsMech.DismountBA(__instance, Vector3.zero, false, true, true);
                         BattleArmorAsMech.FlagForDeath("Killed When Mount Died", DeathMethod.VitalComponentDestroyed, DamageType.Melee, 0, -1, __instance.GUID, false);
                         BattleArmorAsMech.HandleDeath(__instance.GUID);
                     }
@@ -761,7 +761,7 @@ namespace StrategicOperations.Patches
                             {
                                 squad.Combat.EffectManager.CreateEffect(effectData,
                                     effectData.Description.Id,
-                                    -1, squad, squad, default(WeaponHitInfo), 1);
+                                    -1, actor, actor, default(WeaponHitInfo), 1);
                             }
                         }
                     }
@@ -847,6 +847,20 @@ namespace StrategicOperations.Patches
                         }
                         ModInit.modLog?.Trace?.Write($"[AbstractActor.HandleDeath] Mount {__instance.DisplayName} destroyed, calling dismount.");
                         actor.DismountBA(__instance, Vector3.zero, false, true);
+                    }
+                }
+
+                if (__instance.HasAirliftedUnits())
+                {
+                    var airliftedUnits =
+                        new List<KeyValuePair<string, Classes.AirliftTracker>>(
+                            ModState.AirliftTrackers.Where(x => x.Value.CarrierGUID == __instance.GUID)).ToList();
+
+                    foreach (var unitTracker in airliftedUnits)
+                    {
+                        var actor = __instance.Combat.FindActorByGUID(unitTracker.Key);
+                        ModInit.modLog?.Trace?.Write($"[AbstractActor.HandleDeath] Airlift carrier {__instance.DisplayName} destroyed, calling dismount for {actor.DisplayName}.");
+                        __instance.DropAirliftedUnit(actor, Vector3.zero, false, false, true);
                     }
                 }
             }

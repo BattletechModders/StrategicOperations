@@ -181,7 +181,7 @@ namespace StrategicOperations.Framework
                         {
                             targetMech.Combat.EffectManager.CreateEffect(effectData,
                                 effectData.Description.Id,
-                                -1, targetMech, targetMech, default(WeaponHitInfo), 1);
+                                -1, targetUnit, targetUnit, default(WeaponHitInfo), 1);
                         }
                     }
                     else if (!airliftEffect.FriendlyAirlift && !isFriendly)
@@ -190,7 +190,7 @@ namespace StrategicOperations.Framework
                         {
                             targetMech.Combat.EffectManager.CreateEffect(effectData,
                                 effectData.Description.Id,
-                                -1, targetMech, targetMech, default(WeaponHitInfo), 1);
+                                -1, targetUnit, targetUnit, default(WeaponHitInfo), 1);
                         }
                     }
                 }
@@ -277,7 +277,7 @@ namespace StrategicOperations.Framework
                         {
                             targetTurret.Combat.EffectManager.CreateEffect(effectData,
                                 effectData.Description.Id,
-                                -1, targetTurret, targetTurret, default(WeaponHitInfo), 1);
+                                -1, targetUnit, targetUnit, default(WeaponHitInfo), 1);
                         }
                     }
                     else if (!airliftEffect.FriendlyAirlift && !isFriendly)
@@ -286,7 +286,7 @@ namespace StrategicOperations.Framework
                         {
                             targetTurret.Combat.EffectManager.CreateEffect(effectData,
                                 effectData.Description.Id,
-                                -1, targetTurret, targetTurret, default(WeaponHitInfo), 1);
+                                -1, targetUnit, targetUnit, default(WeaponHitInfo), 1);
                         }
                     }
                 }
@@ -382,12 +382,15 @@ namespace StrategicOperations.Framework
             var em = actor.Combat.EffectManager;
             foreach (var airliftEffect in ModState.AirliftEffects)
             {
-                var effects = em.GetAllEffectsTargetingWithUniqueID(actor, airliftEffect.ID);
-                for (int i = effects.Count - 1; i >= 0; i--)
+                foreach (var effectProper in airliftEffect.effects)
                 {
-                    ModInit.modLog?.Info?.Write(
-                        $"[DropAirliftedUnit] Cancelling effect on {actor.DisplayName}: {effects[i].EffectData.Description.Name}.");
-                    em.CancelEffect(effects[i]);
+                    var effects = em.GetAllEffectsTargetingWithBaseID(actor, effectProper.Description.Id);
+                    for (int i = effects.Count - 1; i >= 0; i--)
+                    {
+                        ModInit.modLog?.Info?.Write(
+                            $"[DropAirliftedUnit] Cancelling effect on {actor.DisplayName}: {effects[i].EffectData.Description.Name}.");
+                        em.CancelEffect(effects[i]);
+                    }
                 }
             }
 
@@ -439,7 +442,7 @@ namespace StrategicOperations.Framework
                 //squad.GameRep.ToggleHeadlights(true);
             }
 
-            if (!isHostileDrop)
+            if (!isHostileDrop && !calledFromHandleDeath)
             {
                 var point = carrier.CurrentPosition;
                 if (locationOverride != Vector3.zero)

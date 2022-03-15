@@ -485,7 +485,7 @@ namespace StrategicOperations.Patches
                                 if (creator is TrooperSquad squad)
                                 {
                                     //ModInit.modLog?.Trace?.Write($"[Ability.Activate] Called DetachFromCarrier.");
-                                    squad.DismountBA(targetActor, Vector3.zero, false, false, false);
+                                    //squad.DismountBA(targetActor, Vector3.zero, true, false, false);
                                     squad.DetachFromCarrier(targetActor, true);
                                 }
                                 //creator.DismountBA(targetActor);

@@ -251,6 +251,7 @@ namespace StrategicOperations.Framework
             {
                 squad.GameRep.transform.localScale = new Vector3(1f, 1f, 1f);
                 squad.GameRep.ToggleHeadlights(true);
+                squad.DismountBA(detachTarget, Vector3.zero, true, false, false);
                 //ModState.SavedBAScale[squad.GUID];
                 //if (ModState.SavedBAScale.ContainsKey(squad.GUID))
                 //{
@@ -343,19 +344,20 @@ namespace StrategicOperations.Framework
                 {
                     ModInit.modLog?.Trace?.Write($"DetachFromCarrier call dismount.");
                     //CALL DEFAULT ATTACH CODE
-                    squad.DismountBA(attachTarget, Vector3.zero, false, false, true);
+                    squad.DismountBA(attachTarget, Vector3.zero, true, false, false);
                 }
             }
             else
             {
                 ModInit.modLog?.Trace?.Write($"DetachFromCarrier call dismount.");
                 //CALL DEFAULT ATTACH CODE
-                squad.DismountBA(attachTarget, Vector3.zero, false, false, true);
+                squad.DismountBA(attachTarget, Vector3.zero, false, false, false);
             }
         }
 
         public static void MountBattleArmorToChassis(this AbstractActor carrier, AbstractActor battleArmor, bool shrinkRep, bool isFriendly)
         {
+            battleArmor.TeleportActor(carrier.CurrentPosition);
             if (battleArmor is Mech battleArmorAsMech)
             {
                 //add irbtu immobile tag?
@@ -388,6 +390,8 @@ namespace StrategicOperations.Framework
 
                 if (isFriendly)
                 {
+                    ModState.PositionLockMount.Add(battleArmor.GUID, carrier.GUID);
+
                     var internalCap = carrier.getInternalBACap();
                     var currentInternalSquads = carrier.getInternalBASquads();
                     if (currentInternalSquads < internalCap)
@@ -397,10 +401,45 @@ namespace StrategicOperations.Framework
                         tracker.IsSquadInternal = true;
                         // try and set firing arc to 360?
                         battleArmor.FiringArc(360f);
-                        return;
                     }
 
+                    foreach (var BA_Effect in ModState.BA_MountSwarmEffects)
+                    {
+                        if (BA_Effect.TargetEffectType == Classes.BA_TargetEffectType.BOTH)
+                        {
+                            foreach (var effectData in BA_Effect.effects)
+                            {
+                                battleArmor.Combat.EffectManager.CreateEffect(effectData,
+                                    effectData.Description.Id,
+                                    -1, battleArmor, battleArmor, default(WeaponHitInfo), 1);
+                            }
+                        }
+                        if (BA_Effect.TargetEffectType == Classes.BA_TargetEffectType.MOUNT_EXT && !tracker.IsSquadInternal)
+                        {
+                            foreach (var effectData in BA_Effect.effects)
+                            {
+                                battleArmor.Combat.EffectManager.CreateEffect(effectData,
+                                    effectData.Description.Id,
+                                    -1, battleArmor, battleArmor, default(WeaponHitInfo), 1);
+                            }
+                        }
+                        if (BA_Effect.TargetEffectType == Classes.BA_TargetEffectType.MOUNT_INT && tracker.IsSquadInternal)
+                        {
+                            foreach (var effectData in BA_Effect.effects)
+                            {
+                                battleArmor.Combat.EffectManager.CreateEffect(effectData,
+                                    effectData.Description.Id,
+                                    -1, battleArmor, battleArmor, default(WeaponHitInfo), 1);
+                            }
+                        }
+                    }
+
+                    if (tracker.IsSquadInternal) return;
                     carrier.setHasExternalMountedBattleArmor(true);
+                }
+                else
+                {
+                    ModState.PositionLockSwarm.Add(battleArmor.GUID, carrier.GUID);
                 }
 
                 foreach (ChassisLocations BattleArmorChassisLoc in Enum.GetValues(typeof(ChassisLocations)))
@@ -658,12 +697,18 @@ namespace StrategicOperations.Framework
                 var em = actor.Combat.EffectManager;
                 foreach (var BA_effect in ModState.BA_MountSwarmEffects)
                 {
-                    var effects = em.GetAllEffectsTargetingWithUniqueID(actor, BA_effect.ID);
-                    for (int i = effects.Count - 1; i >= 0; i--)
+                    foreach (var effectProper in BA_effect.effects)
                     {
-                        ModInit.modLog?.Info?.Write(
-                            $"[DismountBA] Cancelling effect on {actor.DisplayName}: {effects[i].EffectData.Description.Name}.");
-                        em.CancelEffect(effects[i]);
+                        ModInit.modLog?.Trace?.Write(
+                            $"[DismountBA] DEBUGGINS Checking for {effectProper.Description.Name} with id {effectProper.Description.Id} on {actor.DisplayName}.");
+                        var effects = em.GetAllEffectsTargetingWithBaseID(actor, effectProper.Description.Id);
+
+                        for (int i = effects.Count - 1; i >= 0; i--)
+                        {
+                            ModInit.modLog?.Info?.Write(
+                                $"[DismountBA] Cancelling effect on {actor.DisplayName}: {effects[i].EffectData.Description.Name}.");
+                            em.CancelEffect(effects[i]);
+                        }
                     }
                 }
 
@@ -730,12 +775,16 @@ namespace StrategicOperations.Framework
             {
                 if (BA_effect.TargetEffectType != Classes.BA_TargetEffectType.GARRISON &&
                     BA_effect.TargetEffectType != Classes.BA_TargetEffectType.BOTH) continue;
-                var effects = em.GetAllEffectsTargetingWithUniqueID(squad, BA_effect.ID);
-                for (int i = effects.Count - 1; i >= 0; i--)
+
+                foreach (var effectProper in BA_effect.effects)
                 {
-                    ModInit.modLog?.Info?.Write(
-                        $"[DismountGarrison] Cancelling effect on {squad.DisplayName}: {effects[i].EffectData.Description.Name}.");
-                    em.CancelEffect(effects[i]);
+                    var effects = em.GetAllEffectsTargetingWithBaseID(squad, effectProper.Description.Id);
+                    for (int i = effects.Count - 1; i >= 0; i--)
+                    {
+                        ModInit.modLog?.Info?.Write(
+                            $"[DismountGarrison] Cancelling effect on {squad.DisplayName}: {effects[i].EffectData.Description.Name}.");
+                        em.CancelEffect(effects[i]);
+                    }
                 }
             }
             squad.FiringArc(squad.GetCustomInfo().FiringArc);
@@ -891,7 +940,7 @@ namespace StrategicOperations.Framework
                     {
                         ModInit.modLog?.Info?.Write(
                             $"[Ability.Activate - DestroyBA on Roll] FAILURE: {destroyBARoll} > {finalChance}.");
-                        swarmingUnitActor.DismountBA(creator, Vector3.zero, true);
+                        swarmingUnitActor.DismountBA(creator, Vector3.zero, false, true);
                     }
                 }
                 else
@@ -958,7 +1007,7 @@ namespace StrategicOperations.Framework
                     {
                         swarmingUnitActor.ForceUnitOnePhaseDown(creator.GUID, -1, false);
                     }
-                    swarmingUnitActor.DismountBA(creator, Vector3.zero, true);
+                    swarmingUnitActor.DismountBA(creator, Vector3.zero, false, true);
                     var dmgRoll = ModInit.Random.NextDouble();
                     if (dmgRoll <= finalChance)
                     {
@@ -1014,6 +1063,7 @@ namespace StrategicOperations.Framework
 
         public static void ProcessGarrisonBuilding(this TrooperSquad creator, BattleTech.Building targetBuilding)
         {
+            var creatorActor = creator as AbstractActor;
             ModState.PositionLockGarrison.Add(creator.GUID, new Classes.BA_GarrisonInfo(targetBuilding, creator));
             foreach (var BA_Effect in ModState.BA_MountSwarmEffects)
             {
@@ -1023,7 +1073,7 @@ namespace StrategicOperations.Framework
                     {
                         creator.Combat.EffectManager.CreateEffect(effectData,
                             effectData.Description.Id,
-                            -1, creator, creator, default(WeaponHitInfo), 1);
+                            -1, creatorActor, creatorActor, default(WeaponHitInfo), 1);
                     }
                 }
                 if (BA_Effect.TargetEffectType == Classes.BA_TargetEffectType.GARRISON)
@@ -1032,7 +1082,7 @@ namespace StrategicOperations.Framework
                     {
                         creator.Combat.EffectManager.CreateEffect(effectData,
                             effectData.Description.Id,
-                            -1, creator, creator, default(WeaponHitInfo), 1);
+                            -1, creatorActor, creatorActor, default(WeaponHitInfo), 1);
                     }
                 }
             }
@@ -1069,43 +1119,8 @@ namespace StrategicOperations.Framework
         
         public static void ProcessMountFriendly(this AbstractActor creator, AbstractActor targetActor)
         {
-            foreach (var BA_Effect in ModState.BA_MountSwarmEffects)
-            {
-                if (BA_Effect.TargetEffectType == Classes.BA_TargetEffectType.BOTH)
-                {
-                    foreach (var effectData in BA_Effect.effects)
-                    {
-                        creator.Combat.EffectManager.CreateEffect(effectData,
-                            effectData.Description.Id,
-                            -1, creator, creator, default(WeaponHitInfo), 1);
-                    }
-                }
-                if (BA_Effect.TargetEffectType == Classes.BA_TargetEffectType.MOUNT_EXT && !creator.IsMountedInternal())
-                {
-                    foreach (var effectData in BA_Effect.effects)
-                    {
-                        creator.Combat.EffectManager.CreateEffect(effectData,
-                            effectData.Description.Id,
-                            -1, creator, creator, default(WeaponHitInfo), 1);
-                    }
-                }
-                if (BA_Effect.TargetEffectType == Classes.BA_TargetEffectType.MOUNT_INT && creator.IsMountedInternal())
-                {
-                    foreach (var effectData in BA_Effect.effects)
-                    {
-                        creator.Combat.EffectManager.CreateEffect(effectData,
-                            effectData.Description.Id,
-                            -1, creator, creator, default(WeaponHitInfo), 1);
-                    }
-                }
-            }
-
-            creator.TeleportActor(targetActor.CurrentPosition);
-
-            ModState.PositionLockMount.Add(creator.GUID, targetActor.GUID);
             if (creator is TrooperSquad squad)
             {
-                squad.GameRep.transform.localScale = new Vector3(.01f, .01f, .01f);
                 squad.AttachToCarrier(targetActor, true);
                 ModInit.modLog?.Trace?.Write($"[Ability.Activate - BattleArmorMountID] Called AttachToCarrier.");
             }
@@ -1121,6 +1136,7 @@ namespace StrategicOperations.Framework
 
         public static void ProcessSwarmEnemy(this Mech creatorMech, AbstractActor targetActor)
         {
+            var creatorActor = creatorMech as AbstractActor;
             if (!creatorMech.canSwarm())
             {
                 var popup = GenericPopupBuilder.Create(GenericPopupType.Info, $"Unit {creatorMech.DisplayName} is unable to make swarming attacks!");
@@ -1151,7 +1167,7 @@ namespace StrategicOperations.Framework
                         {
                             creatorMech.Combat.EffectManager.CreateEffect(effectData,
                                 effectData.Description.Id,
-                                -1, creatorMech, creatorMech, default(WeaponHitInfo), 1);
+                                -1, creatorActor, creatorActor, default(WeaponHitInfo), 1);
                         }
                     }
                 }
@@ -1173,7 +1189,7 @@ namespace StrategicOperations.Framework
                 //UnityEngine.Object.Destroy(creator.GameRep.gameObject);
                 //CombatMovementReticle.Instance.RefreshActor(creator);
 
-                ModState.PositionLockSwarm.Add(creatorMech.GUID, targetActor.GUID);
+                //ModState.PositionLockSwarm.Add(creatorMech.GUID, targetActor.GUID);
                 if (creatorMech is TrooperSquad squad)
                 {
                     squad.AttachToCarrier(targetActor, false);
