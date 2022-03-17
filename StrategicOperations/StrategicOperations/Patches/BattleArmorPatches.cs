@@ -975,30 +975,39 @@ namespace StrategicOperations.Patches
 
                     __instance.ActivatedAbilityButtons.Clear();
                     actor.Combat.MessageCenter.PublishMessage(new ActorSelectedMessage(actor.GUID));
-                    if (manualSelection)
+
+                    if (actor.IsAvailableThisPhase && actor.MovingToPosition == null)
                     {
-                        AudioEventManager.PlayPilotVO(VOEvents.Mech_Chosen, actor, null, null, true);
+                        if (manualSelection)
+                        {
+                            AudioEventManager.PlayPilotVO(VOEvents.Mech_Chosen, actor, null, null, true);
+                        }
+
+                        var SelectionStack = Traverse.Create(__instance).Property("SelectionStack")
+                            .GetValue<List<SelectionState>>();
+                        if (!SelectionStack.Any(x => x is SelectionStateDoneWithMech))
+                        {
+                            var HUD = Traverse.Create(__instance).Property("HUD").GetValue<CombatHUD>();
+                            var doneState = new SelectionStateDoneWithMech(actor.Combat, HUD,
+                                HUD.MechWarriorTray.DoneWithMechButton, actor);
+                            var addState = Traverse.Create(__instance)
+                                .Method("addNewState", new Type[] {typeof(SelectionState)});
+                            addState.GetValue(doneState);
+                        }
+
+                        __instance.AddFireState(actor);
+                        ModInit.modLog?.Trace?.Write(
+                            $"[CombatSelectionHandler.TrySelectActor] {actor.DisplayName} should be adding fire state.");
+                        if (ActiveOrDefaultSettings.CloudSettings.autoCenterOnSelection)
+                        {
+                            CameraControl.Instance.SetMovingToGroundPos(actor.CurrentPosition, 0.95f);
+                        }
+
+                        Traverse.Create(__instance).Method("logSelectionStack").GetValue();
+                        //__instance.logSelectionStack();
+                        __result = true;
+                        return false;
                     }
-                    var SelectionStack = Traverse.Create(__instance).Property("SelectionStack").GetValue<List<SelectionState>>();
-                    if (!SelectionStack.Any(x => x is SelectionStateDoneWithMech))
-                    {
-                        var HUD = Traverse.Create(__instance).Property("HUD").GetValue<CombatHUD>();
-                        var doneState = new SelectionStateDoneWithMech(actor.Combat, HUD,
-                            HUD.MechWarriorTray.DoneWithMechButton, actor);
-                        var addState = Traverse.Create(__instance)
-                            .Method("addNewState", new Type[] { typeof(SelectionState) });
-                        addState.GetValue(doneState);
-                    }
-                    __instance.AddFireState(actor);
-                    ModInit.modLog?.Trace?.Write($"[CombatSelectionHandler.TrySelectActor] {actor.DisplayName} should be adding fire state.");
-                    if (ActiveOrDefaultSettings.CloudSettings.autoCenterOnSelection)
-                    {
-                        CameraControl.Instance.SetMovingToGroundPos(actor.CurrentPosition, 0.95f);
-                    }
-                    Traverse.Create(__instance).Method("logSelectionStack").GetValue();
-                    //__instance.logSelectionStack();
-                    __result = true;
-                    return false;
                 }
                 return true;
             }

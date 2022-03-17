@@ -1799,6 +1799,11 @@ namespace StrategicOperations.Patches
                 //                       $"Leaving Fire Button Enabled");
                 //                   return;
                 //                }
+                if (actor.HasActivatedThisRound || !actor.IsAvailableThisPhase ||
+                    (actor.Combat.StackManager.IsAnyOrderActive && actor.Combat.TurnDirector.IsInterleaved))
+                {
+                    return;
+                }
                 if (actor.IsMountedUnit() || actor.IsSwarmingUnit())
                 {
                     button.DisableButton(); // maybe remove this for mounted units?
@@ -1849,6 +1854,13 @@ namespace StrategicOperations.Patches
                 //                       $"Leaving Fire Button Enabled");
                 //                   return;
                 //                }
+
+                if (actor.HasActivatedThisRound || !actor.IsAvailableThisPhase ||
+                    (actor.Combat.StackManager.IsAnyOrderActive && actor.Combat.TurnDirector.IsInterleaved))
+                {
+                    return;
+                }
+
                 if (actor.IsMountedUnit() || actor.IsSwarmingUnit())
                 {
                     button.DisableButton(); // maybe remove this for mounted units?
@@ -1900,6 +1912,13 @@ namespace StrategicOperations.Patches
                 //                       $"Leaving Fire Button Enabled");
                 //                   return;
                 //                }
+
+                if (actor.HasActivatedThisRound || !actor.IsAvailableThisPhase ||
+                    (actor.Combat.StackManager.IsAnyOrderActive && actor.Combat.TurnDirector.IsInterleaved))
+                {
+                    return;
+                }
+
                 if (ability.Def.Id != ModInit.modSettings.BattleArmorMountAndSwarmID && (actor.IsMountedUnit() || actor.IsSwarmingUnit()))
                 {
                     button.DisableButton(); // maybe remove this for mounted units?
