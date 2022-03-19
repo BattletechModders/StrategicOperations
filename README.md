@@ -642,7 +642,7 @@ Using the following settings, ClanGhostBear and ClanWolf have baseline 30% chanc
 
 `AirliftImmuneTags` - list of unit def tags that render that unit immune to airlifting. use for vtols and turrets, stuff like that. although airlifting turrets *is* pretty amusing
 	
-`ResupplyConfig` - config options for resupply abilities. see [Resupply section](##Resupply)
+`ResupplyConfig` - config options for resupply abilities. see [Resupply section](#Resupply)
 	
 ## Spawns
 
