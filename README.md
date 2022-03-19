@@ -421,7 +421,27 @@ settings in the mod.json:
 	"AirliftImmuneTags": [
 		"unit_vtol",
 		"unit_turret"
-	]
+	],
+	"ResupplyConfig": {
+			"ResupplyIndicatorAsset": "Target",
+			"ResupplyIndicatorColor": {
+				"r": 255,
+				"g": 0,
+				"b": 255
+			},
+			"ResupplyIndicatorInRangeAsset": "Target",
+			"ResupplyIndicatorInRangeColor": {
+				"r": 255,
+				"g": 255,
+				"b": 0
+			},
+			"ResupplyAbilityID": "AbilityDefResupply",
+			"ResupplyUnitTag": "RedBatHatesCleverTags",
+			"SPAMMOAmmoDefId": "Ammunition_SPAMMO",
+			"ArmorSupplyAmmoDefId": "Ammunition_ARMORAMMO",
+			"PhasesToResupply": 30,
+			"ArmorRepairMax": 0.9
+		}
 ```
 
 `enableLogging` - bool, enable logging
@@ -621,6 +641,8 @@ Using the following settings, ClanGhostBear and ClanWolf have baseline 30% chanc
 `CanDropOffAfterMoving` - if true, airlift units can move and _then_ drop their airlifted units at final location. if false, airlifted units must drop units before moving that round.
 
 `AirliftImmuneTags` - list of unit def tags that render that unit immune to airlifting. use for vtols and turrets, stuff like that. although airlifting turrets *is* pretty amusing
+	
+`ResupplyConfig` - config options for resupply abilities. see [Resupply section](##Resupply)
 	
 ## Spawns
 
@@ -1078,3 +1100,6 @@ When dropping off units, a popup will display allowing the player to select whic
 Hostile units *can* be airlifted provided the carrier unit has the unit stat `CanAirliftHostiles` set to true; hostile units are only mounted externally, and are not prevented from shooting or using abilities; hostile AI likewise relies on properly setting the irbtmu_immobile_unit stat to true under `AirliftTargetEffects` to keep them immobile while airlifting (the effect will be canceled when they are dropped).
 
 Speaking of dropping, hostile airlifted units are literally **dropped** from the VTOL's height when the airlift is halted, dealing appropriate DFA self-damage as if they'd fallen from a building. In the case of turrets and vehicles the damage is equal to their tonnage, while mechs recieve the DFA selfdamage listed in their chassisdef. It is up to modpack authors to config properly so as to not allow ground-based units to transport hostiles, since such units would still recieve damage when being "dropped" even though theyre already on the ground.
+
+## Resupply
+
