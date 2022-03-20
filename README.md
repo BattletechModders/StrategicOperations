@@ -442,7 +442,9 @@ settings in the mod.json:
 		"ArmorSupplyAmmoDefId": "Ammunition_ARMORAMMO",
 		"ArmorRepairMax": 0.9,
 		"PhasesToResupply": 30
-	}
+	},
+	"ShowAmmoInVehicleTooltips": true,
+	"EnforceIFFForAmmoTooltips": false
 ```
 
 `enableLogging` - bool, enable logging
@@ -644,7 +646,11 @@ Using the following settings, ClanGhostBear and ClanWolf have baseline 30% chanc
 `AirliftImmuneTags` - list of unit def tags that render that unit immune to airlifting. use for vtols and turrets, stuff like that. although airlifting turrets *is* pretty amusing
 	
 `ResupplyConfig` - config options for resupply abilities. see [Resupply section](#Resupply)
+
+`ShowAmmoInVehicleTooltips` - if true, ammo counter will be shown in vehicle paperdoll (like what AIM does for mechs)
 	
+`EnforceIFFForAmmoTooltips` - if true, above ammo counter will only be shown for friendly vehicles
+
 ## Spawns
 
 Spawns are basically what they sound like: spawning reinforcement units at the selected location. These units will be AI-controlled (allied). Exactly <i>what</i> unit gets deployed depends on a few things.
