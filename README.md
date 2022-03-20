@@ -1105,7 +1105,7 @@ Speaking of dropping, hostile airlifted units are literally **dropped** from the
 ## Resupply
 **New in 3.0.1.0**
 
-Units can now be designated as "resupply" units. If such a unit is found, all units friendly to that unit will be given a "resupply" ability. When those units are within range of the resupply unit, they can then initiate a resupply. To be clear, the unit that does the resupplying is not the unit that activates the abilit; rather the unit _to be resupplied_ activates the resupply ability.
+Units can now be designated as "resupply" units. If such a unit is found, all units friendly to that unit will be given a "resupply" ability. When those units are within range of the resupply unit, they can then initiate a resupply. To be clear, the unit that does the resupplying is not the unit that activates the abilit; rather the unit _to be resupplied_ activates the resupply ability. In theory, the AI should also try to use the resupply ability if they have a weapon thats run out of ammo.
 
 On activating the "resupply" ability, all friendly resupply units within 1000m will be indicated using the color/assets from `ResupplyIndicatorAsset` and `ResupplyIndicatorColor`, while all friendly resupply units _within resupply range_ will be indicated using the color/assets from `ResupplyIndicatorInRangeAsset` and `ResupplyIndicatorInRangeColor`.
 	
