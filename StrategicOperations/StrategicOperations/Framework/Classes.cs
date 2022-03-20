@@ -14,6 +14,68 @@ namespace StrategicOperations.Framework
 {
     public class Classes
     {
+        public class ConfigOptions
+        {
+            public enum BA_TargetEffectType
+            {
+                MOUNT_INT,
+                MOUNT_EXT,
+                SWARM,
+                GARRISON,
+                BOTH
+            }
+
+            public class BA_DeswarmAbilityConfig // key will be AbilityDefID
+            {
+                //public string AbilityDefID = "";
+                public float BaseSuccessChance = 0f;
+                public float MaxSuccessChance = 0f;
+                public float PilotingSuccessFactor = 0f;
+                public float TotalDamage = 0f;
+                public int Clusters = 1;
+                public int InitPenalty = 0;
+
+                public BA_DeswarmAbilityConfig(){}
+            }
+
+            public class BA_DeswarmMovementConfig
+            {
+                public string AbilityDefID = "";
+                public float BaseSuccessChance = 0f;
+                public float MaxSuccessChance = 0f;
+                public float EvasivePipsFactor = 0f;
+                public float JumpMovementModifier = 0f;
+                public bool UseDFADamage = false;
+                public float LocationDamageOverride = 0f;
+                public float PilotingDamageReductionFactor = 0f;
+                public  BA_DeswarmMovementConfig(){}
+            }
+
+            public class AI_FactionCommandAbilitySetting
+            {
+                public string AbilityDefID = "";
+                public List<string> FactionIDs = new List<string>();
+                public float AddChance = 0f;
+                public float DiffMod = 0f;
+                public int MaxUsersAddedPerContract = 0;
+                public List<AI_BeaconProxyInfo> AvailableBeacons = new List<AI_BeaconProxyInfo>();
+            }
+
+            public class ResupplyConfigOptions
+            {
+                public string ResupplyIndicatorAsset = "";
+                public ColorSetting ResupplyIndicatorColor = new ColorSetting();
+                public string ResupplyIndicatorInRangeAsset = "";
+                public ColorSetting ResupplyIndicatorInRangeColor = new ColorSetting();
+                public string ResupplyAbilityID = "";
+                public string ResupplyUnitTag = "";
+                public string SPAMMYAmmoDefId = "";
+                public List<string> SPAMMYBlackList = new List<string>();
+                public string ArmorSupplyAmmoDefId = "";
+                public float ArmorRepairMax = 0.75f;
+                public int PhasesToResupply = 1;
+            }
+        }
         public class StrategicMovementInvocation : AbstractActorMovementInvocation
         {
             public new string ActorGUID = "";
@@ -157,14 +219,6 @@ namespace StrategicOperations.Framework
             }
         }
 
-        public enum BA_TargetEffectType
-        {
-            MOUNT_INT,
-            MOUNT_EXT,
-            SWARM,
-            GARRISON,
-            BOTH
-        }
         public class CustomSpawner
         {
             public CombatGameState Combat;
@@ -617,45 +671,8 @@ namespace StrategicOperations.Framework
 //            public float PilotingDamageReductionFactor = 0f;
 //        }
 
-        public class BA_DeswarmAbilityConfig // key will be AbilityDefID
-        {
-            //public string AbilityDefID = "";
-            public float BaseSuccessChance = 0f;
-            public float MaxSuccessChance = 0f;
-            public float PilotingSuccessFactor = 0f;
-            public float TotalDamage = 0f;
-            public int Clusters = 1;
-            public int InitPenalty = 0;
 
-            public BA_DeswarmAbilityConfig(){}
-        }
-
-        public class BA_DeswarmMovementConfig
-        {
-            public string AbilityDefID = "";
-            public float BaseSuccessChance = 0f;
-            public float MaxSuccessChance = 0f;
-            public float EvasivePipsFactor = 0f;
-            public float JumpMovementModifier = 0f;
-            public bool UseDFADamage = false;
-            public float LocationDamageOverride = 0f;
-            public float PilotingDamageReductionFactor = 0f;
-            public  BA_DeswarmMovementConfig(){}
-        }
-
-         
-
-        public class AI_FactionCommandAbilitySetting
-        {
-            public string AbilityDefID = "";
-            public List<string> FactionIDs = new List<string>();
-            public float AddChance = 0f;
-            public float DiffMod = 0f;
-            public int MaxUsersAddedPerContract = 0;
-            public List<AI_BeaconProxyInfo> AvailableBeacons = new List<AI_BeaconProxyInfo>();
-        }
-
-        public class AI_BeaconProxyInfo
+public class AI_BeaconProxyInfo
         {
             public string UnitDefID = "";
             public int Weight = 0;
@@ -732,7 +749,7 @@ namespace StrategicOperations.Framework
         public class BA_TargetEffect
         {
             public string ID = "";
-            public BA_TargetEffectType TargetEffectType = BA_TargetEffectType.BOTH;
+            public ConfigOptions.BA_TargetEffectType TargetEffectType = ConfigOptions.BA_TargetEffectType.BOTH;
             public string Name = "";
             public string Description = "";
 
@@ -864,19 +881,19 @@ namespace StrategicOperations.Framework
             }
         }
 
-        public class BA_MountOrSwarmInvocation
+        public class StrategicActorTargetInvocation
         {
             public Ability ability;
             public AbstractActor targetActor;
             public bool active;
 
-            public BA_MountOrSwarmInvocation()
+            public StrategicActorTargetInvocation()
             {
                 this.ability = default(Ability);
                 this.targetActor = default(AbstractActor);
                 this.active = false;
             }
-            public BA_MountOrSwarmInvocation(Ability cmdAbility, AbstractActor targetActor, bool active)
+            public StrategicActorTargetInvocation(Ability cmdAbility, AbstractActor targetActor, bool active)
             {
                 this.ability = cmdAbility;
                 this.targetActor = targetActor;

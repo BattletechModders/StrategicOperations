@@ -11,6 +11,7 @@ using CustomAmmoCategoriesPatches;
 using CustomUnits;
 using Harmony;
 using HBS;
+using HBS.Pooling;
 using StrategicOperations.Framework;
 using UnityEngine;
 
@@ -92,7 +93,7 @@ namespace StrategicOperations.Patches
                 ModInit.modLog?.Trace?.Write($"[SetScaleAndLocation] Set location to {loc}");
             }
 
-            public void UpdateColorAndStyle(bool IsFriendly)
+            public void UpdateColorAndStyle(bool IsFriendly, bool IsResupply, bool IsResupplyInRange)
             {
                 var dm = UnityGameInstance.BattleTechGame.DataManager;
 
@@ -116,7 +117,7 @@ namespace StrategicOperations.Patches
                         {
                             if (decalsFromCircle[j].name == "ReticleDecalCircle")
                             {
-                                if (IsFriendly)
+                                if (IsFriendly && !IsResupply)
                                 {
                                     if (!string.IsNullOrEmpty(ModInit.modSettings.MountIndicatorAsset))
                                     {
@@ -130,6 +131,51 @@ namespace StrategicOperations.Patches
                                         var customColor = new Color(ModInit.modSettings.MountIndicatorColor.Rf,
                                             ModInit.modSettings.MountIndicatorColor.Gf,
                                             ModInit.modSettings.MountIndicatorColor.Bf);
+                                        decalsFromCircle[j].DecalPropertyBlock.SetColor("_Color", customColor);
+
+                                    }
+                                    else
+                                    {
+                                        decalsFromCircle[j].DecalPropertyBlock.SetColor("_Color", Color.blue);
+                                    }
+                                }
+
+                                if (IsResupply && !IsResupplyInRange)
+                                {
+                                    if (!string.IsNullOrEmpty(ModInit.modSettings.ResupplyConfig.ResupplyIndicatorAsset))
+                                    {
+                                        var newTexture = dm.GetObjectOfType<Texture2D>(ModInit.modSettings.ResupplyConfig.ResupplyIndicatorAsset,
+                                            BattleTechResourceType.Texture2D);
+                                        if (newTexture != null) decalsFromCircle[j].DecalPropertyBlock.SetTexture("_MainTex", newTexture);
+                                    }
+
+                                    if (ModInit.modSettings.MountIndicatorColor != null)
+                                    {
+                                        var customColor = new Color(ModInit.modSettings.ResupplyConfig.ResupplyIndicatorColor.Rf,
+                                            ModInit.modSettings.ResupplyConfig.ResupplyIndicatorColor.Gf,
+                                            ModInit.modSettings.ResupplyConfig.ResupplyIndicatorColor.Bf);
+                                        decalsFromCircle[j].DecalPropertyBlock.SetColor("_Color", customColor);
+
+                                    }
+                                    else
+                                    {
+                                        decalsFromCircle[j].DecalPropertyBlock.SetColor("_Color", Color.blue);
+                                    }
+                                }
+                                else if (IsResupply)
+                                {
+                                    if (!string.IsNullOrEmpty(ModInit.modSettings.ResupplyConfig.ResupplyIndicatorInRangeAsset))
+                                    {
+                                        var newTexture = dm.GetObjectOfType<Texture2D>(ModInit.modSettings.ResupplyConfig.ResupplyIndicatorInRangeAsset,
+                                            BattleTechResourceType.Texture2D);
+                                        if (newTexture != null) decalsFromCircle[j].DecalPropertyBlock.SetTexture("_MainTex", newTexture);
+                                    }
+
+                                    if (ModInit.modSettings.MountIndicatorColor != null)
+                                    {
+                                        var customColor = new Color(ModInit.modSettings.ResupplyConfig.ResupplyIndicatorInRangeColor.Rf,
+                                            ModInit.modSettings.ResupplyConfig.ResupplyIndicatorInRangeColor.Gf,
+                                            ModInit.modSettings.ResupplyConfig.ResupplyIndicatorInRangeColor.Bf);
                                         decalsFromCircle[j].DecalPropertyBlock.SetColor("_Color", customColor);
 
                                     }
@@ -175,28 +221,92 @@ namespace StrategicOperations.Patches
                 };
                 var maxRange = ranges.Max();
 
-                if (!SelectedActor.IsMountedUnit() && !SelectedActor.IsSwarmingUnit() && !SelectedActor.isGarrisoned())
+                if (this.FromButton.Ability.Def.Id == ModInit.modSettings.BattleArmorMountAndSwarmID)
                 {
-                    var mountTargets = SelectedActor.GetAllFriendliesWithinRange(maxRange);
-                    var swarmTargets = SelectedActor.GetAllEnemiesWithinRange(maxRange);
-
-                    mountTargets.RemoveAll(x => !this.CanTargetCombatant(x));
-                    swarmTargets.RemoveAll(x => !this.CanTargetCombatant(x));
-
-                    HUD.InWorldMgr.ShowBATargetsMeleeIndicator(swarmTargets, SelectedActor);
-
-                    StrategicTargetIndicatorsManager.InitReticles(HUD, mountTargets.Count);
-                    for (var index = 0; index < mountTargets.Count; index++)
+                    if (!SelectedActor.IsMountedUnit() && !SelectedActor.IsSwarmingUnit() &&
+                        !SelectedActor.isGarrisoned())
                     {
-                        StrategicTargetIndicatorsManager.ReticleGOs[index].SetActive(true);
-                        var reticle = StrategicTargetIndicatorsManager.ReticleGOs[index]
-                            .GetComponent<StrategicTargetReticle>();
-                        var isFriendly = mountTargets[index].team.IsFriendly(SelectedActor.team);
-                        reticle.SetScaleAndLocation(mountTargets[index].CurrentPosition, 10f);
-                        reticle.UpdateColorAndStyle(isFriendly);
-                        ModInit.modLog?.Trace?.Write($"[HighlightPotentialTargets] Updating reticle at index {index}, isFriendly {isFriendly}.");
+                        var mountTargets = SelectedActor.GetAllFriendliesWithinRange(maxRange);
+                        var swarmTargets = SelectedActor.GetAllEnemiesWithinRange(maxRange);
+
+                        mountTargets.RemoveAll(x => !this.CanTargetCombatant(x));
+                        swarmTargets.RemoveAll(x => !this.CanTargetCombatant(x));
+
+                        HUD.InWorldMgr.HideMeleeTargets();
+                        HUD.InWorldMgr.ShowBATargetsMeleeIndicator(swarmTargets, SelectedActor);
+
+                        StrategicTargetIndicatorsManager.InitReticles(HUD, mountTargets.Count);
+                        for (var index = 0; index < mountTargets.Count; index++)
+                        {
+                            StrategicTargetIndicatorsManager.ReticleGOs[index].SetActive(true);
+                            var reticle = StrategicTargetIndicatorsManager.ReticleGOs[index]
+                                .GetComponent<StrategicTargetReticle>();
+                            var isFriendly = mountTargets[index].team.IsFriendly(SelectedActor.team);
+                            reticle.SetScaleAndLocation(mountTargets[index].CurrentPosition, 10f);
+                            reticle.UpdateColorAndStyle(isFriendly, false, false);
+                            ModInit.modLog?.Trace?.Write(
+                                $"[HighlightPotentialTargets - BattleArmorMountAndSwarmID] Updating reticle at index {index}, isFriendly {isFriendly}.");
+                        }
+
+                        StrategicTargetIndicatorsManager.ShowRoot();
                     }
-                    StrategicTargetIndicatorsManager.ShowRoot();
+                }
+                else if (this.FromButton.Ability.Def.Id == ModInit.modSettings.ResupplyConfig.ResupplyAbilityID)
+                {
+                    if (!SelectedActor.IsMountedUnit() && !SelectedActor.IsSwarmingUnit() &&
+                        !SelectedActor.isGarrisoned())
+                    {
+                        var resupplyTargets = SelectedActor.GetAllFriendliesWithinRange(1000f);
+
+                        resupplyTargets.RemoveAll(x => !this.CanTargetCombatant(x));
+
+                        HUD.InWorldMgr.HideMeleeTargets();
+                        StrategicTargetIndicatorsManager.InitReticles(HUD, resupplyTargets.Count);
+                        for (var index = 0; index < resupplyTargets.Count; index++)
+                        {
+                            if (Vector3.Distance(SelectedActor.CurrentPosition,
+                                    resupplyTargets[index].CurrentPosition) <= this.FromButton.Ability.Def.IntParam2)
+                            {
+                                StrategicTargetIndicatorsManager.ReticleGOs[index].SetActive(true);
+                                var reticle = StrategicTargetIndicatorsManager.ReticleGOs[index]
+                                    .GetComponent<StrategicTargetReticle>();
+                                var isFriendly = resupplyTargets[index].team.IsFriendly(SelectedActor.team);
+                                reticle.SetScaleAndLocation(resupplyTargets[index].CurrentPosition, 10f);
+                                reticle.UpdateColorAndStyle(isFriendly, true, true);
+                                ModInit.modLog?.Trace?.Write(
+                                    $"[HighlightPotentialTargets - ResupplyAbility INRANGE] Updating reticle at index {index}, isFriendly {isFriendly}.");
+                            }
+                            else
+                            {
+                                StrategicTargetIndicatorsManager.ReticleGOs[index].SetActive(true);
+                                var reticle = StrategicTargetIndicatorsManager.ReticleGOs[index]
+                                    .GetComponent<StrategicTargetReticle>();
+                                var isFriendly = resupplyTargets[index].team.IsFriendly(SelectedActor.team);
+                                reticle.SetScaleAndLocation(resupplyTargets[index].CurrentPosition, 10f);
+                                reticle.UpdateColorAndStyle(isFriendly, true, false);
+                                ModInit.modLog?.Trace?.Write(
+                                    $"[HighlightPotentialTargets - ResupplyAbility ANY] Updating reticle at index {index}, isFriendly {isFriendly}.");
+                            }
+                        }
+
+//                        var resupplyTargetsInRange = SelectedActor.GetAllFriendliesWithinRange(this.FromButton.Ability.Def.IntParam2);
+//                        resupplyTargetsInRange.RemoveAll(x => !this.CanTargetCombatant(x));
+//                        HUD.InWorldMgr.HideMeleeTargets();
+//                        StrategicTargetIndicatorsManager.InitReticles(HUD, resupplyTargetsInRange.Count);
+//                        for (var index = 0; index < resupplyTargetsInRange.Count; index++)//
+//                        {
+//                            StrategicTargetIndicatorsManager.ReticleGOs[index].SetActive(true);
+//                            var reticle = StrategicTargetIndicatorsManager.ReticleGOs[index]
+//                                .GetComponent<StrategicTargetReticle>();
+//                            var isFriendly = resupplyTargetsInRange[index].team.IsFriendly(SelectedActor.team);
+//                            reticle.SetScaleAndLocation(resupplyTargetsInRange[index].CurrentPosition, 10f);
+//                            reticle.UpdateColorAndStyle(isFriendly, true, true);
+//                            ModInit.modLog?.Trace?.Write(
+//                                $"[HighlightPotentialTargets - ResupplyAbility INRANGE] Updating reticle at index {index}, isFriendly {isFriendly}.");
+//                        }
+
+                        StrategicTargetIndicatorsManager.ShowRoot();
+                    }
                 }
             }
 
@@ -257,6 +367,14 @@ namespace StrategicOperations.Patches
 
                 if (!base.CanTargetCombatant(potentialTarget)) return false;
 
+                if (FromButton.Ability.Def.Id == ModInit.modSettings.ResupplyConfig.ResupplyAbilityID)
+                {
+                    if (potentialTarget is AbstractActor targetActor && targetActor.GetStaticUnitTags().Contains(ModInit.modSettings.ResupplyConfig.ResupplyUnitTag))
+                    {
+                        return true;
+                    }
+                    return false;
+                }
 
                 if (FromButton.Ability.Def.Id == ModInit.modSettings.BattleArmorMountAndSwarmID)
                 {
@@ -415,6 +533,14 @@ namespace StrategicOperations.Patches
 
             public override bool ProcessClickedCombatant(ICombatant combatant)
             {
+                if (FromButton.Ability.Def.Id == ModInit.modSettings.ResupplyConfig.ResupplyAbilityID)
+                {
+                    var resupplyDist = Mathf.RoundToInt(Vector3.Distance(this.HUD.SelectedActor.CurrentPosition, combatant.CurrentPosition));
+                    if (resupplyDist > FromButton.Ability.Def.IntParam2)
+                    {
+                        return false;
+                    }
+                }
                 if (FromButton.Ability.Def.Id == ModInit.modSettings.AirliftAbilityID)
                 {
                     if (SelectedActor.GUID == combatant.GUID)
@@ -596,7 +722,7 @@ namespace StrategicOperations.Patches
                     if (!FromButton || FromButton.Ability == null) return;
                     if (__result is AbilityExtensions.SelectionStateMWTargetSingle selectState)
                     {
-                        if (FromButton.Ability.Def.Id == ModInit.modSettings.BattleArmorMountAndSwarmID || FromButton.Ability.Def.Id == ModInit.modSettings.AirliftAbilityID)
+                        if (FromButton.Ability.Def.Id == ModInit.modSettings.BattleArmorMountAndSwarmID || FromButton.Ability.Def.Id == ModInit.modSettings.AirliftAbilityID || FromButton.Ability.Def.Id == ModInit.modSettings.ResupplyConfig.ResupplyAbilityID)
                         {
                             __result = new SelectionStateMWTargetSingle_Stratops(Combat, HUD, FromButton);
                             return;

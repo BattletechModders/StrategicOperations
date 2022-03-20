@@ -314,7 +314,7 @@ namespace StrategicOperations.Patches
                 {
                     var settings = ModInit.modSettings.DeswarmConfigs.ContainsKey(ModInit.modSettings.BattleArmorDeSwarmRoll)
                         ? ModInit.modSettings.DeswarmConfigs[ModInit.modSettings.BattleArmorDeSwarmRoll]
-                        : new Classes.BA_DeswarmAbilityConfig();
+                        : new Classes.ConfigOptions.BA_DeswarmAbilityConfig();
                     //var parsed = float.TryParse(__instance.FromButton.Ability.Def.EffectData
                     //    .FirstOrDefault(x => x.statisticData.statName == "BattleArmorDeSwarmerRoll")
                     //    ?.statisticData
@@ -331,7 +331,7 @@ namespace StrategicOperations.Patches
                 {
                     var settings = ModInit.modSettings.DeswarmConfigs.ContainsKey(ModInit.modSettings.BattleArmorDeSwarmSwat)
                         ? ModInit.modSettings.DeswarmConfigs[ModInit.modSettings.BattleArmorDeSwarmSwat]
-                        : new Classes.BA_DeswarmAbilityConfig();
+                        : new Classes.ConfigOptions.BA_DeswarmAbilityConfig();
                     //var parsed = float.TryParse(__instance.FromButton.Ability.Def.EffectData
                     //    .FirstOrDefault(x => x.statisticData.statName == "BattleArmorDeSwarmerSwat")
                     //    ?.statisticData
@@ -504,7 +504,6 @@ namespace StrategicOperations.Patches
                 var abilityButtons = Traverse.Create(__instance).Property("AbilityButtons")
                     .GetValue<CombatHUDActionButton[]>();
 
-
                 if (actor.IsAirlifted())
                 {
                     ModInit.modLog?.Trace?.Write(
@@ -593,7 +592,7 @@ namespace StrategicOperations.Patches
             {
                 if (targetUnit is AbstractActor targetActor)
                 {
-                    if (targetActor.IsSwarmingUnit() || targetActor.IsMountedUnit() ) //|| targetActor.isGarrisoned()) TODO make untargetable again?
+                    if (targetActor.IsSwarmingUnit() || targetActor.IsMountedUnit() ) //|| targetActor.isGarrisoned())
                     {
 //                        ModInit.modLog?.Trace?.Write($"[AbstractActor.HasLOFToTargetUnitAtTargetPosition] {targetActor.DisplayName} is swarming or mounted, preventing LOS.");
                         __result = false;
@@ -619,7 +618,7 @@ namespace StrategicOperations.Patches
 //                        }
 //                    }
 
-                    if (targetActor.IsSwarmingUnit() || targetActor.IsMountedUnit() )//|| targetActor.isGarrisoned()) TODO Make untargetable again?
+                    if (targetActor.IsSwarmingUnit() || targetActor.IsMountedUnit() )//|| targetActor.isGarrisoned())
                     {
                         __result = false;
                     }
@@ -751,11 +750,9 @@ namespace StrategicOperations.Patches
                     var actor = __instance.Combat.FindActorByGUID(garrison.Key);
                     var squad = actor as TrooperSquad;
 
-                    //TODO CLUSTER DAMAGE? or just make them take DFA
-
                     foreach (var garrisonEffect in ModState.OnGarrisonCollapseEffects)
                     {
-                        if (garrisonEffect.TargetEffectType == Classes.BA_TargetEffectType.GARRISON)
+                        if (garrisonEffect.TargetEffectType == Classes.ConfigOptions.BA_TargetEffectType.GARRISON)
                         {
                             foreach (var effectData in garrisonEffect.effects)
                             {
@@ -1464,7 +1461,7 @@ namespace StrategicOperations.Patches
 
                 if (target is AbstractActor actorTarget)
                 {
-                    if (actorTarget.IsSwarmingUnit() || actorTarget.IsMountedUnit() )//|| actorTarget.isGarrisoned()) TODO Make untargetable again?
+                    if (actorTarget.IsSwarmingUnit() || actorTarget.IsMountedUnit() )//|| actorTarget.isGarrisoned())
                     {
                         __result = LineOfFireLevel.NotSet; // added 1/11 to block all LOF to swarming/mounted units. NotSet, or should it be LOS.Blocked?
                         return false;

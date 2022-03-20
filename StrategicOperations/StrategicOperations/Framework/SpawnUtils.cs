@@ -11,8 +11,6 @@ namespace StrategicOperations.Framework
 {
     public static class SpawnUtils
     {
-
-
         public static Vector3 FindValidSpawn(AbstractActor target, AbstractActor source, int minRange, int maxRange)
         {
             var pathing = new Pathing(target);

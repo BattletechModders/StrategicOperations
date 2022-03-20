@@ -136,7 +136,7 @@ namespace StrategicOperations.Framework
         public static float GetVerticalOffsetForExternalMount(this AbstractActor targetUnit)
         {
 
-            return targetUnit.HighestLOSPosition.y * .7f; //TODO see if i can dynamagically calculate offset using unity intersects?
+            return targetUnit.HighestLOSPosition.y * .7f;
         }
 
         public static List<AbstractActor> GetAirliftedUnits(this AbstractActor carrier)

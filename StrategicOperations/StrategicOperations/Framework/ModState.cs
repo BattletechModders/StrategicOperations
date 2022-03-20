@@ -11,6 +11,7 @@ namespace StrategicOperations.Framework
 {
     public static class ModState
     {
+        public static List<string> TeamsWithResupply = new List<string>();
         public static AbstractActor CurrentGarrisonSquadForLOS = null;
         public static AbstractActor CurrentGarrisonSquadForLOF = null;
         public static List<CustomSpawner> CurrentContractBASpawners = new List<CustomSpawner>();
@@ -24,7 +25,7 @@ namespace StrategicOperations.Framework
         public static Dictionary<string, int> CurrentBattleArmorSquads = new Dictionary<string, int>();
         public static Dictionary<string, Dictionary<string,int>> CurrentCommandUnits = new Dictionary<string, Dictionary<string, int>>();
 
-        public static List<AI_FactionCommandAbilitySetting> CurrentFactionSettingsList = new List<AI_FactionCommandAbilitySetting>();
+        public static List<ConfigOptions.AI_FactionCommandAbilitySetting> CurrentFactionSettingsList = new List<ConfigOptions.AI_FactionCommandAbilitySetting>();
 
         public static bool IsStrafeAOE = false;
         public static Dictionary<string, PendingStrafeWave> PendingStrafeWaves =
@@ -46,6 +47,8 @@ namespace StrategicOperations.Framework
         //public static Dictionary<string, string> PositionLockAirlift = new Dictionary<string, string>(); // key is mounted unit, value is carrier
 
         public static Dictionary<string, AirliftTracker> AirliftTrackers = new Dictionary<string, AirliftTracker>(); //Key is mounted unit, value has carrier
+
+        public static Dictionary<string, int> ResupplyShutdownPhases = new Dictionary<string, int>();
 
         public static List<Ability> CommandAbilities = new List<Ability>();
 
@@ -70,7 +73,7 @@ namespace StrategicOperations.Framework
 
         public static Dictionary<string, AI_CmdInvocation> AiCmds = new Dictionary<string, AI_CmdInvocation>();
 
-        public static Dictionary<string, BA_MountOrSwarmInvocation> AiBattleArmorAbilityCmds = new Dictionary<string, BA_MountOrSwarmInvocation>();
+        public static Dictionary<string, StrategicActorTargetInvocation> StrategicActorTargetInvocationCmds = new Dictionary<string, StrategicActorTargetInvocation>();
 
         public static List<CmdUseInfo> CommandUses = new List<CmdUseInfo>();
 
@@ -155,11 +158,13 @@ namespace StrategicOperations.Framework
 
         public static void ResetAll()
         {
+            ResupplyShutdownPhases = new Dictionary<string, int>();
+            TeamsWithResupply = new List<string>();
             CurrentContractBASpawners = new List<CustomSpawner>();
             SwarmSuccessChance = 0f;
             DeSwarmSuccessChance = 0f;
             CurrentBattleArmorSquads = new Dictionary<string, int>();
-            CurrentFactionSettingsList = new List<AI_FactionCommandAbilitySetting>();
+            CurrentFactionSettingsList = new List<ConfigOptions.AI_FactionCommandAbilitySetting>();
             PendingStrafeWaves = new Dictionary<string, PendingStrafeWave>();
             BADamageTrackers = new Dictionary<string, BA_DamageTracker>();
             AirliftTrackers = new Dictionary<string, AirliftTracker>();
@@ -182,7 +187,7 @@ namespace StrategicOperations.Framework
             DeferredBattleArmorSpawnerFromDelegate = false;
             OutOfRange = false;
             AiCmds = new Dictionary<string, AI_CmdInvocation>();
-            AiBattleArmorAbilityCmds = new Dictionary<string, BA_MountOrSwarmInvocation>();
+            StrategicActorTargetInvocationCmds = new Dictionary<string, StrategicActorTargetInvocation>();
             IsStrafeAOE = false;
         }
 

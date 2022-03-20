@@ -19,6 +19,122 @@ namespace StrategicOperations.Patches
 {
     public class StrategicOperationsPatches
     {
+        [HarmonyPatch(typeof(MechStartupInvocation), "Invoke")]
+        [HarmonyPriority(Priority.First)]
+        public static class MechStartupInvocation_Invoke
+        {
+            public static bool Prefix(MechStartupInvocation __instance, CombatGameState combatGameState)
+            {
+                Mech mech = combatGameState.FindActorByGUID(__instance.MechGUID) as Mech;
+                if (mech == null)
+                {
+                    //InvocationMessage.logger.LogError("MechStartupInvocation.Invoke failed! Unable to Mech!");
+                    return false;
+                }
+
+                if (ModState.ResupplyShutdownPhases.ContainsKey(mech.GUID))
+                {
+                    DoneWithActorSequence doneWithActorSequence = (DoneWithActorSequence) mech.GetDoneWithActorOrders();
+                    MechHeatSequence mechHeatSequence = new MechHeatSequence(OwningMech: mech,
+                        performHeatSinkStep: true, applyStartupHeatSinks: false, instigatorID: "STARTUP");
+                    doneWithActorSequence.AddChildSequence(mechHeatSequence, mechHeatSequence.MessageIndex);
+
+                    InvocationStackSequenceCreated message =
+                        new InvocationStackSequenceCreated(doneWithActorSequence, __instance);
+                    combatGameState.MessageCenter.PublishMessage(message);
+                    AddSequenceToStackMessage.Publish(combatGameState.MessageCenter, doneWithActorSequence);
+
+                    return false;
+                }
+                return true;
+            }
+        }
+
+
+        [HarmonyPatch(typeof(Team), "AddUnit", new Type[] { typeof(AbstractActor) })]
+        public static class Team_AddUnit_Patch
+        {
+            public static void Postfix(Team __instance, AbstractActor unit)
+            {
+                if (__instance.Combat.TurnDirector.CurrentRound > 1)
+                {
+                    __instance.Combat.UpdateResupplyTeams();
+                    __instance.Combat.UpdateResupplyAbilitiesAllActors();
+                }
+
+                if (__instance.IsLocalPlayer)
+                {
+                    if (unit is Mech && !(unit is TrooperSquad) && !unit.IsCustomUnitVehicle())
+                    {
+                        if (!string.IsNullOrEmpty(ModInit.modSettings.BattleArmorDeSwarmSwat))
+                        {
+                            if (unit.GetPilot().Abilities
+                                    .All(x => x.Def.Id != ModInit.modSettings.BattleArmorDeSwarmSwat) &&
+                                unit.ComponentAbilities.All(y =>
+                                    y.Def.Id != ModInit.modSettings.BattleArmorDeSwarmSwat))
+                            {
+                                unit.Combat.DataManager.AbilityDefs.TryGet(ModInit.modSettings.BattleArmorDeSwarmSwat,
+                                    out var def);
+                                var ability = new Ability(def);
+                                ModInit.modLog?.Trace?.Write(
+                                    $"[Team.AddUnit] Adding {ability.Def?.Description?.Id} to {unit.Description?.Name}.");
+                                ability.Init(unit.Combat);
+                                unit.GetPilot().Abilities.Add(ability);
+                                unit.GetPilot().ActiveAbilities.Add(ability);
+                            }
+                        }
+
+                        if (!string.IsNullOrEmpty(ModInit.modSettings.BattleArmorDeSwarmRoll))
+                        {
+                            if (unit.GetPilot().Abilities
+                                    .All(x => x.Def.Id != ModInit.modSettings.BattleArmorDeSwarmRoll) &&
+                                unit.ComponentAbilities.All(y =>
+                                    y.Def.Id != ModInit.modSettings.BattleArmorDeSwarmRoll))
+                            {
+                                unit.Combat.DataManager.AbilityDefs.TryGet(ModInit.modSettings.BattleArmorDeSwarmRoll,
+                                    out var def);
+                                var ability = new Ability(def);
+                                ModInit.modLog?.Trace?.Write(
+                                    $"[Team.AddUnit] Adding {ability.Def?.Description?.Id} to {unit.Description?.Name}.");
+                                ability.Init(unit.Combat);
+                                unit.GetPilot().Abilities.Add(ability);
+                                unit.GetPilot().ActiveAbilities.Add(ability);
+                            }
+                        }
+
+                    }
+
+                    if (!string.IsNullOrEmpty(ModInit.modSettings.DeswarmMovementConfig.AbilityDefID))
+                    {
+                        if (unit.GetPilot().Abilities
+                                .All(x => x.Def.Id != ModInit.modSettings.DeswarmMovementConfig.AbilityDefID) &&
+                            unit.ComponentAbilities.All(y =>
+                                y.Def.Id != ModInit.modSettings.DeswarmMovementConfig.AbilityDefID))
+                        {
+                            unit.Combat.DataManager.AbilityDefs.TryGet(ModInit.modSettings.DeswarmMovementConfig.AbilityDefID,
+                                out var def);
+                            var ability = new Ability(def);
+                            ModInit.modLog?.Trace?.Write(
+                                $"[Team.AddUnit] Adding {ability.Def?.Description?.Id} to {unit.Description?.Name}.");
+                            ability.Init(unit.Combat);
+                            unit.GetPilot().Abilities.Add(ability);
+                            unit.GetPilot().ActiveAbilities.Add(ability);
+                        }
+                    }
+
+
+                    return;
+                }
+
+                if (unit is Mech mech)
+                {
+                    if (mech.EncounterTags.Contains("SpawnedFromAbility")) return;
+                }
+
+                AI_Utils.GenerateAIStrategicAbilities(unit);
+            }
+        }
+
         [HarmonyPatch(typeof(AbstractActor), "InitEffectStats",
             new Type[] { })]
         public static class AbstractActor_InitEffectStats
@@ -87,16 +203,7 @@ namespace StrategicOperations.Patches
                     loadRequest.AddBlindLoadRequest(BattleTechResourceType.Texture2D, ModInit.modSettings.MountIndicatorAsset);
                     ModInit.modLog?.Info?.Write($"Added loadrequest for Texture2D: {ModInit.modSettings.MountIndicatorAsset}");
                 }
-                if (!string.IsNullOrEmpty(ModInit.modSettings.SwarmIndicatorAsset))
-                {
-                    loadRequest.AddBlindLoadRequest(BattleTechResourceType.Texture2D, ModInit.modSettings.SwarmIndicatorAsset);
-                    ModInit.modLog?.Info?.Write($"Added loadrequest for Texture2D: {ModInit.modSettings.SwarmIndicatorAsset}");
-                }
-
-                ModInit.modLog?.Info?.Write($"Added loadrequest for Texture2D: triangle_icon_512 (hardcoded)");
-                ModInit.modLog?.Info?.Write($"Added loadrequest for Texture2D: pentagon_icon_512 (hardcoded)");
-
-
+                
                 foreach (var abilityDef in dm.AbilityDefs.Where(x => x.Key.StartsWith("AbilityDefCMD_")))
                 {
                     var ability = new Ability(abilityDef.Value);
@@ -394,21 +501,14 @@ namespace StrategicOperations.Patches
                 {
                     if (target is AbstractActor targetActor)
                     {
-//                        if (creator.IsAirliftedEnemy())
-//                        {
-//                            if (!string.IsNullOrEmpty(ModInit.modSettings.AirliftWiggleConfiguration.AbilityDefID) && __instance.Def.Id == ModInit.modSettings.AirliftWiggleConfiguration.AbilityDefID)
-//                            {
-//                                var carrier = creator.Combat.FindActorByGUID(ModState.AirliftTrackers[creator.GUID].CarrierGUID);
-//                                creator.ProcessWiggleWiggle(carrier);
-//                                if (creator.team.IsLocalPlayer)
-//                                {
-//                                    var sequence = creator.DoneWithActor();
-//                                    creator.Combat.MessageCenter.PublishMessage(new AddSequenceToStackMessage(sequence));
-//                                    //creator.OnActivationEnd(creator.GUID, -1);
-//                                }
-//                                return;
-//                            }
-//                        }
+                        if (__instance.Def.Id == ModInit.modSettings.ResupplyConfig.ResupplyAbilityID)
+                        {
+                            ModInit.modLog?.Trace?.Write($"[Ability.Activate] Activating resupply from unit {creator.DisplayName} and resupplier {targetActor.DisplayName}.");
+                            creator.ProcessResupplyUnit(targetActor);
+                            creator.InitiateShutdownForPhases(ModInit.modSettings.ResupplyConfig.PhasesToResupply);
+                            targetActor.InitiateShutdownForPhases(ModInit.modSettings.ResupplyConfig.PhasesToResupply);
+                        }
+
                         if (creator.HasSwarmingUnits() && creator.GUID == targetActor.GUID)
                         {
                             ModInit.modLog?.Trace?.Write($"[Ability.Activate - Unit has sawemers].");
@@ -1144,6 +1244,21 @@ namespace StrategicOperations.Patches
             }
         }
 
+
+        [HarmonyPatch(typeof(AbstractActor), "OnPhaseBegin")]
+        public static class AbstractActor_OnPhaseBegin
+        {
+            public static void Postfix(AbstractActor __instance)
+            {
+                if (ModState.ResupplyShutdownPhases.ContainsKey(__instance.GUID))
+                {
+                    ModState.ResupplyShutdownPhases[__instance.GUID]--;
+                    if (ModState.ResupplyShutdownPhases[__instance.GUID] <= 0)
+                        ModState.ResupplyShutdownPhases.Remove(__instance.GUID);
+                }
+            }
+        }
+
         [HarmonyPatch(typeof(Team), "OnRoundBegin")]
         public static class TurnActor_OnRoundBegin
         {
@@ -1187,14 +1302,13 @@ namespace StrategicOperations.Patches
                     {
                         var spawn = ModState.DeferredInvokeBattleArmor[index].Value;
                         ModInit.modLog?.Info?.Write(
-                            $"Found deferred spawner at index {index} of {ModState.DeferredInvokeBattleArmor.Count - 1}, invoking and trying to spawn a battle armor of some kind.");
+                            $"[TurnDirector.StartFirstRound] Found deferred spawner at index {index} of {ModState.DeferredInvokeBattleArmor.Count - 1}, invoking and trying to spawn a battle armor of some kind.");
                         ModState.DeferredBattleArmorSpawnerFromDelegate = true;
                         spawn();
 
                     }
                     ModState.ResetDeferredBASpawners();
                 }
-
 
                 if (__instance.Combat.ActiveContract.ContractTypeValue.IsSkirmish) return;
 
@@ -1217,10 +1331,12 @@ namespace StrategicOperations.Patches
                             ModState.CommandAbilities.Add(ability);
                         }
 
-                        ModInit.modLog?.Info?.Write($"Added {ability?.Def?.Id} to CommandAbilities");
+                        ModInit.modLog?.Info?.Write($"[TurnDirector.StartFirstRound] Added {ability?.Def?.Id} to CommandAbilities");
 
                     }
                 }
+                __instance.Combat.UpdateResupplyTeams();
+                __instance.Combat.UpdateResupplyAbilitiesAllActors();
             }
         }
 

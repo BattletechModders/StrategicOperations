@@ -12,7 +12,7 @@ namespace StrategicOperations.Framework
 {
     public static class AI_Utils
     {
-        public static void ProcessAIBeaconWeights(this Classes.AI_FactionCommandAbilitySetting BeaconWeights, DataManager dm,
+        public static void ProcessAIBeaconWeights(this Classes.ConfigOptions.AI_FactionCommandAbilitySetting BeaconWeights, DataManager dm,
             string factionID, string abilityName)
         {
             foreach (var beaconType in BeaconWeights.AvailableBeacons)
@@ -345,7 +345,7 @@ namespace StrategicOperations.Framework
                 return;
             }
 
-            ModState.CurrentFactionSettingsList = new List<Classes.AI_FactionCommandAbilitySetting>(new List<Classes.AI_FactionCommandAbilitySetting>(
+            ModState.CurrentFactionSettingsList = new List<Classes.ConfigOptions.AI_FactionCommandAbilitySetting>(new List<Classes.ConfigOptions.AI_FactionCommandAbilitySetting>(
                 ModInit.modSettings.commandAbilities_AI.Where(x=>x.FactionIDs.Contains(unit.team.FactionValue.Name))).OrderBy(y=>y.AddChance));
             ModInit.modLog?.Debug?.Write($"Ordering setting dictionary.");
 

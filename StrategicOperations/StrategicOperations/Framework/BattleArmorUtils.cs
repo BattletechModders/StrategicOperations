@@ -405,7 +405,7 @@ namespace StrategicOperations.Framework
 
                     foreach (var BA_Effect in ModState.BA_MountSwarmEffects)
                     {
-                        if (BA_Effect.TargetEffectType == Classes.BA_TargetEffectType.BOTH)
+                        if (BA_Effect.TargetEffectType == Classes.ConfigOptions.BA_TargetEffectType.BOTH)
                         {
                             foreach (var effectData in BA_Effect.effects)
                             {
@@ -414,7 +414,7 @@ namespace StrategicOperations.Framework
                                     -1, battleArmor, battleArmor, default(WeaponHitInfo), 1);
                             }
                         }
-                        if (BA_Effect.TargetEffectType == Classes.BA_TargetEffectType.MOUNT_EXT && !tracker.IsSquadInternal)
+                        if (BA_Effect.TargetEffectType == Classes.ConfigOptions.BA_TargetEffectType.MOUNT_EXT && !tracker.IsSquadInternal)
                         {
                             foreach (var effectData in BA_Effect.effects)
                             {
@@ -423,7 +423,7 @@ namespace StrategicOperations.Framework
                                     -1, battleArmor, battleArmor, default(WeaponHitInfo), 1);
                             }
                         }
-                        if (BA_Effect.TargetEffectType == Classes.BA_TargetEffectType.MOUNT_INT && tracker.IsSquadInternal)
+                        if (BA_Effect.TargetEffectType == Classes.ConfigOptions.BA_TargetEffectType.MOUNT_INT && tracker.IsSquadInternal)
                         {
                             foreach (var effectData in BA_Effect.effects)
                             {
@@ -773,8 +773,8 @@ namespace StrategicOperations.Framework
             var em = squad.Combat.EffectManager;
             foreach (var BA_effect in ModState.BA_MountSwarmEffects)
             {
-                if (BA_effect.TargetEffectType != Classes.BA_TargetEffectType.GARRISON &&
-                    BA_effect.TargetEffectType != Classes.BA_TargetEffectType.BOTH) continue;
+                if (BA_effect.TargetEffectType != Classes.ConfigOptions.BA_TargetEffectType.GARRISON &&
+                    BA_effect.TargetEffectType != Classes.ConfigOptions.BA_TargetEffectType.BOTH) continue;
 
                 foreach (var effectProper in BA_effect.effects)
                 {
@@ -883,7 +883,7 @@ namespace StrategicOperations.Framework
 
             var settings = ModInit.modSettings.DeswarmConfigs.ContainsKey(ModInit.modSettings.BattleArmorDeSwarmRoll)
                 ? ModInit.modSettings.DeswarmConfigs[ModInit.modSettings.BattleArmorDeSwarmRoll]
-                : new Classes.BA_DeswarmAbilityConfig();
+                : new Classes.ConfigOptions.BA_DeswarmAbilityConfig();
             //var rollInitPenalty = creator.StatCollection.GetValue<int>("BattleArmorDeSwarmerRollInitPenalty");
             var rollInitPenalty = settings.InitPenalty;
             if (!creator.team.IsLocalPlayer)
@@ -962,7 +962,7 @@ namespace StrategicOperations.Framework
             //var swatInitPenalty = creator.StatCollection.GetValue<int>("BattleArmorDeSwarmerSwatInitPenalty");
             var settings = ModInit.modSettings.DeswarmConfigs.ContainsKey(ModInit.modSettings.BattleArmorDeSwarmRoll)
                 ? ModInit.modSettings.DeswarmConfigs[ModInit.modSettings.BattleArmorDeSwarmRoll]
-                : new Classes.BA_DeswarmAbilityConfig();
+                : new Classes.ConfigOptions.BA_DeswarmAbilityConfig();
             var swatInitPenalty = settings.InitPenalty;
             if (!creator.team.IsLocalPlayer)
             {
@@ -997,7 +997,7 @@ namespace StrategicOperations.Framework
             {
                 var swarmingUnitActor = creator.Combat.FindActorByGUID(swarmingUnit.Key);
                 if (roll <= finalChance)
-                {//TODO CHANGE TO CLUSTER DAMAGE
+                {
                     var txt = new Text("Remove Swarming Battle Armor: SUCCESS");
                     creator.Combat.MessageCenter.PublishMessage(new AddSequenceToStackMessage(
                         new ShowActorInfoSequence(creator, txt, FloatieMessage.MessageNature.Buff,
@@ -1067,7 +1067,7 @@ namespace StrategicOperations.Framework
             ModState.PositionLockGarrison.Add(creator.GUID, new Classes.BA_GarrisonInfo(targetBuilding, creator));
             foreach (var BA_Effect in ModState.BA_MountSwarmEffects)
             {
-                if (BA_Effect.TargetEffectType == Classes.BA_TargetEffectType.BOTH)
+                if (BA_Effect.TargetEffectType == Classes.ConfigOptions.BA_TargetEffectType.BOTH)
                 {
                     foreach (var effectData in BA_Effect.effects)
                     {
@@ -1076,7 +1076,7 @@ namespace StrategicOperations.Framework
                             -1, creatorActor, creatorActor, default(WeaponHitInfo), 1);
                     }
                 }
-                if (BA_Effect.TargetEffectType == Classes.BA_TargetEffectType.GARRISON)
+                if (BA_Effect.TargetEffectType == Classes.ConfigOptions.BA_TargetEffectType.GARRISON)
                 {
                     foreach (var effectData in BA_Effect.effects)
                     {
@@ -1160,8 +1160,8 @@ namespace StrategicOperations.Framework
             {
                 foreach (var BA_Effect in ModState.BA_MountSwarmEffects)
                 {
-                    if (BA_Effect.TargetEffectType == Classes.BA_TargetEffectType.SWARM ||
-                        BA_Effect.TargetEffectType == Classes.BA_TargetEffectType.BOTH)
+                    if (BA_Effect.TargetEffectType == Classes.ConfigOptions.BA_TargetEffectType.SWARM ||
+                        BA_Effect.TargetEffectType == Classes.ConfigOptions.BA_TargetEffectType.BOTH)
                     {
                         foreach (var effectData in BA_Effect.effects)
                         {

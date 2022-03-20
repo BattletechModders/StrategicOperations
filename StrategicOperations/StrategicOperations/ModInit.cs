@@ -18,7 +18,6 @@ namespace StrategicOperations
         private static string modDir;
         public static readonly Random Random = new Random(123);
 
-
         internal static Settings modSettings;
         public const string HarmonyPackage = "us.tbone.StrategicOperations";
         public static void Init(string directory, string settings)
@@ -79,13 +78,11 @@ namespace StrategicOperations
         
         public List<string> deploymentBeaconEquipment = new List<string>(); //e.g. Item.HeatSinkDef.Gear_HeatSink_Generic_Standard
         
-        public List<AI_FactionCommandAbilitySetting> commandAbilities_AI = new List<AI_FactionCommandAbilitySetting>();
+        public List<ConfigOptions.AI_FactionCommandAbilitySetting> commandAbilities_AI = new List<ConfigOptions.AI_FactionCommandAbilitySetting>();
         public ColorSetting customSpawnReticleColor = new ColorSetting();
         public string customSpawnReticleAsset = "";
         public string MountIndicatorAsset = "";
-        public string SwarmIndicatorAsset = "";
         public ColorSetting MountIndicatorColor = new ColorSetting();
-        //public ColorSetting SwarmIndicatorColor = new ColorSetting();
         public int AI_InvokeStrafeThreshold = 1;
         public int AI_InvokeSpawnThreshold = 1;
         public List<AI_SpawnBehavior> AI_SpawnBehavior = new List<AI_SpawnBehavior>(); // values can be "AMBUSH", "BRAWLER" (is default if none selected), "REINFORCE"
@@ -102,10 +99,10 @@ namespace StrategicOperations
         public List<string> ArmActuatorCategoryIDs = new List<string>();
 
         //public bool UseActorStatsForDeswarmAbilities = false;
-        public Dictionary<string, BA_DeswarmAbilityConfig> DeswarmConfigs =
-            new Dictionary<string, BA_DeswarmAbilityConfig>();
+        public Dictionary<string, ConfigOptions.BA_DeswarmAbilityConfig> DeswarmConfigs =
+            new Dictionary<string, ConfigOptions.BA_DeswarmAbilityConfig>();
 
-        public BA_DeswarmMovementConfig DeswarmMovementConfig = new BA_DeswarmMovementConfig();
+        public ConfigOptions.BA_DeswarmMovementConfig DeswarmMovementConfig = new ConfigOptions.BA_DeswarmMovementConfig();
 
         public bool AttackOnSwarmSuccess = false;
         public List<string> AI_BattleArmorExcludedContractTypes = new List<string>();
@@ -122,8 +119,8 @@ namespace StrategicOperations
         public string AirliftAbilityID = "";
         public bool CanDropOffAfterMoving = false;
         public bool AirliftCapacityByTonnage = false;
-        public List<string> AirliftImmuneTags = new List<string>(); //e.g. unit_vtol or big_chungus. also probably put turrets unless you want to move turrets artound... havent tried it but could be hilarious.
+        public List<string> AirliftImmuneTags = new List<string>();
 
-//        public AirliftWiggleConfig AirliftWiggleConfiguration = new AirliftWiggleConfig();
+        public ConfigOptions.ResupplyConfigOptions ResupplyConfig = new ConfigOptions.ResupplyConfigOptions();
     }
 }
