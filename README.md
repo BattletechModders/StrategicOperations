@@ -1108,6 +1108,9 @@ Speaking of dropping, hostile airlifted units are literally **dropped** from the
 Units can now be designated as "resupply" units. If such a unit is found, all units friendly to that unit will be given a "resupply" ability. When those units are within range of the resupply unit, they can then initiate a resupply. To be clear, the unit that does the resupplying is not the unit that activates the abilit; rather the unit _to be resupplied_ activates the resupply ability. In theory, the AI should also try to use the resupply ability if they have a weapon thats run out of ammo.
 
 On activating the "resupply" ability, all friendly resupply units within 1000m will be indicated using the color/assets from `ResupplyIndicatorAsset` and `ResupplyIndicatorColor`, while all friendly resupply units _within resupply range_ will be indicated using the color/assets from `ResupplyIndicatorInRangeAsset` and `ResupplyIndicatorInRangeColor`.
+
+In the below image, both Unnsvin carriers are potential resupply units. The purple indicator is currently out of range, while the gold indicator is within range. The shaded circle radius indicates the max move distance of the unit  (so players can judge whether they could potentially move to within range of a resupply).
+![TextPop](https://github.com/ajkroeg/StrategicOperations/blob/dev-new-unfucked/doc/resupplySelection.png)
 	
 The range at which they can initiate resupply is defined by `IntParam2` in the appropriate ability def. On initiating the resupply, both the unit being resupplied and the unit doing the resupplying will shut down, and remain shut down for the # phases set in `PhasesToResupply`.
 	
