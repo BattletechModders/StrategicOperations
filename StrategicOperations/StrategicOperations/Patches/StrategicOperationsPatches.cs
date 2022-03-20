@@ -11,6 +11,7 @@ using CustomUnits;
 using Harmony;
 using HBS;
 using HBS.Collections;
+using Localize;
 using StrategicOperations.Framework;
 using UnityEngine;
 using static StrategicOperations.Framework.Classes;
@@ -34,6 +35,11 @@ namespace StrategicOperations.Patches
 
                 if (ModState.ResupplyShutdownPhases.ContainsKey(mech.GUID))
                 {
+                    var txt = new Text("RESUPPLY IN PROGRESS: ABORTING RESTART AND SINKING HEAT");
+                    mech.Combat.MessageCenter.PublishMessage(new AddSequenceToStackMessage(
+                        new ShowActorInfoSequence(mech, txt, FloatieMessage.MessageNature.Buff,
+                            false)));
+
                     DoneWithActorSequence doneWithActorSequence = (DoneWithActorSequence) mech.GetDoneWithActorOrders();
                     MechHeatSequence mechHeatSequence = new MechHeatSequence(OwningMech: mech,
                         performHeatSinkStep: true, applyStartupHeatSinks: false, instigatorID: "STARTUP");

@@ -109,6 +109,7 @@
     <Compile Include="Patches\AI_Patches.cs" />
     <Compile Include="Patches\BattleArmorPatches.cs" />
     <Compile Include="Patches\AI_DEBUG_Patches.cs" />
+    <Compile Include="Patches\AIM_ButNotReally.cs" />
     <Compile Include="Patches\SelectionPatches.cs" />
     <Compile Include="Patches\DirtyDebugPatches.cs" />
     <Compile Include="Patches\SimGamePatches.cs" />

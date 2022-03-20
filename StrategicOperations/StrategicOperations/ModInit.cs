@@ -122,5 +122,8 @@ namespace StrategicOperations
         public List<string> AirliftImmuneTags = new List<string>();
 
         public ConfigOptions.ResupplyConfigOptions ResupplyConfig = new ConfigOptions.ResupplyConfigOptions();
+
+        public bool EnforceIFFForAmmoTooltips = false;
+        public bool ShowAmmoInVehicleTooltips = false;
     }
 }
