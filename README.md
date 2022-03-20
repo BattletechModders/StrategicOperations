@@ -436,7 +436,7 @@ settings in the mod.json:
 			"b": 0
 		},
 		"ResupplyAbilityID": "AbilityDefResupply",
-		"ResupplyUnitTag": "RedBatHatesCleverTags",
+		"ResupplyUnitTag": "RedBatHatesFunnyTagsSoThisIsAnUnfunnyTag",
 		"SPAMMYAmmoDefId": "Ammunition_SPAMMY",
 		"SPAMMYBlackList":[],
 		"ArmorSupplyAmmoDefId": "Ammunition_ARMORAMMO",
@@ -1174,7 +1174,7 @@ In mod.json, config consists of the following:
 		"b": 0
 	},
 	"ResupplyAbilityID": "AbilityDefResupply",
-	"ResupplyUnitTag": "RedBatHatesCleverTags",
+	"ResupplyUnitTag": "RedBatHatesFunnyTagsSoThisIsAnUnfunnyTag",
 	"SPAMMYAmmoDefId": "Ammunition_SPAMMY",
 	"SPAMMYBlackList":[],
 	"ArmorSupplyAmmoDefId": "Ammunition_ARMORAMMO",
