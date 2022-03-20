@@ -423,25 +423,26 @@ settings in the mod.json:
 		"unit_turret"
 	],
 	"ResupplyConfig": {
-			"ResupplyIndicatorAsset": "Target",
-			"ResupplyIndicatorColor": {
-				"r": 255,
-				"g": 0,
-				"b": 255
-			},
-			"ResupplyIndicatorInRangeAsset": "Target",
-			"ResupplyIndicatorInRangeColor": {
-				"r": 255,
-				"g": 255,
-				"b": 0
-			},
-			"ResupplyAbilityID": "AbilityDefResupply",
-			"ResupplyUnitTag": "RedBatHatesCleverTags",
-			"SPAMMOAmmoDefId": "Ammunition_SPAMMO",
-			"ArmorSupplyAmmoDefId": "Ammunition_ARMORAMMO",
-			"PhasesToResupply": 30,
-			"ArmorRepairMax": 0.9
-		}
+		"ResupplyIndicatorAsset": "Target",
+		"ResupplyIndicatorColor": {
+			"r": 255,
+			"g": 0,
+			"b": 255
+		},
+		"ResupplyIndicatorInRangeAsset": "Target",
+		"ResupplyIndicatorInRangeColor": {
+			"r": 255,
+			"g": 255,
+			"b": 0
+		},
+		"ResupplyAbilityID": "AbilityDefResupply",
+		"ResupplyUnitTag": "RedBatHatesCleverTags",
+		"SPAMMYAmmoDefId": "Ammunition_SPAMMY",
+		"SPAMMYBlackList":[],
+		"ArmorSupplyAmmoDefId": "Ammunition_ARMORAMMO",
+		"ArmorRepairMax": 0.9,
+		"PhasesToResupply": 30
+	}
 ```
 
 `enableLogging` - bool, enable logging
@@ -1102,4 +1103,91 @@ Hostile units *can* be airlifted provided the carrier unit has the unit stat `Ca
 Speaking of dropping, hostile airlifted units are literally **dropped** from the VTOL's height when the airlift is halted, dealing appropriate DFA self-damage as if they'd fallen from a building. In the case of turrets and vehicles the damage is equal to their tonnage, while mechs recieve the DFA selfdamage listed in their chassisdef. It is up to modpack authors to config properly so as to not allow ground-based units to transport hostiles, since such units would still recieve damage when being "dropped" even though theyre already on the ground.
 
 ## Resupply
+**New in 3.0.1.0**
 
+Units can now be designated as "resupply" units. If such a unit is found, all units friendly to that unit will be given a "resupply" ability. When those units are within range of the resupply unit, they can then initiate a resupply. To be clear, the unit that does the resupplying is not the unit that activates the abilit; rather the unit _to be resupplied_ activates the resupply ability.
+
+On activating the "resupply" ability, all friendly resupply units within 1000m will be indicated using the color/assets from `ResupplyIndicatorAsset` and `ResupplyIndicatorColor`, while all friendly resupply units _within resupply range_ will be indicated using the color/assets from `ResupplyIndicatorInRangeAsset` and `ResupplyIndicatorInRangeColor`.
+	
+The range at which they can initiate resupply is defined by `IntParam2` in the appropriate ability def. On initiating the resupply, both the unit being resupplied and the unit doing the resupplying will shut down, and remain shut down for the # phases set in `PhasesToResupply`.
+	
+The way actual resupplying works is thus: if a unit being resupplied has ammunition bins that are not full, it will 1st attempt to search the Resupply unit for bins with matching ammo type. If found, the ammo will be transfered 1:1 until either the unit being supplied has refilled bins, or the Resupply unit runs out of that ammo type. If no matching ammo type is found, or the bins are unable to be filled using "real" ammo, then we will search for SPAMMY (SPAce Magic Modular by Yang) ammo. SPAMMY ammo works by finding the tonnage-per-shot of the "real" ammo, and then consuming the appropriate amount of SPAMMY ammo to be roughly equivalent tonnage. Due to floating point errors and lack-of-fucks given by yours truly, you'll often end up with 1 fewer shots in the "real" bin than you'd expect (i.e. 1 ton of SPAMMY gets you 119 LRMs instead of 120). No one ever said transmogrification was perfect.
+	
+Armor repair works somewhat similarly to SPAMMY ammo, in that a special "ammo" type for repairing armor must be defined. The number of "shots" in bins of this ammo is equivalent to the number of armor "points" that can be restored to units being resupplied. The amount of armor that canb be "restored" to a given location is a function of the `ArmorRepairMax` value and the initial armor for that location. ie, if ArmorRepairMax: 0.9, armor can only be restored up to 90% of the initial assigned armor for that location. Destroyed or missing locations can (obviously) not have armor restored.
+
+Mod authors should probably use CAC to define new AmmoCategories for these "Ammos" so nothing else can use them, i.e
+	
+```
+{
+			"ID": 6109,
+			"Name": "SPAMMY",
+			"FriendlyName": "SPAMMY",
+			"IsBallistic": false,
+			"IsMissile": true,
+			"IsEnergy": false,
+			"IsSupport": false,
+			"UsesInternalAmmo": false,
+			"UIColorRef": "Missile",
+			"FallbackUIColor": null,
+			"Icon": "MissileHardpointIcon",
+			"OutOfAmmoAudioVOEvent": "AmmoDepleted_LRM"
+		},
+		{
+			"ID": 6110,
+			"Name": "ARMORAMMO",
+			"FriendlyName": "ARMORAMMO",
+			"IsBallistic": false,
+			"IsMissile": true,
+			"IsEnergy": false,
+			"IsSupport": false,
+			"UsesInternalAmmo": false,
+			"UIColorRef": "Missile",
+			"FallbackUIColor": null,
+			"Icon": "MissileHardpointIcon",
+			"OutOfAmmoAudioVOEvent": "AmmoDepleted_LRM"
+		}
+```
+
+In mod.json, config consists of the following:
+	
+```
+"ResupplyConfig": {
+	"ResupplyIndicatorAsset": "Target",
+	"ResupplyIndicatorColor": {
+		"r": 255,
+		"g": 0,
+		"b": 255
+	},
+	"ResupplyIndicatorInRangeAsset": "Target",
+	"ResupplyIndicatorInRangeColor": {
+		"r": 255,
+		"g": 255,
+		"b": 0
+	},
+	"ResupplyAbilityID": "AbilityDefResupply",
+	"ResupplyUnitTag": "RedBatHatesCleverTags",
+	"SPAMMYAmmoDefId": "Ammunition_SPAMMY",
+	"SPAMMYBlackList":[],
+	"ArmorSupplyAmmoDefId": "Ammunition_ARMORAMMO",
+	"ArmorRepairMax": 0.9,
+	"PhasesToResupply": 30
+}
+```
+	
+`ResupplyIndicatorAsset` and `ResupplyIndicatorColor` - much like the spawn and mount indicators, these define the Texture2D asset and color used to indicate Resupply units. This indicator will show _all_ resupply units within a large (1000) radius of the activating unit. These units are not necessarily within current resupply range!
+
+`ResupplyIndicatorInRangeAsset` and `ResupplyIndicatorInRangeColor` - these define the Texture2D and color used to indicate Resupply units _within resupply range of the activating unit_
+
+`ResupplyAbilityID` - abilityDef ID of the resupply ability; A sample is shipped with the release. Necessary settings are `"Targeting": "ActorTarget",`, `"TargetFriendlyUnit": "FRIENDLY",`, and `"IntParam2": 120,` (defines resupply range, actual value can be whatever)
+
+`ResupplyUnitTag` - unitDef (i.e mechdef) tag that indicates a unit that can Resupply other units.
+
+`SPAMMYAmmoDefId` - AmmunitionDef ID of SPAMMY (SPAce Magic Modular by Yang ammo) that can be used to universally resupply ammunition.
+
+`SPAMMYBlackList` - AmmunitionDef IDs here will not be replenished by SPAMMY ammo.
+
+`ArmorSupplyAmmoDefId` - AmmunitionDef ID of ARMOR AMMO; "shots" in bin are considered to be "points" of armor available to be used in restoring other unit armor.
+	
+`ArmorRepairMax` - decimal proportion to which armor can be restored for a given ArmorLocation on unit. i.e, if 0.9, armor can only be restored up to 90% of the initial assigned armor for that location. Destroyed or missing locations can (obviously) not have armor restored.
+
+`PhasesToResupply` - number of phases both Resupply and unit being resupplied will be shut down ( will "round" to rounds since unit cant restart until its activation). Multiple units can attempt to resupply from the same Resupply simultaneously, and will result in the Resupply unit shutdown period being extended for each.
