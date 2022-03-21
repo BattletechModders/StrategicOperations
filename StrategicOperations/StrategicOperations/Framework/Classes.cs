@@ -78,6 +78,7 @@ namespace StrategicOperations.Framework
                 public string SPAMMYAmmoDefId = "";
                 public List<string> SPAMMYBlackList = new List<string>();
                 public string InternalSPAMMYDefId = "";
+                public List<string> InternalSPAMMYBlackList = new List<string>();
                 public string ArmorSupplyAmmoDefId = "";
                 public float ArmorRepairMax = 0.75f;
                 public int PhasesToResupply = 1;

@@ -121,11 +121,20 @@ namespace StrategicOperations.Framework
                             foreach (var magicBox in resupplyActor.ammoBoxes)
                             {
                                 if (magicBox.CurrentAmmo <= 0) continue;
-                                if ((searchForSpammy && magicBox.ammoDef.Description.Id ==
-                                        ModInit.modSettings.ResupplyConfig.SPAMMYAmmoDefId) ||
-                                    (searchForInternalSpammy &&
-                                     magicBox.ammoDef.Description.Id ==
-                                     ModInit.modSettings.ResupplyConfig.InternalSPAMMYDefId))
+
+                                var spammy = searchForSpammy && magicBox.ammoDef.Description.Id ==
+                                             ModInit.modSettings.ResupplyConfig.SPAMMYAmmoDefId &&
+                                             !ModInit.modSettings.ResupplyConfig.SPAMMYBlackList.Contains(weapon
+                                                 .weaponDef
+                                                 .Description.Id);
+
+                                var intSpammy = searchForSpammy && magicBox.ammoDef.Description.Id ==
+                                             ModInit.modSettings.ResupplyConfig.InternalSPAMMYDefId &&
+                                             !ModInit.modSettings.ResupplyConfig.InternalSPAMMYBlackList.Contains(weapon
+                                                 .weaponDef
+                                                 .Description.Id);
+
+                                if (spammy || intSpammy)
                                 {
                                     var magicTonnagePerShot = magicBox.tonnage / magicBox.AmmoCapacity;
                                     var magicTonnageAvailable = magicTonnagePerShot * magicBox.CurrentAmmo;
