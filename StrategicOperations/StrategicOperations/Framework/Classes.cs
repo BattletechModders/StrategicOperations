@@ -4,6 +4,7 @@ using System.Linq;
 using Abilifier.Patches;
 using BattleTech;
 using BattleTech.Data;
+using CustomComponents;
 using CustomUnits;
 using HBS.Collections;
 using Newtonsoft.Json;
@@ -12,6 +13,11 @@ using UnityEngine;
 
 namespace StrategicOperations.Framework
 {
+    [CustomComponent("InternalAmmoTonnage")]
+    public class InternalAmmoTonnage : SimpleCustomComponent
+    {
+        public float InternalAmmoTons = 0.0f;
+    }
     public class Classes
     {
         public class ConfigOptions
@@ -71,6 +77,7 @@ namespace StrategicOperations.Framework
                 public string ResupplyUnitTag = "";
                 public string SPAMMYAmmoDefId = "";
                 public List<string> SPAMMYBlackList = new List<string>();
+                public string InternalSPAMMYDefId = "";
                 public string ArmorSupplyAmmoDefId = "";
                 public float ArmorRepairMax = 0.75f;
                 public int PhasesToResupply = 1;

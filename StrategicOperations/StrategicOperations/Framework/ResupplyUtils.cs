@@ -6,6 +6,9 @@ using System.Text;
 using System.Threading.Tasks;
 using BattleTech;
 using BattleTech.UI;
+using CustAmmoCategories;
+using CustAmmoCategoriesPatches;
+using CustomComponents;
 using CustomUnits;
 using UnityEngine;
 
@@ -13,6 +16,10 @@ namespace StrategicOperations.Framework
 {
     public static class ResupplyUtils
     {
+        public static void modifyAmmoCount(this Weapon weapon, int value)
+        {
+            weapon.StatCollection.ModifyStat("resupplyAMMO", -1, "InternalAmmo", StatCollection.StatOperation.Int_Add, value);
+        }
         public static void modifyAmmoCount(this AmmunitionBox box, int value)
         {
             box.StatCollection.ModifyStat("resupplyAMMO", -1, "CurrentAmmo", StatCollection.StatOperation.Int_Add, value);
@@ -93,6 +100,65 @@ namespace StrategicOperations.Framework
         public static void ProcessResupplyUnit(this AbstractActor actor, AbstractActor resupplyActor)
         {
             var searchForSpammy = !string.IsNullOrEmpty(ModInit.modSettings.ResupplyConfig.SPAMMYAmmoDefId);
+            var searchForInternalSpammy = !string.IsNullOrEmpty(ModInit.modSettings.ResupplyConfig.InternalSPAMMYDefId);
+
+            foreach (var weapon in actor.Weapons)
+            {
+                if (weapon.exDef().InternalAmmo.Count > 0)
+                {
+                    var startingCapacity = weapon.exDef().InternalAmmo.First().Value;
+                    if (weapon.InternalAmmo < startingCapacity)
+                    {
+                        //InternalAmmoTonnage internalTonnage;
+                        if (weapon.weaponDef.Is<InternalAmmoTonnage>(out var internalTonnage))
+                        {
+                            var missingAmmoForMagicBox = startingCapacity - weapon.InternalAmmo;
+                            ModInit.modLog?.Trace?.Write(
+                                $"[ProcessResupplyUnit - Internal SPAMMY] - Found weapon {weapon.Description.UIName} needs {missingAmmoForMagicBox} shots added (starting capacity was {startingCapacity}.");
+                            var sourceTonnagePerShot =
+                                internalTonnage.InternalAmmoTons / startingCapacity;
+                            var sourceTonnageNeeded = missingAmmoForMagicBox * sourceTonnagePerShot;
+                            foreach (var magicBox in resupplyActor.ammoBoxes)
+                            {
+                                if (magicBox.CurrentAmmo <= 0) continue;
+                                if ((searchForSpammy && magicBox.ammoDef.Description.Id ==
+                                        ModInit.modSettings.ResupplyConfig.SPAMMYAmmoDefId) ||
+                                    (searchForInternalSpammy &&
+                                     magicBox.ammoDef.Description.Id ==
+                                     ModInit.modSettings.ResupplyConfig.InternalSPAMMYDefId))
+                                {
+                                    var magicTonnagePerShot = magicBox.tonnage / magicBox.AmmoCapacity;
+                                    var magicTonnageAvailable = magicTonnagePerShot * magicBox.CurrentAmmo;
+                                    var replacementSourceShotsAvailable =
+                                        Mathf.FloorToInt(magicTonnageAvailable / sourceTonnagePerShot);
+                                    var magicShotsPerSource = sourceTonnagePerShot / magicTonnagePerShot;
+                                    var totalMagicShotsConsumed = Mathf.FloorToInt(Mathf.Min(
+                                        magicShotsPerSource * replacementSourceShotsAvailable,
+                                        magicShotsPerSource * missingAmmoForMagicBox));
+                                    if (replacementSourceShotsAvailable >= missingAmmoForMagicBox)
+                                    {
+                                        weapon.modifyAmmoCount(missingAmmoForMagicBox);
+                                        weapon.DecInternalAmmo(-1,-missingAmmoForMagicBox);
+                                        magicBox.modifyAmmoCount(-totalMagicShotsConsumed);
+                                        ModInit.modLog?.Trace?.Write(
+                                            $"[ProcessResupplyUnit - Internal Ammo!] - Full Resupply complete for weapon {weapon.Description.UIName}. Ammobox now has {weapon.CurrentAmmo}/{weapon.weaponDef.StartingAmmoCapacity} ammo, SPAMMY box has {magicBox.CurrentAmmo}/{magicBox.AmmoCapacity} remaining. \n\nMathDumps: Replacement of ammo needs to use {sourceTonnageNeeded} tons of SPAMMY. SPAMMY has {magicTonnageAvailable} tons available at {magicTonnagePerShot} per shot for total SPAMMY shots needed of {totalMagicShotsConsumed}");
+                                        break;
+                                    }
+                                    else
+                                    {
+                                        weapon.modifyAmmoCount(replacementSourceShotsAvailable);
+                                        weapon.DecInternalAmmo(-1, -replacementSourceShotsAvailable);
+                                        magicBox.zeroAmmoCount();
+                                        ModInit.modLog?.Trace?.Write(
+                                            $"[ProcessResupplyUnit - Internal Ammo!] - Partial Resupply complete for weapon {weapon.Description.UIName}. Ammobox now has {weapon.CurrentAmmo}/{weapon.weaponDef.StartingAmmoCapacity} ammo, SPAMMY box has {magicBox.CurrentAmmo}/{magicBox.AmmoCapacity} remaining. \n\nMathDumps: Replacement of ammo needs to use {sourceTonnageNeeded} tons of SPAMMY. SPAMMY has {magicTonnageAvailable} tons available at {magicTonnagePerShot} per shot for total SPAMMY shots needed of {totalMagicShotsConsumed}");
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
             foreach (var ammoBoxToFill in actor.ammoBoxes)
             {
                 if (ammoBoxToFill.CurrentAmmo < ammoBoxToFill.AmmoCapacity)

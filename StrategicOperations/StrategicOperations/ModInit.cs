@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Reflection;
 using BattleTech;
+using CustomComponents;
 using Harmony;
 using IRBTModUtils.Logging;
 using Localize;
@@ -44,6 +45,7 @@ namespace StrategicOperations
             ModInit.modLog?.Info?.Write($"Initializing StrategicOperations - Version {typeof(Settings).Assembly.GetName().Version}");
             var harmony = HarmonyInstance.Create(HarmonyPackage);
             //FileLog.Log(HarmonyPackage);
+            Registry.RegisterSimpleCustomComponents(Assembly.GetExecutingAssembly());
             harmony.PatchAll(Assembly.GetExecutingAssembly());
             ModState.Initialize();
             //dump settings
