@@ -1204,3 +1204,15 @@ In mod.json, config consists of the following:
 `ArmorRepairMax` - decimal proportion to which armor can be restored for a given ArmorLocation on unit. i.e, if 0.9, armor can only be restored up to 90% of the initial assigned armor for that location. Destroyed or missing locations can (obviously) not have armor restored.
 
 `PhasesToResupply` - number of phases both Resupply and unit being resupplied will be shut down ( will "round" to rounds since unit cant restart until its activation). Multiple units can attempt to resupply from the same Resupply simultaneously, and will result in the Resupply unit shutdown period being extended for each.
+
+### FOR INTERNAL AMMO RESUPPLY
+
+Weapons with internal ammo should have at least the following Custom (from CustomComponents) defined:
+```
+	"Custom": {
+		"InternalAmmoTonnage": {
+			"InternalAmmoTons": 0.15
+		}
+	},
+```
+`InternalAmmoTons` is the actual tonnage value of the internal ammo for that weapon, and will be used to calculate how much SPAMMY ammo to consume for the resupply
