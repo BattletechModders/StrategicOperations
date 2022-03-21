@@ -439,6 +439,7 @@ settings in the mod.json:
 		"ResupplyUnitTag": "RedBatHatesFunnyTagsSoThisIsAnUnfunnyTag",
 		"SPAMMYAmmoDefId": "Ammunition_SPAMMY",
 		"SPAMMYBlackList":[],
+		"InternalSPAMMYDefId": "Ammunition_IntSPAMMY",
 		"ArmorSupplyAmmoDefId": "Ammunition_ARMORAMMO",
 		"ArmorRepairMax": 0.9,
 		"PhasesToResupply": 30
@@ -1177,6 +1178,7 @@ In mod.json, config consists of the following:
 	"ResupplyUnitTag": "RedBatHatesFunnyTagsSoThisIsAnUnfunnyTag",
 	"SPAMMYAmmoDefId": "Ammunition_SPAMMY",
 	"SPAMMYBlackList":[],
+	"InternalSPAMMYDefId": "Ammunition_IntSPAMMY",
 	"ArmorSupplyAmmoDefId": "Ammunition_ARMORAMMO",
 	"ArmorRepairMax": 0.9,
 	"PhasesToResupply": 30
@@ -1195,6 +1197,8 @@ In mod.json, config consists of the following:
 
 `SPAMMYBlackList` - AmmunitionDef IDs here will not be replenished by SPAMMY ammo.
 
+`InternalSPAMMYDefId` - AmmunitionDef ID of SPAMMY that can only be used to resupply internal ammunition (regular SPAMMY will also resupply internal).
+	
 `ArmorSupplyAmmoDefId` - AmmunitionDef ID of ARMOR AMMO; "shots" in bin are considered to be "points" of armor available to be used in restoring other unit armor.
 	
 `ArmorRepairMax` - decimal proportion to which armor can be restored for a given ArmorLocation on unit. i.e, if 0.9, armor can only be restored up to 90% of the initial assigned armor for that location. Destroyed or missing locations can (obviously) not have armor restored.
