@@ -438,12 +438,19 @@ settings in the mod.json:
 		"ResupplyAbilityID": "AbilityDefResupply",
 		"ResupplyUnitTag": "RedBatHatesFunnyTagsSoThisIsAnUnfunnyTag",
 		"SPAMMYAmmoDefId": "Ammunition_SPAMMY",
-		"SPAMMYBlackList":[],
+		"SPAMMYBlackList": [],
 		"InternalSPAMMYDefId": "Ammunition_IntSPAMMY",
+		"InternalSPAMMYBlackList": [
+			"Weapon_Medium_Recoilless_BA"
+		],
 		"ArmorSupplyAmmoDefId": "Ammunition_ARMORAMMO",
 		"ArmorRepairMax": 0.9,
-		"PhasesToResupply": 30
-	},
+		"BasePhasesToResupply": 30.0,
+		"ResupplyPhasesPerAmmoTonnage": 30,
+		"ResupplyPhasesPerArmorPoint": 30,
+		"UnitTagFactor": {
+			"omni_resupply": 0.1
+		},
 	"ShowAmmoInVehicleTooltips": true,
 	"EnforceIFFForAmmoTooltips": false
 ```
@@ -1119,7 +1126,24 @@ On activating the "resupply" ability, all friendly resupply units within 1000m w
 In the below image, both Unnsvin carriers are potential resupply units. The purple indicator is currently out of range, while the gold indicator is within range. The shaded circle radius indicates the max move distance of the unit  (so players can judge whether they could potentially move to within range of a resupply).
 ![TextPop](https://github.com/ajkroeg/StrategicOperations/blob/dev-new-unfucked/doc/resupplySelection.png)
 	
-The range at which they can initiate resupply is defined by `IntParam2` in the appropriate ability def. On initiating the resupply, both the unit being resupplied and the unit doing the resupplying will shut down, and remain shut down for the # phases set in `PhasesToResupply`.
+The range at which they can initiate resupply is defined by `IntParam2` in the appropriate ability def.
+	
+On initiating the resupply, both the unit being resupplied and the unit doing the resupplying will shut down, and remain shut down for the # of phases (rounded to integer) from `BasePhasesToResupply`, `ResupplyPhasesPerAmmoTonnage`, `ResupplyPhasesPerArmorPoint`, and modified by `UnitTagFactor`.
+
+For example:
+
+```
+BasePhasesToResupply": 30.0,
+		"ResupplyPhasesPerAmmoTonnage": 30,
+		"ResupplyPhasesPerArmorPoint": 30,
+		"UnitTagFactor": {
+			"easy_resupply": 0.1,
+			"superheavy_resupply": 2.0
+		}
+```
+Given the above settings, a unit with both the above tags, getting 1 ton of ammo and 5 points of armor resupplied would take:
+	
+	`[30 (base) + 30 (ammo) + 150 (5x30, armor)] x 0.2 (0.1 x 2.0, tags) = 42 phases`
 	
 The way actual resupplying works is thus: if a unit being resupplied has ammunition bins that are not full, it will 1st attempt to search the Resupply unit for bins with matching ammo type. If found, the ammo will be transfered 1:1 until either the unit being supplied has refilled bins, or the Resupply unit runs out of that ammo type. If no matching ammo type is found, or the bins are unable to be filled using "real" ammo, then we will search for SPAMMY (**SPA**ce **M**agic **M**odular by **Y**ang) ammo. SPAMMY ammo works by finding the tonnage-per-shot of the "real" ammo, and then consuming the appropriate amount of SPAMMY ammo to be roughly equivalent tonnage. Due to floating point errors and lack-of-fucks given by yours truly, you'll often end up with 1 fewer shots in the "real" bin than you'd expect (i.e. 1 ton of SPAMMY gets you 119 LRMs instead of 120). No one ever said transmogrification was perfect.
 	
@@ -1161,28 +1185,36 @@ Mod authors should probably use CAC to define new AmmoCategories for these "Ammo
 In mod.json, config consists of the following:
 	
 ```
-"ResupplyConfig": {
-	"ResupplyIndicatorAsset": "Target",
-	"ResupplyIndicatorColor": {
-		"r": 255,
-		"g": 0,
-		"b": 255
-	},
-	"ResupplyIndicatorInRangeAsset": "Target",
-	"ResupplyIndicatorInRangeColor": {
-		"r": 255,
-		"g": 255,
-		"b": 0
-	},
-	"ResupplyAbilityID": "AbilityDefResupply",
-	"ResupplyUnitTag": "RedBatHatesFunnyTagsSoThisIsAnUnfunnyTag",
-	"SPAMMYAmmoDefId": "Ammunition_SPAMMY",
-	"SPAMMYBlackList":[],
-	"InternalSPAMMYDefId": "Ammunition_IntSPAMMY",
-	"ArmorSupplyAmmoDefId": "Ammunition_ARMORAMMO",
-	"ArmorRepairMax": 0.9,
-	"PhasesToResupply": 30
-}
+	"ResupplyConfig": {
+		"ResupplyIndicatorAsset": "Target",
+		"ResupplyIndicatorColor": {
+			"r": 255,
+			"g": 0,
+			"b": 255
+		},
+		"ResupplyIndicatorInRangeAsset": "Target",
+		"ResupplyIndicatorInRangeColor": {
+			"r": 255,
+			"g": 255,
+			"b": 0
+		},
+		"ResupplyAbilityID": "AbilityDefResupply",
+		"ResupplyUnitTag": "RedBatHatesFunnyTagsSoThisIsAnUnfunnyTag",
+		"SPAMMYAmmoDefId": "Ammunition_SPAMMY",
+		"SPAMMYBlackList": [],
+		"InternalSPAMMYDefId": "Ammunition_IntSPAMMY",
+		"InternalSPAMMYBlackList": [
+			"Weapon_Medium_Recoilless_BA"
+		],
+		"ArmorSupplyAmmoDefId": "Ammunition_ARMORAMMO",
+		"ArmorRepairMax": 0.9,
+		"BasePhasesToResupply": 30.0,
+		"ResupplyPhasesPerAmmoTonnage": 30,
+		"ResupplyPhasesPerArmorPoint": 30,
+		"UnitTagFactor": {
+			"easy_resupply": 0.1,
+			"superheavy_resupply": 2.0
+		},
 ```
 	
 `ResupplyIndicatorAsset` and `ResupplyIndicatorColor` - much like the spawn and mount indicators, these define the Texture2D asset and color used to indicate Resupply units. This indicator will show _all_ resupply units within a large (1000) radius of the activating unit. These units are not necessarily within current resupply range!
@@ -1205,7 +1237,13 @@ In mod.json, config consists of the following:
 	
 `ArmorRepairMax` - decimal proportion to which armor can be restored for a given ArmorLocation on unit. i.e, if 0.9, armor can only be restored up to 90% of the initial assigned armor for that location. Destroyed or missing locations can (obviously) not have armor restored.
 
-`PhasesToResupply` - number of phases both Resupply and unit being resupplied will be shut down ( will "round" to rounds since unit cant restart until its activation). Multiple units can attempt to resupply from the same Resupply simultaneously, and will result in the Resupply unit shutdown period being extended for each.
+~~`PhasesToResupply`~~ **Renamed `BasePhasesToResupply` in v3.0.1.2**- float, number of phases both Resupply and unit being resupplied will be shut down ( will "round" to rounds since unit cant restart until its activation). Multiple units can attempt to resupply from the same Resupply simultaneously, and will result in the Resupply unit shutdown period being extended for each.
+
+`ResupplyPhasesPerAmmoTonnage` - float, number of phases units will be shut down per ton of ammmo being resupplied
+	
+`ResupplyPhasesPerArmorPoint` - float number of phases unit will be shut down per point of armor being replenished
+	
+`UnitTagFactor` - Dictionary<string, float> - multiplier for total phases resupply will take based on matching tag (if any) found. If multiple matching tags are found, all multipliers will be multiplied together before applying to total phases.
 
 ### FOR INTERNAL AMMO RESUPPLY
 
