@@ -1133,13 +1133,13 @@ On initiating the resupply, both the unit being resupplied and the unit doing th
 For example:
 
 ```
-BasePhasesToResupply": 30.0,
-		"ResupplyPhasesPerAmmoTonnage": 30,
-		"ResupplyPhasesPerArmorPoint": 30,
-		"UnitTagFactor": {
-			"easy_resupply": 0.1,
-			"superheavy_resupply": 2.0
-		}
+	BasePhasesToResupply": 30.0,
+	"ResupplyPhasesPerAmmoTonnage": 30,
+	"ResupplyPhasesPerArmorPoint": 30,
+	"UnitTagFactor": {
+		"easy_resupply": 0.1,
+		"superheavy_resupply": 2.0
+	}
 ```
 Given the above settings, a unit with both the above tags, getting 1 ton of ammo and 5 points of armor resupplied would take:
 	
