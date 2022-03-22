@@ -510,9 +510,9 @@ namespace StrategicOperations.Patches
                         if (__instance.Def.Id == ModInit.modSettings.ResupplyConfig.ResupplyAbilityID)
                         {
                             ModInit.modLog?.Trace?.Write($"[Ability.Activate] Activating resupply from unit {creator.DisplayName} and resupplier {targetActor.DisplayName}.");
-                            creator.ProcessResupplyUnit(targetActor);
-                            creator.InitiateShutdownForPhases(ModInit.modSettings.ResupplyConfig.PhasesToResupply);
-                            targetActor.InitiateShutdownForPhases(ModInit.modSettings.ResupplyConfig.PhasesToResupply);
+                            var phases = creator.ProcessResupplyUnit(targetActor);
+                            creator.InitiateShutdownForPhases(phases);
+                            targetActor.InitiateShutdownForPhases(phases);
                         }
 
                         if (creator.HasSwarmingUnits() && creator.GUID == targetActor.GUID)
@@ -1926,7 +1926,7 @@ namespace StrategicOperations.Patches
                 {
                     return;
                 }
-                if (actor.IsMountedUnit() || actor.IsSwarmingUnit())
+                if ((actor.IsMountedUnit() && !actor.IsMountedInternal()) || actor.IsSwarmingUnit())
                 {
                     button.DisableButton(); // maybe remove this for mounted units?
                 }
@@ -1983,7 +1983,7 @@ namespace StrategicOperations.Patches
                     return;
                 }
 
-                if (actor.IsMountedUnit() || actor.IsSwarmingUnit())
+                if ((actor.IsMountedUnit() && !actor.IsMountedInternal()) || actor.IsSwarmingUnit())
                 {
                     button.DisableButton(); // maybe remove this for mounted units?
                 }
@@ -2041,7 +2041,7 @@ namespace StrategicOperations.Patches
                     return;
                 }
 
-                if (ability.Def.Id != ModInit.modSettings.BattleArmorMountAndSwarmID && (actor.IsMountedUnit() || actor.IsSwarmingUnit()))
+                if ((actor.IsMountedUnit() && !actor.IsMountedInternal()) || actor.IsSwarmingUnit())
                 {
                     button.DisableButton(); // maybe remove this for mounted units?
                 }

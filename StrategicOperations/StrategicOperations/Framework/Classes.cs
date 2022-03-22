@@ -81,7 +81,10 @@ namespace StrategicOperations.Framework
                 public List<string> InternalSPAMMYBlackList = new List<string>();
                 public string ArmorSupplyAmmoDefId = "";
                 public float ArmorRepairMax = 0.75f;
-                public int PhasesToResupply = 1;
+                public float BasePhasesToResupply = 1;
+                public float ResupplyPhasesPerAmmoTonnage = 1f;
+                public float ResupplyPhasesPerArmorPoint = 0.25f;
+                public Dictionary<string, float> UnitTagFactor = new Dictionary<string, float>();
             }
         }
         public class StrategicMovementInvocation : AbstractActorMovementInvocation

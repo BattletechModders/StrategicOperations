@@ -97,11 +97,12 @@ namespace StrategicOperations.Framework
             }
         }
 
-        public static void ProcessResupplyUnit(this AbstractActor actor, AbstractActor resupplyActor)
+        public static int ProcessResupplyUnit(this AbstractActor actor, AbstractActor resupplyActor)
         {
             var searchForSpammy = !string.IsNullOrEmpty(ModInit.modSettings.ResupplyConfig.SPAMMYAmmoDefId);
-            var searchForInternalSpammy = !string.IsNullOrEmpty(ModInit.modSettings.ResupplyConfig.InternalSPAMMYDefId);
 
+            var totalAmmoTonnage = 0f;
+            var totalArmorPoints = 0f;
             foreach (var weapon in actor.Weapons)
             {
                 if (weapon.exDef().InternalAmmo.Count > 0)
@@ -118,6 +119,7 @@ namespace StrategicOperations.Framework
                             var sourceTonnagePerShot =
                                 internalTonnage.InternalAmmoTons / startingCapacity;
                             var sourceTonnageNeeded = missingAmmoForMagicBox * sourceTonnagePerShot;
+                            totalAmmoTonnage += sourceTonnageNeeded;
                             foreach (var magicBox in resupplyActor.ammoBoxes)
                             {
                                 if (magicBox.CurrentAmmo <= 0) continue;
@@ -174,6 +176,8 @@ namespace StrategicOperations.Framework
                 {
                     var initialMissingAmmoCount = ammoBoxToFill.AmmoCapacity - ammoBoxToFill.CurrentAmmo;
                     ModInit.modLog?.Trace?.Write($"[ProcessResupplyUnit - Regular Ammo] - Found box {ammoBoxToFill.Description.UIName} needs {initialMissingAmmoCount} shots added.");
+                    var missingAmmoTonnage = initialMissingAmmoCount * (ammoBoxToFill.tonnage / ammoBoxToFill.AmmoCapacity);
+                    totalAmmoTonnage += missingAmmoTonnage;
                     var magicBoxes = new List<AmmunitionBox>();
                     foreach (var resupplyBox in resupplyActor.ammoBoxes)
                     {
@@ -253,6 +257,7 @@ namespace StrategicOperations.Framework
                         if (current <= initialCapped)
                         {
                             var missingArmor = initialCapped - current;
+                            totalArmorPoints += missingArmor;
                             foreach (var ammobox in resupplyActor.ammoBoxes)
                             {
                                 if (ammobox.ammunitionBoxDef.AmmoID ==
@@ -280,6 +285,20 @@ namespace StrategicOperations.Framework
                     }
                 }
             }
+
+            var phasesFromAmmo = totalAmmoTonnage * ModInit.modSettings.ResupplyConfig.ResupplyPhasesPerAmmoTonnage;
+            var phasesFromArmor = totalArmorPoints * ModInit.modSettings.ResupplyConfig.ResupplyPhasesPerArmorPoint;
+            var multiFromTags = 1f;
+            foreach (var tag in actor.GetStaticUnitTags())
+            {
+                if (ModInit.modSettings.ResupplyConfig.UnitTagFactor.ContainsKey(tag))
+                {
+                    multiFromTags *= ModInit.modSettings.ResupplyConfig.UnitTagFactor[tag];
+                }
+            }
+            var finalPhases = Mathf.RoundToInt((ModInit.modSettings.ResupplyConfig.BasePhasesToResupply + phasesFromAmmo + phasesFromArmor) * multiFromTags);
+            ModInit.modLog?.Trace?.Write($"[ProcessResupplyUnit] - Calculated resupply should take {finalPhases} phases: {ModInit.modSettings.ResupplyConfig.BasePhasesToResupply} from baseline, {phasesFromAmmo} from ammo, {phasesFromArmor} from armor, x {multiFromTags} total from tags.");
+            return finalPhases;
         }
 
         public static void UpdateResupplyTeams(this CombatGameState combat)
