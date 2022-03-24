@@ -632,6 +632,7 @@ namespace StrategicOperations.Patches
         {
             public static void Postfix(Weapon __instance, ICombatant target, Vector3 position, Quaternion rotation, ref bool __result)
             {
+                if (__instance.parent == null) return;
                 if (__instance.parent.IsSwarmingUnit() && target is AbstractActor targetActor)
                 {
                     if (ModState.PositionLockSwarm[__instance.parent.GUID] == targetActor.GUID)
