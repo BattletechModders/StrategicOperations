@@ -203,6 +203,7 @@ namespace StrategicOperations.Framework
                             if (!squad2.IsSwarmingUnit())
                             {
                                 squad2.ProcessSwarmEnemy(targetActor);
+                                return;
                             }
                         }
                         else
@@ -212,19 +213,21 @@ namespace StrategicOperations.Framework
                             return;
                         }
                     }
-
-                    ModInit.modLog?.Info?.Write(
-                        $"[StrategicMovementSequence] Called for airlift/dropoff for Target {this.Target.DisplayName}.");
-
-                    if (targetActor.IsAirlifted())
+                    else if (!MountSwarmBA)
                     {
-                        targetActor.DetachFromAirliftCarrier(base.OwningActor, IsFriendly);
-                        return;
-                    }
+                        ModInit.modLog?.Info?.Write(
+                            $"[StrategicMovementSequence] Called for airlift/dropoff for Target {this.Target.DisplayName}.");
 
-                    if (!targetActor.IsAirlifted())
-                    {
-                        targetActor.AttachToAirliftCarrier(base.OwningActor, IsFriendly);
+                        if (targetActor.IsAirlifted())
+                        {
+                            targetActor.DetachFromAirliftCarrier(base.OwningActor, IsFriendly);
+                            return;
+                        }
+
+                        if (!targetActor.IsAirlifted())
+                        {
+                            targetActor.AttachToAirliftCarrier(base.OwningActor, IsFriendly);
+                        }
                     }
                 }
             }
