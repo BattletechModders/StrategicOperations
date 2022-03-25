@@ -288,23 +288,7 @@ namespace StrategicOperations.Patches
                                     $"[HighlightPotentialTargets - ResupplyAbility ANY] Updating reticle at index {index}, isFriendly {isFriendly}.");
                             }
                         }
-
-//                        var resupplyTargetsInRange = SelectedActor.GetAllFriendliesWithinRange(this.FromButton.Ability.Def.IntParam2);
-//                        resupplyTargetsInRange.RemoveAll(x => !this.CanTargetCombatant(x));
-//                        HUD.InWorldMgr.HideMeleeTargets();
-//                        StrategicTargetIndicatorsManager.InitReticles(HUD, resupplyTargetsInRange.Count);
-//                        for (var index = 0; index < resupplyTargetsInRange.Count; index++)//
-//                        {
-//                            StrategicTargetIndicatorsManager.ReticleGOs[index].SetActive(true);
-//                            var reticle = StrategicTargetIndicatorsManager.ReticleGOs[index]
-//                                .GetComponent<StrategicTargetReticle>();
-//                            var isFriendly = resupplyTargetsInRange[index].team.IsFriendly(SelectedActor.team);
-//                            reticle.SetScaleAndLocation(resupplyTargetsInRange[index].CurrentPosition, 10f);
-//                            reticle.UpdateColorAndStyle(isFriendly, true, true);
-//                            ModInit.modLog?.Trace?.Write(
-//                                $"[HighlightPotentialTargets - ResupplyAbility INRANGE] Updating reticle at index {index}, isFriendly {isFriendly}.");
-//                        }
-
+                        
                         StrategicTargetIndicatorsManager.ShowRoot();
                     }
                 }
