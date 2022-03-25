@@ -1926,7 +1926,7 @@ namespace StrategicOperations.Patches
                 {
                     return;
                 }
-                if ((actor.IsMountedUnit() && !actor.IsMountedInternal()) || actor.IsSwarmingUnit())
+                if (ability.Def.Id != ModInit.modSettings.BattleArmorMountAndSwarmID && (actor.IsMountedUnit() && !actor.IsMountedInternal()) || actor.IsSwarmingUnit())
                 {
                     button.DisableButton(); // maybe remove this for mounted units?
                 }
@@ -1983,7 +1983,7 @@ namespace StrategicOperations.Patches
                     return;
                 }
 
-                if ((actor.IsMountedUnit() && !actor.IsMountedInternal()) || actor.IsSwarmingUnit())
+                if (ability.Def.Id != ModInit.modSettings.BattleArmorMountAndSwarmID && (actor.IsMountedUnit() && !actor.IsMountedInternal()) || actor.IsSwarmingUnit())
                 {
                     button.DisableButton(); // maybe remove this for mounted units?
                 }
@@ -2041,7 +2041,7 @@ namespace StrategicOperations.Patches
                     return;
                 }
 
-                if ((actor.IsMountedUnit() && !actor.IsMountedInternal()) || actor.IsSwarmingUnit())
+                if (ability.Def.Id != ModInit.modSettings.BattleArmorMountAndSwarmID && (actor.IsMountedUnit() && !actor.IsMountedInternal()) || actor.IsSwarmingUnit())
                 {
                     button.DisableButton(); // maybe remove this for mounted units?
                 }
