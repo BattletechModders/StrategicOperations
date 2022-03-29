@@ -253,7 +253,7 @@ namespace StrategicOperations.Framework
                     }
                 }
 
-                if (allCombatants[i] is BattleTech.Building building)
+                if (allCombatants[i] is BattleTech.Building building && !building.isDropshipNotLanded())
                 {
                     var rollBuilding = ModInit.Random.NextDouble();
                     var isObjective = Traverse.Create(building).Field("isObjectiveTarget").GetValue<bool>();

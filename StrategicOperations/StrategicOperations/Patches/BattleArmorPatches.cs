@@ -633,12 +633,21 @@ namespace StrategicOperations.Patches
             public static void Postfix(Weapon __instance, ICombatant target, Vector3 position, Quaternion rotation, ref bool __result)
             {
                 if (__instance.parent == null) return;
-                if (__instance.parent.IsSwarmingUnit() && target is AbstractActor targetActor)
+                if (target is AbstractActor targetActor)
                 {
-                    if (ModState.PositionLockSwarm[__instance.parent.GUID] == targetActor.GUID)
+                    if (__instance.parent.IsSwarmingUnit())
                     {
- //                       ModInit.modLog?.Trace?.Write($"[Weapon.WillFireAtTargetFromPosition] {__instance.parent.DisplayName} is swarming {targetActor.DisplayName}, forcing LOS for weapon {__instance.Name}");
-                        __result = true;
+                        if (ModState.PositionLockSwarm[__instance.parent.GUID] == targetActor.GUID)
+                        {
+                            //                       ModInit.modLog?.Trace?.Write($"[Weapon.WillFireAtTargetFromPosition] {__instance.parent.DisplayName} is swarming {targetActor.DisplayName}, forcing LOS for weapon {__instance.Name}");
+                            __result = true;
+                            return;
+                        }
+                    }
+
+                    if (targetActor.IsSwarmingUnit() || targetActor.IsMountedUnit())
+                    {
+                        __result = false;
                     }
                 }
             }
@@ -1627,15 +1636,28 @@ namespace StrategicOperations.Patches
         public static class LOFCache_GetLineOfFire
         {
             //static bool Prepare() => false;
-            public static void Postfix(LOFCache __instance, AbstractActor source, Vector3 sourcePosition, ICombatant target, Vector3 targetPosition, Quaternion targetRotation, out Vector3 collisionWorldPos, ref LineOfFireLevel __result)
+            public static void Postfix(LOFCache __instance, AbstractActor source, Vector3 sourcePosition,
+                ICombatant target, Vector3 targetPosition, Quaternion targetRotation, out Vector3 collisionWorldPos,
+                ref LineOfFireLevel __result)
             {
                 collisionWorldPos = targetPosition;
+
+                if (target is AbstractActor actorTarget)
+                {
+                    if (actorTarget.IsSwarmingUnit() || actorTarget.IsMountedUnit()) //|| actorTarget.isGarrisoned())
+                    {
+                        __result = LineOfFireLevel
+                            .NotSet; // added 3/27 to block all LOF to swarming/mounted units. NotSet, or should it be LOS.Blocked?
+                        return;
+                    }
+                }
 
                 if (source.IsAirlifted())
                 {
                     if (!ModState.AirliftTrackers[source.GUID].IsCarriedInternal)
                     {
-                        var carrier = source.Combat.FindActorByGUID(ModState.AirliftTrackers[source.GUID].CarrierGUID);
+                        var carrier =
+                            source.Combat.FindActorByGUID(ModState.AirliftTrackers[source.GUID].CarrierGUID);
                         __result = source.Combat.LOFCache.GetLineOfFire(carrier, carrier.CurrentPosition, target,
                             targetPosition, targetRotation, out collisionWorldPos);
                     }
