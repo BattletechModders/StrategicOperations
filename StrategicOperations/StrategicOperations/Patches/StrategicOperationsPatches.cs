@@ -685,6 +685,12 @@ namespace StrategicOperations.Patches
                     if (roll <= cancelChance)
                     {
                         ModInit.modLog?.Trace?.Write($"[Ability.Activate - 2pts] roll {roll} <= cancelChance {cancelChance}, nostrafe - return true and let vanilla sort it out.");
+
+                        var txt = new Text("AA Interference: Strafing Run CANCELLED!");
+                        creator.Combat.MessageCenter.PublishMessage(new AddSequenceToStackMessage(
+                            new ShowActorInfoSequence(creator, txt, FloatieMessage.MessageNature.Buff,
+                                false)));
+
                         return true;
                     }
 
