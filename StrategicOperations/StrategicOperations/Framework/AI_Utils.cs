@@ -62,15 +62,16 @@ namespace StrategicOperations.Framework
             }
         }
 
-        public static int EvaluateStrafing(AbstractActor actor, out Ability ability, out Vector3 startpoint, out Vector3 endpoint)
+        public static int EvaluateStrafing(AbstractActor actor, out Ability ability, out Vector3 startpoint, out Vector3 endpoint, out AbstractActor targetUnit)
         {
             startpoint = default(Vector3);
             endpoint = default(Vector3);
+            targetUnit = null;
             if (!CanStrafe(actor, out ability)) return 0;
             var assetID = AssignRandomSpawnAsset(ability, actor.team.FactionValue.Name, out var waves);
             var dmg = Mathf.RoundToInt(CalcExpectedDamage(actor, assetID) * waves);
 
-            var targets = TargetsForStrafe(actor, ability,out startpoint, out endpoint);
+            var targets = TargetsForStrafe(actor, ability,out startpoint, out endpoint, out targetUnit);
 
             return dmg * targets;
         }
@@ -361,8 +362,11 @@ namespace StrategicOperations.Framework
                         {
                             ModState.CurrentCommandUnits.Add(abilitySetting.AbilityDefID, new Dictionary<string, int>());
                             ModState.CurrentCommandUnits[abilitySetting.AbilityDefID].Add(unit.team.FactionValue.Name, 0);
-                            ModState.CachedFactionCommandBeacons.Add(abilitySetting.AbilityDefID, new Dictionary<string, List<Classes.AI_BeaconProxyInfo>>());
-                            ModState.CachedFactionCommandBeacons[abilitySetting.AbilityDefID].Add(unit.team.FactionValue.Name, new List<Classes.AI_BeaconProxyInfo>());
+                            if (!ModState.CachedFactionCommandBeacons.ContainsKey(abilitySetting.AbilityDefID))
+                            {
+                                ModState.CachedFactionCommandBeacons.Add(abilitySetting.AbilityDefID, new Dictionary<string, List<Classes.AI_BeaconProxyInfo>>());
+                                ModState.CachedFactionCommandBeacons[abilitySetting.AbilityDefID].Add(unit.team.FactionValue.Name, new List<Classes.AI_BeaconProxyInfo>());
+                            }
 
                             abilitySetting.ProcessAIBeaconWeights(dm, unit.team.FactionValue.Name, abilitySetting.AbilityDefID);
 
@@ -374,7 +378,15 @@ namespace StrategicOperations.Framework
                             {
                                 ModState.CurrentCommandUnits[abilitySetting.AbilityDefID]
                                     .Add(unit.team.FactionValue.Name, 0);
-                                ModState.CachedFactionCommandBeacons[abilitySetting.AbilityDefID].Add(unit.team.FactionValue.Name, new List<Classes.AI_BeaconProxyInfo>());
+                                if (!ModState.CachedFactionCommandBeacons.ContainsKey(abilitySetting.AbilityDefID))
+                                {
+                                    ModState.CachedFactionCommandBeacons.Add(abilitySetting.AbilityDefID, new Dictionary<string, List<Classes.AI_BeaconProxyInfo>>());
+                                }
+                                if (!ModState.CachedFactionCommandBeacons[abilitySetting.AbilityDefID]
+                                        .ContainsKey(unit.team.FactionValue.Name))
+                                {
+                                    ModState.CachedFactionCommandBeacons[abilitySetting.AbilityDefID].Add(unit.team.FactionValue.Name, new List<Classes.AI_BeaconProxyInfo>());
+                                }
                                 abilitySetting.ProcessAIBeaconWeights(dm, unit.team.FactionValue.Name, abilitySetting.AbilityDefID);
                             }
                         }
@@ -539,11 +551,12 @@ namespace StrategicOperations.Framework
             return 0f;
         }
 
-        public static int TargetsForStrafe(AbstractActor actor, Ability ability, out Vector3 startPos, out Vector3 endPos) //switch to Icombatant
+        public static int TargetsForStrafe(AbstractActor actor, Ability ability, out Vector3 startPos, out Vector3 endPos, out AbstractActor targetUnit) //switch to Icombatant
         {
             var maxCount = 0;
             var savedEndVector = new Vector3();
             var savedStartVector = new Vector3();
+            AbstractActor savedStartActor = null;
 
             if (ability != null)
             {
@@ -569,9 +582,11 @@ namespace StrategicOperations.Framework
 //                    AbstractActor enemyActor = actor.BehaviorTree.enemyUnits[k] as AbstractActor;
                     if (enemyUnits[k] == null) continue;
                     Vector3 possibleStart;
+                    var startActor = default(AbstractActor);
                     if (Mathf.RoundToInt(Vector3.Distance(actor.CurrentPosition, enemyUnits[k].CurrentPosition)) < maxRange)
                     {
                         possibleStart = enemyUnits[k].CurrentPosition;
+                        startActor = enemyUnits[k];
                     }
                     else
                     {
@@ -582,6 +597,7 @@ namespace StrategicOperations.Framework
                     var vectors = Utils.MakeCircle(possibleStart, steps, ability.Def.FloatParam2);
                     var currentSavedEndVector = new Vector3();
                     var currentSavedStartVector = new Vector3();
+                    AbstractActor currentStartActor = null;
                     var currentMaxCount = 0;
                     ModInit.modLog?.Trace?.Write($"[TargetsForStrafe] Evaluating strafe start position at combatant #{k} {enemyUnits[k].DisplayName} pos {possibleStart}.");
                     for (var index = 0; index < vectors.Length; index++)
@@ -610,6 +626,7 @@ namespace StrategicOperations.Framework
                             currentMaxCount = targetCount;
                             currentSavedEndVector = vector;
                             currentSavedStartVector = possibleStart;
+                            currentStartActor = startActor;
                             ModInit.modLog?.Trace?.Write(
                                 $"TargetsForStrafe] Unit #{k}, possibleStart {currentSavedStartVector} currentSavedEndVector {currentSavedEndVector}: Current highest target count in vector {index} is {currentMaxCount} from start {currentSavedStartVector} and end {currentSavedEndVector}.");
                         }
@@ -620,6 +637,7 @@ namespace StrategicOperations.Framework
                         maxCount = currentMaxCount;
                         savedEndVector = currentSavedEndVector;
                         savedStartVector = currentSavedStartVector;
+                        savedStartActor = currentStartActor;
                         ModInit.modLog?.Trace?.Write($"[TargetsForStrafe] Unit #{k}:  Current highest target count is {maxCount} from start {savedStartVector} and end {savedEndVector}.");
                     }
                 }
@@ -627,6 +645,7 @@ namespace StrategicOperations.Framework
 
                 startPos = savedStartVector;
                 endPos = savedEndVector;
+                targetUnit = savedStartActor;
                 // ModState.selectedAIVectors.Add(savedStartVector);
                 // ModState.selectedAIVectors.Add(savedEndVector);
                 ModInit.modLog?.Trace?.Write($"[TargetsForStrafe] Final highest target count is {maxCount} from start {startPos} and end {endPos}.");
@@ -635,6 +654,7 @@ namespace StrategicOperations.Framework
 
             startPos = default(Vector3);
             endPos = default(Vector3);
+            targetUnit = null;
             return 0;
         }
 

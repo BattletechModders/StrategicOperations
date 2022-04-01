@@ -15,6 +15,7 @@ using Localize;
 using StrategicOperations.Framework;
 using UnityEngine;
 using static StrategicOperations.Framework.Classes;
+using Random = System.Random;
 
 namespace StrategicOperations.Patches
 {
@@ -65,7 +66,7 @@ namespace StrategicOperations.Patches
                 if (__instance.Combat.TurnDirector.CurrentRound > 1)
                 {
                     __instance.Combat.UpdateResupplyTeams();
-                    __instance.Combat.UpdateResupplyAbilitiesAllActors();
+                    __instance.Combat.UpdateResupplyAbilitiesGetAllLivingActors();
                 }
 
                 if (__instance.IsLocalPlayer)
@@ -173,6 +174,7 @@ namespace StrategicOperations.Patches
                 __instance.StatCollection.AddStatistic<int>("InternalLiftCapacityUsed", 0);
                 __instance.StatCollection.AddStatistic<int>("ExternalLiftCapacity", 0);
                 __instance.StatCollection.AddStatistic<int>("ExternalLiftCapacityUsed", 0);
+                __instance.StatCollection.AddStatistic<float>("AAAFactor", 0f);
             }
         }
 
@@ -645,12 +647,12 @@ namespace StrategicOperations.Patches
         {
             public static bool Prefix(Ability __instance, AbstractActor creator, Vector3 positionA, Vector3 positionB)
             {
-                ModInit.modLog?.Info?.Write($"Running Ability.Activate; check if skirmish."); // need to add blocks for self-apply EffectData
+                ModInit.modLog?.Info?.Write($"[Ability.Activate - 2pts] Running Ability.Activate; check if skirmish."); // need to add blocks for self-apply EffectData
                 if (__instance.Combat.ActiveContract.ContractTypeValue.IsSkirmish) return true;
                 if (!__instance.IsAvailable)
                 {
                     ModInit.modLog?.Info?.Write(
-                        $"Ability {__instance.Def.Description.Name} was unavailable, continuing to vanilla handling.");
+                        $"[Ability.Activate - 2pts] Ability {__instance.Def.Description.Name} was unavailable, continuing to vanilla handling.");
                     return true;
                 }
 
@@ -659,16 +661,36 @@ namespace StrategicOperations.Patches
                     var popup = GenericPopupBuilder.Create(GenericPopupType.Info, $"Ability {__instance.Def.Description.Name} is unavailable during this contract!");
                     popup.AddButton("Confirm", null, true, null);
                     popup.IsNestedPopupWithBuiltInFader().CancelOnEscape().Render();
-                    ModInit.modLog?.Info?.Write($"Ability {__instance.Def.Description.Name} unavailable due to exclusion settings. Aborting.");
+                    ModInit.modLog?.Info?.Write($"[Ability.Activate - 2pts] Ability {__instance.Def.Description.Name} unavailable due to exclusion settings. Aborting.");
                     return false;
                 }
 
                 AbilityDef.SpecialRules specialRules = __instance.Def.specialRules;
                 if (specialRules == AbilityDef.SpecialRules.Strafe)
                 {
+                    var cancelChance = 0f;
+                    if (!creator.team.IsLocalPlayer && ModState.startUnitFromInvocation != null)
+                    {
+                        cancelChance = ModState.startUnitFromInvocation.GetAvoidStrafeChanceForTeam();
+                        ModInit.modLog?.Trace?.Write($"[Ability.Activate - 2pts] {creator.DisplayName}: ActivateStrafe processing cancelChance {cancelChance} from AI invocation, using target unit {ModState.startUnitFromInvocation.DisplayName} as base.");
+                        ModState.startUnitFromInvocation = null;
+                    }
+                    else if (creator.team.IsLocalPlayer)
+                    {
+                        cancelChance = ModState.cancelChanceForPlayerStrafe;
+                        ModInit.modLog?.Trace?.Write($"[Ability.Activate - 2pts] {creator.DisplayName}: ActivateStrafe processing cancelChance {cancelChance} from player invocation.");
+                        ModState.cancelChanceForPlayerStrafe = 0f;
+                    }
+                    var roll = (float)ModInit.Random.NextDouble();
+                    if (roll <= cancelChance)
+                    {
+                        ModInit.modLog?.Trace?.Write($"[Ability.Activate - 2pts] roll {roll} <= cancelChance {cancelChance}, nostrafe - return true and let vanilla sort it out.");
+                        return true;
+                    }
+
                     Utils._activateStrafeMethod.Invoke(__instance,
                         new object[] {creator.team, positionA, positionB, __instance.Def.FloatParam1});
-                    ModInit.modLog?.Info?.Write($"{creator.Description?.Name}: ActivateStrafe invoked from Ability.Activate. Distance was {Vector3.Distance(positionA, positionB)}");
+                    ModInit.modLog?.Info?.Write($"[Ability.Activate - 2pts] {creator.Description?.Name}: ActivateStrafe invoked from Ability.Activate. Distance was {Vector3.Distance(positionA, positionB)}");
                     __instance.Combat.MessageCenter.PublishMessage(new AbilityActivatedMessage(creator.GUID,
                         creator.GUID, __instance.Def.Id, positionA, positionB));
                     __instance.ActivateCooldown();
@@ -680,7 +702,7 @@ namespace StrategicOperations.Patches
                 {
                     Utils._activateSpawnTurretMethod.Invoke(__instance,
                         new object[] {creator.team, positionA, positionB});
-                    ModInit.modLog?.Info?.Write($"{creator.Description?.Name}: ActivateSpawnTurret invoked from Ability.Activate. Distance was {Vector3.Distance(positionA, positionB)}");
+                    ModInit.modLog?.Info?.Write($"[Ability.Activate - 2pts] {creator.Description?.Name}: ActivateSpawnTurret invoked from Ability.Activate. Distance was {Vector3.Distance(positionA, positionB)}");
                     __instance.Combat.MessageCenter.PublishMessage(new AbilityActivatedMessage(creator.GUID,
                         creator.GUID, __instance.Def.Id, positionA, positionB));
                     __instance.ActivateCooldown();
@@ -1342,7 +1364,7 @@ namespace StrategicOperations.Patches
                     }
                 }
                 __instance.Combat.UpdateResupplyTeams();
-                __instance.Combat.UpdateResupplyAbilitiesAllActors();
+                __instance.Combat.UpdateResupplyAbilitiesGetAllLivingActors();
             }
         }
 
@@ -1904,6 +1926,27 @@ namespace StrategicOperations.Patches
                 }
 
                 return true;
+            }
+
+            public static void Postfix(SelectionStateCommandTargetTwoPoints __instance, Vector3 worldPos,
+                int ___numPositionsLocked)
+            {
+                if (___numPositionsLocked == 2)
+                {
+                    var cHUD = Traverse.Create(__instance).Property("HUD").GetValue<CombatHUD>();
+                    var creator = cHUD.SelectedActor;
+                    ModState.cancelChanceForPlayerStrafe = 0f;
+                    
+                    var opforUnit = creator.FindMeAnOpforUnit();
+                    if (opforUnit != null)
+                    {
+                        ModState.cancelChanceForPlayerStrafe = opforUnit.GetAvoidStrafeChanceForTeam();
+                    }
+                    var chanceDisplay = (float)Math.Round(1 - ModState.cancelChanceForPlayerStrafe, 2) * 100;
+                    cHUD.AttackModeSelector.FireButton.FireText.SetText($"{chanceDisplay}% - Confirm", Array.Empty<object>());
+
+                    ModInit.modLog?.Trace?.Write($"[SelectionStateCommandTargetTwoPoints.ProcessLeftClick] Creator {creator.DisplayName} initializing strafe vs target {opforUnit.team.DisplayName}. Calculated cancelChance {ModState.cancelChanceForPlayerStrafe}, display success chance: {chanceDisplay}.");
+                }
             }
         }
 

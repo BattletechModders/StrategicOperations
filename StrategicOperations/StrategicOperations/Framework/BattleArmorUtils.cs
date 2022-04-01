@@ -1335,7 +1335,7 @@ namespace StrategicOperations.Framework
                 Vector3[] lossourcePositions = building.GetGarrisionLOSSourcePositions();
 
                     Vector3[] lostargetPositions = target.GetLOSTargetPositions(targetPosition, targetRotation);
-                List<AbstractActor> list = new List<AbstractActor>(source.Combat.AllActors);
+                List<AbstractActor> list = new List<AbstractActor>(source.Combat.GetAllLivingActors());
                 list.Remove(garrisonSquad);
                 AbstractActor abstractActor = target as AbstractActor;
                 string text = null;

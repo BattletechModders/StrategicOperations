@@ -36,7 +36,7 @@ namespace StrategicOperations
                 modSettings = new Settings();
             }
             //HarmonyInstance.DEBUG = true;
-            modLog = new DeferringLogger(modDir, "Strategery", modSettings.DEVTEST_Logging, modSettings.enableTrace);
+            modLog = new DeferringLogger(modDir, "Strategery", modSettings.Debug, modSettings.enableTrace);
             if (settingsException != null)
             {
                 ModInit.modLog?.Error?.Write($"EXCEPTION while reading settings file! Error was: {settingsException}");
@@ -55,7 +55,7 @@ namespace StrategicOperations
     class Settings
     {
         public bool DEVTEST_AIPOS = false;
-        public bool DEVTEST_Logging = false;
+        public bool Debug = false;
         public bool debugFlares = false;
         public bool enableTrace = true;
         public string flareResourceID = "vfxPrfPrtl_fireTerrain_smLoop";
@@ -74,6 +74,8 @@ namespace StrategicOperations
         public float strafePreDistanceMult = 6f;
         public int strafeWaves = 1; // strafes will spawn this many units and do
                                     // ive strafing runs.
+                                    
+        public float strafeAAFailThreshold = 1f; //for AI strafes, if fail % is higher than this, they wont try
         public float timeBetweenAttacks = 0.35f;
         public float strafeMinDistanceToEnd = 10f;
         public float commandUseCostsMulti = 1f;

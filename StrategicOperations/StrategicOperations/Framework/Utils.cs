@@ -22,6 +22,44 @@ namespace StrategicOperations.Framework
 {
     public static class Utils
     {
+        public static AbstractActor FindMeAnOpforUnit(this AbstractActor actor)
+        {
+            var opforTeam = actor.Combat.Teams.FirstOrDefault(x => x.GUID == "be77cadd-e245-4240-a93e-b99cc98902a5");
+            if (opforTeam != null)
+            {
+                var opforUnit = opforTeam.units.FirstOrDefault(x => !x.IsDead);
+                if (opforUnit != null)
+                {
+                    return opforUnit;
+                }
+            }
+            return null;
+        }
+        public static float GetAvoidStrafeChanceForTeam(this ICombatant combatant)
+        {
+            var actors = combatant.Combat.GetAllLivingActors();
+            var cumAA = 0f;
+            var unitDivisor = 0;
+            foreach (var unit in actors)
+            {
+                if (unit.team.IsFriendly(combatant.team))
+                {
+                    cumAA += unit.GetAAAFactor();
+                    unitDivisor++;
+                    ModInit.modLog?.Debug?.Write($"unit {unit.DisplayName} is friendly of {combatant.DisplayName}. Added AA factor {unit.GetAAAFactor()}; total is now {cumAA} from {unitDivisor} units");
+                }
+            }
+
+            if (unitDivisor == 0) return 0f;
+            var finalAA = cumAA / unitDivisor;
+            ModInit.modLog?.Debug?.Write($"final AA value for {combatant.DisplayName} and team {combatant.team.DisplayName}: {finalAA}");
+            return finalAA;
+        }
+
+        public static float GetAAAFactor(this AbstractActor actor)
+        {
+            return actor.StatCollection.GetValue<float>("AAAFactor");
+        }
         public static void PublishInvocationExternal(this MessageCenter messageCenter, MessageCenterMessage invocation)
         {
             messageCenter.AddSubscriber(MessageCenterMessageType.InvocationStackSequenceCreated, new ReceiveMessageCenterMessage(HandleInvocationStackSequenceCreatedExternal));
@@ -164,7 +202,7 @@ namespace StrategicOperations.Framework
         public static List<AbstractActor> GetAllDetectedEnemies(this SharedVisibilityCache cache, AbstractActor actor)
         {
             var detectedEnemies = new List<AbstractActor>();
-            foreach (var enemy in actor.Combat.AllActors)
+            foreach (var enemy in actor.Combat.GetAllLivingActors())
             {
                 if (cache.CachedVisibilityToTarget(enemy).VisibilityLevel > 0 && actor.team.IsEnemy(enemy.team) && !enemy.IsDead && !enemy.IsFlaggedForDeath)
                 {
@@ -178,7 +216,7 @@ namespace StrategicOperations.Framework
         public static List<AbstractActor> GetAllEnemiesWithinRange(this AbstractActor actor, float range)
         {
             var detectedEnemies = new List<AbstractActor>();
-            foreach (var enemy in actor.Combat.AllActors)
+            foreach (var enemy in actor.Combat.GetAllLivingActors())
             {
                 if (actor.team.IsEnemy(enemy.team) && !enemy.IsDead && !enemy.IsFlaggedForDeath)
                 {
@@ -212,7 +250,7 @@ namespace StrategicOperations.Framework
         public static List<AbstractActor> GetAllFriendlies (this SharedVisibilityCache cache, AbstractActor actor)
         {
             var friendlyActors = new List<AbstractActor>();
-            foreach (var friendly in actor.Combat.AllActors)
+            foreach (var friendly in actor.Combat.GetAllLivingActors())
             {
                 if (actor.team.IsFriendly(friendly.team) && !friendly.IsDead && !friendly.IsFlaggedForDeath)
                 {
@@ -226,7 +264,7 @@ namespace StrategicOperations.Framework
         public static List<AbstractActor> GetAllEnemies(this Team team)
         {
             var enemyActors = new List<AbstractActor>();
-            foreach (var enemy in team.Combat.AllActors)
+            foreach (var enemy in team.Combat.GetAllLivingActors())
             {
                 if (team.IsEnemy(enemy.team) && !enemy.IsDead && !enemy.IsFlaggedForDeath)
                 {

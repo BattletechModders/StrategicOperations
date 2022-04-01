@@ -405,43 +405,32 @@ namespace StrategicOperations.Patches
                     }
                 }
 
-                if (ModState.AiCmds.ContainsKey(___unit.GUID))
+                if (!ModState.AiCmds.ContainsKey(___unit.GUID))
                 {
-                    if (ModState.AiCmds[___unit.GUID].active)
+                    var strafeVal = AI_Utils.EvaluateStrafing(___unit, out var abilityStrafe, out var vector1Strafe,
+                            out var vector2Strafe, out var startUnit);
+
+                    if (startUnit == null)
                     {
-                        __result = new BehaviorTreeResults(BehaviorNodeState.Failure);
-                        return false;
+                        //__result = new BehaviorTreeResults(BehaviorNodeState.Failure);
+                        return true;
+                    }
+
+                    var skipStrafeChance = startUnit.GetAvoidStrafeChanceForTeam(); //should i save the thing?
+                    ModState.startUnitFromInvocation = startUnit;
+                    if (skipStrafeChance < ModInit.modSettings.strafeAAFailThreshold)
+                    {
+                        if (strafeVal >= ModInit.modSettings.AI_InvokeStrafeThreshold)
+                        {
+                            var info = new AI_CmdInvocation(abilityStrafe, vector1Strafe, vector2Strafe, true);
+                            ModState.AiCmds.Add(___unit.GUID, info);
+                            __result = new BehaviorTreeResults(BehaviorNodeState.Failure);
+                            return false;
+                        }
                     }
 
                     var spawnVal = AI_Utils.EvaluateSpawn(___unit, out var abilitySpawn, out var vector1Spawn,
                         out var vector2Spawn);
-                    var strafeVal = AI_Utils.EvaluateStrafing(___unit, out var abilityStrafe, out var vector1Strafe,
-                        out var vector2Strafe);
-
-                    if (spawnVal > ModInit.modSettings.AI_InvokeSpawnThreshold && spawnVal > strafeVal)
-                    {
-                        var info = new AI_CmdInvocation(abilitySpawn, vector1Spawn, vector2Spawn, true);
-                        ModState.AiCmds[___unit.GUID] = info;
-                        __result = new BehaviorTreeResults(BehaviorNodeState.Failure);
-                        return false;
-                    }
-
-                    if (strafeVal > ModInit.modSettings.AI_InvokeStrafeThreshold && strafeVal >= spawnVal)
-                    {
-                        var info = new AI_CmdInvocation(abilityStrafe, vector1Strafe, vector2Strafe, true);
-                        ModState.AiCmds[___unit.GUID] = info;
-                        __result = new BehaviorTreeResults(BehaviorNodeState.Failure);
-                        return false;
-                    }
-                }
-                else
-                {
-                    var spawnVal = AI_Utils.EvaluateSpawn(___unit, out var abilitySpawn, out var vector1Spawn,
-                        out var vector2Spawn);
-                    var strafeVal = AI_Utils.EvaluateStrafing(___unit, out var abilityStrafe, out var vector1Strafe,
-                        out var vector2Strafe);
-
-                    if (strafeVal > spawnVal) goto strafe;
                     if (spawnVal >= ModInit.modSettings.AI_InvokeSpawnThreshold)
                     {
                         var info = new AI_CmdInvocation(abilitySpawn, vector1Spawn, vector2Spawn, true);
@@ -449,17 +438,46 @@ namespace StrategicOperations.Patches
                         __result = new BehaviorTreeResults(BehaviorNodeState.Failure);
                         return false;
                     }
-
-                    strafe:
-                    if (strafeVal >= ModInit.modSettings.AI_InvokeStrafeThreshold)
+                }
+                else
+                {
+                    if (ModState.AiCmds[___unit.GUID].active)
                     {
-                        var info = new AI_CmdInvocation(abilityStrafe, vector1Strafe, vector2Strafe, true);
-                        ModState.AiCmds.Add(___unit.GUID, info);
+                        __result = new BehaviorTreeResults(BehaviorNodeState.Failure);
+                        return false;
+                    }
+
+                    var strafeVal = AI_Utils.EvaluateStrafing(___unit, out var abilityStrafe, out var vector1Strafe,
+                        out var vector2Strafe, out var startUnit);
+                    if (startUnit == null)
+                    {
+                        //__result = new BehaviorTreeResults(BehaviorNodeState.Failure);
+                        return true;
+                    }
+                    var skipStrafeChance = startUnit.GetAvoidStrafeChanceForTeam();
+                    ModState.startUnitFromInvocation = startUnit;
+                    if (skipStrafeChance < ModInit.modSettings.strafeAAFailThreshold)
+                    {
+                        if (strafeVal > ModInit.modSettings.AI_InvokeStrafeThreshold)
+                        {
+                            var info = new AI_CmdInvocation(abilityStrafe, vector1Strafe, vector2Strafe, true);
+                            ModState.AiCmds[___unit.GUID] = info;
+                            __result = new BehaviorTreeResults(BehaviorNodeState.Failure);
+                            return false;
+                        }
+                    }
+
+                    var spawnVal = AI_Utils.EvaluateSpawn(___unit, out var abilitySpawn, out var vector1Spawn,
+                        out var vector2Spawn);
+
+                    if (spawnVal > ModInit.modSettings.AI_InvokeSpawnThreshold)
+                    {
+                        var info = new AI_CmdInvocation(abilitySpawn, vector1Spawn, vector2Spawn, true);
+                        ModState.AiCmds[___unit.GUID] = info;
                         __result = new BehaviorTreeResults(BehaviorNodeState.Failure);
                         return false;
                     }
                 }
-
                 return true;
             }
         }

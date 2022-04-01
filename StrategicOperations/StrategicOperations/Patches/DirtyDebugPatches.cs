@@ -92,12 +92,12 @@ namespace StrategicOperations.Patches
                     fogOfWarRevealatron.GUID = parentGUID + string.Format(".{0}", ___nextRevealatronIndex);
                     fogOfWarRevealatron.radiusMeters = revealRadius;
                     LazySingletonBehavior<FogOfWarView>.Instance.FowSystem.AddRevealatronViewer(fogOfWarRevealatron);
-                    List<AbstractActor> allActors = combat.AllActors;
+                    List<AbstractActor> GetAllLivingActors = combat.GetAllLivingActors();
                     //__instance.ClearShownList();
 
                     if (___shownList != null)
                     {
-                        List<ICombatant> allCombatants = combat.GetAllCombatants();
+                        List<ICombatant> allCombatants = combat.GetAllLivingCombatants();
                         for (int i = 0; i < ___shownList.Count; i++)
                         {
                             ___shownList[i].ClearForcedPlayerVisibilityLevel(allCombatants);
@@ -106,9 +106,9 @@ namespace StrategicOperations.Patches
                     }
 
                     ___shownList = new List<PilotableActorRepresentation>();
-                    for (int i = 0; i < allActors.Count; i++)
+                    for (int i = 0; i < GetAllLivingActors.Count; i++)
                     {
-                        AbstractActor abstractActor = allActors[i];
+                        AbstractActor abstractActor = GetAllLivingActors[i];
                         UnitSpawnPointGameLogic itemByGUID = combat.ItemRegistry.GetItemByGUID<UnitSpawnPointGameLogic>(abstractActor.spawnerGUID);
                         var position = new Vector3(9999.9f, 0f, 0f);
                         if (itemByGUID != null)
@@ -116,7 +116,7 @@ namespace StrategicOperations.Patches
                             position = itemByGUID.Position;
                         }
 
-                        if (!allActors[i].team.IsLocalPlayer && (Vector3.Distance(allActors[i].CurrentPosition, focalPosition) < revealRadius || (abstractActor.IsTeleportedOffScreen && Vector3.Distance(position, focalPosition) < revealRadius)))
+                        if (!GetAllLivingActors[i].team.IsLocalPlayer && (Vector3.Distance(GetAllLivingActors[i].CurrentPosition, focalPosition) < revealRadius || (abstractActor.IsTeleportedOffScreen && Vector3.Distance(position, focalPosition) < revealRadius)))
                         {
                             PilotableActorRepresentation pilotableActorRepresentation = abstractActor.GameRep as PilotableActorRepresentation;
                             if (pilotableActorRepresentation != null)

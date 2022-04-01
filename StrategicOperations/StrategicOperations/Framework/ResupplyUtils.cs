@@ -300,10 +300,10 @@ namespace StrategicOperations.Framework
             ModInit.modLog?.Trace?.Write($"[ProcessResupplyUnit] - Calculated resupply should take {finalPhases} phases: {ModInit.modSettings.ResupplyConfig.BasePhasesToResupply} from baseline, {phasesFromAmmo} from ammo, {phasesFromArmor} from armor, x {multiFromTags} total from tags.");
             return finalPhases;
         }
-
+        
         public static void UpdateResupplyTeams(this CombatGameState combat)
         {
-            foreach (var actor in combat.AllActors)
+            foreach (var actor in combat.GetAllLivingActors())
             {
                 if (actor.GetStaticUnitTags().Contains(ModInit.modSettings.ResupplyConfig.ResupplyUnitTag))
                 {
@@ -317,9 +317,9 @@ namespace StrategicOperations.Framework
             }
         }
 
-        public static void UpdateResupplyAbilitiesAllActors(this CombatGameState combat)
+        public static void UpdateResupplyAbilitiesGetAllLivingActors(this CombatGameState combat)
         {
-            var actors = combat.AllActors;
+            var actors = combat.GetAllLivingActors();
             foreach (var unit in actors)
             {
                 if (!ModState.TeamsWithResupply.Contains(unit.team.GUID)) continue;
@@ -333,7 +333,7 @@ namespace StrategicOperations.Framework
                         out var def);
                     var ability = new Ability(def);
                     ModInit.modLog?.Trace?.Write(
-                        $"[UpdateResupplyAbilitiesAllActors] Adding {ability.Def?.Description?.Id} to {unit.DisplayName}.");
+                        $"[UpdateResupplyAbilitiesGetAllLivingActors] Adding {ability.Def?.Description?.Id} to {unit.DisplayName}.");
                     ability.Init(unit.Combat);
                     unit.GetPilot().Abilities.Add(ability);
                     unit.GetPilot().ActiveAbilities.Add(ability);

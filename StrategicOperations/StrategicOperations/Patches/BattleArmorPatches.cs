@@ -1490,7 +1490,7 @@ namespace StrategicOperations.Patches
                 Vector3[] lostargetPositions = target.GetLOSTargetPositions(targetPosition, targetRotation);
 
 
-                List<AbstractActor> list = new List<AbstractActor>(source.Combat.AllActors);
+                List<AbstractActor> list = new List<AbstractActor>(source.Combat.GetAllLivingActors());
                 list.Remove(source);
 
                 var unitGUIDs = new List<string>(ModState.PositionLockSwarm.Keys);

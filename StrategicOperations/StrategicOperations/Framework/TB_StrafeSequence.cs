@@ -236,7 +236,7 @@ namespace StrategicOperations.Framework
 
             this.CurrentTargets = new List<ICombatant>();
 
-            var allCombatants = new List<ICombatant>(base.Combat.GetAllCombatants());
+            var allCombatants = new List<ICombatant>(base.Combat.GetAllLivingCombatants());
 
             if (ModInit.modSettings.strafeTargetsFriendliesChance == 0 && ModInit.modSettings.strafeNeutralBuildingsChance == 0)
             {

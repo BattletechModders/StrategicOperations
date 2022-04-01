@@ -25,7 +25,7 @@ namespace StrategicOperations.Patches
                 return AccessTools.Method(type, "Tick");
             }
 
-            static bool Prepare() => ModInit.modSettings.DEVTEST_Logging;
+            static bool Prepare() => ModInit.modSettings.Debug;
 
             public static void Postfix(ref BehaviorTreeResults __result, string ___name,
                 AbstractActor ___unit)
@@ -44,7 +44,7 @@ namespace StrategicOperations.Patches
                 return AccessTools.Method(type, "Tick");
             }
 
-            static bool Prepare() => ModInit.modSettings.DEVTEST_Logging;
+            static bool Prepare() => ModInit.modSettings.Debug;
 
             public static void Postfix(ref BehaviorTreeResults __result, string ___name,
                 AbstractActor ___unit)

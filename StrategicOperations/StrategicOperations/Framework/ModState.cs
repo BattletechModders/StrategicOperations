@@ -11,6 +11,8 @@ namespace StrategicOperations.Framework
 {
     public static class ModState
     {
+        public static AbstractActor startUnitFromInvocation = null;
+        public static float cancelChanceForPlayerStrafe = 0f;
         public static List<string> TeamsWithResupply = new List<string>();
         public static AbstractActor CurrentGarrisonSquadForLOS = null;
         public static AbstractActor CurrentGarrisonSquadForLOF = null;
@@ -18,7 +20,7 @@ namespace StrategicOperations.Framework
 
         public static float SwarmSuccessChance = 0f;
         public static float DeSwarmSuccessChance = 0f;
-        
+
         public static Dictionary<string, Dictionary<string, List<string>>> CachedFactionAssociations = new Dictionary<string, Dictionary<string, List<string>>>();
         public static Dictionary<string, Dictionary<string, List<AI_BeaconProxyInfo>>> CachedFactionCommandBeacons = new Dictionary<string, Dictionary<string, List<AI_BeaconProxyInfo>>>(); // key1 is abilityID, key2 is faction name
 
@@ -158,11 +160,13 @@ namespace StrategicOperations.Framework
 
         public static void ResetAll()
         {
+            cancelChanceForPlayerStrafe = 0f;
             ResupplyShutdownPhases = new Dictionary<string, int>();
             TeamsWithResupply = new List<string>();
             CurrentContractBASpawners = new List<CustomSpawner>();
             SwarmSuccessChance = 0f;
             DeSwarmSuccessChance = 0f;
+            CurrentCommandUnits = new Dictionary<string, Dictionary<string, int>>();
             CurrentBattleArmorSquads = new Dictionary<string, int>();
             CurrentFactionSettingsList = new List<ConfigOptions.AI_FactionCommandAbilitySetting>();
             PendingStrafeWaves = new Dictionary<string, PendingStrafeWave>();
