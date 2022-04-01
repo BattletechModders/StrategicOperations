@@ -46,6 +46,7 @@ settings in the mod.json:
 		"g": 187,
 		"b": 255
 	},
+	"strafeAAFailThreshold": 0.75
 	"strafeWaves": 3,
 	"commandAbilities_AI": [
 		{
@@ -498,6 +499,8 @@ settings in the mod.json:
 `MountIndicatorAsset` - string. name of custom .DDS asset that will be used for Mount indicator when using Battle Armor (needs to be one that is added to manifest via modtek)
 	
 `MountIndicatorColor` - as `customSpawnReticleColor`, defines custom color of reticle used for Mount indicator. fields r, g, b, are RGB values, 0-255.
+
+`strafeAAFailThreshold` - float, if chance to have strafe cancelled due to AA factor is greater than this, AI will not attempt to strafe
 	
 `strafeWaves` - int, default number of units (same unit copied multiple times) that will perform a strafe. e.g., if set to 3 and strafe calls a Lightning Aerospace fighter, 3 Lightnings will strafe the target area in succession. They tend to target exactly the same units (unless of course one of the targeted units gets destroyed by one of the previous strafing units). Overriden by mechcomponent tags in beacons where tag is "StrafeWaves_X" where X is the number of waves. E.g. a beacon with tag `StrafeWaves_5` would strafe with 5 units.
 
@@ -728,6 +731,44 @@ Similarly to Spawns, the actual unit doing the strafing depends on the following
 
 5) If the "beacon" item contains a component tag that starts with "StrafeWaves_", the remainder of that tag should be the number (integer) of "waves" or copies of the unit that will do the strafing. E.g. StrafeWaves_3 would strafe with 3 of whatever the unit is.
 
+**New in v3.0.1.5: AA factor**
+
+Now units can be given an "AA Factor" which has a chance to cancel a strafe (prevents the strafe from occurring, but does not prevent you or the AI from burning a turn attempting to do so. When a strafe is attempted, the cumulative AA Factor for all units on the target team and any of their allies is totalled up, and then divided by the total number of units on the target team and their allies. This value is the chance for the strafe to be cancelled. For example, lets say you are facing 3 units. One has anti air factor of 2.0, one has anti-air factor of 0.5, and the third has anti-air factors of 0. The final chance of the strafe being cancelled would be 83%  (`(2.0 + 0.5 + 0) / 3`).
+	
+For AI, if the chance to be cancelled is greater than `strafeAAFailThreshold`, they will not attempt it. For the player, the chance of **success** (not being cancelled) is displayed as part of the "Confirm" button before the strafe is actually confirmed. 
+	
+Unit AA factor is defined by a float statistic on the unitdef or equipment, `AAAFactor`, e.g:
+	
+```
+{
+	"durationData": {
+		"duration": -1
+	},
+	"targetingData": {
+		"effectTriggerType": "Passive",
+		"effectTargetType": "Creator",
+		"showInTargetPreview": false,
+		"showInStatusPanel": false
+	},
+	"effectType": "StatisticEffect",
+	"Description": {
+		"Id": "AAAFactorForUnitOmni",
+		"Name": "AAAFactorForUnit Orientation",
+		"Details": "AAAFactorForUnit.",
+		"Icon": "uixSvgIcon_equipment_Gyro"
+	},
+	"statisticData": {
+		"statName": "AAAFactor",
+		"operation": "Float_Add",
+		"modValue": "0.5",
+		"modType": "System.Single"
+	},
+	"nature": "Buff"
+}	
+```
+	
+	
+
 The json structure of a strafe ability follows:
 
 ```
@@ -816,7 +857,7 @@ To reiterate, the following setting controls spawn behavior:
 ### AI Strafes
 
 Strafes for the AI function largely in the same way as they do for the player. The AI will attempt to use strafes in a way that has the most enemy targets in the affected area, but will ignore friendly units in their calculations (given two options, one of which would hit 3 of your units and 3 of theirs versus another that would hit 2 of your units and none of theirs, they'll choose the 3 + 3). That said, the calculation isn't very smart, and the "start point" of a strafing run will always be the nearest target unit <i>even if there is another orientation that would hit more enemies</i>. I didn't want to iterate through every single possible start position and orientation because it became computationally expensive. Because of the logic involved this also means that if multiple enemies have a strafe available they'll tend to stack multiple strafes in the exact same orientation (assuming no units moved/nothing else changed between enemy A and enemy B activating).
-
+	
 ## Battle Armor Is Useful Now!
 
 Buckle up buttercup, there's a lot happening here.
