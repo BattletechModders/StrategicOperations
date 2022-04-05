@@ -664,7 +664,7 @@ namespace StrategicOperations.Patches
                 var hud = Traverse.Create(__instance).Property("HUD").GetValue<CombatHUD>();
                 var actor = hud.SelectedActor;
                 var hk = Input.GetKey(KeyCode.LeftAlt) || Input.GetKey(KeyCode.LeftAlt);
-                if (hk)
+                if (hk && actor.CanDeferUnit)
                 {
                     actor.DeferUnit();
                     actor.ForceUnitToLastActualPhase();
