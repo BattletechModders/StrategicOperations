@@ -239,7 +239,7 @@ namespace StrategicOperations.Patches
     }
     public class BattleArmorPatches
     {
-       [HarmonyPatch(typeof(ActivatableComponent), "activateComponent", new Type[] {typeof(MechComponent), typeof(bool), typeof(bool)})]
+        [HarmonyPatch(typeof(ActivatableComponent), "activateComponent", new Type[] {typeof(MechComponent), typeof(bool), typeof(bool)})]
         public static class ActivatableComponent_activateComponent
         {
             public static void Postfix(ActivatableComponent __instance, MechComponent component, bool autoActivate, bool isInital)
@@ -657,16 +657,24 @@ namespace StrategicOperations.Patches
             new Type[] { })]
         public static class CombatHUDButtonBase_OnClick
         {
-            static bool Prepare() => true;
-            public static void Prefix(CombatHUDButtonBase __instance)
+            static bool Prepare() => ModInit.modSettings.EnableQuickReserve;
+            public static bool Prefix(CombatHUDButtonBase __instance)
             {
-                if (__instance.GUID != "BTN_DoneWithMech") return;
+                if (__instance.GUID != "BTN_DoneWithMech") return true;
                 var hud = Traverse.Create(__instance).Property("HUD").GetValue<CombatHUD>();
                 var actor = hud.SelectedActor;
+                var hk = Input.GetKey(KeyCode.LeftAlt) || Input.GetKey(KeyCode.LeftAlt);
+                if (hk)
+                {
+                    actor.DeferUnit();
+                    actor.ForceUnitToLastActualPhase();
+                    return false;
+                }
+                
                 if (!actor.IsSwarmingUnit())
                 {
                     ModInit.modLog?.Debug?.Write($"[CombatHUDButtonBase.OnClick] Actor {actor.DisplayName} is not swarming, ending turn like normal.");
-                    return;
+                    return true;
                 }
                 var target = actor.Combat.FindActorByGUID(ModState.PositionLockSwarm[actor.GUID]);
                 ModInit.modLog?.Info?.Write($"[CombatHUDButtonBase.OnClick] Actor {actor.DisplayName} has active swarm attack on {target.DisplayName}");
@@ -684,7 +692,7 @@ namespace StrategicOperations.Patches
 
 //                actor.StatCollection.Set<float>("AccuracyModifier", baselineAccuracyModifier);
 //                ModInit.modLog?.Trace?.Write($"[AbstractActor.DoneWithActor] Actor {actor.DisplayName} resetting baselineAccuracyModifer to {actor.AccuracyModifier}");
-                return;
+                return true;
             }
         }
 
@@ -966,7 +974,6 @@ namespace StrategicOperations.Patches
 
                 if (__instance.ActiveState is SelectionStateFire) return true;
 
-
                 if ((__instance.SelectedActor == null || __instance.IsSelectedActorChangeable) &&
                     actor.team == actor.Combat.LocalPlayerTeam && actor != __instance.SelectedActor)
                 {
@@ -989,7 +996,9 @@ namespace StrategicOperations.Patches
                         {
                             AudioEventManager.PlayPilotVO(VOEvents.Mech_Chosen, actor, null, null, true);
                         }
-
+                        __instance.AddFireState(actor);
+                        ModInit.modLog?.Trace?.Write(
+                            $"[CombatSelectionHandler.TrySelectActor] {actor.DisplayName} should be adding fire state.");
                         var SelectionStack = Traverse.Create(__instance).Property("SelectionStack")
                             .GetValue<List<SelectionState>>();
                         if (!SelectionStack.Any(x => x is SelectionStateDoneWithMech))
@@ -1002,9 +1011,6 @@ namespace StrategicOperations.Patches
                             addState.GetValue(doneState);
                         }
 
-                        __instance.AddFireState(actor);
-                        ModInit.modLog?.Trace?.Write(
-                            $"[CombatSelectionHandler.TrySelectActor] {actor.DisplayName} should be adding fire state.");
                         if (ActiveOrDefaultSettings.CloudSettings.autoCenterOnSelection)
                         {
                             CameraControl.Instance.SetMovingToGroundPos(actor.CurrentPosition, 0.95f);
@@ -1069,6 +1075,8 @@ namespace StrategicOperations.Patches
                 return true;
             }
         }
+
+
 
         [HarmonyPatch(typeof(Mech), "DamageLocation",
             new Type[] {typeof(int), typeof(WeaponHitInfo), typeof(ArmorLocation), typeof(Weapon), typeof(float), typeof(float), typeof(int), typeof(AttackImpactQuality), typeof(DamageType)})]

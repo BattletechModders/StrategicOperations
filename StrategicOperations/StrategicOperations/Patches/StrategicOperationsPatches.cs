@@ -279,6 +279,29 @@ namespace StrategicOperations.Patches
             }
         }
 
+        [HarmonyPatch(typeof(CustomMechRepresentation), "GameRepresentation_Update")]
+        public static class CustomMechRepresentation_GameRepresentation_Update
+        {
+            public static bool Prefix(CustomMechRepresentation __instance)
+            {
+                if (__instance.__parentActor == null) return true;
+                var combat = UnityGameInstance.BattleTechGame.Combat;
+                if (combat == null) return true;
+                if (combat.ActiveContract.ContractTypeValue.IsSkirmish) return true;
+                var registry = combat.ItemRegistry;
+
+                if (__instance.__parentActor?.spawnerGUID == null)
+                {
+                    //ModInit.modLog?.Info?.Write($"Couldn't find UnitSpawnPointGameLogic for {____parentActor?.DisplayName}. Should be CMD Ability actor; skipping safety teleport!");
+                    return false;
+                }
+
+                return registry.GetItemByGUID<UnitSpawnPointGameLogic>(__instance.__parentActor?.spawnerGUID) != null;
+                //ModInit.modLog?.Info?.Write($"Couldn't find UnitSpawnPointGameLogic for {____parentActor?.DisplayName}. Should be CMD Ability actor; skipping safety teleport!");
+            }
+        }
+
+
         [HarmonyPatch(typeof(GameRepresentation), "Update")]
         public static class GameRepresentation_Update
         {

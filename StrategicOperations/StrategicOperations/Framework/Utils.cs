@@ -22,7 +22,16 @@ namespace StrategicOperations.Framework
 {
     public static class Utils
     {
-        public static AbstractActor FindMeAnOpforUnit(this AbstractActor actor)
+        public static void ForceUnitToLastActualPhase(this AbstractActor actor)
+        {
+            if (actor.Combat.TurnDirector.IsInterleaved && actor.Initiative != actor.Combat.TurnDirector.LastPhase)
+            {
+                actor.Initiative = actor.Combat.TurnDirector.LastPhase;
+                actor.Combat.MessageCenter.PublishMessage(new ActorPhaseInfoChanged(actor.GUID));
+            }
+            
+        }
+       public static AbstractActor FindMeAnOpforUnit(this AbstractActor actor)
         {
             var opforTeam = actor.Combat.Teams.FirstOrDefault(x => x.GUID == "be77cadd-e245-4240-a93e-b99cc98902a5");
             if (opforTeam != null)
