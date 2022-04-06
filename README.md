@@ -662,7 +662,7 @@ Using the following settings, ClanGhostBear and ClanWolf have baseline 30% chanc
 	
 `EnforceIFFForAmmoTooltips` - if true, above ammo counter will only be shown for friendly vehicles
 
-`EnableQuickReserve` - if true, `Alt-minus` (Alt-click the "Done" button) will reserve the current unit all the way to the last phase of the round.
+`EnableQuickReserve` - if true, `Shift-minus` (Shift-click the "Done" button) will reserve the current unit all the way to the last phase of the round.
 	
 ## Spawns
 
