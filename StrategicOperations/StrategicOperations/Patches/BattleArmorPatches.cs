@@ -663,7 +663,7 @@ namespace StrategicOperations.Patches
                 if (__instance.GUID != "BTN_DoneWithMech") return true;
                 var hud = Traverse.Create(__instance).Property("HUD").GetValue<CombatHUD>();
                 var actor = hud.SelectedActor;
-                var hk = Input.GetKey(KeyCode.LeftAlt) || Input.GetKey(KeyCode.LeftAlt);
+                var hk = Input.GetKey(KeyCode.LeftShift) || Input.GetKey(KeyCode.RightShift);
                 if (hk && actor.CanDeferUnit)
                 {
                     actor.DeferUnit();
