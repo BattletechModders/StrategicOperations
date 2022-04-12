@@ -352,11 +352,23 @@ namespace StrategicOperations.Patches
                         {
                             pos = ____parentActor.CurrentPosition + Vector3.down * trackerInfo.Value.Offset + Vector3.up * mech.custGameRep.HeightController.CurrentHeight;
                             targetActor.TeleportActor(pos);
+                            if (targetActor is CustomMech customMech)
+                            {
+                                customMech.custGameRep.j_Root.localRotation = Quaternion.identity;
+                            }
+                            targetActor.GameRep.transform.rotation = ____parentActor.GameRep.transform.rotation;
+                            targetActor.CurrentRotation = ____parentActor.CurrentRotation;
                         }
                         else
                         {
                             pos = ____parentActor.CurrentPosition + Vector3.down * trackerInfo.Value.Offset;
                             targetActor.TeleportActor(pos);
+                            if (targetActor is CustomMech customMech)
+                            {
+                                customMech.custGameRep.j_Root.localRotation = Quaternion.identity;
+                            }
+                            targetActor.GameRep.transform.rotation = ____parentActor.GameRep.transform.rotation;
+                            targetActor.CurrentRotation = ____parentActor.CurrentRotation;
                         }
                         targetActor.MountedEvasion(____parentActor);
                         ModInit.modLog?.Debug?.Write($"PositionLockMount- Setting airlifted unit {targetActor.DisplayName} position to same as carrier unit {____parentActor.DisplayName}");

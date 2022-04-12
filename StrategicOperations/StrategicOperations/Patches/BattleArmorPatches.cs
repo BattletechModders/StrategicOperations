@@ -286,11 +286,17 @@ namespace StrategicOperations.Patches
             //private static bool Prepare() => false;
             public static void Postfix(SelectionStateTargetSingleCombatantBase __instance, ICombatant combatant)
             {
+
                 if (__instance.FromButton.Ability.Def.Id == ModInit.modSettings.BattleArmorMountAndSwarmID)
                 {
                     var cHUD = Traverse.Create(__instance).Property("HUD").GetValue<CombatHUD>();
                     var creator = cHUD.SelectedActor;
-                    
+                    if (!creator.Pathing.ArePathGridsComplete)
+                    {
+                        cHUD.AttackModeSelector.FireButton.CurrentFireMode = CombatHUDFireButton.FireMode.None;
+                        cHUD.AttackModeSelector.FireButton.FireText.SetText($"Wait For Pathing Incomplete - DISABLED", Array.Empty<object>());
+                        return;
+                    }
                     if (creator is Mech creatorMech && combatant != null && combatant.team.IsEnemy(creator.team))
                     {
                         var chance = creator.Combat.ToHit.GetToHitChance(creator, creatorMech.MeleeWeapon, combatant, creator.CurrentPosition, combatant.CurrentPosition, 1, MeleeAttackType.Charge, false);
@@ -298,6 +304,16 @@ namespace StrategicOperations.Patches
                         ModState.SwarmSuccessChance = chance;
                         var chanceDisplay = (float)Math.Round(chance, 2) * 100;
                         cHUD.AttackModeSelector.FireButton.FireText.SetText($"{chanceDisplay}% - Confirm", Array.Empty<object>());
+                    }
+                }
+                else if (__instance.FromButton.Ability.Def.Id == ModInit.modSettings.AirliftAbilityID)
+                {
+                    var cHUD = Traverse.Create(__instance).Property("HUD").GetValue<CombatHUD>();
+                    var creator = cHUD.SelectedActor;
+                    if (!creator.Pathing.ArePathGridsComplete)
+                    {
+                        cHUD.AttackModeSelector.FireButton.CurrentFireMode = CombatHUDFireButton.FireMode.None;
+                        cHUD.AttackModeSelector.FireButton.FireText.SetText($"Wait For Pathing Incomplete - DISABLED", Array.Empty<object>());
                     }
                 }
             }
