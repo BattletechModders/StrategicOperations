@@ -294,7 +294,7 @@ namespace StrategicOperations.Patches
                     if (!creator.Pathing.ArePathGridsComplete)
                     {
                         cHUD.AttackModeSelector.FireButton.CurrentFireMode = CombatHUDFireButton.FireMode.None;
-                        cHUD.AttackModeSelector.FireButton.FireText.SetText($"Wait For Pathing Incomplete - DISABLED", Array.Empty<object>());
+                        cHUD.AttackModeSelector.FireButton.FireText.SetText($"Pathing Incomplete - DISABLED", Array.Empty<object>());
                         return;
                     }
                     if (creator is Mech creatorMech && combatant != null && combatant.team.IsEnemy(creator.team))

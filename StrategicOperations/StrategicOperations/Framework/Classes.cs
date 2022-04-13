@@ -113,7 +113,7 @@ namespace StrategicOperations.Framework
                 List<WayPoint> collection = ActorMovementSequence.ExtractWaypointsFromPath(actor, pathing.CurrentPath, pathing.ResultDestination, pathing.CurrentMeleeTarget, this.MoveType);
                 this.Waypoints = new List<WayPoint>(collection);
                 this.MoveType = pathing.MoveType;
-                this.FinalOrientation = moveTarget.CurrentRotation.eulerAngles;//pathing.ResultAngleAsVector;
+                this.FinalOrientation = moveTarget.GameRep.transform.forward;
                 this.MeleeTargetGUID = "";
                 this.IsFriendly = isFriendly;
                 this.IsMountOrSwarm = isMountOrSwarm;

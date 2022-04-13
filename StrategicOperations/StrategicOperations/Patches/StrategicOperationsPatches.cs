@@ -640,16 +640,32 @@ namespace StrategicOperations.Patches
                             ModInit.modLog?.Trace?.Write($"[Ability.Activate] - Creating airlift invocation for carrier {creator.DisplayName} and target {targetActor.DisplayName}.");
                             if (target.team.IsFriendly(creator.team))
                             {
-                                MessageCenterMessage invocation =
-                                    new StrategicMovementInvocation(creator, true, targetActor, true, false);
-                                creator.Combat.MessageCenter.PublishInvocationExternal(invocation);
+                                //if dropoff, just drop dont do movement?
+                                if (!creator.HasMovedThisRound && targetActor.IsAirlifted())
+                                {
+                                    targetActor.DetachFromAirliftCarrier(creator, true);
+                                }
+                                else
+                                {
+                                    //ModState.AirliftDropoffEvasion = creator.EvasivePipsCurrent;
+                                    MessageCenterMessage invocation =
+                                        new StrategicMovementInvocation(creator, true, targetActor, true, false);
+                                    creator.Combat.MessageCenter.PublishInvocationExternal(invocation);
+                                }
                             }
 
                             else if (target.team.IsEnemy(creator.team))
                             {
-                                MessageCenterMessage invocation =
-                                    new StrategicMovementInvocation(creator, true, targetActor, false, false);
-                                creator.Combat.MessageCenter.PublishInvocationExternal(invocation);
+                                if (!creator.HasMovedThisRound && targetActor.IsAirlifted())
+                                {
+                                    targetActor.DetachFromAirliftCarrier(creator, false);
+                                }
+                                else
+                                {
+                                    MessageCenterMessage invocation =
+                                        new StrategicMovementInvocation(creator, true, targetActor, false, false);
+                                    creator.Combat.MessageCenter.PublishInvocationExternal(invocation);
+                                }
                             }
                             //do airlifty things here
                         }
