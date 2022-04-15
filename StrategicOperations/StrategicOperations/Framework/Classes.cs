@@ -150,7 +150,7 @@ namespace StrategicOperations.Framework
             public ICombatant Target;
             public bool IsFriendly;
             public bool MountSwarmBA; //handle if airlifting unit dies?
-            public override bool ConsumesActivation => true; //this might fuck up attack on swarm. grr.
+            public override bool ConsumesActivation => !this.MountSwarmBA; //this might fuck up attack on swarm. grr.
 
             //public new virtual bool ForceActivationEnd => false;
 

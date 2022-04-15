@@ -1127,7 +1127,7 @@ namespace StrategicOperations.Framework
             ModInit.modLog?.Info?.Write(
                 $"[Ability.Activate - BattleArmorMountID] Added PositionLockMount with rider  {creator.DisplayName} {creator.GUID} and carrier {targetActor.DisplayName} {targetActor.GUID}.");
 
-            if (creator.team.IsLocalPlayer)
+            if (creator.team.IsLocalPlayer && false)
             {
                 var sequence = creator.DoneWithActor();
                 creator.Combat.MessageCenter.PublishMessage(new AddSequenceToStackMessage(sequence));
@@ -1216,7 +1216,7 @@ namespace StrategicOperations.Framework
                             $"[Ability.Activate - BattleArmorSwarmID] Creating attack sequence on successful swarm attack targeting location {loc}.");
                     }
                 }
-                if (creatorMech.team.IsLocalPlayer)
+                if (creatorMech.team.IsLocalPlayer && false)
                 {
                     var sequence = creatorMech.DoneWithActor();
                     creatorMech.Combat.MessageCenter.PublishMessage(new AddSequenceToStackMessage(sequence));

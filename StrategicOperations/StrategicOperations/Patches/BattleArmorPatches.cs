@@ -625,16 +625,16 @@ namespace StrategicOperations.Patches
             {
                 if (targetUnit is AbstractActor targetActor)
                 {
-//                    if (__instance.IsSwarmingUnit())
-//                    {
-//                        if (ModState.PositionLockSwarm[__instance.GUID] == targetActor.GUID)
-//                        {
+                    if (__instance.IsSwarmingUnit())
+                    {
+                        if (ModState.PositionLockSwarm[__instance.GUID] == targetActor.GUID)
+                        {
 //                        ModInit.modLog?.Trace?.Write($"[AbstractActor.HasIndirectLOFToTargetUnit] {__instance.DisplayName} is swarming {targetActor.DisplayName}, forcing direct LOS for weapons");
-//                            __result = false;
-//                        }
-//                    }
+                            __result = false;
+                        }
+                    }
 
-                    if (targetActor.IsSwarmingUnit() || targetActor.IsMountedUnit() )//|| targetActor.isGarrisoned())
+                    if (targetActor.IsSwarmingUnit() || targetActor.IsMountedUnit())//|| targetActor.isGarrisoned())
                     {
                         __result = false;
                     }
