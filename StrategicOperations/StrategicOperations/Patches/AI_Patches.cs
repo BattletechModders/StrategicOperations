@@ -279,7 +279,7 @@ namespace StrategicOperations.Patches
                 var battleArmorAbility =
                     ___unit.ComponentAbilities.FirstOrDefault(x =>
                         x.Def.Id == ModInit.modSettings.BattleArmorMountAndSwarmID);
-                if (battleArmorAbility != null && ___unit.canSwarm())
+                if (battleArmorAbility != null)// && ___unit.canSwarm())
                 {
                     if (battleArmorAbility.IsAvailable)
                     {
@@ -317,7 +317,7 @@ namespace StrategicOperations.Patches
                         {
                             ModInit.modLog?.Trace?.Write(
                                 $"[CanMoveAndShootWithoutOverheatingNode] Actor {___unit.DisplayName} is currently mounted. Evaluating range to nearest enemy.");
-                            if (distance <= 1.25 * maxRange)
+                            if (distance <= 1.25 * maxRange || (!___unit.canSwarm() && distance <= AIUtil.GetMaxWeaponRange(___unit)))
                             {
                                 ModInit.modLog?.Trace?.Write(
                                     $"[CanMoveAndShootWithoutOverheatingNode] Actor {___unit.DisplayName} is {distance} from nearest enemy, maxrange was {maxRange} * 1.25.");
@@ -330,14 +330,14 @@ namespace StrategicOperations.Patches
                                         return false;
                                     }
 
-                                    var info = new StrategicActorTargetInvocation(battleArmorAbility, carrier, true);
+                                    var info = new StrategicActorTargetInvocation(battleArmorAbility, closestEnemy, true, true);
                                     ModState.StrategicActorTargetInvocationCmds[___unit.GUID] = info;
                                     __result = new BehaviorTreeResults(BehaviorNodeState.Failure);
                                     return false; //was true
                                 }
                                 else
                                 {
-                                    var info = new StrategicActorTargetInvocation(battleArmorAbility, carrier, true);
+                                    var info = new StrategicActorTargetInvocation(battleArmorAbility, closestEnemy, true, true);
                                     ModState.StrategicActorTargetInvocationCmds.Add(___unit.GUID, info);
                                     __result = new BehaviorTreeResults(BehaviorNodeState.Failure);
                                     return false; //was true
@@ -348,8 +348,8 @@ namespace StrategicOperations.Patches
                             return false;
                         }
 
-                        //if it isnt mounted, its on the ground and should try to swarm.
-                        if (distance <= maxRange && !(closestEnemy is TrooperSquad))
+                        //if it isnt mounted, its on the ground and should try to swarm if it can.
+                        if (distance <= maxRange && !(closestEnemy is TrooperSquad) && ___unit.canSwarm())
                         {
                             ModInit.modLog?.Trace?.Write(
                                 $"[CanMoveAndShootWithoutOverheatingNode] Actor {___unit.DisplayName} is on the ground, trying to swarm at {distance} from nearest enemy, maxrange was {maxRange} * 1.25.");
@@ -576,43 +576,57 @@ namespace StrategicOperations.Patches
                         ModInit.modLog?.Debug?.Write(
                             $"BA AI Swarm/Mount Ability DUMP: {ModState.StrategicActorTargetInvocationCmds[unit.GUID].ability} {ModState.StrategicActorTargetInvocationCmds[unit.GUID].ability.Def.Id}, Combat is not null? {ModState.StrategicActorTargetInvocationCmds[unit.GUID].ability.Combat != null}");
 
-                        ModState.StrategicActorTargetInvocationCmds[unit.GUID].ability.Activate(unit,
-                            ModState.StrategicActorTargetInvocationCmds[unit.GUID].targetActor);
-                        ModInit.modLog?.Info?.Write(
-                            $"activated {ModState.StrategicActorTargetInvocationCmds[unit.GUID].ability.Def.Description.Id} on actor {ModState.StrategicActorTargetInvocationCmds[unit.GUID].targetActor.DisplayName} {ModState.StrategicActorTargetInvocationCmds[unit.GUID].targetActor.GUID}");
-
-                        if (unit.IsSwarmingUnit() && ModInit.modSettings.AttackOnSwarmSuccess && !unit.HasFiredThisRound)
+                        if (unit.IsMountedUnit())
                         {
-                            ModInit.modLog?.Trace?.Write(
-                                $"[makeInvocationFromOrders] - found freshly swarmed unit; trying to make attack invocation for same round. Fingies crossed!");
-                            var target = unit.Combat.FindActorByGUID(ModState.PositionLockSwarm[unit.GUID]);
-                            foreach (var weapon in unit.Weapons)
-                            {
-                                weapon.EnableWeapon();
-                            }
-
-                            var weps = unit.Weapons.Where(x => x.IsEnabled && x.HasAmmo).ToList();
-
-                            var loc = ModState.BADamageTrackers[unit.GUID].BA_MountedLocations.Values
-                                .GetRandomElement();
-                            //var attackStackSequence = new AttackStackSequence(unit, target, unit.CurrentPosition, unit.CurrentRotation, weps, MeleeAttackType.NotSet, loc, -1);
-                            //unit.Combat.MessageCenter.PublishMessage(new AddSequenceToStackMessage(attackStackSequence));
-                            var vent = unit.HasVentCoolantAbility && unit.CanVentCoolant;
-                            __result = new AttackInvocation(unit, target, weps, MeleeAttackType.NotSet, loc)
-                            {
-                                ventHeatBeforeAttack = vent
-                            }; // making a regular attack invocation here, instead of stacksequence + reserve
+                            var carrier = unit.Combat.FindActorByGUID(ModState.PositionLockMount[unit.GUID]);
+                            ModState.StrategicActorTargetInvocationCmds[unit.GUID].ability.Activate(unit,
+                                    carrier);
                         }
 
-                        else
+                        ModInit.modLog?.Info?.Write(
+                            $"[makeInvocationFromOrders] activated {ModState.StrategicActorTargetInvocationCmds[unit.GUID].ability.Def.Description.Id} on actor {ModState.StrategicActorTargetInvocationCmds[unit.GUID].targetActor.DisplayName} {ModState.StrategicActorTargetInvocationCmds[unit.GUID].targetActor.GUID}");
+                        ModInit.modLog?.Trace?.Write(
+                            $"[makeInvocationFromOrders] checking if swarm success {unit.IsSwarmingUnit()}, and has fired this round {unit.HasFiredThisRound}");
+
+
+                        __result = new StrategicMovementInvocation(unit, true, ModState.StrategicActorTargetInvocationCmds[unit.GUID].targetActor, false, true);
+
+                        if (false)
                         {
-                            if (!unit.HasMovedThisRound)
+                            if (unit.IsSwarmingUnit() && ModInit.modSettings.AttackOnSwarmSuccess &&
+                                !unit.HasFiredThisRound) // maybe move this whole shit do the Strategic Move invocation, check for success, and make the first attack invocation there, at OnComplete?
                             {
-                                unit.BehaviorTree.IncreaseSprintHysteresisLevel();
+                                ModInit.modLog?.Trace?.Write(
+                                    $"[makeInvocationFromOrders] - found freshly swarmed unit; trying to make attack invocation for same round. Fingies crossed!");
+                                var target = unit.Combat.FindActorByGUID(ModState.PositionLockSwarm[unit.GUID]);
+                                foreach (var weapon in unit.Weapons)
+                                {
+                                    weapon.EnableWeapon();
+                                }
+
+                                var weps = unit.Weapons.Where(x => x.IsEnabled && x.HasAmmo).ToList();
+
+                                var loc = ModState.BADamageTrackers[unit.GUID].BA_MountedLocations.Values
+                                    .GetRandomElement();
+                                //var attackStackSequence = new AttackStackSequence(unit, target, unit.CurrentPosition, unit.CurrentRotation, weps, MeleeAttackType.NotSet, loc, -1);
+                                //unit.Combat.MessageCenter.PublishMessage(new AddSequenceToStackMessage(attackStackSequence));
+                                var vent = unit.HasVentCoolantAbility && unit.CanVentCoolant;
+                                __result = new AttackInvocation(unit, target, weps, MeleeAttackType.NotSet, loc)
+                                {
+                                    ventHeatBeforeAttack = vent
+                                }; // making a regular attack invocation here, instead of stacksequence + reserve
                             }
 
-                            __result = new ReserveActorInvocation(unit, ReserveActorAction.DONE,
-                                unit.Combat.TurnDirector.CurrentRound);
+                            else
+                            {
+                                if (!unit.HasMovedThisRound)
+                                {
+                                    unit.BehaviorTree.IncreaseSprintHysteresisLevel();
+                                }
+
+                                __result = new ReserveActorInvocation(unit, ReserveActorAction.DONE,
+                                    unit.Combat.TurnDirector.CurrentRound);
+                            }
                         }
 
                         ModState.StrategicActorTargetInvocationCmds.Remove(unit.GUID);

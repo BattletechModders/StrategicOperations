@@ -150,7 +150,7 @@ namespace StrategicOperations.Framework
             public ICombatant Target;
             public bool IsFriendly;
             public bool MountSwarmBA; //handle if airlifting unit dies?
-            public override bool ConsumesActivation => !this.MountSwarmBA; //this might fuck up attack on swarm. grr.
+            public override bool ConsumesActivation => !MountSwarmBA;//!this.MountSwarmBA; //this might fuck up attack on swarm. grr.
 
             //public new virtual bool ForceActivationEnd => false;
 
@@ -200,16 +200,42 @@ namespace StrategicOperations.Framework
                                 }
                             }
 
-                            if (!squad2.IsSwarmingUnit())
+                            if (!squad2.IsSwarmingUnit() && squad2.canSwarm())
                             {
                                 squad2.ProcessSwarmEnemy(targetActor);
-                                return;
                             }
+
+                            if (ModInit.modSettings.AttackOnSwarmSuccess && squad2.IsSwarmingUnit())
+                            {
+                                if (!squad2.team.IsLocalPlayer)
+                                {
+                                    foreach (var weapon in squad2.Weapons)
+                                    {
+                                        weapon.EnableWeapon();
+                                    }
+                                }
+                                
+                                var weps = squad2.Weapons.Where(x => x.IsEnabled && x.HasAmmo).ToList();
+                                var loc = ModState.BADamageTrackers[squad2.GUID].BA_MountedLocations.Values
+                                    .GetRandomElement();
+                                
+                                var attackStackSequence = new AttackStackSequence(squad2, targetActor,
+                                    squad2.CurrentPosition,
+                                    squad2.CurrentRotation, weps, MeleeAttackType.NotSet, loc, -1);
+                                squad2.Combat.MessageCenter.PublishMessage(
+                                    new AddSequenceToStackMessage(attackStackSequence));
+                                ModInit.modLog?.Info?.Write(
+                                    $"[StrategicMovementSequence - CompleteOrders] Creating attack sequence on successful swarm attack targeting location {loc}.");
+                                
+                            }
+
+                            //doattacksequencehere
+
                         }
                         else
                         {
                             ModInit.modLog?.Info?.Write(
-                                $"[StrategicMovementSequence] ERROR: called sequence for BA, but target actor is not TrooperSquad.");
+                                $"[StrategicMovementSequence] ERROR: called sequence for BA, but actor is not TrooperSquad.");
                             return;
                         }
                     }
@@ -899,18 +925,21 @@ public class AI_BeaconProxyInfo
         {
             public Ability ability;
             public AbstractActor targetActor;
+            public bool isFriendlyDismount;
             public bool active;
 
             public StrategicActorTargetInvocation()
             {
                 this.ability = default(Ability);
                 this.targetActor = default(AbstractActor);
+                this.isFriendlyDismount = false;
                 this.active = false;
             }
-            public StrategicActorTargetInvocation(Ability cmdAbility, AbstractActor targetActor, bool active)
+            public StrategicActorTargetInvocation(Ability cmdAbility, AbstractActor targetActor, bool active, bool isFriendlyDismount = false)
             {
                 this.ability = cmdAbility;
                 this.targetActor = targetActor;
+                this.isFriendlyDismount = isFriendlyDismount;
                 this.active = active;
             }
         }

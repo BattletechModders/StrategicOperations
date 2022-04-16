@@ -627,7 +627,7 @@ namespace StrategicOperations.Framework
         }
         public static bool getIsUnSwarmable(this AbstractActor actor)
         {
-            return actor.StatCollection.GetValue<bool>("IsUnswarmableBattleArmor");
+            return (actor is TrooperSquad || actor.StatCollection.GetValue<bool>("IsUnswarmableBattleArmor"));
         }
 
         public static bool HasMountedUnits(this AbstractActor actor)
@@ -1137,7 +1137,7 @@ namespace StrategicOperations.Framework
         public static void ProcessSwarmEnemy(this Mech creatorMech, AbstractActor targetActor)
         {
             var creatorActor = creatorMech as AbstractActor;
-            if (!creatorMech.canSwarm())
+            if (!creatorMech.canSwarm() && creatorMech.team.IsLocalPlayer)
             {
                 var popup = GenericPopupBuilder.Create(GenericPopupType.Info, $"Unit {creatorMech.DisplayName} is unable to make swarming attacks!");
                 popup.AddButton("Confirm", null, true, null);
@@ -1200,7 +1200,7 @@ namespace StrategicOperations.Framework
                 creatorMech.ResetPathing(false);
                 creatorMech.Pathing.UpdateCurrentPath(false);
 
-                if (ModInit.modSettings.AttackOnSwarmSuccess && creatorMech.team.IsLocalPlayer)
+                if (ModInit.modSettings.AttackOnSwarmSuccess && creatorMech.team.IsLocalPlayer && false)
                 {
                     var weps = creatorMech.Weapons.Where(x => x.IsEnabled && x.HasAmmo).ToList();
                     var loc = ModState.BADamageTrackers[creatorMech.GUID].BA_MountedLocations.Values

@@ -404,6 +404,7 @@ namespace StrategicOperations.Framework
             AITeam aiteam = null;
             var combat = UnityGameInstance.BattleTechGame.Combat;
             aiteam = new AITeam("Opfor Support", Color.black, Guid.NewGuid().ToString(), true, combat);
+            aiteam.FactionValue = team.FactionValue;
             combat.TurnDirector.AddTurnActor(aiteam);
             combat.ItemRegistry.AddItem(aiteam);
             team.SetSupportTeam(aiteam);
