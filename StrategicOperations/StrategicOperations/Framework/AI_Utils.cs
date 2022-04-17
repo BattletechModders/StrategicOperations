@@ -362,34 +362,29 @@ namespace StrategicOperations.Framework
                         {
                             ModState.CurrentCommandUnits.Add(abilitySetting.AbilityDefID, new Dictionary<string, int>());
                             ModState.CurrentCommandUnits[abilitySetting.AbilityDefID].Add(unit.team.FactionValue.Name, 0);
-                            if (!ModState.CachedFactionCommandBeacons.ContainsKey(abilitySetting.AbilityDefID))
-                            {
-                                ModState.CachedFactionCommandBeacons.Add(abilitySetting.AbilityDefID, new Dictionary<string, List<Classes.AI_BeaconProxyInfo>>());
-                                ModState.CachedFactionCommandBeacons[abilitySetting.AbilityDefID].Add(unit.team.FactionValue.Name, new List<Classes.AI_BeaconProxyInfo>());
-                            }
-
-                            abilitySetting.ProcessAIBeaconWeights(dm, unit.team.FactionValue.Name, abilitySetting.AbilityDefID);
-
                         }
                         else
                         {
-                            if (!ModState.CurrentCommandUnits[abilitySetting.AbilityDefID]
-                                    .ContainsKey(unit.team.FactionValue.Name))
+                            if (!ModState.CurrentCommandUnits[abilitySetting.AbilityDefID].ContainsKey(unit.team.FactionValue.Name))
                             {
-                                ModState.CurrentCommandUnits[abilitySetting.AbilityDefID]
-                                    .Add(unit.team.FactionValue.Name, 0);
-                                if (!ModState.CachedFactionCommandBeacons.ContainsKey(abilitySetting.AbilityDefID))
-                                {
-                                    ModState.CachedFactionCommandBeacons.Add(abilitySetting.AbilityDefID, new Dictionary<string, List<Classes.AI_BeaconProxyInfo>>());
-                                }
-                                if (!ModState.CachedFactionCommandBeacons[abilitySetting.AbilityDefID]
-                                        .ContainsKey(unit.team.FactionValue.Name))
-                                {
-                                    ModState.CachedFactionCommandBeacons[abilitySetting.AbilityDefID].Add(unit.team.FactionValue.Name, new List<Classes.AI_BeaconProxyInfo>());
-                                }
-                                abilitySetting.ProcessAIBeaconWeights(dm, unit.team.FactionValue.Name, abilitySetting.AbilityDefID);
+                                ModState.CurrentCommandUnits[abilitySetting.AbilityDefID].Add(unit.team.FactionValue.Name, 0);
                             }
                         }
+
+                        if (!ModState.CachedFactionCommandBeacons.ContainsKey(abilitySetting.AbilityDefID))
+                        {
+                            ModState.CachedFactionCommandBeacons.Add(abilitySetting.AbilityDefID, new Dictionary<string, List<Classes.AI_BeaconProxyInfo>>());
+                            ModState.CachedFactionCommandBeacons[abilitySetting.AbilityDefID].Add(unit.team.FactionValue.Name, new List<Classes.AI_BeaconProxyInfo>());
+                        }
+                        else
+                        {
+                            if (!ModState.CachedFactionCommandBeacons[abilitySetting.AbilityDefID].ContainsKey(unit.team.FactionValue.Name))
+                            {
+                                ModState.CachedFactionCommandBeacons[abilitySetting.AbilityDefID].Add(unit.team.FactionValue.Name, new List<Classes.AI_BeaconProxyInfo>());
+                            }
+                        }
+
+                        abilitySetting.ProcessAIBeaconWeights(dm, unit.team.FactionValue.Name, abilitySetting.AbilityDefID);
 
                         if (ModState.CurrentCommandUnits[abilitySetting.AbilityDefID][unit.team.FactionValue.Name] >=
                             abilitySetting.MaxUsersAddedPerContract) return;
@@ -415,7 +410,7 @@ namespace StrategicOperations.Framework
                             var ability = new Ability(def);
                             ModInit.modLog?.Info?.Write(
                                 $"Adding {ability.Def?.Description?.Id} to {unit.Description?.Name}.");
-                            ModState.CurrentCommandUnits[abilitySetting.AbilityDefID][unit.team.FactionValue.Name] += 1;
+                            ModState.CurrentCommandUnits[abilitySetting.AbilityDefID][unit.team.FactionValue.Name] ++;
                             ability.Init(unit.Combat);
                             unit.ComponentAbilities.Add(ability);
                             return;
