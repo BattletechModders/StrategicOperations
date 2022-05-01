@@ -342,7 +342,7 @@ namespace StrategicOperations.Patches
             {
                 if (FromButton.Ability.Def.Id == ModInit.modSettings.AirliftAbilityID)
                 {
-                    if (SelectedActor.GUID == potentialTarget.GUID && (SelectedActor.HasAirliftedEnemy() || SelectedActor.HasAirliftedFriendly()))
+                    if (SelectedActor.GUID == potentialTarget.GUID && SelectedActor.HasAirliftedUnits())
                     {
                         return true;
                         //ignore base CanTarget if self-selecting, only for Airlift (to give popup for drop selection)

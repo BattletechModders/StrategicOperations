@@ -29,7 +29,6 @@ namespace StrategicOperations.Framework
                 actor.Initiative = actor.Combat.TurnDirector.LastPhase;
                 actor.Combat.MessageCenter.PublishMessage(new ActorPhaseInfoChanged(actor.GUID));
             }
-            
         }
        public static AbstractActor FindMeAnOpforUnit(this AbstractActor actor)
         {
@@ -304,7 +303,7 @@ namespace StrategicOperations.Framework
             return vectors.ToArray();
         }
 
-        public static Rect[] MakeRectangle(Vector3 start, Vector3 end, float width)
+        public static List<Rect> MakeRectangle(Vector3 start, Vector3 end, float width)
         {
             
             var rectangles = new List<Rect>();
@@ -319,7 +318,7 @@ namespace StrategicOperations.Framework
             var rectRight = new Rect(startRight.x, startRight.y, width, length);
             rectangles.Add(rectLeft);
             rectangles.Add(rectRight);
-            return rectangles.ToArray();
+            return rectangles;//.ToArray();
         }
 
         public static Vector3 LerpByDistance(Vector3 start, Vector3 end, float x)

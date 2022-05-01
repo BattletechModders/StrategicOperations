@@ -407,6 +407,8 @@ namespace StrategicOperations.Patches
                 try
                 {
                     if (__instance.owningActor == null) return;
+                    
+                    
                     if (ModState.DeSwarmMovementInfo?.Carrier?.GUID == __instance.owningActor.GUID)
                     {
                         var settings = ModInit.modSettings.DeswarmMovementConfig;
@@ -420,8 +422,7 @@ namespace StrategicOperations.Patches
                             $"[ActorMovementSequence.CompleteOrders] Found DeSwarmMovementInfo for unit {__instance.owningActor.DisplayName} {__instance.owningActor.GUID}. Rolled {roll} vs finalChance {finalChance} from baseChance {baseChance} and evasive chance {chanceFromPips}");
                         if (roll <= finalChance)
                         {
-                            var waypoints = Traverse.Create(__instance).Property("Waypoints")
-                                .GetValue<List<WayPoint>>();
+                            var waypoints = Traverse.Create(__instance).Property("Waypoints").GetValue<List<WayPoint>>();
                             foreach (var swarmingUnit in ModState.DeSwarmMovementInfo?.SwarmingUnits)
                             {
                                 var selectedWaypoint = waypoints.GetRandomElement();
@@ -1491,22 +1492,23 @@ namespace StrategicOperations.Patches
             {
                 collisionWorldPos = new Vector3();
 
-                if (target is BattleTech.Building building && !building.hasGarrisonedUnits()) return true;
+ //               if (target is BattleTech.Building building && !building.hasGarrisonedUnits()) return true;
 
                 if (target is AbstractActor actorTarget)
                 {
                     if (actorTarget.IsSwarmingUnit() || actorTarget.IsMountedUnit() )//|| actorTarget.isGarrisoned())
                     {
                         __result = LineOfFireLevel.NotSet; // added 1/11 to block all LOF to swarming/mounted units. NotSet, or should it be LOS.Blocked?
+                        ModInit.modLog?.Debug?.Write($"[LineOfSight_GetLineOfFireUncached] LOF for {source.DisplayName} and target {actorTarget.DisplayName} is {__result} due to target IsSwarm or IsMount");
                         return false;
                     }
 
-                    if (!actorTarget.HasSwarmingUnits() && !actorTarget.HasMountedUnits())
-                    {
-                        return true;
-                    }
+//                    if (!actorTarget.HasSwarmingUnits() && !actorTarget.HasMountedUnits())
+//                    {
+//                        return true;
+//                    }
                 }
-
+                ModInit.modLog?.Debug?.Write($"[LineOfSight_GetLineOfFireUncached] Getting LOF for {source.DisplayName}");
                 Vector3 forward = targetPosition - sourcePosition;
                 forward.y = 0f;
                 Quaternion rotation = Quaternion.LookRotation(forward);
@@ -1541,15 +1543,27 @@ namespace StrategicOperations.Patches
                     var carrier = source.Combat.FindActorByGUID(ModState.PositionLockMount[source.GUID]);
                     if (carrier.hasFiringPorts())
                     {
-                        list.Remove(source.Combat.FindActorByGUID(ModState.PositionLockMount[source.GUID])); // remove mound from LOS blocking (i have no idea if this will work or is even needed)
+                        list.Remove(carrier); // remove mound from LOS blocking (i have no idea if this will work or is even needed)
+                        ModInit.modLog?.Debug?.Write($"[LineOfSight_GetLineOfFireUncached] remove {carrier.DisplayName}");
                     }
                 }
 
                 if (source.IsAirlifted())
                 {
-                    if (!ModState.AirliftTrackers[source.GUID].IsCarriedInternal)
+                    var airliftCarrier =
+                        source.Combat.FindActorByGUID(ModState.AirliftTrackers[source.GUID].CarrierGUID);
+                    list.Remove(airliftCarrier);
+                    ModInit.modLog?.Debug?.Write($"[LineOfSight_GetLineOfFireUncached] remove {airliftCarrier.DisplayName}");
+                }
+
+                if (source.HasAirliftedUnits())
+                {
+                    var unitsBeingCarried = ModState.AirliftTrackers.Where(x => x.Value.CarrierGUID == source.GUID);
+                    foreach (var unitBeingCarried in unitsBeingCarried)
                     {
-                        list.Remove(source.Combat.FindActorByGUID(ModState.AirliftTrackers[source.GUID].CarrierGUID));
+                        var unit = source.Combat.FindActorByGUID(unitBeingCarried.Key);
+                        list.Remove(unit);//most recent change?
+                        ModInit.modLog?.Debug?.Write($"[LineOfSight_GetLineOfFireUncached] remove {unit.DisplayName}");
                     }
                 }
 
@@ -1644,14 +1658,17 @@ namespace StrategicOperations.Patches
                 if (num9 >= source.Combat.Constants.Visibility.RatioFullVis)
                 {
                     __result = LineOfFireLevel.LOFClear;
+                    ModInit.modLog?.Debug?.Write($"[LineOfSight_GetLineOfFireUncached] LOF for {source.DisplayName} and target {target.DisplayName} is {__result} due to num9 >= source.Combat.Constants.Visibility.RatioFullVis");
                     return false;
                 }
                 if (num9 >= source.Combat.Constants.Visibility.RatioObstructedVis)
                 {
                     __result = LineOfFireLevel.LOFObstructed;
+                    ModInit.modLog?.Debug?.Write($"[LineOfSight_GetLineOfFireUncached] LOF for {source.DisplayName} and target {target.DisplayName} is {__result} due to num9 >= source.Combat.Constants.Visibility.RatioObstructedVis");
                     return false;
                 }
                 __result = LineOfFireLevel.LOFBlocked;
+                ModInit.modLog?.Debug?.Write($"[LineOfSight_GetLineOfFireUncached] LOF for {source.DisplayName} and target {target.DisplayName} is {__result} due to raisins");
                 return false;
             }
         }
@@ -1682,8 +1699,12 @@ namespace StrategicOperations.Patches
                     {
                         var carrier =
                             source.Combat.FindActorByGUID(ModState.AirliftTrackers[source.GUID].CarrierGUID);
-                        __result = source.Combat.LOFCache.GetLineOfFire(carrier, carrier.CurrentPosition, target,
+                        var resultFromCarrier = source.Combat.LOFCache.GetLineOfFire(carrier, carrier.CurrentPosition, target,
                             targetPosition, targetRotation, out collisionWorldPos);
+                        if (resultFromCarrier > __result)
+                        {
+                            __result = resultFromCarrier;
+                        }
                     }
                 }
 

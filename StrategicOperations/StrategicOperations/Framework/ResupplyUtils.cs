@@ -41,7 +41,7 @@ namespace StrategicOperations.Framework
             }
             return true;
         }
-
+        
         public static float GetDistanceToClosestDetectedResupply(this AbstractActor actor, Vector3 position)
         {
             var friendlyUnits = actor.team.VisibilityCache.GetAllFriendlies(actor).Where(x => !x.IsDead && !x.IsFlaggedForDeath);
@@ -122,6 +122,7 @@ namespace StrategicOperations.Framework
                             totalAmmoTonnage += sourceTonnageNeeded;
                             foreach (var magicBox in resupplyActor.ammoBoxes)
                             {
+                                if (weapon.InternalAmmo >= startingCapacity) break;
                                 if (magicBox.CurrentAmmo <= 0) continue;
 
                                 var spammy = searchForSpammy && magicBox.ammoDef.Description.Id ==
@@ -152,7 +153,7 @@ namespace StrategicOperations.Framework
                                         weapon.DecInternalAmmo(-1,-missingAmmoForMagicBox);
                                         magicBox.modifyAmmoCount(-totalMagicShotsConsumed);
                                         ModInit.modLog?.Trace?.Write(
-                                            $"[ProcessResupplyUnit - Internal Ammo!] - Full Resupply complete for weapon {weapon.Description.UIName}. Ammobox now has {weapon.CurrentAmmo}/{weapon.weaponDef.StartingAmmoCapacity} ammo, SPAMMY box has {magicBox.CurrentAmmo}/{magicBox.AmmoCapacity} remaining. \n\nMathDumps: Replacement of ammo needs to use {sourceTonnageNeeded} tons of SPAMMY. SPAMMY has {magicTonnageAvailable} tons available at {magicTonnagePerShot} per shot for total SPAMMY shots needed of {totalMagicShotsConsumed}");
+                                            $"[ProcessResupplyUnit - Internal Ammo!] - Full Resupply complete for weapon {weapon.Description.UIName}. Ammobox now has {weapon.InternalAmmo}/{weapon.weaponDef.StartingAmmoCapacity} ammo, SPAMMY box has {magicBox.CurrentAmmo}/{magicBox.AmmoCapacity} remaining. \n\nMathDumps: Replacement of ammo needs to use {sourceTonnageNeeded} tons of SPAMMY. SPAMMY has {magicTonnageAvailable} tons available at {magicTonnagePerShot} per shot for total SPAMMY shots needed of {totalMagicShotsConsumed}");
                                         break;
                                     }
                                     else
@@ -161,7 +162,7 @@ namespace StrategicOperations.Framework
                                         weapon.DecInternalAmmo(-1, -replacementSourceShotsAvailable);
                                         magicBox.zeroAmmoCount();
                                         ModInit.modLog?.Trace?.Write(
-                                            $"[ProcessResupplyUnit - Internal Ammo!] - Partial Resupply complete for weapon {weapon.Description.UIName}. Ammobox now has {weapon.CurrentAmmo}/{weapon.weaponDef.StartingAmmoCapacity} ammo, SPAMMY box has {magicBox.CurrentAmmo}/{magicBox.AmmoCapacity} remaining. \n\nMathDumps: Replacement of ammo needs to use {sourceTonnageNeeded} tons of SPAMMY. SPAMMY has {magicTonnageAvailable} tons available at {magicTonnagePerShot} per shot for total SPAMMY shots needed of {totalMagicShotsConsumed}");
+                                            $"[ProcessResupplyUnit - Internal Ammo!] - Partial Resupply complete for weapon {weapon.Description.UIName}. Ammobox now has {weapon.InternalAmmo}/{weapon.weaponDef.StartingAmmoCapacity} ammo, SPAMMY box has {magicBox.CurrentAmmo}/{magicBox.AmmoCapacity} remaining. \n\nMathDumps: Replacement of ammo needs to use {sourceTonnageNeeded} tons of SPAMMY. SPAMMY has {magicTonnageAvailable} tons available at {magicTonnagePerShot} per shot for total SPAMMY shots needed of {totalMagicShotsConsumed}");
                                     }
                                 }
                             }
@@ -181,6 +182,7 @@ namespace StrategicOperations.Framework
                     var magicBoxes = new List<AmmunitionBox>();
                     foreach (var resupplyBox in resupplyActor.ammoBoxes)
                     {
+                        if (ammoBoxToFill.CurrentAmmo >= ammoBoxToFill.AmmoCapacity) break;
                         if (resupplyBox.ammoDef.Description.Id == ammoBoxToFill.ammoDef.Description.Id)
                         {
                             if (resupplyBox.CurrentAmmo <= 0) continue;
@@ -218,6 +220,7 @@ namespace StrategicOperations.Framework
                         var sourceTonnageNeeded = missingAmmoForMagicBox * sourceTonnagePerShot;
                         foreach (var magicBox in magicBoxes)
                         {
+                            if (ammoBoxToFill.CurrentAmmo >= ammoBoxToFill.AmmoCapacity) break;
                             if (magicBox.CurrentAmmo <= 0) continue;
                             var magicTonnagePerShot = magicBox.tonnage / magicBox.AmmoCapacity;
                             var magicTonnageAvailable = magicTonnagePerShot * magicBox.CurrentAmmo;
@@ -254,12 +257,14 @@ namespace StrategicOperations.Framework
                             continue;
                         var initialCapped = HUDMechArmorReadout.GetInitialArmorForLocation(mech.MechDef, loc) * ModInit.modSettings.ResupplyConfig.ArmorRepairMax;
                         var current = mech.ArmorForLocation((int) loc);
-                        if (current <= initialCapped)
+                        foreach (var ammobox in resupplyActor.ammoBoxes)
                         {
-                            var missingArmor = initialCapped - current;
-                            totalArmorPoints += missingArmor;
-                            foreach (var ammobox in resupplyActor.ammoBoxes)
+                            current = mech.ArmorForLocation((int)loc);
+                            if (current <= initialCapped)
                             {
+                                var missingArmor = initialCapped - current;
+                                //totalArmorPoints += missingArmor;
+                            
                                 if (ammobox.ammunitionBoxDef.AmmoID ==
                                     ModInit.modSettings.ResupplyConfig.ArmorSupplyAmmoDefId)
                                 {
@@ -269,12 +274,14 @@ namespace StrategicOperations.Framework
                                     var armorAmmoNeeded = Mathf.CeilToInt(missingArmor);
                                     if (ammobox.CurrentAmmo >= armorAmmoNeeded)
                                     {
+                                        totalArmorPoints += armorAmmoNeeded;
                                         mech.modifyMechArmorValue(loc, missingArmor);
                                         ammobox.modifyAmmoCount(-armorAmmoNeeded);
                                         ModInit.modLog?.Trace?.Write($"[ProcessResupplyUnit - ARMOR] - Location {loc} replaced {missingArmor} points of armor, using {armorAmmoNeeded} armorAmmo. {ammobox.CurrentAmmo} remains.");
                                     }
                                     else
                                     {
+                                        totalArmorPoints += ammobox.CurrentAmmo;
                                         mech.modifyMechArmorValue(loc, ammobox.CurrentAmmo);
                                         ammobox.zeroAmmoCount();
                                         ModInit.modLog?.Trace?.Write($"[ProcessResupplyUnit - ARMOR] - Location {loc} replaced {missingArmor} points of armor, using {armorAmmoNeeded} armorAmmo. {ammobox.CurrentAmmo} remains.");

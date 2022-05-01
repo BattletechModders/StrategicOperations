@@ -4,6 +4,7 @@ using System.Reflection;
 using BattleTech;
 using CustomComponents;
 using Harmony;
+using IRBTModUtils.CustomInfluenceMap;
 using IRBTModUtils.Logging;
 using Localize;
 using Newtonsoft.Json;
@@ -50,6 +51,25 @@ namespace StrategicOperations
             ModState.Initialize();
             //dump settings
             ModInit.modLog?.Info?.Write($"Settings dump: {settings}");
+        }
+
+        public static void FinishedLoading(List<string> loadOrder)
+        {
+            ModInit.modLog?.Info?.Write($"Invoking FinishedLoading");
+            var customPositionFactors = new List<CustomInfluenceMapPositionFactor>()
+            {
+                new StrategicInfluenceMapFactors.CustomPositionFactors.PreferAvoidStandingInAirstrikeAreaPosition(),
+                new StrategicInfluenceMapFactors.CustomPositionFactors.PreferCloserToResupply(),
+                new StrategicInfluenceMapFactors.CustomPositionFactors.PreferNearerToSwarmTargets()
+            };
+            CustomFactors.Register("StrategicOperations_PositionFactors", customPositionFactors);
+            var customHostileFactors = new List<CustomInfluenceMapHostileFactor>()
+            {
+                new StrategicInfluenceMapFactors.CustomHostileFactors.PreferAvoidStandingInAirstrikeAreaWithHostile(),
+                new StrategicInfluenceMapFactors.CustomHostileFactors.PreferCloserToResupplyWithHostile(),
+                new StrategicInfluenceMapFactors.CustomHostileFactors.PreferNearerToSwarmTargetsWithHostile()
+            };
+            CustomFactors.Register("StrategicOperations_HostileFactors", customHostileFactors);
         }
     }
     class Settings

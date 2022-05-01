@@ -12,6 +12,18 @@ namespace StrategicOperations.Framework
 {
     public static class AI_Utils
     {
+        public static bool IsPositionWithinAnAirstrike(AbstractActor unit, Vector3 position)
+        {
+            foreach (var pendingStrike in ModState.PendingStrafeWaves.Values)
+            {
+                foreach (var rectangle in pendingStrike.FootPrintRects)
+                {
+                    ModInit.modLog?.Trace?.Write($"[IsPositionWithinAnAirstrike] position {position} is inside an incoming airstrike. ohnos.");
+                    if (rectangle.Contains(position)) return true;
+                }
+            }
+            return false;
+        }
         public static void ProcessAIBeaconWeights(this Classes.ConfigOptions.AI_FactionCommandAbilitySetting BeaconWeights, DataManager dm,
             string factionID, string abilityName)
         {
@@ -601,7 +613,7 @@ namespace StrategicOperations.Framework
                         var targetCount = 0;
                         var rectangles = Utils.MakeRectangle(possibleStart, vector, ability.Def.FloatParam1);
                         var rectTargets = new List<string>();
-                        for (var i = 0; i < rectangles.Length; i++)
+                        for (var i = 0; i < rectangles.Count; i++)
                         {
                             var rectangle = rectangles[i];
                             for (int l = 0; l < enemyUnits.Count; l++)

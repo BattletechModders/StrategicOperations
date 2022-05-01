@@ -7,12 +7,237 @@ using BattleTech.Data;
 using CustomComponents;
 using CustomUnits;
 using HBS.Collections;
+using IRBTModUtils.CustomInfluenceMap;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using UnityEngine;
 
 namespace StrategicOperations.Framework
 {
+    public class StrategicInfluenceMapFactors
+    {
+        public class CustomPositionFactors
+        {
+            public class PreferAvoidStandingInAirstrikeAreaPosition : CustomInfluenceMapPositionFactor
+            {
+                public PreferAvoidStandingInAirstrikeAreaPosition()
+                {
+                }
+
+                public override string Name => "Prefer not standing in the area of an incoming airstrike";
+                public override bool IgnoreFactorNormalization => true;
+
+                public override float EvaluateInfluenceMapFactorAtPosition(AbstractActor unit, Vector3 position,
+                    float angle, MoveType moveType, PathNode pathNode)
+                {
+                    ModInit.modLog?.Trace?.Write(Name);
+                    if (!AI_Utils.IsPositionWithinAnAirstrike(unit, position))
+                    {
+                        IgnoreFactorNormalization = false;
+                        return 1f;
+                    }
+
+                    return -9001f;
+                }
+
+                public override float GetRegularMoveWeight(AbstractActor actor)
+                {
+                    return 1f;
+                }
+
+                public override float GetSprintMoveWeight(AbstractActor actor)
+                {
+                    return 1f;
+                }
+            }
+
+            public class PreferNearerToSwarmTargets : CustomInfluenceMapPositionFactor
+            {
+                public PreferNearerToSwarmTargets()
+                {
+                }
+
+                public override string Name => "Battle armor and their carriers prefer getting close to enemy units";
+                public override bool IgnoreFactorNormalization => true;
+
+                public override float EvaluateInfluenceMapFactorAtPosition(AbstractActor unit, Vector3 position,
+                    float angle, MoveType moveType, PathNode pathNode)
+                {
+                    ModInit.modLog?.Trace?.Write(Name);
+                    if (!unit.HasMountedUnits() && !unit.canSwarm())
+                    {
+                        IgnoreFactorNormalization = false;
+                        return 0f;
+                    }
+
+                    return 9001 * (1 / unit.DistanceToClosestDetectedEnemy(position));
+                }
+
+                public override float GetRegularMoveWeight(AbstractActor actor)
+                {
+                    return 1f;
+                }
+
+                public override float GetSprintMoveWeight(AbstractActor actor)
+                {
+                    return 1f;
+                }
+            }
+
+            public class PreferCloserToResupply : CustomInfluenceMapPositionFactor
+            {
+                public PreferCloserToResupply()
+                {
+                }
+
+                public override string Name =>
+                    "Units with missing ammo or <60% armor prefer getting within range of resupply";
+
+                public override bool IgnoreFactorNormalization => true;
+
+                public override float EvaluateInfluenceMapFactorAtPosition(AbstractActor unit, Vector3 position,
+                    float angle, MoveType moveType, PathNode pathNode)
+                {
+                    ModInit.modLog?.Trace?.Write(Name);
+
+                    if (unit.AreAnyWeaponsOutOfAmmo() || unit.SummaryArmorCurrent / unit.StartingArmor <= 0.6f)
+                    {
+                        var distToResupply = unit.GetDistanceToClosestDetectedResupply(position);
+                        if (distToResupply <= -5f)
+                        {
+                            IgnoreFactorNormalization = false;
+                            return 0f;
+                        }
+
+                        return 9001 * (1 / distToResupply);
+                    }
+
+                    return 0f;
+                }
+
+                public override float GetRegularMoveWeight(AbstractActor actor)
+                {
+                    return 1f;
+                }
+
+                public override float GetSprintMoveWeight(AbstractActor actor)
+                {
+                    return 1f;
+                }
+            }
+        }
+
+        public class CustomHostileFactors
+        {
+            public class PreferAvoidStandingInAirstrikeAreaWithHostile : CustomInfluenceMapHostileFactor
+            {
+                public PreferAvoidStandingInAirstrikeAreaWithHostile()
+                {
+                }
+
+                public override string Name => "Prefer not standing in the area of an incoming airstrike";
+                public override bool IgnoreFactorNormalization => true;
+
+                public override float EvaluateInfluenceMapFactorAtPositionWithHostile(AbstractActor unit, Vector3 position, float angle, MoveType moveType, ICombatant hostileUnit)
+                {
+                    ModInit.modLog?.Trace?.Write(Name);
+                    if (!AI_Utils.IsPositionWithinAnAirstrike(unit, position))
+                    {
+                        IgnoreFactorNormalization = false;
+                        return 1f;
+                    }
+
+                    return -9001f;
+                }
+
+                public override float GetRegularMoveWeight(AbstractActor actor)
+                {
+                    return 1f;
+                }
+
+                public override float GetSprintMoveWeight(AbstractActor actor)
+                {
+                    return 1f;
+                }
+            }
+
+            public class PreferNearerToSwarmTargetsWithHostile : CustomInfluenceMapHostileFactor
+            {
+                public PreferNearerToSwarmTargetsWithHostile()
+                {
+                }
+
+                public override string Name => "Battle armor and their carriers prefer getting close to enemy units";
+                public override bool IgnoreFactorNormalization => true;
+
+                public override float EvaluateInfluenceMapFactorAtPositionWithHostile(AbstractActor unit, Vector3 position, float angle, MoveType moveType, ICombatant hostileUnit)
+                {
+                    ModInit.modLog?.Trace?.Write(Name);
+                    if (!unit.HasMountedUnits() && !unit.canSwarm())
+                    {
+                        IgnoreFactorNormalization = false;
+                        return 0f;
+                    }
+
+                    return 9001 * (1 / unit.DistanceToClosestDetectedEnemy(position));
+                }
+
+                public override float GetRegularMoveWeight(AbstractActor actor)
+                {
+                    return 1f;
+                }
+
+                public override float GetSprintMoveWeight(AbstractActor actor)
+                {
+                    return 1f;
+                }
+            }
+
+            public class PreferCloserToResupplyWithHostile : CustomInfluenceMapHostileFactor
+            {
+                public PreferCloserToResupplyWithHostile()
+                {
+                }
+
+                public override string Name =>
+                    "Units with missing ammo or <60% armor prefer getting within range of resupply";
+
+                public override bool IgnoreFactorNormalization => true;
+
+                public override float EvaluateInfluenceMapFactorAtPositionWithHostile(AbstractActor unit, Vector3 position, float angle, MoveType moveType, ICombatant hostileUnit)
+                {
+                    ModInit.modLog?.Trace?.Write(Name);
+
+                    if (unit.AreAnyWeaponsOutOfAmmo() || unit.SummaryArmorCurrent / unit.StartingArmor <= 0.6f)
+                    {
+                        var distToResupply = unit.GetDistanceToClosestDetectedResupply(position);
+                        if (distToResupply <= -5f)
+                        {
+                            IgnoreFactorNormalization = false;
+                            return 0f;
+                        }
+
+                        return 9001 * (1 / distToResupply);
+                    }
+
+                    return 0f;
+                }
+
+                public override float GetRegularMoveWeight(AbstractActor actor)
+                {
+                    return 1f;
+                }
+
+                public override float GetSprintMoveWeight(AbstractActor actor)
+                {
+                    return 1f;
+                }
+            }
+        }
+
+
+    }
+
     [CustomComponent("InternalAmmoTonnage")]
     public class InternalAmmoTonnage : SimpleCustomComponent
     {
@@ -997,6 +1222,7 @@ public class AI_BeaconProxyInfo
             public PilotDef SupportPilotDef;
             public HeraldryDef SupportHeraldryDef;
             public DataManager DM;
+            public List<Rect> FootPrintRects;
 
             public PendingStrafeWave(int remainingWaves, Ability ability, Team team, Vector3 positionA, Vector3 positionB, float radius, string actorResource, Team neutralTeam, Lance cmdLance, PilotDef supportPilotDef, HeraldryDef supportHeraldryDef, DataManager dm)
             {
@@ -1012,6 +1238,7 @@ public class AI_BeaconProxyInfo
                 this.SupportPilotDef = supportPilotDef;
                 this.SupportHeraldryDef = supportHeraldryDef;
                 this.DM = dm;
+                this.FootPrintRects = Utils.MakeRectangle(positionA, positionB, radius);
             }
         }
     }

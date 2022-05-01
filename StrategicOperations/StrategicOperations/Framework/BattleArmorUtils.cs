@@ -663,11 +663,32 @@ namespace StrategicOperations.Framework
             return ModState.PositionLockSwarm.ContainsKey(actor.GUID) && ModState.PositionLockSwarm[actor.GUID] == target.GUID;
         }
 
-        public static Vector3 FetchAdjacentHex(this AbstractActor actor)
+        public static Vector3 FetchRandomAdjacentHex(this AbstractActor actor)
         {
             var points = actor.Combat.HexGrid.GetAdjacentPointsOnGrid(actor.CurrentPosition);
-            var point = points.GetRandomElement();
+            var validPoints = new List<Vector3>();
+            for (int i = 0; i < points.Count; i++)
+            {
+                Vector3 resultPos  = Vector3.zero;
+                var walkGrid = Traverse.Create(actor.Pathing).Property("WalkingGrid").GetValue<PathNodeGrid>();
+                var pathNode = walkGrid.GetClosestPathNode(points[i], 0f, 1000f, points[i], ref resultPos,
+                    out var resultAngle, false, false);
+                if (pathNode != null)
+                {
+                    var list = walkGrid.BuildPathFromEnd(pathNode, 1000f, resultPos, points[i], null, out var costLeft, out resultPos, out resultAngle);
+                    if (list != null && list.Count > 0)
+                    {
+                        validPoints.Add(resultPos);
+                    }
+                }
+            }
+            var point = actor.CurrentPosition;
             point.y = actor.Combat.MapMetaData.GetLerpedHeightAt(point, false);
+            if (validPoints.Count > 0)
+            {
+                point = validPoints.GetRandomElement();
+                point.y = actor.Combat.MapMetaData.GetLerpedHeightAt(point, false);
+            }
             return point;
         }
 
@@ -733,6 +754,12 @@ namespace StrategicOperations.Framework
                 {
                     point = locationOverride;
                     ModInit.modLog?.Info?.Write($"[DismountBA] Using location override {locationOverride}.");
+                }
+                
+                else if (calledFromDeswarm)
+                {
+                    point = carrier.FetchRandomAdjacentHex();
+;                    ModInit.modLog?.Info?.Write($"[DismountBA] Using adjacent hex {point} or fallback carrier loc {carrier.CurrentPosition}.");
                 }
                 point.y = actor.Combat.MapMetaData.GetLerpedHeightAt(point, false);
                 actor.TeleportActor(point);

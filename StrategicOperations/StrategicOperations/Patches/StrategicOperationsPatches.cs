@@ -339,7 +339,7 @@ namespace StrategicOperations.Patches
                     }
                 }
                 var combat = ____parentActor.Combat;
-                if (____parentActor.HasAirliftedEnemy() || ____parentActor.HasAirliftedFriendly())
+                if (____parentActor.HasAirliftedUnits())
                 {
                     var airliftedUnits= ModState.AirliftTrackers.Where(x =>
                         x.Value.CarrierGUID == ____parentActor.GUID);
@@ -707,7 +707,9 @@ namespace StrategicOperations.Patches
                     return true;
                 }
 
-                if (ModInit.modSettings.BeaconExcludedContractIDs.Contains(__instance.Combat.ActiveContract.Override.ID) || ModInit.modSettings.BeaconExcludedContractTypes.Contains(__instance.Combat.ActiveContract.ContractTypeValue.Name))
+                AbilityDef.SpecialRules specialRules = __instance.Def.specialRules;
+
+                if ((specialRules == AbilityDef.SpecialRules.Strafe || specialRules == AbilityDef.SpecialRules.SpawnTurret) && (ModInit.modSettings.BeaconExcludedContractIDs.Contains(__instance.Combat.ActiveContract.Override.ID) || ModInit.modSettings.BeaconExcludedContractTypes.Contains(__instance.Combat.ActiveContract.ContractTypeValue.Name)))
                 {
                     var popup = GenericPopupBuilder.Create(GenericPopupType.Info, $"Ability {__instance.Def.Description.Name} is unavailable during this contract!");
                     popup.AddButton("Confirm", null, true, null);
@@ -716,7 +718,6 @@ namespace StrategicOperations.Patches
                     return false;
                 }
 
-                AbilityDef.SpecialRules specialRules = __instance.Def.specialRules;
                 if (specialRules == AbilityDef.SpecialRules.Strafe)
                 {
                     var cancelChance = 0f;
@@ -2047,7 +2048,7 @@ namespace StrategicOperations.Patches
 
                 if (ability.Def.Id == ModInit.modSettings.AirliftAbilityID && ModInit.modSettings.CanDropOffAfterMoving)// && actor.MovingToPosition == null) // maybe need to check IsAnyOrderActive (but that might screw me)
                 {
-                    if (actor.HasAirliftedEnemy() || actor.HasAirliftedFriendly())
+                    if (actor.HasAirliftedUnits())
                     {
                         //button.DisableButton();
                         //if (!button.gameObject.activeSelf)
@@ -2104,7 +2105,7 @@ namespace StrategicOperations.Patches
 
                 if (ability.Def.Id == ModInit.modSettings.AirliftAbilityID && ModInit.modSettings.CanDropOffAfterMoving)// && actor.MovingToPosition == null) // maybe need to check IsAnyOrderActive (but that might screw me)
                 {
-                    if (actor.HasAirliftedEnemy() || actor.HasAirliftedFriendly())
+                    if (actor.HasAirliftedUnits())
                     {
                         //button.DisableButton();
                         //if (!button.gameObject.activeSelf)
@@ -2162,7 +2163,7 @@ namespace StrategicOperations.Patches
 
                 if (ability.Def.Id == ModInit.modSettings.AirliftAbilityID && ModInit.modSettings.CanDropOffAfterMoving)// && actor.MovingToPosition == null) // maybe need to check IsAnyOrderActive (but that might screw me)
                 {
-                    if (actor.HasAirliftedEnemy() || actor.HasAirliftedFriendly())
+                    if (actor.HasAirliftedUnits())
                     {
                         //button.DisableButton();
                         //if (!button.gameObject.activeSelf)
@@ -2173,6 +2174,14 @@ namespace StrategicOperations.Patches
                         //button.InitButton(CombatHUDMechwarriorTray.GetSelectionTypeFromTargeting(ability.Def.Targeting, false), ability, ability.Def.AbilityIcon, ability.Def.Description.Id, ability.Def.Description.Name, actor);
                         button.ResetButtonIfNotActive(actor);
                     }
+                }
+
+                var specialRules = ability.Def.specialRules;
+                if ((specialRules == AbilityDef.SpecialRules.Strafe || specialRules == AbilityDef.SpecialRules.SpawnTurret) &&
+                    (ModInit.modSettings.BeaconExcludedContractIDs.Contains(ability.Combat.ActiveContract.Override.ID) || ModInit.modSettings.BeaconExcludedContractTypes.Contains(ability.Combat.ActiveContract
+                         .ContractTypeValue.Name)))
+                {
+                    button.DisableButton();
                 }
             }
         }
