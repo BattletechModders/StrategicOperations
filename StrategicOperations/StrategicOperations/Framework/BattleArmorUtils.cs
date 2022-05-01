@@ -756,7 +756,7 @@ namespace StrategicOperations.Framework
                     ModInit.modLog?.Info?.Write($"[DismountBA] Using location override {locationOverride}.");
                 }
                 
-                else if (calledFromDeswarm)
+                else if (calledFromDeswarm || calledFromHandleDeath)
                 {
                     point = carrier.FetchRandomAdjacentHex();
 ;                    ModInit.modLog?.Info?.Write($"[DismountBA] Using adjacent hex {point} or fallback carrier loc {carrier.CurrentPosition}.");
