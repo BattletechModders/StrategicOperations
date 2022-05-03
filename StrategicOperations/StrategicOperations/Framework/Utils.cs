@@ -66,7 +66,7 @@ namespace StrategicOperations.Framework
 
         public static float GetAAAFactor(this AbstractActor actor)
         {
-            return actor.StatCollection.GetValue<float>("AAAFactor");
+            return actor.StatCollection.GetValue<bool>("UseAAAFactor") ? actor.StatCollection.GetValue<float>("AAAFactor") : 0f;
         }
         public static void PublishInvocationExternal(this MessageCenter messageCenter, MessageCenterMessage invocation)
         {

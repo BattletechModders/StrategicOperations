@@ -174,7 +174,9 @@ namespace StrategicOperations.Patches
                 __instance.StatCollection.AddStatistic<int>("InternalLiftCapacityUsed", 0);
                 __instance.StatCollection.AddStatistic<int>("ExternalLiftCapacity", 0);
                 __instance.StatCollection.AddStatistic<int>("ExternalLiftCapacityUsed", 0);
+                __instance.StatCollection.AddStatistic<bool>("OverrideGlobalCapacity", false);
                 __instance.StatCollection.AddStatistic<float>("AAAFactor", 0f);
+                __instance.StatCollection.AddStatistic<bool>("UseAAAFactor", false);
             }
         }
 
