@@ -1301,3 +1301,12 @@ Weapons with internal ammo should have at least the following Custom (from Custo
 	},
 ```
 `InternalAmmoTons` is the actual tonnage value of the internal ammo for that weapon, and will be used to calculate how much SPAMMY ammo to consume for the resupply
+
+
+## MISC
+
+In v2.0.3.0, I have implemented the following Weapon statistics that will interact with CustomAmmoCategories TAC framework. These are intended for use with on-swarm Effects, but generalized for any status effect to use them:
+	
+`APArmorShardsModWeaponMultiplier` - Multiplier on *final product* of CAC APArmorShardsMod (from weapon, mode, ammo)
+`APMaxArmorThicknessWeaponMultiplier` - Multiplier on *final product* of CAC APMaxArmorThickness (from weapon, mode, ammo)
+`APCriticalChanceMultiplierWeaponMultiplier` - Multiplier on *final product* of CAC APCriticalChanceMultiplier (from weapon, mode, ammo, and evasivePipsMod)
