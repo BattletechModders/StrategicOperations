@@ -739,7 +739,7 @@ Now units can be given an "AA Factor" which has a chance to cancel a strafe (pre
 	
 For AI, if the chance to be cancelled is greater than `strafeAAFailThreshold`, they will not attempt it. For the player, the chance of **success** (not being cancelled) is displayed as part of the "Confirm" button before the strafe is actually confirmed. 
 	
-Unit AA factor is defined by a float statistic on the unitdef or equipment, `AAAFactor`, e.g:
+Unit AA factor is now defined by two statistics. First, the bool statistic `UseAAAFactor` must be true; if it is, then the float statistic on the unitdef or equipment, `AAAFactor`. This allows for example, equipment that changes "UseAAAFactor" to turn "AA Mode" on or off, and then have the actual value of the AAAFactor determined by what weapons the unit has. e.g:
 	
 ```
 {
@@ -1151,7 +1151,9 @@ New in v3.0.0.0, units (not just BA but mechs and vehicles!) can be picked up an
 	
 In order for a unit to be airlift, it needs to *NOT* have any of the tags listed in `AirliftImmuneTags`. Likewise, the carrier must a) have the ability from `AirliftAbilityID` and b) have one or both of `InternalLiftCapacity` and `ExternalLiftCapacity` set to some non-zero value. Internal lift capacity functions similarly to internal mounted BA, in that the unitreps are shrunk so as to be basically invisible, and the units themselves are not directly targetable and cannot shoot. Externally airlifted units ARE targetable and CAN shoot. For carriers with both internal and external capacity, internal "spots" will be filled first, then external.
 
-If `AirliftCapacityByTonnage` is set true, airlift capacity will be determined by the sum tonnage of units being airlifted. If false, it will be dictated by absolute number of units (which is how BA mount capacity works).
+If the global setting `AirliftCapacityByTonnage` is set true, airlift capacity will be determined by the sum tonnage of units being airlifted. If false, it will be dictated by absolute number of units (which is how BA mount capacity works).
+	
+**New in 3.0.2.1, the actor bool stat `OverrideGlobalCapacity` will, if true, "flip" the airlift capacity calculation function set in the global AirliftCapacityByTonnage setting. So if you had `"AirliftCapacityByTonnage": false` in mod.json, units that have `OverrideGlobalCapacity` set true would use Tonnage calculation, and vice versa.**
 	
 When dropping off units, a popup will display allowing the player to select which currently airlifted unit is to be dropped off.
 	
