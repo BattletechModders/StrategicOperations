@@ -5,6 +5,7 @@ using System.Text;
 using System.Threading.Tasks;
 using BattleTech;
 using BattleTech.UI;
+using CustAmmoCategories;
 using CustomUnits;
 using Harmony;
 using Localize;
@@ -14,6 +15,53 @@ namespace StrategicOperations.Patches
 {
     public class AIM_ButNotReally
     {
+        [HarmonyPatch(typeof(Weapon), "InitStats")]
+        public static class Weapon_InitStats
+        {
+            public static void Prefix(Weapon __instance)
+            {
+                __instance.StatCollection.AddStatistic<float>("APArmorShardsModWeaponMultiplier", 1f);
+                __instance.StatCollection.AddStatistic<float>("APMaxArmorThicknessWeaponMultiplier", 1f);
+                __instance.StatCollection.AddStatistic<float>("APCriticalChanceMultiplierWeaponMultiplier", 1f);
+            }
+        }
+
+        [HarmonyPatch(typeof(CustomAmmoCategories), "APArmorShardsMod")]
+        public static class CustomAmmoCategories_APArmorShardsMod_WeaponExt
+        {
+            public static void Postfix(Weapon weapon, ref float __result)
+            {
+                if (__result > 0f)
+                {
+                    __result *= weapon.StatCollection.GetValue<float>("APArmorShardsModWeaponMultiplier");
+                }
+            }
+        }
+
+        [HarmonyPatch(typeof(CustomAmmoCategories), "APMaxArmorThickness")]
+        public static class CustomAmmoCategories_APMaxArmorThickness_WeaponExt
+        {
+            public static void Postfix(Weapon weapon, ref float __result)
+            {
+                if (__result > 0f)
+                {
+                    __result *= weapon.StatCollection.GetValue<float>("APMaxArmorThicknessWeaponMultiplier");
+                }
+            }
+        }
+
+        [HarmonyPatch(typeof(CustomAmmoCategories), "APCriticalChanceMultiplier")]
+        public static class CustomAmmoCategories_APCriticalChanceMultiplier_WeaponExt
+        {
+            public static void Postfix(Weapon weapon, ref float __result)
+            {
+                if (__result > 0f)
+                {
+                    __result *= weapon.StatCollection.GetValue<float>("APCriticalChanceMultiplierWeaponMultiplier");
+                }
+            }
+        }
+
         [HarmonyPatch(typeof(CombatHUDFakeVehicleArmorHover), "setToolTipInfo",
             new Type[] {typeof(Mech), typeof(ChassisLocations)})]
         public static class CombatHUDFakeVehicleArmorHover_setToolTipInfo
