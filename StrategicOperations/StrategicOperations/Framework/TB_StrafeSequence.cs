@@ -119,7 +119,7 @@ namespace StrategicOperations.Framework
                     for (var i = this.CurrentTargets.Count - 1; i >= 0; i--)
                     {
                         var target = this.CurrentTargets[i];
-                        if (target.IsDead || target.IsFlaggedForDeath || !target.IsOperational)
+                        if (!target.IsOperational)
                         {
                             CurrentTargets.RemoveAt(i);
                             continue;
@@ -242,7 +242,7 @@ namespace StrategicOperations.Framework
             {
                 allCombatants = new List<ICombatant>(allCombatants.Where(x=>x.team.IsEnemy(this.StrafingTeam)));
             }
-            allCombatants.RemoveAll(x => x.GUID == this.Attacker.GUID || x.IsDead);
+            allCombatants.RemoveAll(x => x.GUID == this.Attacker.GUID || !x.IsOperational);
             for (int i = 0; i < allCombatants.Count; i++)
             {
                 if (allCombatants[i] is AbstractActor actor)

@@ -574,7 +574,7 @@ namespace StrategicOperations.Framework
 
                 //var enemyCombatants = new List<ICombatant>(actor.Combat.GetAllImporantCombatants().Where(x=>x.team.IsEnemy(actor.team)));
                 var enemyUnits = actor.GetVisibleEnemyUnits();
-                enemyUnits.RemoveAll(x=> x.GUID == actor.GUID || x.IsDead);
+                enemyUnits.RemoveAll(x=> x.GUID == actor.GUID || !x.IsOperational);
 
                 for (int i = enemyUnits.Count - 1; i >= 0; i--)
                 {
