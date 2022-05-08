@@ -96,35 +96,72 @@ namespace StrategicOperations.Patches
                         }
 
                         var closestEnemy = ___unit.GetClosestDetectedSwarmTarget(___unit.CurrentPosition);
-
-                        var distance = Vector3.Distance(___unit.CurrentPosition, closestEnemy.CurrentPosition);
-                        var jumpdist = 0f;
-                        if (___unit is Mech mech)
+                        if (closestEnemy != null)
                         {
-                            jumpdist = mech.JumpDistance;
-                            if (float.IsNaN(jumpdist)) jumpdist = 0f;
-                        }
 
-                        var maxRange = new List<float>()
-                        {
-                            ___unit.MaxWalkDistance,
-                            ___unit.MaxSprintDistance,
-                            jumpdist,
-                            battleArmorAbility.Def.IntParam2
-                        }.Max();
+                            var distance = Vector3.Distance(___unit.CurrentPosition, closestEnemy.CurrentPosition);
+                            var jumpdist = 0f;
+                            if (___unit is Mech mech)
+                            {
+                                jumpdist = mech.JumpDistance;
+                                if (float.IsNaN(jumpdist)) jumpdist = 0f;
+                            }
 
-                        ModInit.modLog?.Trace?.Write(
-                            $"[CanMoveAndShootWithoutOverheatingNode] Actor {___unit.DisplayName} maxRange to be used is {maxRange}, largest of: MaxWalkDistance - {___unit.MaxWalkDistance}, MaxSprintDistance - {___unit.MaxSprintDistance}, JumpDistance - {jumpdist}, and Ability Override {battleArmorAbility.Def.IntParam2}");
+                            var maxRange = new List<float>()
+                            {
+                                ___unit.MaxWalkDistance,
+                                ___unit.MaxSprintDistance,
+                                jumpdist,
+                                battleArmorAbility.Def.IntParam2
+                            }.Max();
 
-                        if (___unit.IsMountedUnit())
-                        {
                             ModInit.modLog?.Trace?.Write(
-                                $"[CanMoveAndShootWithoutOverheatingNode] Actor {___unit.DisplayName} is currently mounted. Evaluating range to nearest enemy.");
-                            if (distance <= 1.25 * maxRange || (!___unit.canSwarm() && distance <= AIUtil.GetMaxWeaponRange(___unit)))
+                                $"[CanMoveAndShootWithoutOverheatingNode] Actor {___unit.DisplayName} maxRange to be used is {maxRange}, largest of: MaxWalkDistance - {___unit.MaxWalkDistance}, MaxSprintDistance - {___unit.MaxSprintDistance}, JumpDistance - {jumpdist}, and Ability Override {battleArmorAbility.Def.IntParam2}");
+
+                            if (___unit.IsMountedUnit())
                             {
                                 ModInit.modLog?.Trace?.Write(
-                                    $"[CanMoveAndShootWithoutOverheatingNode] Actor {___unit.DisplayName} is {distance} from nearest enemy, maxrange was {maxRange} * 1.25.");
-                                var carrier = ___unit.Combat.FindActorByGUID(ModState.PositionLockMount[___unit.GUID]);
+                                    $"[CanMoveAndShootWithoutOverheatingNode] Actor {___unit.DisplayName} is currently mounted. Evaluating range to nearest enemy.");
+                                if (distance <= 1.25 * maxRange ||
+                                    (!___unit.canSwarm() && distance <= AIUtil.GetMaxWeaponRange(___unit)))
+                                {
+                                    ModInit.modLog?.Trace?.Write(
+                                        $"[CanMoveAndShootWithoutOverheatingNode] Actor {___unit.DisplayName} is {distance} from nearest enemy, maxrange was {maxRange} * 1.25.");
+                                    var carrier =
+                                        ___unit.Combat.FindActorByGUID(ModState.PositionLockMount[___unit.GUID]);
+                                    if (ModState.StrategicActorTargetInvocationCmds.ContainsKey(___unit.GUID))
+                                    {
+                                        if (ModState.StrategicActorTargetInvocationCmds[___unit.GUID].active)
+                                        {
+                                            __result = new BehaviorTreeResults(BehaviorNodeState.Failure);
+                                            return false;
+                                        }
+
+                                        var info = new StrategicActorTargetInvocation(battleArmorAbility, closestEnemy,
+                                            true, true);
+                                        ModState.StrategicActorTargetInvocationCmds[___unit.GUID] = info;
+                                        __result = new BehaviorTreeResults(BehaviorNodeState.Failure);
+                                        return false; //was true
+                                    }
+                                    else
+                                    {
+                                        var info = new StrategicActorTargetInvocation(battleArmorAbility, closestEnemy,
+                                            true, true);
+                                        ModState.StrategicActorTargetInvocationCmds.Add(___unit.GUID, info);
+                                        __result = new BehaviorTreeResults(BehaviorNodeState.Failure);
+                                        return false; //was true
+                                    }
+                                }
+
+                                __result = new BehaviorTreeResults(BehaviorNodeState.Failure);
+                                return false;
+                            }
+
+                            //if it isnt mounted, its on the ground and should try to swarm if it can.
+                            if (distance <= maxRange && !(closestEnemy is TrooperSquad) && ___unit.canSwarm())
+                            {
+                                ModInit.modLog?.Trace?.Write(
+                                    $"[CanMoveAndShootWithoutOverheatingNode] Actor {___unit.DisplayName} is on the ground, trying to swarm at {distance} from nearest enemy, maxrange was {maxRange} * 1.25.");
                                 if (ModState.StrategicActorTargetInvocationCmds.ContainsKey(___unit.GUID))
                                 {
                                     if (ModState.StrategicActorTargetInvocationCmds[___unit.GUID].active)
@@ -133,49 +170,26 @@ namespace StrategicOperations.Patches
                                         return false;
                                     }
 
-                                    var info = new StrategicActorTargetInvocation(battleArmorAbility, closestEnemy, true, true);
+                                    var info = new StrategicActorTargetInvocation(battleArmorAbility, closestEnemy,
+                                        true);
                                     ModState.StrategicActorTargetInvocationCmds[___unit.GUID] = info;
                                     __result = new BehaviorTreeResults(BehaviorNodeState.Failure);
                                     return false; //was true
                                 }
                                 else
                                 {
-                                    var info = new StrategicActorTargetInvocation(battleArmorAbility, closestEnemy, true, true);
+                                    var info = new StrategicActorTargetInvocation(battleArmorAbility, closestEnemy,
+                                        true);
                                     ModState.StrategicActorTargetInvocationCmds.Add(___unit.GUID, info);
                                     __result = new BehaviorTreeResults(BehaviorNodeState.Failure);
                                     return false; //was true
                                 }
                             }
-
-                            __result = new BehaviorTreeResults(BehaviorNodeState.Failure);
-                            return false;
                         }
-
-                        //if it isnt mounted, its on the ground and should try to swarm if it can.
-                        if (distance <= maxRange && !(closestEnemy is TrooperSquad) && ___unit.canSwarm())
+                        else
                         {
                             ModInit.modLog?.Trace?.Write(
-                                $"[CanMoveAndShootWithoutOverheatingNode] Actor {___unit.DisplayName} is on the ground, trying to swarm at {distance} from nearest enemy, maxrange was {maxRange} * 1.25.");
-                            if (ModState.StrategicActorTargetInvocationCmds.ContainsKey(___unit.GUID))
-                            {
-                                if (ModState.StrategicActorTargetInvocationCmds[___unit.GUID].active)
-                                {
-                                    __result = new BehaviorTreeResults(BehaviorNodeState.Failure);
-                                    return false;
-                                }
-
-                                var info = new StrategicActorTargetInvocation(battleArmorAbility, closestEnemy, true);
-                                ModState.StrategicActorTargetInvocationCmds[___unit.GUID] = info;
-                                __result = new BehaviorTreeResults(BehaviorNodeState.Failure);
-                                return false; //was true
-                            }
-                            else
-                            {
-                                var info = new StrategicActorTargetInvocation(battleArmorAbility, closestEnemy, true);
-                                ModState.StrategicActorTargetInvocationCmds.Add(___unit.GUID, info);
-                                __result = new BehaviorTreeResults(BehaviorNodeState.Failure);
-                                return false; //was true
-                            }
+                                $"[CanMoveAndShootWithoutOverheatingNode] Some nerd running all LAMS or VTOLs, can't swarm anything; should just use vanilla tree.");
                         }
                     }
                 }
