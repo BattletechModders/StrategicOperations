@@ -1259,8 +1259,8 @@ namespace StrategicOperations.Framework
                 ModInit.modLog?.Info?.Write(
                     $"[Ability.Activate - BattleArmorSwarmID] Cleaning up dummy attacksequence.");
                 ModInit.modLog?.Info?.Write(
-                    $"[Ability.Activate - BattleArmorSwarmID] No hits in HitInfo, plonking unit at target hex.");
-                creatorMech.TeleportActor(targetActor.CurrentPosition);
+                    $"[Ability.Activate - BattleArmorSwarmID] No hits in HitInfo, plonking unit at adjacent hex.");
+                creatorMech.TeleportActor(targetActor.FetchRandomAdjacentHex());
                 creatorMech.ResetPathing(false);
                 creatorMech.Pathing.UpdateCurrentPath(false);
                 if (creatorMech.team.IsLocalPlayer)
