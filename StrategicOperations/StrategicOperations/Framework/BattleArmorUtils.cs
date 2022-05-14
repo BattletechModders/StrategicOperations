@@ -432,6 +432,16 @@ namespace StrategicOperations.Framework
                                     -1, battleArmor, battleArmor, default(WeaponHitInfo), 1);
                             }
                         }
+                        if (BA_Effect.TargetEffectType == Classes.ConfigOptions.BA_TargetEffectType.MOUNTTARGET ||
+                            BA_Effect.TargetEffectType == Classes.ConfigOptions.BA_TargetEffectType.BOTHTARGET)
+                        {
+                            foreach (var effectData in BA_Effect.effects)
+                            {
+                                battleArmor.Combat.EffectManager.CreateEffect(effectData,
+                                    effectData.Description.Id,
+                                    -1, battleArmor, carrier, default(WeaponHitInfo), 1);
+                            }
+                        }
                     }
 
                     if (tracker.IsSquadInternal) return;
@@ -1195,6 +1205,16 @@ namespace StrategicOperations.Framework
                             creatorMech.Combat.EffectManager.CreateEffect(effectData,
                                 effectData.Description.Id,
                                 -1, creatorActor, creatorActor, default(WeaponHitInfo), 1);
+                        }
+                    }
+                    if (BA_Effect.TargetEffectType == Classes.ConfigOptions.BA_TargetEffectType.SWARMTARGET || 
+                        BA_Effect.TargetEffectType == Classes.ConfigOptions.BA_TargetEffectType.BOTHTARGET)
+                    {
+                        foreach (var effectData in BA_Effect.effects)
+                        {
+                            creatorMech.Combat.EffectManager.CreateEffect(effectData,
+                                effectData.Description.Id,
+                                -1, creatorActor, targetActor, default(WeaponHitInfo), 1);
                         }
                     }
                 }

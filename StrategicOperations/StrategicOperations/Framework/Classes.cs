@@ -253,7 +253,10 @@ namespace StrategicOperations.Framework
                 MOUNT_EXT,
                 SWARM,
                 GARRISON,
-                BOTH
+                BOTH,
+                MOUNTTARGET,
+                SWARMTARGET,
+                BOTHTARGET
             }
 
             public class BA_DeswarmAbilityConfig // key will be AbilityDefID
