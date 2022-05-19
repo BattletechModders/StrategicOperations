@@ -663,7 +663,7 @@ namespace StrategicOperations.Patches
                 {
                     if (base.ProcessClickedCombatant(combatant))
                     {
-                        if (SelectedActor is Mech creatorMech && combatant != null &&
+                        if (SelectedActor is Mech creatorMech &&
                             combatant.team.IsEnemy(creatorMech.team))
                         {
                             var chance = creatorMech.Combat.ToHit.GetToHitChance(creatorMech,

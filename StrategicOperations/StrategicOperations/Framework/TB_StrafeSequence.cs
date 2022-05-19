@@ -201,7 +201,7 @@ namespace StrategicOperations.Framework
             this.MaxWeaponRange = 400;
             if (this.Attacker.Weapons.Count != 0)
             {
-                this.MaxWeaponRange = this.Attacker.Weapons.FirstOrDefault().MaxRange;
+                this.MaxWeaponRange = this.Attacker.Weapons.First().MaxRange;
             }
             Vector3 result = this.StartPos - this.Velocity * ModInit.modSettings.strafePreDistanceMult;
             this.HeightOffset = Mathf.Clamp(this.MaxWeaponRange/4, ModInit.modSettings.strafeAltitudeMin,
@@ -243,6 +243,7 @@ namespace StrategicOperations.Framework
                 allCombatants = new List<ICombatant>(allCombatants.Where(x=>x.team.IsEnemy(this.StrafingTeam)));
             }
             allCombatants.RemoveAll(x => x.GUID == this.Attacker.GUID || !x.IsOperational);
+            var cancelChanceFromAA = 0f;
             for (int i = 0; i < allCombatants.Count; i++)
             {
                 if (allCombatants[i] is AbstractActor actor)
@@ -284,6 +285,26 @@ namespace StrategicOperations.Framework
                     ModInit.modLog?.Info?.Write($"Roll {roll} >= chance {chance}, skipping.");
                     continue;
                 }
+
+                if (allCombatants[i].team.IsEnemy(this.StrafingTeam))
+                {
+                    if (this.StrafingTeam.IsLocalPlayer)
+                    {
+                        cancelChanceFromAA = ModState.cancelChanceForPlayerStrafe;
+                    }
+                    else if (cancelChanceFromAA == 0f)
+                    {
+                        cancelChanceFromAA = allCombatants[i].GetAvoidStrafeChanceForTeam();
+                    }
+
+                    if (roll <= cancelChanceFromAA)
+                    {
+                        ModInit.modLog?.Info?.Write(
+                            $"Roll {roll} <= cancelChanceFromAA {cancelChanceFromAA}, skipping.");
+                        continue;
+                    }
+                }
+
                 if (this.IsTarget(allCombatants[i]))
                 {
                     this.CurrentTargets.Add(allCombatants[i]);
@@ -478,7 +499,7 @@ namespace StrategicOperations.Framework
                     var pos2 = this.Attacker.CurrentPosition + this.Velocity * Time.deltaTime;
                     pos2.y = this.Combat.MapMetaData.GetLerpedHeightAt(pos2, false) + this.HeightOffset;
                     this.SetPosition(pos2, this.Attacker.CurrentRotation);
-                    if (StrafingTeam.IsLocalPlayer)
+                    if (true)// switched this? should give AI visibility too i guess (StrafingTeam.IsLocalPlayer)
                     {
                         foreach (var enemy in StrafingTeam.GetAllEnemies())
                         {

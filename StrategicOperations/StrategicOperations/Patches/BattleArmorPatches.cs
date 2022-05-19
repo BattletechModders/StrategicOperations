@@ -823,6 +823,16 @@ namespace StrategicOperations.Patches
         {
             public static void Prefix(AbstractActor __instance, string attackerGUID)
             {
+                if (__instance.IsSwarmingUnit())
+                {
+                    var carrier = __instance.Combat.FindActorByGUID(ModState.PositionLockSwarm[__instance.GUID]);
+                    __instance.DismountBA(carrier, Vector3.zero, false, true);
+                }
+                if (__instance.IsMountedUnit())
+                {
+                    var carrier = __instance.Combat.FindActorByGUID(ModState.PositionLockMount[__instance.GUID]);
+                    __instance.DismountBA(carrier, Vector3.zero, true, true);
+                }
                 var dismount = false || (__instance.DeathMethod == DeathMethod.PilotEjection ||
                                          __instance.DeathMethod == DeathMethod.PilotEjectionActorDisabled ||
                                          __instance.DeathMethod == DeathMethod.PilotEjectionNoMessage ||
@@ -872,13 +882,13 @@ namespace StrategicOperations.Patches
                                 var hitinfo = new WeaponHitInfo(-1, -1, 0, 0, __instance.GUID, squad.GUID, 1, new float[1], new float[1], new float[1], new bool[1], new int[trooperLocs[i]], new int[1], new AttackImpactQuality[1], new AttackDirection[1], new Vector3[1], new string[1], new int[trooperLocs[i]]);
                                 squad.NukeStructureLocation(hitinfo, trooperLocs[i], cLoc, Vector3.up, DamageType.ComponentExplosion);
                             }
-                            actor.DismountBA(__instance, Vector3.zero, false, true);
+                            actor.DismountBA(__instance, Vector3.zero, true, true);
                             actor.FlagForDeath("Killed When Mount Died", DeathMethod.VitalComponentDestroyed, DamageType.Melee, 0, -1, __instance.GUID, false);
                             actor.HandleDeath(__instance.GUID);
                             continue;
                         }
                         ModInit.modLog?.Trace?.Write($"[AbstractActor.HandleDeath] Mount {__instance.DisplayName} destroyed, calling dismount.");
-                        actor.DismountBA(__instance, Vector3.zero, false, true);
+                        actor.DismountBA(__instance, Vector3.zero, true, true);
                     }
                 }
 
