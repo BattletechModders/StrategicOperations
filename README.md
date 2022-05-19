@@ -734,9 +734,9 @@ Similarly to Spawns, the actual unit doing the strafing depends on the following
 
 5) If the "beacon" item contains a component tag that starts with "StrafeWaves_", the remainder of that tag should be the number (integer) of "waves" or copies of the unit that will do the strafing. E.g. StrafeWaves_3 would strafe with 3 of whatever the unit is.
 
-**New in v3.0.1.5: AA factor**
+**Updated in v3.0.3.3: AA factor**
 
-Now units can be given an "AA Factor" which has a chance to cancel a strafe (prevents the strafe from occurring, but does not prevent you or the AI from burning a turn attempting to do so. When a strafe is attempted, the cumulative AA Factor for all units on the target team and any of their allies is totalled up, and then divided by the total number of units on the target team and their allies. This value is the chance for the strafe to be cancelled. For example, lets say you are facing 3 units. One has anti air factor of 2.0, one has anti-air factor of 0.5, and the third has anti-air factors of 0. The final chance of the strafe being cancelled would be 83%  (`(2.0 + 0.5 + 0) / 3`).
+Now units can be given an "AA Factor". When a strafe is attempted, the cumulative AA Factor for all units on the target team and any of their allies is totalled up, and then divided by the total number of units on the target team and their allies. This value is the chance for any given unit in the target area to NOT be targeted. For example, lets say you are facing 3 units. One has anti air factor of 2.0, one has anti-air factor of 0.5, and the third has anti-air factors of 0. The final AA Factor would 83%  (`(2.0 + 0.5 + 0) / 3`), meaning that on average only 17% of the units in the target area would actually be targeted.
 	
 For AI, if the chance to be cancelled is greater than `strafeAAFailThreshold`, they will not attempt it. For the player, the chance of **success** (not being cancelled) is displayed as part of the "Confirm" button before the strafe is actually confirmed. 
 	
