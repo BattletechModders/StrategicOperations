@@ -409,27 +409,21 @@ namespace StrategicOperations.Framework
                         {
                             foreach (var effectData in BA_Effect.effects)
                             {
-                                battleArmor.Combat.EffectManager.CreateEffect(effectData,
-                                    effectData.Description.Id,
-                                    -1, battleArmor, battleArmor, default(WeaponHitInfo), 1);
+                                battleArmor.CreateEffect(effectData, null, effectData.Description.Id, -1, battleArmor);
                             }
                         }
                         if (BA_Effect.TargetEffectType == Classes.ConfigOptions.BA_TargetEffectType.MOUNT_EXT && !tracker.IsSquadInternal)
                         {
                             foreach (var effectData in BA_Effect.effects)
                             {
-                                battleArmor.Combat.EffectManager.CreateEffect(effectData,
-                                    effectData.Description.Id,
-                                    -1, battleArmor, battleArmor, default(WeaponHitInfo), 1);
+                                battleArmor.CreateEffect(effectData, null, effectData.Description.Id, -1, battleArmor);
                             }
                         }
                         if (BA_Effect.TargetEffectType == Classes.ConfigOptions.BA_TargetEffectType.MOUNT_INT && tracker.IsSquadInternal)
                         {
                             foreach (var effectData in BA_Effect.effects)
                             {
-                                battleArmor.Combat.EffectManager.CreateEffect(effectData,
-                                    effectData.Description.Id,
-                                    -1, battleArmor, battleArmor, default(WeaponHitInfo), 1);
+                                battleArmor.CreateEffect(effectData, null, effectData.Description.Id, -1, battleArmor);
                             }
                         }
                         if (BA_Effect.TargetEffectType == Classes.ConfigOptions.BA_TargetEffectType.MOUNTTARGET ||
@@ -437,9 +431,7 @@ namespace StrategicOperations.Framework
                         {
                             foreach (var effectData in BA_Effect.effects)
                             {
-                                battleArmor.Combat.EffectManager.CreateEffect(effectData,
-                                    effectData.Description.Id,
-                                    -1, battleArmor, carrier, default(WeaponHitInfo), 1);
+                                carrier.CreateEffect(effectData, null, effectData.Description.Id, -1, battleArmor);
                             }
                         }
                     }
@@ -1108,18 +1100,18 @@ namespace StrategicOperations.Framework
                 {
                     foreach (var effectData in BA_Effect.effects)
                     {
-                        creator.Combat.EffectManager.CreateEffect(effectData,
+                        creator.CreateEffect(effectData, null,
                             effectData.Description.Id,
-                            -1, creatorActor, creatorActor, default(WeaponHitInfo), 1);
+                            -1, creatorActor);
                     }
                 }
                 if (BA_Effect.TargetEffectType == Classes.ConfigOptions.BA_TargetEffectType.GARRISON)
                 {
                     foreach (var effectData in BA_Effect.effects)
                     {
-                        creator.Combat.EffectManager.CreateEffect(effectData,
+                        creator.CreateEffect(effectData, null,
                             effectData.Description.Id,
-                            -1, creatorActor, creatorActor, default(WeaponHitInfo), 1);
+                            -1, creatorActor);
                     }
                 }
             }
@@ -1202,9 +1194,7 @@ namespace StrategicOperations.Framework
                     {
                         foreach (var effectData in BA_Effect.effects)
                         {
-                            creatorMech.Combat.EffectManager.CreateEffect(effectData,
-                                effectData.Description.Id,
-                                -1, creatorActor, creatorActor, default(WeaponHitInfo), 1);
+                            creatorActor.CreateEffect(effectData, null, effectData.Description.Id, -1, creatorActor);
                         }
                     }
                     if (BA_Effect.TargetEffectType == Classes.ConfigOptions.BA_TargetEffectType.SWARMTARGET || 
@@ -1212,9 +1202,7 @@ namespace StrategicOperations.Framework
                     {
                         foreach (var effectData in BA_Effect.effects)
                         {
-                            creatorMech.Combat.EffectManager.CreateEffect(effectData,
-                                effectData.Description.Id,
-                                -1, creatorActor, targetActor, default(WeaponHitInfo), 1);
+                            targetActor.CreateEffect(effectData, null, effectData.Description.Id, -1, creatorActor);
                         }
                     }
                 }

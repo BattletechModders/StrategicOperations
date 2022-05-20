@@ -780,38 +780,42 @@ namespace StrategicOperations.Patches
                 var garrisons = new List<KeyValuePair<string, Classes.BA_GarrisonInfo>>(ModState.PositionLockGarrison.Where(x => x.Value.BuildingGUID == __instance.GUID).ToList());
                 foreach (var garrison in garrisons)
                 {
-                    ModInit.modLog?.Trace?.Write($"[Building.FlagForDeath] Building {__instance.DisplayName} {__instance.GUID} dieded, has units mounted.");
+                    ModInit.modLog?.Trace?.Write(
+                        $"[Building.FlagForDeath] Building {__instance.DisplayName} {__instance.GUID} dieded, has units mounted.");
 
                     var actor = __instance.Combat.FindActorByGUID(garrison.Key);
-                    var squad = actor as TrooperSquad;
-
-                    foreach (var garrisonEffect in ModState.OnGarrisonCollapseEffects)
+                    if (actor is TrooperSquad squad)
                     {
-                        if (garrisonEffect.TargetEffectType == Classes.ConfigOptions.BA_TargetEffectType.GARRISON)
+                        foreach (var garrisonEffect in ModState.OnGarrisonCollapseEffects)
                         {
-                            foreach (var effectData in garrisonEffect.effects)
+                            if (garrisonEffect.TargetEffectType == Classes.ConfigOptions.BA_TargetEffectType.GARRISON)
                             {
-                                squad.Combat.EffectManager.CreateEffect(effectData,
-                                    effectData.Description.Id,
-                                    -1, actor, actor, default(WeaponHitInfo), 1);
+                                foreach (var effectData in garrisonEffect.effects)
+                                {
+                                    //squad.Combat.EffectManager.CreateEffect(effectData,effectData.Description.Id,-1, actor, actor, default(WeaponHitInfo), 1);
+                                    squad.CreateEffect(effectData, null,
+                                        effectData.Description.Id,
+                                        -1, squad);
+                                }
                             }
                         }
-                    }
-                    squad.DismountGarrison(__instance, Vector3.zero, true);
+
+                        squad.DismountGarrison(__instance, Vector3.zero, true);
 
 
-                    var dmg = squad.StatCollection.GetValue<float>("DFASelfDamage");
-                    var trooperLocs = squad.GetPossibleHitLocations(squad);
-                    for (int i = 0; i < trooperLocs.Count; i++)
-                    {
-                        var hitinfo = new WeaponHitInfo(-1, -1, 0, 0, squad.GUID,
-                            squad.GUID, 1, new float[1], new float[1], new float[1],
-                            new bool[1], new int[trooperLocs[i]], new int[1], new AttackImpactQuality[1],
-                            new AttackDirection[1], new Vector3[1], new string[1], new int[trooperLocs[i]]);
+                        var dmg = squad.StatCollection.GetValue<float>("DFASelfDamage");
+                        var trooperLocs = squad.GetPossibleHitLocations(squad);
+                        for (int i = 0; i < trooperLocs.Count; i++)
+                        {
+                            var hitinfo = new WeaponHitInfo(-1, -1, 0, 0, squad.GUID,
+                                squad.GUID, 1, new float[1], new float[1], new float[1],
+                                new bool[1], new int[trooperLocs[i]], new int[1], new AttackImpactQuality[1],
+                                new AttackDirection[1], new Vector3[1], new string[1], new int[trooperLocs[i]]);
 
-                        squad.TakeWeaponDamage(hitinfo, trooperLocs[i],
-                            squad.MeleeWeapon, dmg,
-                            0, 0, DamageType.DFASelf);
+                            squad.TakeWeaponDamage(hitinfo, trooperLocs[i],
+                                squad.MeleeWeapon, dmg,
+                                0, 0, DamageType.DFASelf);
+                        }
                     }
                 }
             }

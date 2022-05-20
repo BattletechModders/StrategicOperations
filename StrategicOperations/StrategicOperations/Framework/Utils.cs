@@ -985,7 +985,10 @@ namespace StrategicOperations.Framework
                     }
                     else
                     {
-                        creator.Combat.EffectManager.CreateEffect(ability.Def.EffectData[i], ability.Def.EffectData[i].Description.Id, 0, creator, creator, default(WeaponHitInfo), 0, false);
+                        //creator.Combat.EffectManager.CreateEffect(ability.Def.EffectData[i], ability.Def.EffectData[i].Description.Id, 0, creator, creator, default(WeaponHitInfo), 0, false);
+                        creator.CreateEffect(ability.Def.EffectData[i], ability,
+                            ability.Def.EffectData[i].Description.Id,
+                            -1, creator);
                     }
                 }
             }

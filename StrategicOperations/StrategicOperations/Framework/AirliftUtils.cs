@@ -184,18 +184,14 @@ namespace StrategicOperations.Framework
                     {
                         foreach (var effectData in airliftEffect.effects)
                         {
-                            targetMech.Combat.EffectManager.CreateEffect(effectData,
-                                effectData.Description.Id,
-                                -1, targetUnit, targetUnit, default(WeaponHitInfo), 1);
+                            targetUnit.CreateEffect(effectData, null, effectData.Description.Id, -1, targetUnit);
                         }
                     }
                     else if (!airliftEffect.FriendlyAirlift && !isFriendly)
                     {
                         foreach (var effectData in airliftEffect.effects)
                         {
-                            targetMech.Combat.EffectManager.CreateEffect(effectData,
-                                effectData.Description.Id,
-                                -1, targetUnit, targetUnit, default(WeaponHitInfo), 1);
+                            targetUnit.CreateEffect(effectData, null, effectData.Description.Id, -1, targetUnit);
                         }
                     }
                 }
@@ -280,18 +276,14 @@ namespace StrategicOperations.Framework
                     {
                         foreach (var effectData in airliftEffect.effects)
                         {
-                            targetTurret.Combat.EffectManager.CreateEffect(effectData,
-                                effectData.Description.Id,
-                                -1, targetUnit, targetUnit, default(WeaponHitInfo), 1);
+                            targetUnit.CreateEffect(effectData, null, effectData.Description.Id, -1, targetUnit);
                         }
                     }
                     else if (!airliftEffect.FriendlyAirlift && !isFriendly)
                     {
                         foreach (var effectData in airliftEffect.effects)
                         {
-                            targetTurret.Combat.EffectManager.CreateEffect(effectData,
-                                effectData.Description.Id,
-                                -1, targetUnit, targetUnit, default(WeaponHitInfo), 1);
+                            targetUnit.CreateEffect(effectData, null, effectData.Description.Id, -1, targetUnit);
                         }
                     }
                 }
