@@ -722,40 +722,7 @@ namespace StrategicOperations.Patches
 
                 if (specialRules == AbilityDef.SpecialRules.Strafe)
                 {
-                    if (false)
-                    {
-                        var cancelChance = 0f;
-                        if (!creator.team.IsLocalPlayer && ModState.startUnitFromInvocation != null)
-                        {
-                            cancelChance = ModState.startUnitFromInvocation.GetAvoidStrafeChanceForTeam();
-                            ModInit.modLog?.Trace?.Write(
-                                $"[Ability.Activate - 2pts] {creator.DisplayName}: ActivateStrafe processing cancelChance {cancelChance} from AI invocation, using target unit {ModState.startUnitFromInvocation.DisplayName} as base.");
-                            ModState.startUnitFromInvocation = null;
-                        }
-                        else if (creator.team.IsLocalPlayer)
-                        {
-                            cancelChance = ModState.cancelChanceForPlayerStrafe;
-                            ModInit.modLog?.Trace?.Write(
-                                $"[Ability.Activate - 2pts] {creator.DisplayName}: ActivateStrafe processing cancelChance {cancelChance} from player invocation.");
-                            ModState.cancelChanceForPlayerStrafe = 0f;
-                        }
-
-                        var roll = (float) ModInit.Random.NextDouble();
-                        if (roll <= cancelChance)
-                        {
-                            ModInit.modLog?.Trace?.Write(
-                                $"[Ability.Activate - 2pts] roll {roll} <= cancelChance {cancelChance}, nostrafe - return true and let vanilla sort it out.");
-
-                            var txt = new Text("AA Interference: Strafing Run CANCELLED!");
-                            creator.Combat.MessageCenter.PublishMessage(new AddSequenceToStackMessage(
-                                new ShowActorInfoSequence(creator, txt, FloatieMessage.MessageNature.Buff,
-                                    false)));
-
-                            return true;
-                        }
-                    }
-
-                    Utils._activateStrafeMethod.Invoke(__instance,
+                   Utils._activateStrafeMethod.Invoke(__instance,
                         new object[] {creator.team, positionA, positionB, __instance.Def.FloatParam1});
                     ModInit.modLog?.Info?.Write($"[Ability.Activate - 2pts] {creator.Description?.Name}: ActivateStrafe invoked from Ability.Activate. Distance was {Vector3.Distance(positionA, positionB)}");
                     __instance.Combat.MessageCenter.PublishMessage(new AbilityActivatedMessage(creator.GUID,

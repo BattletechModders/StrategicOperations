@@ -233,18 +233,19 @@ namespace StrategicOperations.Patches
                         return true;
                     }
 
-//                    var skipStrafeChance = startUnit.GetAvoidStrafeChanceForTeam(); //should i save the thing?
-//                    ModState.startUnitFromInvocation = startUnit;
-//                    if (skipStrafeChance < ModInit.modSettings.strafeAAFailThreshold)
-//                    {
-//                        if (strafeVal >= ModInit.modSettings.AI_InvokeStrafeThreshold)
-//                        {
-//                            var info = new AI_CmdInvocation(abilityStrafe, vector1Strafe, vector2Strafe, true);
-//                            ModState.AiCmds.Add(___unit.GUID, info);
-//                            __result = new BehaviorTreeResults(BehaviorNodeState.Failure);
-//                            return false;
-//                        }
-//                    }
+                    var skipStrafeChance = startUnit.GetAvoidStrafeChanceForTeam(); //should i save the thing?
+                    //ModState.startUnitFromInvocation = startUnit;
+                    ModInit.modLog?.Trace?.Write($"final AA value for {startUnit.team.DisplayName}: {skipStrafeChance}");
+                    if (skipStrafeChance < ModInit.modSettings.strafeAAFailThreshold)
+                    {
+                        if (strafeVal >= ModInit.modSettings.AI_InvokeStrafeThreshold)
+                        {
+                            var info = new AI_CmdInvocation(abilityStrafe, vector1Strafe, vector2Strafe, true);
+                            ModState.AiCmds.Add(___unit.GUID, info);
+                            __result = new BehaviorTreeResults(BehaviorNodeState.Failure);
+                            return false;
+                        }
+                    }
 
                     var spawnVal = AI_Utils.EvaluateSpawn(___unit, out var abilitySpawn, out var vector1Spawn,
                         out var vector2Spawn);
@@ -272,7 +273,8 @@ namespace StrategicOperations.Patches
                         return true;
                     }
                     var skipStrafeChance = startUnit.GetAvoidStrafeChanceForTeam();
-//                    ModState.startUnitFromInvocation = startUnit;
+                    ModInit.modLog?.Trace?.Write($"final AA value for {startUnit.team.DisplayName}: {skipStrafeChance}");
+                    //                    ModState.startUnitFromInvocation = startUnit;
                     if (skipStrafeChance < ModInit.modSettings.strafeAAFailThreshold)
                     {
                         if (strafeVal > ModInit.modSettings.AI_InvokeStrafeThreshold)
@@ -287,7 +289,7 @@ namespace StrategicOperations.Patches
                     var spawnVal = AI_Utils.EvaluateSpawn(___unit, out var abilitySpawn, out var vector1Spawn,
                         out var vector2Spawn);
 
-                    if (spawnVal > ModInit.modSettings.AI_InvokeSpawnThreshold)
+                    if (spawnVal >= ModInit.modSettings.AI_InvokeSpawnThreshold)
                     {
                         var info = new AI_CmdInvocation(abilitySpawn, vector1Spawn, vector2Spawn, true);
                         ModState.AiCmds[___unit.GUID] = info;

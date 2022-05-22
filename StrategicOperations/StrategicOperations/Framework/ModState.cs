@@ -11,7 +11,7 @@ namespace StrategicOperations.Framework
 {
     public static class ModState
     {
-        public static AbstractActor startUnitFromInvocation = null;
+        //public static AbstractActor startUnitFromInvocation = null;
         public static float cancelChanceForPlayerStrafe = 0f;
         public static List<string> TeamsWithResupply = new List<string>();
         public static AbstractActor CurrentGarrisonSquadForLOS = null;
