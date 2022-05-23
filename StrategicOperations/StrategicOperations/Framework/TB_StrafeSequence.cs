@@ -303,6 +303,7 @@ namespace StrategicOperations.Framework
                             $"Roll {roll} <= cancelChanceFromAA {cancelChanceFromAA}, skipping.");
                         continue;
                     }
+                    ModInit.modLog?.Info?.Write($"Roll {roll} > cancelChanceFromAA {cancelChanceFromAA}, not skipping.");
                 }
 
                 if (this.IsTarget(allCombatants[i]))
