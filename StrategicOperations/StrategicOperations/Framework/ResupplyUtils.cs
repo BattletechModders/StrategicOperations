@@ -153,7 +153,7 @@ namespace StrategicOperations.Framework
                                         weapon.DecInternalAmmo(-1,-missingAmmoForMagicBox);
                                         magicBox.modifyAmmoCount(-totalMagicShotsConsumed);
                                         ModInit.modLog?.Trace?.Write(
-                                            $"[ProcessResupplyUnit - Internal Ammo!] - Full Resupply complete for weapon {weapon.Description.UIName}. Ammobox now has {weapon.InternalAmmo}/{weapon.weaponDef.StartingAmmoCapacity} ammo, SPAMMY box has {magicBox.CurrentAmmo}/{magicBox.AmmoCapacity} remaining. \n\nMathDumps: Replacement of ammo needs to use {sourceTonnageNeeded} tons of SPAMMY. SPAMMY has {magicTonnageAvailable} tons available at {magicTonnagePerShot} per shot for total SPAMMY shots needed of {totalMagicShotsConsumed}");
+                                            $"[ProcessResupplyUnit - Internal Ammo!] - Full Resupply complete for weapon {weapon.Description.UIName}. Ammobox now has {weapon.InternalAmmo}/{weapon.weaponDef.StartingAmmoCapacity} {startingCapacity} ammo, SPAMMY box has {magicBox.CurrentAmmo}/{magicBox.AmmoCapacity} remaining. \n\nMathDumps: Replacement of ammo needs to use {sourceTonnageNeeded} tons of SPAMMY. SPAMMY has {magicTonnageAvailable} tons available at {magicTonnagePerShot} per shot for total SPAMMY shots needed of {totalMagicShotsConsumed}");
                                         break;
                                     }
                                     else
@@ -162,7 +162,7 @@ namespace StrategicOperations.Framework
                                         weapon.DecInternalAmmo(-1, -replacementSourceShotsAvailable);
                                         magicBox.zeroAmmoCount();
                                         ModInit.modLog?.Trace?.Write(
-                                            $"[ProcessResupplyUnit - Internal Ammo!] - Partial Resupply complete for weapon {weapon.Description.UIName}. Ammobox now has {weapon.InternalAmmo}/{weapon.weaponDef.StartingAmmoCapacity} ammo, SPAMMY box has {magicBox.CurrentAmmo}/{magicBox.AmmoCapacity} remaining. \n\nMathDumps: Replacement of ammo needs to use {sourceTonnageNeeded} tons of SPAMMY. SPAMMY has {magicTonnageAvailable} tons available at {magicTonnagePerShot} per shot for total SPAMMY shots needed of {totalMagicShotsConsumed}");
+                                            $"[ProcessResupplyUnit - Internal Ammo!] - Partial Resupply complete for weapon {weapon.Description.UIName}. Ammobox now has {weapon.InternalAmmo}/{weapon.weaponDef.StartingAmmoCapacity} {startingCapacity} ammo, SPAMMY box has {magicBox.CurrentAmmo}/{magicBox.AmmoCapacity} remaining. \n\nMathDumps: Replacement of ammo needs to use {sourceTonnageNeeded} tons of SPAMMY. SPAMMY has {magicTonnageAvailable} tons available at {magicTonnagePerShot} per shot for total SPAMMY shots needed of {totalMagicShotsConsumed}");
                                     }
                                 }
                             }
