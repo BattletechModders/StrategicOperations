@@ -453,7 +453,9 @@ settings in the mod.json:
 			"omni_resupply": 0.1
 		},
 	"ShowAmmoInVehicleTooltips": true,
-	"EnforceIFFForAmmoTooltips": false
+	"EnforceIFFForAmmoTooltips": false,
+	"EnableQuickReserve": true,
+	"SBI_HesitationMultiplier": 0
 ```
 
 `enableLogging` - bool, enable logging
@@ -507,7 +509,8 @@ settings in the mod.json:
 <s>"AI_FactionBeacons"`: essentially functions the same as `deploymentBeaconEquipment`, but restricts factions listed to the corresponding equipment. if a faction is not listed in here, it will use only the "default" unit listed in a given command ability.</s> **deprecated in 2.0.2.8**
 
 `commandAbilities_AI` - **Format Change in v2.0.2.8** - Changed to similar format as `BattleArmorFactionAssociations`. Can be used to give AI strafe and spawn (Beacon) abilities. Obviously the StrafeWaves field only applies to strafes, and will do nothing for beacons. MaxUsersAddedPerContract limit is based on only *this* ability, and is separate *per faction*. I.e, in a 3-way contract with you, ClanGhostBear and ClanWolf, both Ghost Bear and Wolf could get 3 units each with AbilityDefCMD_Strafe_AI.
-	
+
+
 ```
 
 "commandAbilities_AI": [
@@ -664,6 +667,8 @@ Using the following settings, ClanGhostBear and ClanWolf have baseline 30% chanc
 `EnforceIFFForAmmoTooltips` - if true, above ammo counter will only be shown for friendly vehicles
 
 `EnableQuickReserve` - if true, `Shift-minus` (Shift-click the "Done" button) will reserve the current unit all the way to the last phase of the round.
+
+`SBI_HesitationMultiplier` - float, if EnableQuickReserve is enabled, this value will integrate with SkillBasedInitiative (if found). Using the "quick reserve" function will result in a final "hesitation" value calculated by: `final hesitation = SBI_HesitationMultiplier x phasesMoved + SBI_MOD_HESITATION (from the unit, since i saw its a thing in SBI) + currentHesitation`
 	
 ## Spawns
 
