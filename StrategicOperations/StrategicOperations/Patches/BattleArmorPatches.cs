@@ -18,6 +18,7 @@ using DG.Tweening;
 using Harmony;
 using HBS.Math;
 using HBS.Pooling;
+using IRTweaks.Modules.Combat;
 using Localize;
 using StrategicOperations.Framework;
 using SVGImporter;
@@ -691,6 +692,12 @@ namespace StrategicOperations.Patches
                 if (!actor.IsSwarmingUnit())
                 {
                     ModInit.modLog?.Debug?.Write($"[CombatHUDButtonBase.OnClick] Actor {actor.DisplayName} is not swarming, ending turn like normal.");
+                    return true;
+                }
+
+                if (actor.GetAbilityUsedFiring())
+                {
+                    ModInit.modLog?.Info?.Write($"[CombatHUDButtonBase.OnClick] Actor {actor.DisplayName} has used an ability that consumed firing, not generating swarm.");
                     return true;
                 }
                 var target = actor.Combat.FindActorByGUID(ModState.PositionLockSwarm[actor.GUID]);

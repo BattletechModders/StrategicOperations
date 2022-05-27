@@ -68,6 +68,9 @@
     <Reference Include="IRBTModUtils">
       <HintPath>C:\Program Files (x86)\Steam\steamapps\common\BATTLETECH\Mods\IRBTModUtils\IRBTModUtils.dll</HintPath>
     </Reference>
+    <Reference Include="IRTweaks">
+      <HintPath>C:\Program Files (x86)\Steam\steamapps\common\BATTLETECH\Mods\IRTweaks\IRTweaks.dll</HintPath>
+    </Reference>
     <Reference Include="Newtonsoft.Json">
       <HintPath>C:\Program Files (x86)\Steam\steamapps\common\BATTLETECH\BattleTech_Data\Managed\Newtonsoft.Json.dll</HintPath>
     </Reference>
@@ -122,4 +125,7 @@
   </ItemGroup>
   <ItemGroup />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
+  <Target Name="AfterBuild">
+    <Copy SourceFiles="$(TargetPath)" DestinationFolder="$(BattleTechGameDir)\Mods\StrategicOperations" OverwriteReadOnlyFiles="true" SkipUnchangedFiles="false" />
+  </Target>
 </Project>

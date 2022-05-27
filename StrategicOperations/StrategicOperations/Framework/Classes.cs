@@ -8,6 +8,7 @@ using CustomComponents;
 using CustomUnits;
 using HBS.Collections;
 using IRBTModUtils.CustomInfluenceMap;
+using IRTweaks.Modules.Combat;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using UnityEngine;
@@ -435,6 +436,11 @@ namespace StrategicOperations.Framework
 
                             if (ModInit.modSettings.AttackOnSwarmSuccess && squad2.IsSwarmingUnit())
                             {
+                                if (squad2.GetAbilityUsedFiring())
+                                {
+                                    ModInit.modLog?.Info?.Write($"[StrategicMovementSequence] Actor {squad2.DisplayName} has used an ability that consumed firing, not generating swarm.");
+                                    return;
+                                }
                                 if (!squad2.team.IsLocalPlayer)
                                 {
                                     foreach (var weapon in squad2.Weapons)

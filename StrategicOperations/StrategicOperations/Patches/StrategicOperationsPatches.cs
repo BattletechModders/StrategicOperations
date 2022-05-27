@@ -11,6 +11,7 @@ using CustomUnits;
 using Harmony;
 using HBS;
 using HBS.Collections;
+using IRTweaks.Modules.Combat;
 using Localize;
 using StrategicOperations.Framework;
 using UnityEngine;
@@ -2158,6 +2159,11 @@ namespace StrategicOperations.Patches
                          .ContractTypeValue.Name)))
                 {
                     button.DisableButton();
+                }
+
+                if (actor.GetAbilityUsedFiring())
+                {
+                    if (ability.Def.ActivationTime == AbilityDef.ActivationTiming.ConsumedByFiring) button.DisableButton();
                 }
             }
         }

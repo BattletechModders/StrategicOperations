@@ -6,8 +6,10 @@ using System.Runtime.Remoting.Messaging;
 using BattleTech;
 using BattleTech.DataObjects;
 using BattleTech.UI;
+using CustAmmoCategories;
 using CustomUnits;
 using Harmony;
+using IRTweaks.Modules.Combat;
 using StrategicOperations.Framework;
 using UnityEngine;
 using static StrategicOperations.Framework.Classes;
@@ -362,9 +364,19 @@ namespace StrategicOperations.Patches
 
                     ModInit.modLog?.Info?.Write(
                         $"[AITeam.makeInvocationFromOrders] Actor {unit.DisplayName} has active swarm attack on {target.DisplayName}");
-                    foreach (var weapon in unit.Weapons)
+                    if (unit.GetAbilityUsedFiring())
                     {
-                        weapon.EnableWeapon();
+                        foreach (var weapon in unit.Weapons)
+                        {
+                            weapon.DisableWeapon();
+                        }
+                    }
+                    else
+                    {
+                        foreach (var weapon in unit.Weapons)
+                        {
+                            weapon.EnableWeapon();
+                        }
                     }
 
                     var weps = unit.Weapons.Where(x => x.IsEnabled && x.HasAmmo).ToList();
