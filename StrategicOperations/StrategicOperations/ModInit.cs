@@ -150,5 +150,6 @@ namespace StrategicOperations
         public bool EnforceIFFForAmmoTooltips = false;
         public bool ShowAmmoInVehicleTooltips = false;
         public bool EnableQuickReserve = false;
+        public float SBI_HesitationMultiplier = 0f;
     }
 }

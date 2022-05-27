@@ -29,7 +29,25 @@ namespace StrategicOperations.Framework
                 actor.Initiative = actor.Combat.TurnDirector.LastPhase;
                 actor.Combat.MessageCenter.PublishMessage(new ActorPhaseInfoChanged(actor.GUID));
             }
+            actor.ProcessHesitationSBI();
         }
+
+        public static void ProcessHesitationSBI(this AbstractActor actor)
+        {
+            if (actor.StatCollection.ContainsStatistic("SBI_STATE_HESITATION"))
+            {
+                var currentHesitation = actor.StatCollection.GetValue<int>("SBI_STATE_HESITATION");
+                var actorHesitationPhaseMod = actor.StatCollection.GetValue<int>("SBI_MOD_HESITATION") * -1; // invert from SBI
+                var phasesMoved = Math.Abs(actor.Combat.TurnDirector.CurrentPhase - actor.Combat.TurnDirector.LastPhase);
+                var hesitationPenalty = (ModInit.modSettings.SBI_HesitationMultiplier * phasesMoved) + actorHesitationPhaseMod;
+                var roundedPenalty = Mathf.RoundToInt(hesitationPenalty);
+                var finalHesitation = currentHesitation + roundedPenalty;
+                actor.StatCollection.ModifyStat<int>(actor.GUID, -1, "SBI_STATE_HESITATION", StatCollection.StatOperation.Set, finalHesitation);
+                ModInit.modLog?.Info?.Write(
+                    $"[ProcessHesitationSBI] Used quick-reserve with SBI. Final hesitation set to {finalHesitation} from: Multiplier setting {ModInit.modSettings.SBI_HesitationMultiplier} x PhasesMoved {phasesMoved} + Actor Hesitation Mod {actorHesitationPhaseMod} + Current hesitation {currentHesitation} (rounded)");
+            }
+        }
+
        public static AbstractActor FindMeAnOpforUnit(this AbstractActor actor)
         {
             var opforTeam = actor.Combat.Teams.FirstOrDefault(x => x.GUID == "be77cadd-e245-4240-a93e-b99cc98902a5");

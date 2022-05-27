@@ -539,7 +539,7 @@ namespace StrategicOperations.Patches
                             var unit = unitsCarried[index];
                             var IFF = "ENEMY";
                             if (unit.team.IsFriendly(SelectedActor.team)) IFF = "FRIENDLY";
-                            unitsCarriedDesc += $"{index + 1}: {IFF} {unit.DisplayName}";
+                            unitsCarriedDesc += $"{index + 1}: {IFF} {unit.DisplayName}\n\n";
                         }
 
                         var popup = GenericPopupBuilder
@@ -567,7 +567,7 @@ namespace StrategicOperations.Patches
                                 }
                             case 2:
                                 {
-                                    var unit = unitsCarried[1];
+                                    var unit = unitsCarried[0];
                                     var unit1 = unit;
                                     popup.AddButton("1.", (Action)(() =>
                                     {
@@ -575,7 +575,7 @@ namespace StrategicOperations.Patches
                                         newUnitSelection = unit1;
                                     }));
 
-                                    unit = unitsCarried[0];
+                                    unit = unitsCarried[1];
                                     popup.AddButton("2.", (Action)(() =>
                                     {
                                         base.ProcessClickedCombatant(unit);
@@ -583,39 +583,74 @@ namespace StrategicOperations.Patches
                                     }));
                                     goto RenderNow;
                                 }
+                            case 3:
+                            {
+                                {
+                                    var unit = unitsCarried[0];
+                                    var unit1 = unit;
+                                    popup.AddButton("1.", (Action)(() =>
+                                    {
+                                        base.ProcessClickedCombatant(unit1);
+                                        newUnitSelection = unit1;
+                                    }));
+
+                                    unit = unitsCarried[2];
+                                    var unit2 = unit;
+                                    popup.AddButton("3.", (Action)(() =>
+                                    {
+                                        base.ProcessClickedCombatant(unit2);
+                                        newUnitSelection = unit2;
+                                    }));
+
+                                    unit = unitsCarried[1];
+                                    var unit3 = unit;
+                                    popup.AddButton("2.", (Action)(() =>
+                                    {
+                                        base.ProcessClickedCombatant(unit3);
+                                        newUnitSelection = unit3;
+                                    }));
+                                    goto RenderNow;
+                                }
+                            }
                         }
 
-                        if (unitsCarried.Count > 2)
+                        if (unitsCarried.Count > 3)
                         {
-                            var unit = unitsCarried[1];
-                            
-                            var unit1= unit;
-                            popup.AddButton("3.", (Action)(() =>
+                            var unit = unitsCarried[0];
+                            var unit1 = unit;
+                            popup.AddButton("1.", (Action)(() =>
                             {
                                 base.ProcessClickedCombatant(unit1);
                                 newUnitSelection = unit1;
                             }));
 
-                            unit = unitsCarried[0];
-
+                            unit = unitsCarried[2];
                             var unit2 = unit;
-                            popup.AddButton("2.", (Action)(() =>
+                            popup.AddButton("3.", (Action)(() =>
                             {
+                                base.ProcessClickedCombatant(unit2);
                                 newUnitSelection = unit2;
                             }));
 
-                            for (var index = 2; index < unitsCarried.Count; index++)
+                            unit = unitsCarried[1];
+                            var unit3 = unit;
+                            popup.AddButton("2.", (Action)(() =>
+                            {
+                                base.ProcessClickedCombatant(unit3);
+                                newUnitSelection = unit3;
+                            }));
+
+                            for (var index = 3; index < unitsCarried.Count; index++)
                             {
                                 unit = unitsCarried[index];
-                                var buttonName = $"{index + 2}.";
-                                var unit3 = unit;
+                                var buttonName = $"{index + 1}.";
+                                var unit4 = unit;
                                 popup.AddButton(buttonName,
                                     (Action)(() =>
                                     {
-                                        base.ProcessClickedCombatant(unit3);
-                                        newUnitSelection = unit3;
+                                        base.ProcessClickedCombatant(unit4);
+                                        newUnitSelection = unit4;
                                     }));
-                                
                             }
                         }
                         RenderNow:

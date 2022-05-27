@@ -675,20 +675,23 @@ namespace StrategicOperations.Patches
             new Type[] { })]
         public static class CombatHUDButtonBase_OnClick
         {
-            static bool Prepare() => ModInit.modSettings.EnableQuickReserve;
+            //static bool Prepare() => ModInit.modSettings.EnableQuickReserve;
             public static bool Prefix(CombatHUDButtonBase __instance)
             {
                 if (__instance.GUID != "BTN_DoneWithMech") return true;
                 var hud = Traverse.Create(__instance).Property("HUD").GetValue<CombatHUD>();
                 var actor = hud.SelectedActor;
-                var hk = Input.GetKey(KeyCode.LeftShift) || Input.GetKey(KeyCode.RightShift);
-                if (hk && actor.CanDeferUnit)
+                if (ModInit.modSettings.EnableQuickReserve)
                 {
-                    actor.DeferUnit();
-                    actor.ForceUnitToLastActualPhase();
-                    return false;
+                    var hk = Input.GetKey(KeyCode.LeftShift) || Input.GetKey(KeyCode.RightShift);
+                    if (hk && actor.CanDeferUnit)
+                    {
+                        actor.DeferUnit();
+                        actor.ForceUnitToLastActualPhase();
+                        return false;
+                    }
                 }
-                
+
                 if (!actor.IsSwarmingUnit())
                 {
                     ModInit.modLog?.Debug?.Write($"[CombatHUDButtonBase.OnClick] Actor {actor.DisplayName} is not swarming, ending turn like normal.");
