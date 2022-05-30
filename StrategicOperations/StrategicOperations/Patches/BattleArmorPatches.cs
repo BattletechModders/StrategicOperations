@@ -16,6 +16,7 @@ using CustomComponents;
 using CustomUnits;
 using DG.Tweening;
 using Harmony;
+using HBS;
 using HBS.Math;
 using HBS.Pooling;
 using IRTweaks.Modules.Combat;
@@ -1064,6 +1065,19 @@ namespace StrategicOperations.Patches
                     }
                 }
                 return true;
+            }
+        }
+
+        [HarmonyPatch(typeof(AbstractActor), "CanMoveAfterShooting",
+            new Type[] {})]
+        public static class AbstractActor_CanMoveAfterShooting
+        {
+            public static void Postfix(AbstractActor __instance, ref bool __result)
+            {
+                if (__instance.IsMountedUnit() || __instance.IsSwarmingUnit() || __instance.IsAirlifted() || __instance.isGarrisoned())
+                {
+                    __result = false;
+                }
             }
         }
 
