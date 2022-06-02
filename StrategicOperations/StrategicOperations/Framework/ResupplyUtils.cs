@@ -151,6 +151,7 @@ namespace StrategicOperations.Framework
                                     {
                                         weapon.modifyAmmoCount(missingAmmoForMagicBox);
                                         weapon.DecInternalAmmo(-1,-missingAmmoForMagicBox);
+                                        weapon.tInternalAmmo(weapon.InternalAmmo);
                                         magicBox.modifyAmmoCount(-totalMagicShotsConsumed);
                                         ModInit.modLog?.Trace?.Write(
                                             $"[ProcessResupplyUnit - Internal Ammo!] - Full Resupply complete for weapon {weapon.Description.UIName}. Ammobox now has {weapon.InternalAmmo}/{weapon.weaponDef.StartingAmmoCapacity} {startingCapacity} ammo, SPAMMY box has {magicBox.CurrentAmmo}/{magicBox.AmmoCapacity} remaining. \n\nMathDumps: Replacement of ammo needs to use {sourceTonnageNeeded} tons of SPAMMY. SPAMMY has {magicTonnageAvailable} tons available at {magicTonnagePerShot} per shot for total SPAMMY shots needed of {totalMagicShotsConsumed}");
@@ -160,6 +161,7 @@ namespace StrategicOperations.Framework
                                     {
                                         weapon.modifyAmmoCount(replacementSourceShotsAvailable);
                                         weapon.DecInternalAmmo(-1, -replacementSourceShotsAvailable);
+                                        weapon.tInternalAmmo(weapon.InternalAmmo);
                                         magicBox.zeroAmmoCount();
                                         ModInit.modLog?.Trace?.Write(
                                             $"[ProcessResupplyUnit - Internal Ammo!] - Partial Resupply complete for weapon {weapon.Description.UIName}. Ammobox now has {weapon.InternalAmmo}/{weapon.weaponDef.StartingAmmoCapacity} {startingCapacity} ammo, SPAMMY box has {magicBox.CurrentAmmo}/{magicBox.AmmoCapacity} remaining. \n\nMathDumps: Replacement of ammo needs to use {sourceTonnageNeeded} tons of SPAMMY. SPAMMY has {magicTonnageAvailable} tons available at {magicTonnagePerShot} per shot for total SPAMMY shots needed of {totalMagicShotsConsumed}");

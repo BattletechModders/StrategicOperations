@@ -1068,8 +1068,7 @@ namespace StrategicOperations.Patches
             }
         }
 
-        [HarmonyPatch(typeof(AbstractActor), "CanMoveAfterShooting",
-            new Type[] {})]
+        [HarmonyPatch(typeof(AbstractActor), "CanMoveAfterShooting", MethodType.Getter)]
         public static class AbstractActor_CanMoveAfterShooting
         {
             public static void Postfix(AbstractActor __instance, ref bool __result)

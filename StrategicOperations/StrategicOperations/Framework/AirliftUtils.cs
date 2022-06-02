@@ -390,8 +390,8 @@ namespace StrategicOperations.Framework
                     }
                 }
             }
-
-            var hud = Traverse.Create(CameraControl.Instance).Property("HUD").GetValue<CombatHUD>();
+            
+            //var hud = Traverse.Create(CameraControl.Instance).Property("HUD").GetValue<CombatHUD>()
             //actor.GameRep.IsTargetable = true;
 
             if (ModState.AirliftTrackers[actor.GUID].IsCarriedInternal)
@@ -477,19 +477,19 @@ namespace StrategicOperations.Framework
                 actor.OnPositionUpdate(vector, actor.CurrentRotation, -1, true, null, false);
             }
 
-            if (!calledFromHandleDeath && !calledFromDeswarm && false) // dont think i need this, since the unit being dropped won't need to reset state ever?
-            {
-                ModInit.modLog?.Info?.Write(
-                    $"[DropAirliftedUnit] Not called from HandleDeath or Deswarm, resetting buttons and pathing.");
-                hud.MechWarriorTray.JumpButton.ResetButtonIfNotActive(actor);
-                hud.MechWarriorTray.SprintButton.ResetButtonIfNotActive(actor);
-                hud.MechWarriorTray.MoveButton.ResetButtonIfNotActive(actor);
-                hud.SelectionHandler.AddJumpState(actor);
-                hud.SelectionHandler.AddSprintState(actor);
-                hud.SelectionHandler.AddMoveState(actor);
-                actor.ResetPathing(false);
-                actor.Pathing.UpdateCurrentPath(false);
-            }
+//            if (!calledFromHandleDeath && !calledFromDeswarm && false) // dont think i need this, since the unit being dropped won't need to reset state ever?
+//            {
+//                ModInit.modLog?.Info?.Write(
+//                    $"[DropAirliftedUnit] Not called from HandleDeath or Deswarm, resetting buttons and pathing.");
+//                hud.MechWarriorTray.JumpButton.ResetButtonIfNotActive(actor);
+//                hud.MechWarriorTray.SprintButton.ResetButtonIfNotActive(actor);
+//                hud.MechWarriorTray.MoveButton.ResetButtonIfNotActive(actor);
+//                hud.SelectionHandler.AddJumpState(actor);
+//                hud.SelectionHandler.AddSprintState(actor);
+//                hud.SelectionHandler.AddMoveState(actor);
+//                actor.ResetPathing(false);
+//                actor.Pathing.UpdateCurrentPath(false);
+//            }
             if (false) //(actor.HasBegunActivation)
             {
                 ModInit.modLog?.Info?.Write(
