@@ -178,7 +178,7 @@ namespace StrategicOperations.Framework
                 if (ammoBoxToFill.CurrentAmmo < ammoBoxToFill.AmmoCapacity)
                 {
                     var initialMissingAmmoCount = ammoBoxToFill.AmmoCapacity - ammoBoxToFill.CurrentAmmo;
-                    ModInit.modLog?.Trace?.Write($"[ProcessResupplyUnit - Regular Ammo] - Found box {ammoBoxToFill.Description.UIName} needs {initialMissingAmmoCount} shots added.");
+                    ModInit.modLog?.Trace?.Write($"[ProcessResupplyUnit - Ammo] - Found box {ammoBoxToFill.Description.UIName} needs {initialMissingAmmoCount} shots added.");
                     var missingAmmoTonnage = initialMissingAmmoCount * (ammoBoxToFill.tonnage / ammoBoxToFill.AmmoCapacity);
                     totalAmmoTonnage += missingAmmoTonnage;
                     var magicBoxes = new List<AmmunitionBox>();
@@ -243,6 +243,7 @@ namespace StrategicOperations.Framework
                                 magicBox.zeroAmmoCount();
                                 ModInit.modLog?.Trace?.Write(
                                     $"[ProcessResupplyUnit - Use SpAce Magic Modular (by Yang) Ammo!] - Partial Resupply complete for ammoBox {ammoBoxToFill.Description.UIName}. Ammobox now has {ammoBoxToFill.CurrentAmmo}/{ammoBoxToFill.AmmoCapacity} ammo, SPAMMY box has {magicBox.CurrentAmmo}/{magicBox.AmmoCapacity} remaining. \n\nMathDumps: Replacement of ammo needs to use {sourceTonnageNeeded} tons of SPAMMY. SPAMMY has {magicTonnageAvailable} tons available at {magicTonnagePerShot} per shot for total SPAMMY shots needed of {totalMagicShotsConsumed}");
+                                missingAmmoForMagicBox = ammoBoxToFill.AmmoCapacity - ammoBoxToFill.CurrentAmmo;
                             }
                         }
                     }

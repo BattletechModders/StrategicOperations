@@ -622,7 +622,7 @@ namespace StrategicOperations.Framework
                 var chosenpilotSourceMech = alliedActors.GetRandomElement();
                 var newPilotDefID = chosenpilotSourceMech.pilot.pilotDef.Description.Id;
                 DM.PilotDefs.TryGet(newPilotDefID, out this.NewPilotDef);
-                ModInit.modLog?.Info?.Write($"Attempting to spawn {ChosenUnit} with pilot {NewPilotDef.Description.Callsign}.");
+                ModInit.modLog?.Info?.Write($"Attempting to spawn {ChosenUnit} with pilot {NewPilotDef?.Description?.Callsign}.");
                 DM.MechDefs.TryGet(ChosenUnit, out NewUnitDef);
                 NewUnitDef.Refresh();
                 //var injectedDependencyLoadRequest = new DataManager.InjectedDependencyLoadRequest(dm);
@@ -774,7 +774,7 @@ namespace StrategicOperations.Framework
                 //var chosenpilotSourceMech = alliedActors.GetRandomElement();
                 //var newPilotDefID = chosenpilotSourceMech.pilot.pilotDef.Description.Id;
                 //DM.PilotDefs.TryGet(newPilotDefID, out this.NewPilotDef);
-                ModInit.modLog?.Info?.Write($"Attempting to spawn {ChosenUnit} with pilot {NewPilotDef.Description.Callsign}.");
+                ModInit.modLog?.Info?.Write($"Attempting to spawn {ChosenUnit} with pilot {NewPilotDef?.Description?.Callsign}.");
                 DM.MechDefs.TryGet(ChosenUnit, out NewUnitDef);
                 NewUnitDef.Refresh();
                 //var injectedDependencyLoadRequest = new DataManager.InjectedDependencyLoadRequest(dm);
@@ -906,7 +906,7 @@ namespace StrategicOperations.Framework
                 //var chosenpilotSourceMech = alliedActors.GetRandomElement();
                 //var newPilotDefID = chosenpilotSourceMech.pilot.pilotDef.Description.Id;
                 //DM.PilotDefs.TryGet(newPilotDefID, out this.NewPilotDef);
-                ModInit.modLog?.Info?.Write($"Attempting to spawn {ChosenUnit} with pilot {NewPilotDef.Description.Callsign}.");
+                ModInit.modLog?.Info?.Write($"Attempting to spawn {ChosenUnit} with pilot {NewPilotDef?.Description?.Callsign}.");
                 DM.MechDefs.TryGet(ChosenUnit, out NewUnitDef);
                 NewUnitDef.Refresh();
                 //var injectedDependencyLoadRequest = new DataManager.InjectedDependencyLoadRequest(dm);
