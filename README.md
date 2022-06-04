@@ -671,7 +671,7 @@ Using the following settings, ClanGhostBear and ClanWolf have baseline 30% chanc
 `SBI_HesitationMultiplier` - float, if EnableQuickReserve is enabled, this value will integrate with SkillBasedInitiative (if found). Using the "quick reserve" function will result in a final "hesitation" value calculated by: `final hesitation = SBI_HesitationMultiplier x phasesMoved + SBI_MOD_HESITATION (from the unit, since i saw its a thing in SBI) + currentHesitation`
 	
 ## Spawns
-
+	
 Spawns are basically what they sound like: spawning reinforcement units at the selected location. These units will be AI-controlled (allied). Exactly <i>what</i> unit gets deployed depends on a few things.
 
 1) The "type" of the unit noted in `ActorResource` defines the type of unit that can be deployed by that ability. If it starts with "mechdef_", then mechs can be deployed. If it starts with "vehicledef_", then vehicles can be deployed. If it starts with "turretdef_" then turrets can be deployed.
@@ -682,6 +682,8 @@ Spawns are basically what they sound like: spawning reinforcement units at the s
 
 4) If the "beacon" item contains a component tag that starts with "StratOpsPilot_", the remainder of that tag should be the PilotDef ID of the pilot that will pilot the unit (overrides anything set by CMDPilotOverride below)
 
+**To ensure that all resources used by these abilities load properly, all spawn abilities should start with the `AbilityDefCMD_` prefix.**
+	
 Spawn ability json structure:
 ```
 {
@@ -721,6 +723,8 @@ The configurable parameters of the above:
 `IntParam2` - int, the maximum distance from the initiating actor at which a unit can be deployed.
 
 `StringParam2` - string, tag that "beacons" componentDefs are required to have in order to be used by this ability.
+	
+`FloatParam1` and `FloatParam2` are not used in spawns (although `FloatParam1` will control the size of the little green "ring" that shows up when deploying the ability, cosmetic only. Suggest setting both to 50 and forgetting about them.
 
 ## Strafes
 
@@ -739,6 +743,8 @@ Similarly to Spawns, the actual unit doing the strafing depends on the following
 
 5) If the "beacon" item contains a component tag that starts with "StrafeWaves_", the remainder of that tag should be the number (integer) of "waves" or copies of the unit that will do the strafing. E.g. StrafeWaves_3 would strafe with 3 of whatever the unit is.
 
+**To ensure that all resources used by these abilities load properly, all strafe abilities should start with the `AbilityDefCMD_` prefix.**
+	
 **Updated in v3.0.3.3: AA factor**
 
 Now units can be given an "AA Factor". When a strafe is attempted, the cumulative AA Factor for all units on the target team and any of their allies is totalled up, and then divided by the total number of units on the target team and their allies. This value is the chance for any given unit in the target area to NOT be targeted. For example, lets say you are facing 3 units. One has anti air factor of 2.0, one has anti-air factor of 0.5, and the third has anti-air factors of 0. The final AA Factor would 83%  (`(2.0 + 0.5 + 0) / 3`), meaning that on average only 17% of the units in the target area would actually be targeted.
