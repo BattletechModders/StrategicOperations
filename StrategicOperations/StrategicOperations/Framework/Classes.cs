@@ -498,6 +498,7 @@ namespace StrategicOperations.Framework
             public CombatGameState Combat;
             public AbstractActor Actor;
             public string ChosenUnit;
+            public string ChosenPilot;
             public Lance CustomLance;
             public DataManager DM;
             public MechDef NewUnitDef;
@@ -522,7 +523,7 @@ namespace StrategicOperations.Framework
                 this.DM = UnityGameInstance.BattleTechGame.DataManager;
             }
 
-            public CustomSpawner(Team team, Ability ability, CombatGameState combat, string chosen, Lance custLance, Team teamSelection, Vector3 loc, Quaternion rotation, HeraldryDef heraldry, PilotDef supportPilotDef)
+            public CustomSpawner(Team team, Ability ability, CombatGameState combat, string chosen, Lance custLance, Team teamSelection, Vector3 loc, Quaternion rotation, HeraldryDef heraldry, string chosenPilot)
             {
                 this.SourceTeam = team;
                 this.SourceAbility = ability;
@@ -534,7 +535,7 @@ namespace StrategicOperations.Framework
                 this.SpawnLoc = loc;
                 this.SpawnRotation = rotation;
                 this.SupportHeraldryDef = heraldry;
-                this.NewPilotDef = supportPilotDef;
+                this.ChosenPilot = chosenPilot;
             }
 
             public CustomSpawner(string parentSequenceID, PendingStrafeWave wave)
@@ -739,6 +740,9 @@ namespace StrategicOperations.Framework
                 LoadRequest loadRequest = DM.CreateLoadRequest();
                 loadRequest.AddBlindLoadRequest(BattleTechResourceType.MechDef, ChosenUnit);
                 ModInit.modLog?.Info?.Write($"Added loadrequest for MechDef: {ChosenUnit}");
+                loadRequest.AddBlindLoadRequest(BattleTechResourceType.PilotDef, ChosenPilot);
+                ModInit.modLog?.Info?.Write($"Added loadrequest for PilotDef: {ChosenPilot}");
+                
                 loadRequest.ProcessRequests(1000U);
 
                 if (false) // maybe dont need? initial invoke should already be deferred, and we cant do this round 1 anyway
@@ -776,7 +780,17 @@ namespace StrategicOperations.Framework
                 //DM.PilotDefs.TryGet(newPilotDefID, out this.NewPilotDef);
                 ModInit.modLog?.Info?.Write($"Attempting to spawn {ChosenUnit} with pilot {NewPilotDef?.Description?.Callsign}.");
                 DM.MechDefs.TryGet(ChosenUnit, out NewUnitDef);
+                if (NewUnitDef == null)
+                {
+                    ModInit.modLog?.Info?.Write($"[ERROR] Unable to fetch NewUnitDef from DataManager. Shit gon broke.");
+                }
                 NewUnitDef.Refresh();
+                DM.PilotDefs.TryGet(ChosenPilot, out NewPilotDef);
+                if (NewPilotDef == null)
+                {
+                    ModInit.modLog?.Info?.Write($"[ERROR] Unable to fetch pilotDef from DataManager. Shit gon broke.");
+                }
+
                 //var injectedDependencyLoadRequest = new DataManager.InjectedDependencyLoadRequest(dm);
                 //newBattleArmorDef.GatherDependencies(dm, injectedDependencyLoadRequest, 1000U);
                 //newBattleArmorDef.Refresh();

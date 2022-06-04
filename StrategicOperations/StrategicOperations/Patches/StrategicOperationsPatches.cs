@@ -772,10 +772,7 @@ namespace StrategicOperations.Patches
                 {
                     pilotID = __instance.Def.getAbilityDefExtension().CMDPilotOverride;
                 }
-
-                dm.PilotDefs.TryGet(pilotID, out var supportPilotDef);
-
-
+                
                 //if (__instance.Combat.Teams.All(x => x.GUID != "61612bb3-abf9-4586-952a-0559fa9dcd75"))
                 //{
                 //Utils.CreateOrUpdateNeutralTeam();
@@ -827,6 +824,19 @@ namespace StrategicOperations.Patches
                     }
 
                     var parentSequenceID = Guid.NewGuid().ToString();
+
+                    LoadRequest loadRequest = dm.CreateLoadRequest();
+                    loadRequest.AddBlindLoadRequest(BattleTechResourceType.MechDef, actorResource);
+                    ModInit.modLog?.Info?.Write($"Added loadrequest for MechDef: {actorResource}");
+                    loadRequest.AddBlindLoadRequest(BattleTechResourceType.PilotDef, pilotID);
+                    ModInit.modLog?.Info?.Write($"Added loadrequest for PilotDef: {pilotID}");
+                    loadRequest.ProcessRequests(1000U);
+                    dm.PilotDefs.TryGet(pilotID, out var supportPilotDef);
+                    if (supportPilotDef == null)
+                    {
+                        ModInit.modLog?.Info?.Write($"[ERROR] Unable to fetch pilotdef from DataManager. Shits gon broke.");
+                    }
+
                     var newWave = new PendingStrafeWave(strafeWaves - 1, __instance, team, positionA,
                         positionB, radius, actorResource, supportTeam, cmdLance, supportPilotDef, supportHeraldryDef,
                         dm);
@@ -921,7 +931,7 @@ namespace StrategicOperations.Patches
                 }
 
                 ModInit.modLog?.Info?.Write($"Pilot should be {pilotID}");
-                dm.PilotDefs.TryGet(pilotID, out var supportPilotDef);
+
                 var cmdLance = Utils.CreateOrFetchCMDLance(teamSelection);
 
                 Quaternion quaternion = Quaternion.LookRotation(positionB - positionA);
@@ -929,11 +939,12 @@ namespace StrategicOperations.Patches
                 if (actorResource.StartsWith("mechdef_") || actorResource.StartsWith("vehicledef_"))
                 {
                     ModInit.modLog?.Info?.Write($"Attempting to spawn {actorResource} as mech.");
-                    var spawner = new Classes.CustomSpawner(team, __instance, combat, actorResource, cmdLance, teamSelection, positionA, quaternion, supportHeraldryDef, supportPilotDef);
+                    var spawner = new Classes.CustomSpawner(team, __instance, combat, actorResource, cmdLance, teamSelection, positionA, quaternion, supportHeraldryDef, pilotID);
                     spawner.SpawnBeaconUnitAtLocation();
                     return false;
                 }
 
+#if NO_CAC
                 if (actorResource.StartsWith("mechdef_") && false)
                 {
                     ModInit.modLog?.Info?.Write($"Attempting to spawn {actorResource} as mech.");
@@ -1140,7 +1151,7 @@ namespace StrategicOperations.Patches
                         }
                     }
                 }
-
+#endif
                 else
                 {
                     ModInit.modLog?.Info?.Write($"Attempting to spawn {actorResource} as turret.");
