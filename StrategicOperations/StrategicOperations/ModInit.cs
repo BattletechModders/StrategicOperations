@@ -18,7 +18,7 @@ namespace StrategicOperations
     {
         internal static DeferringLogger modLog;
         private static string modDir;
-        public static readonly Random Random = new Random(123);
+        public static readonly Random Random = new Random();
 
         internal static Settings modSettings;
         public const string HarmonyPackage = "us.tbone.StrategicOperations";
