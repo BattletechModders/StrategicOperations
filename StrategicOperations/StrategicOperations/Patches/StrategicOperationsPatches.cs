@@ -790,7 +790,7 @@ namespace StrategicOperations.Patches
 
                 //var supportTeam = __instance.Combat.Teams.FirstOrDefault(x => x.GUID == "61612bb3-abf9-4586-952a-0559fa9dcd75");
 
-                ModInit.modLog?.Info?.Write($"Team neturalTeam = {supportTeam?.DisplayName}");
+                ModInit.modLog?.Info?.Write($"Team neutralTeam = {supportTeam?.DisplayName}");
                 var cmdLance = Utils.CreateOrFetchCMDLance(supportTeam);
                 var actorResource = __instance.Def.ActorResource;
                 var strafeWaves = ModInit.modSettings.strafeWaves;

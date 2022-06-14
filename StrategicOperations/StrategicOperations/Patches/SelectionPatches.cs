@@ -340,6 +340,11 @@ namespace StrategicOperations.Patches
             }
             protected override bool CanTargetCombatant(ICombatant potentialTarget)
             {
+                if (SelectedActor.VisibilityToTargetUnit(potentialTarget) == VisibilityLevel.None)
+                {
+                    return false;
+                }
+
                 if (FromButton.Ability.Def.Id == ModInit.modSettings.AirliftAbilityID)
                 {
                     if (SelectedActor.GUID == potentialTarget.GUID && SelectedActor.HasAirliftedUnits())
