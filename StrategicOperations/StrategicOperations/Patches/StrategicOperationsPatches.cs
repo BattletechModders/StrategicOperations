@@ -515,6 +515,24 @@ namespace StrategicOperations.Patches
             }
         }
 
+        [HarmonyPatch(typeof(AbstractActor), "OnAbilityInvoked",
+            new Type[] {typeof(MessageCenterMessage)})]
+        public static class AbstractActor_OnAbilityInvoked
+        {
+            public static bool Prefix(AbstractActor __instance, MessageCenterMessage message)
+            {
+                AbilityMessage msg = message as AbilityMessage;
+                if (msg.actingObjectGuid == __instance.GUID && msg.positionA != Vector3.zero && msg.positionB != Vector3.zero)
+                {
+                    if (__instance.GetPilot().ActiveAbilities.Find((Ability x) => x.Def.Id == msg.abilityID) != null)
+                    {
+                        __instance.ActivateAbility(__instance, msg.abilityID, msg.affectedObjectGuid, msg.positionA, msg.positionB);
+                        return false;
+                    }
+                }
+                return true;
+            }
+        }
 
         [HarmonyPatch(typeof(AbstractActor), "ActivateAbility",
             new Type[] {typeof(AbstractActor), typeof(string), typeof(string), typeof(Vector3), typeof(Vector3)})]
@@ -525,8 +543,25 @@ namespace StrategicOperations.Patches
             {
                 if (__instance.Combat.ActiveContract.ContractTypeValue.IsSkirmish) return true;
                 Ability ability = __instance.ComponentAbilities.Find((Ability x) => x.Def.Id == abilityName);
+                if (ability == null)
+                {
+                    ModInit.modLog?.Trace?.Write($"[AbstractActor_ActivateAbility] - could not find ability {abilityName} in ComponentAbilities.");
+                    ability = __instance.GetPilot().ActiveAbilities.Find((Ability x) => x.Def.Id == abilityName);
+                };
+                if (ability == null)
+                {
+                    ModInit.modLog?.Trace?.Write($"[AbstractActor_ActivateAbility] - could not find ability {abilityName} in ActiveAbilities.");
+                    return true;
+                }
                 if (ability.Def.Targeting == AbilityDef.TargetingType.CommandSpawnPosition)
                 {
+                    ModInit.modLog?.Trace?.Write($"[AbstractActor_ActivateAbility] - activating turret spawny.");
+                    ability.Activate(__instance, posA, posB); // added to try and unfuck strafe as regular ability
+                    return false;
+                }
+                if (ability.Def.Targeting == AbilityDef.TargetingType.CommandTargetTwoPoints)
+                {
+                    ModInit.modLog?.Trace?.Write($"[AbstractActor_ActivateAbility] - activating strafe.");
                     ability.Activate(__instance, posA, posB);
                     return false;
                 }
