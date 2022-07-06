@@ -23,6 +23,7 @@ namespace StrategicOperations.Framework
         public static void modifyAmmoCount(this AmmunitionBox box, int value)
         {
             box.StatCollection.ModifyStat("resupplyAMMO", -1, "CurrentAmmo", StatCollection.StatOperation.Int_Add, value);
+            box.tCurrentAmmo(box.CurrentAmmo);
         }
         public static void zeroAmmoCount(this AmmunitionBox box)
         {

@@ -64,9 +64,15 @@ namespace StrategicOperations.Framework
             new Dictionary<string, AbstractActor>();
 
         public static string DeferredActorResource = "";
-        public static string PopupActorResource = "";
-        public static int StrafeWaves;
-        public static string PilotOverride = null;
+
+        public static Dictionary<string, CmdInvocationParams> StoredCmdParams =
+            new Dictionary<string, CmdInvocationParams>();
+
+        public static CmdInvocationParams PendingPlayerCmdParams = new CmdInvocationParams();
+
+        //public static string PopupActorResource = "";
+        //public static int StrafeWaves;
+        //public static string PilotOverride = null;
         public static bool DeferredSpawnerFromDelegate;
         public static bool DeferredBattleArmorSpawnerFromDelegate;
         public static bool OutOfRange;
@@ -184,9 +190,11 @@ namespace StrategicOperations.Framework
             PositionLockSwarm = new Dictionary<string, string>();
             PositionLockGarrison = new Dictionary<string, BA_GarrisonInfo>();
             DeferredActorResource = "";
-            PopupActorResource = "";
-            StrafeWaves = 0; // this is TBD-> want to make beacons define # of waves.
-            PilotOverride = null;
+            //PopupActorResource = "";
+            //StrafeWaves = 0; // this is TBD-> want to make beacons define # of waves.
+            PendingPlayerCmdParams = new CmdInvocationParams();
+            StoredCmdParams = new Dictionary<string, CmdInvocationParams>();
+            //PilotOverride = null;
             DeferredSpawnerFromDelegate = false;
             DeferredBattleArmorSpawnerFromDelegate = false;
             OutOfRange = false;
@@ -199,8 +207,8 @@ namespace StrategicOperations.Framework
         {
             DeferredSpawnerFromDelegate = false;
             DeferredActorResource = "";
-            PopupActorResource = "";
-            PilotOverride = null;
+            //PopupActorResource = "";
+            //PilotOverride = null;
         }
 
         public static void ResetDeferredSpawners()

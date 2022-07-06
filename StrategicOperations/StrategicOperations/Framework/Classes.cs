@@ -1231,6 +1231,46 @@ public class AI_BeaconProxyInfo
             }
         }
 
+        public class CmdInvocationParams
+        {
+            public string QUID = "";
+            public int StrafeWaves;
+            public string ActorResource;
+            public string PilotOverride;
+            public AbilityDef.SpecialRules Rules;
+            public bool IsStrafeAOE;
+
+            public CmdInvocationParams(int strafeWaves, string actorResource, string pilotOverride,
+                AbilityDef.SpecialRules rules, string quid = "", bool isStrafeAOE = false)
+            {
+                QUID = quid;
+                StrafeWaves = strafeWaves;
+                ActorResource = actorResource;
+                PilotOverride = pilotOverride;
+                Rules = rules;
+                IsStrafeAOE = isStrafeAOE;
+            }
+
+            public CmdInvocationParams()
+            {
+                QUID = "";
+                StrafeWaves = 0;
+                ActorResource = "";
+                PilotOverride = "";
+                Rules = AbilityDef.SpecialRules.NotSet;
+                IsStrafeAOE = false;
+            }
+
+            public CmdInvocationParams(CmdInvocationParams cmdParams)
+            {
+                QUID = cmdParams.QUID;
+                StrafeWaves = cmdParams.StrafeWaves;
+                ActorResource = cmdParams.ActorResource;
+                PilotOverride = cmdParams.PilotOverride;
+                Rules = cmdParams.Rules;
+                IsStrafeAOE = cmdParams.IsStrafeAOE;
+            }
+        }
         public class PendingStrafeWave
         {
             public int RemainingWaves;

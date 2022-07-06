@@ -42,7 +42,7 @@ namespace StrategicOperations.Patches
                         new ShowActorInfoSequence(mech, txt, FloatieMessage.MessageNature.Buff,
                             false)));
 
-                    DoneWithActorSequence doneWithActorSequence = (DoneWithActorSequence) mech.GetDoneWithActorOrders();
+                    DoneWithActorSequence doneWithActorSequence = (DoneWithActorSequence)mech.GetDoneWithActorOrders();
                     MechHeatSequence mechHeatSequence = new MechHeatSequence(OwningMech: mech,
                         performHeatSinkStep: true, applyStartupHeatSinks: false, instigatorID: "STARTUP");
                     doneWithActorSequence.AddChildSequence(mechHeatSequence, mechHeatSequence.MessageIndex);
@@ -214,7 +214,7 @@ namespace StrategicOperations.Patches
                     loadRequest.AddBlindLoadRequest(BattleTechResourceType.Texture2D, ModInit.modSettings.MountIndicatorAsset);
                     ModInit.modLog?.Info?.Write($"Added loadrequest for Texture2D: {ModInit.modSettings.MountIndicatorAsset}");
                 }
-                
+
                 foreach (var abilityDef in dm.AbilityDefs.Where(x => x.Key.StartsWith("AbilityDefCMD_")))
                 {
                     var ability = new Ability(abilityDef.Value);
@@ -344,7 +344,7 @@ namespace StrategicOperations.Patches
                 var combat = ____parentActor.Combat;
                 if (____parentActor.HasAirliftedUnits())
                 {
-                    var airliftedUnits= ModState.AirliftTrackers.Where(x =>
+                    var airliftedUnits = ModState.AirliftTrackers.Where(x =>
                         x.Value.CarrierGUID == ____parentActor.GUID);
                     foreach (var trackerInfo in airliftedUnits)
                     {
@@ -390,7 +390,7 @@ namespace StrategicOperations.Patches
 
                 if (____parentActor.HasMountedUnits())
                 {
-                    var targetActorGUIDs = ModState.PositionLockMount.Where(x=>x.Value == ____parentActor.GUID);
+                    var targetActorGUIDs = ModState.PositionLockMount.Where(x => x.Value == ____parentActor.GUID);
                     foreach (var targetActorGUID in targetActorGUIDs)
                     {
                         var targetActor = combat.FindActorByGUID(targetActorGUID.Key);
@@ -464,18 +464,18 @@ namespace StrategicOperations.Patches
                         ability.Activate(__instance, null);
                         goto publishAbilityConfirmed;
                     case AbilityDef.TargetingType.CommandTargetSingleEnemy:
-                    {
-                        ICombatant combatant = __instance.Combat.FindCombatantByGUID(msg.affectedObjectGuid, false);
-                        if (combatant == null)
                         {
-                            ModInit.modLog?.Info?.Write(
-                                $"Team.ActivateAbility couldn't find target with guid {msg.affectedObjectGuid}");
-                            return false;
-                        }
+                            ICombatant combatant = __instance.Combat.FindCombatantByGUID(msg.affectedObjectGuid, false);
+                            if (combatant == null)
+                            {
+                                ModInit.modLog?.Info?.Write(
+                                    $"Team.ActivateAbility couldn't find target with guid {msg.affectedObjectGuid}");
+                                return false;
+                            }
 
-                        ability.Activate(__instance, combatant);
-                        goto publishAbilityConfirmed;
-                    }
+                            ability.Activate(__instance, combatant);
+                            goto publishAbilityConfirmed;
+                        }
                     case AbilityDef.TargetingType.CommandTargetSinglePoint:
                         ability.Activate(__instance, msg.positionA);
                         goto publishAbilityConfirmed;
@@ -508,7 +508,7 @@ namespace StrategicOperations.Patches
                 ModInit.modLog?.Info?.Write(
                     $"Team.ActivateAbility needs to add handling for targetingtype {ability.Def.Targeting}");
                 return false;
-                publishAbilityConfirmed:
+            publishAbilityConfirmed:
                 __instance.Combat.MessageCenter.PublishMessage(new AbilityConfirmedMessage(msg.actingObjectGuid,
                     msg.affectedObjectGuid, msg.abilityID, msg.positionA, msg.positionB));
                 return false;
@@ -516,7 +516,7 @@ namespace StrategicOperations.Patches
         }
 
         [HarmonyPatch(typeof(AbstractActor), "OnAbilityInvoked",
-            new Type[] {typeof(MessageCenterMessage)})]
+            new Type[] { typeof(MessageCenterMessage) })]
         public static class AbstractActor_OnAbilityInvoked
         {
             public static bool Prefix(AbstractActor __instance, MessageCenterMessage message)
@@ -535,7 +535,7 @@ namespace StrategicOperations.Patches
         }
 
         [HarmonyPatch(typeof(AbstractActor), "ActivateAbility",
-            new Type[] {typeof(AbstractActor), typeof(string), typeof(string), typeof(Vector3), typeof(Vector3)})]
+            new Type[] { typeof(AbstractActor), typeof(string), typeof(string), typeof(Vector3), typeof(Vector3) })]
         public static class AbstractActor_ActivateAbility
         {
             public static bool Prefix(AbstractActor __instance, AbstractActor pilotedActor, string abilityName,
@@ -731,7 +731,7 @@ namespace StrategicOperations.Patches
 
 
         [HarmonyPatch(typeof(Ability), "Activate",
-            new Type[] {typeof(AbstractActor), typeof(Vector3), typeof(Vector3)})]
+            new Type[] { typeof(AbstractActor), typeof(Vector3), typeof(Vector3) })]
         public static class Ability_Activate_TwoPoints
         {
             public static bool Prefix(Ability __instance, AbstractActor creator, Vector3 positionA, Vector3 positionB)
@@ -758,8 +758,8 @@ namespace StrategicOperations.Patches
 
                 if (specialRules == AbilityDef.SpecialRules.Strafe)
                 {
-                   Utils._activateStrafeMethod.Invoke(__instance,
-                        new object[] {creator.team, positionA, positionB, __instance.Def.FloatParam1});
+                    Utils._activateStrafeMethod.Invoke(__instance,
+                         new object[] { creator.team, positionA, positionB, __instance.Def.FloatParam1 });
                     ModInit.modLog?.Info?.Write($"[Ability.Activate - 2pts] {creator.Description?.Name}: ActivateStrafe invoked from Ability.Activate. Distance was {Vector3.Distance(positionA, positionB)}");
                     __instance.Combat.MessageCenter.PublishMessage(new AbilityActivatedMessage(creator.GUID,
                         creator.GUID, __instance.Def.Id, positionA, positionB));
@@ -771,7 +771,7 @@ namespace StrategicOperations.Patches
                 else if (specialRules == AbilityDef.SpecialRules.SpawnTurret)
                 {
                     Utils._activateSpawnTurretMethod.Invoke(__instance,
-                        new object[] {creator.team, positionA, positionB});
+                        new object[] { creator.team, positionA, positionB });
                     ModInit.modLog?.Info?.Write($"[Ability.Activate - 2pts] {creator.Description?.Name}: ActivateSpawnTurret invoked from Ability.Activate. Distance was {Vector3.Distance(positionA, positionB)}");
                     __instance.Combat.MessageCenter.PublishMessage(new AbilityActivatedMessage(creator.GUID,
                         creator.GUID, __instance.Def.Id, positionA, positionB));
@@ -797,17 +797,27 @@ namespace StrategicOperations.Patches
                 var dm = __instance.Combat.DataManager;
                 var sim = UnityGameInstance.BattleTechGame.Simulation;
                 var pilotID = "pilot_sim_starter_dekker";
-                var supportHeraldryDef = Utils.SwapHeraldryColors(team.HeraldryDef, dm);
-                if (!string.IsNullOrEmpty(ModState.PilotOverride))
+                var quid = __instance.Generate2PtCMDQuasiGUID(positionA, positionB);
+                if (!ModState.StoredCmdParams.ContainsKey(quid))
                 {
-                    pilotID = ModState.PilotOverride;
+                    ModInit.modLog?.Info?.Write($"[Ability_ActivateStrafe] No strafe params stored, wtf");
+                    return true;
+                }
+
+                var strafeParams = ModState.StoredCmdParams[quid];
+                var supportHeraldryDef = Utils.SwapHeraldryColors(team.HeraldryDef, dm);
+
+                if (!string.IsNullOrEmpty(strafeParams.PilotOverride))
+                {
+                    //pilotID = ModState.PilotOverride;
+                    pilotID = strafeParams.PilotOverride;
                 }
 
                 else if (!string.IsNullOrEmpty(__instance.Def.getAbilityDefExtension().CMDPilotOverride))
                 {
                     pilotID = __instance.Def.getAbilityDefExtension().CMDPilotOverride;
                 }
-                
+
                 //if (__instance.Combat.Teams.All(x => x.GUID != "61612bb3-abf9-4586-952a-0559fa9dcd75"))
                 //{
                 //Utils.CreateOrUpdateNeutralTeam();
@@ -829,16 +839,17 @@ namespace StrategicOperations.Patches
                 var cmdLance = Utils.CreateOrFetchCMDLance(supportTeam);
                 var actorResource = __instance.Def.ActorResource;
                 var strafeWaves = ModInit.modSettings.strafeWaves;
-                if (ModState.StrafeWaves > 0)
+                if (strafeParams.StrafeWaves > 0)
                 {
-                    strafeWaves = ModState.StrafeWaves;
+                    //strafeWaves = ModState.StrafeWaves;
+                    strafeWaves = strafeParams.StrafeWaves;
                 }
                 if (!string.IsNullOrEmpty(__instance.Def?.ActorResource))
                 {
-                    if (!string.IsNullOrEmpty(ModState.PopupActorResource))
+                    if (!string.IsNullOrEmpty(strafeParams.ActorResource))
                     {
-                        actorResource = ModState.PopupActorResource;
-                        ModState.PopupActorResource = "";
+                        actorResource = strafeParams.ActorResource;
+                        //ModState.PopupActorResource = "";
                     }
 
                     ModInit.modLog?.Info?.Write($"Pilot should be {pilotID}");
@@ -883,6 +894,8 @@ namespace StrategicOperations.Patches
                         Utils.SpawnFlares(__instance, positionA, positionB, ModInit.modSettings.flareResourceID,
                             __instance.Def.IntParam1, Math.Max(__instance.Def.ActivationETA * strafeWaves, strafeWaves), team.IsLocalPlayer); // make smoke last for all strafe waves because babies
                     }
+
+                    ModState.StoredCmdParams.Remove(quid);
                 }
                 return false;
             }
@@ -906,11 +919,16 @@ namespace StrategicOperations.Patches
                 }
                 var actorResource = __instance.Def.ActorResource;
                 var supportHeraldryDef = Utils.SwapHeraldryColors(team.HeraldryDef, dm);
-
-                if (!string.IsNullOrEmpty(ModState.PopupActorResource))
+                var quid = __instance.Generate2PtCMDQuasiGUID(positionA, positionB);
+                if (!ModState.StoredCmdParams.ContainsKey(quid))
                 {
-                    actorResource = ModState.PopupActorResource;
-                    ModState.PopupActorResource = "";
+                    ModInit.modLog?.Info?.Write($"[Ability_ActivateSpawnTurret] No spawn params stored, wtf");
+                    return true;
+                }
+                if (!string.IsNullOrEmpty(ModState.StoredCmdParams[quid].ActorResource))
+                {
+                    actorResource = ModState.StoredCmdParams[quid].ActorResource;
+                    //ModState.PopupActorResource = "";
                 }
 
                 if (ModState.DeploymentAssetsStats.Any(x => x.ID == actorResource) && team.IsLocalPlayer)
@@ -938,14 +956,14 @@ namespace StrategicOperations.Patches
                         $"Deferred Spawner = null, creating delegate and returning false. Delegate should spawn {actorResource}");
 
                     void DeferredInvokeSpawn() =>
-                        Utils._activateSpawnTurretMethod.Invoke(__instance, new object[] {team, positionA, positionB});
+                        Utils._activateSpawnTurretMethod.Invoke(__instance, new object[] { team, positionA, positionB });
 
                     var kvp = new KeyValuePair<string, Action>(instanceGUID, DeferredInvokeSpawn);
                     ModState.DeferredInvokeSpawns.Add(kvp);
                     Utils.SpawnFlares(__instance, positionA, positionB, ModInit.modSettings.flareResourceID, 1, __instance.Def.ActivationETA, team.IsLocalPlayer);
-//                    var flares = Traverse.Create(__instance).Method("SpawnFlares",
-//                        new object[] {positionA, positionA, __instance.Def., 1, 1});
-//                    flares.GetValue();
+                    //                    var flares = Traverse.Create(__instance).Method("SpawnFlares",
+                    //                        new object[] {positionA, positionA, __instance.Def., 1, 1});
+                    //                    flares.GetValue();
                     return false;
                 }
 
@@ -956,9 +974,10 @@ namespace StrategicOperations.Patches
                 }
 
                 var pilotID = "pilot_sim_starter_dekker";
-                if (!string.IsNullOrEmpty(ModState.PilotOverride))
+                if (!string.IsNullOrEmpty(ModState.StoredCmdParams[quid].PilotOverride))
                 {
-                    pilotID = ModState.PilotOverride;
+                    //pilotID = ModState.PilotOverride;
+                    pilotID = ModState.StoredCmdParams[quid].PilotOverride;
                 }
                 else if (!string.IsNullOrEmpty(__instance.Def.getAbilityDefExtension().CMDPilotOverride))
                 {
@@ -1191,7 +1210,7 @@ namespace StrategicOperations.Patches
                 {
                     ModInit.modLog?.Info?.Write($"Attempting to spawn {actorResource} as turret.");
                     var spawnTurretMethod = Traverse.Create(__instance).Method("SpawnTurret",
-                        new object[] {teamSelection, actorResource, positionA, quaternion});
+                        new object[] { teamSelection, actorResource, positionA, quaternion });
                     var turretActor = spawnTurretMethod.GetValue<AbstractActor>();
 
                     teamSelection.AddUnit(turretActor);
@@ -1291,7 +1310,7 @@ namespace StrategicOperations.Patches
                 int numFlares, int numPhases)
             {
                 if (__instance.Combat.ActiveContract.ContractTypeValue.IsSkirmish) return true;
-                Vector3 b = (positionB - positionA) / (float) (numFlares - 1);
+                Vector3 b = (positionB - positionA) / (float)(numFlares - 1);
 
                 Vector3 line = positionB - positionA;
                 Vector3 left = Vector3.Cross(line, Vector3.up).normalized;
@@ -1382,9 +1401,9 @@ namespace StrategicOperations.Patches
                 foreach (var despawn in ModState.DeferredDespawnersFromStrafe)
                 {
                     var msg = new DespawnActorMessage(EncounterLayerData.MapLogicGuid, despawn.Key, (DeathMethod)DespawnFloatieMessage.Escaped);
-                    Utils._despawnActorMethod.Invoke(despawn.Value, new object[] {msg});
+                    Utils._despawnActorMethod.Invoke(despawn.Value, new object[] { msg });
                 }
-                
+
                 //var team = __instance as Team;
 
                 if (__instance?.units != null)
@@ -1476,7 +1495,7 @@ namespace StrategicOperations.Patches
         }
 
         [HarmonyPatch(typeof(CombatHUDActionButton), "ActivateCommandAbility",
-            new Type[] {typeof(string), typeof(Vector3), typeof(Vector3)})]
+            new Type[] { typeof(string), typeof(Vector3), typeof(Vector3) })]
         public static class CombatHUDActionButton_ActivateCommandAbility
         {
             public static bool Prefix(CombatHUDActionButton __instance, string teamGUID,
@@ -1545,7 +1564,7 @@ namespace StrategicOperations.Patches
         }
 
         [HarmonyPatch(typeof(CombatHUDEquipmentSlot), "ActivateCommandAbility",
-            new Type[] {typeof(string), typeof(Vector3), typeof(Vector3)})]
+            new Type[] { typeof(string), typeof(Vector3), typeof(Vector3) })]
         public static class CombatHUDEquipmentSlot_ActivateCommandAbility
         {
             public static bool Prefix(CombatHUDEquipmentSlot __instance, string teamGUID, Vector3 positionA,
@@ -1674,7 +1693,7 @@ namespace StrategicOperations.Patches
                 int ___numPositionsLocked)
             {
                 if (UnityGameInstance.BattleTechGame.Combat.ActiveContract.ContractTypeValue.IsSkirmish) return true;
-                
+
                 var HUD = Traverse.Create(__instance).Property("HUD").GetValue<CombatHUD>();
                 var positionA = Traverse.Create(__instance).Property("positionA").GetValue<Vector3>();
                 var positionB = Traverse.Create(__instance).Property("positionB").GetValue<Vector3>();
@@ -1696,7 +1715,7 @@ namespace StrategicOperations.Patches
                 {
                     ModState.OutOfRange = true;
                     CombatTargetingReticle.Instance.HideReticle();
-//                    ModInit.modLog?.Info?.Write($"Cannot strafe with coordinates farther than __instance.Ability.Def.IntParam2: {__instance.FromButton.Ability.Def.IntParam2}");
+                    //                    ModInit.modLog?.Info?.Write($"Cannot strafe with coordinates farther than __instance.Ability.Def.IntParam2: {__instance.FromButton.Ability.Def.IntParam2}");
                     return false;
                 }
 
@@ -1715,11 +1734,13 @@ namespace StrategicOperations.Patches
                 var dm = __instance.FromButton.Ability.Combat.DataManager;
                 var hk = Input.GetKey(KeyCode.LeftShift) || Input.GetKey(KeyCode.RightShift);
                 var actorResource = __instance.FromButton.Ability.Def.ActorResource;
+
                 if (___numPositionsLocked < 1)
                 {
-                    ModState.PopupActorResource = actorResource;
+                    //ModState.PopupActorResource = actorResource;
+                    ModState.PendingPlayerCmdParams = new CmdInvocationParams(ModInit.modSettings.strafeWaves, actorResource, __instance.FromButton.Ability.Def.getAbilityDefExtension().CMDPilotOverride, __instance.FromButton.Ability.Def.specialRules);
                 }
-                if (hk && string.IsNullOrEmpty(ModState.DeferredActorResource) &&
+                if (hk && string.IsNullOrEmpty(ModState.DeferredActorResource) && //will need to set it at as "placeholder" info, but only add on ProcessedPressedButton?
                     !ModState.OutOfRange)
                 {
                     var beaconDescs = "";
@@ -1817,83 +1838,93 @@ namespace StrategicOperations.Patches
                     switch (beacons.Count)
                     {
                         case 0:
-                        {
-                            goto RenderNow;
-                        }
+                            {
+                                goto RenderNow;
+                            }
                         case 1:
-                        {
-                            var beacon = beacons[0];
-                            var id = beacon.Def.ComponentTags.FirstOrDefault((string x) =>
-                                x.StartsWith("mechdef_") || x.StartsWith("vehicledef_") ||
-                                x.StartsWith("turretdef_"));
-                            var pilotID = beacon.Def.ComponentTags.FirstOrDefault(x => x.StartsWith("StratOpsPilot_"))
-                                ?.Remove(0, 14);
-                            var waveString = beacon.Def.ComponentTags.FirstOrDefault(x => x.StartsWith("StrafeWaves_"));
-                            int.TryParse(waveString?.Substring(11), out var waves);
+                            {
+                                var beacon = beacons[0];
+                                var id = beacon.Def.ComponentTags.FirstOrDefault((string x) =>
+                                    x.StartsWith("mechdef_") || x.StartsWith("vehicledef_") ||
+                                    x.StartsWith("turretdef_"));
+                                var pilotID = beacon.Def.ComponentTags.FirstOrDefault(x => x.StartsWith("StratOpsPilot_"))
+                                    ?.Remove(0, 14);
+                                var waveString = beacon.Def.ComponentTags.FirstOrDefault(x => x.StartsWith("StrafeWaves_"));
+                                int.TryParse(waveString?.Substring(11), out var waves);
                                 ModInit.modLog?.Info?.Write(
                                 $"beacon for button 2. will be {beacon.Def.Description.Name}, ID will be {id}, pilot will be {pilotID}");
-                            popup.AddButton("2.", (Action) (() =>
-                            {
-                                ModState.StrafeWaves = waves;
-                                ModState.PopupActorResource = id;
-                                ModState.PilotOverride = pilotID;
-                                ModState.IsStrafeAOE = beacon.IsAOEStrafe(
-                                    __instance.FromButton.Ability.Def.specialRules == AbilityDef.SpecialRules.Strafe);
-                                ModInit.modLog?.Info?.Write(
-                                    $"Player pressed {id} with pilot {pilotID}. Now -{ModState.PopupActorResource}- and pilot -{ModState.PilotOverride}- should be the same.");
-                            }));
-                            goto RenderNow;
-                        }
+                                popup.AddButton("2.", (Action)(() =>
+                                {
+                                    //ModState.StrafeWaves = waves;
+                                    //ModState.PopupActorResource = id;
+                                    //ModState.PilotOverride = pilotID;
+                                    //ModState.IsStrafeAOE = beacon.IsAOEStrafe(__instance.FromButton.Ability.Def.specialRules == AbilityDef.SpecialRules.Strafe);
+
+                                    ModState.PendingPlayerCmdParams = new CmdInvocationParams(waves, id, pilotID, __instance.FromButton.Ability.Def.specialRules, "",
+                                        beacon.IsAOEStrafe(
+                                            __instance.FromButton.Ability.Def.specialRules ==
+                                            AbilityDef.SpecialRules.Strafe));
+                                    ModInit.modLog?.Info?.Write(
+                                        $"Player pressed {id} with pilot {pilotID}. Now -{ModState.PendingPlayerCmdParams.ActorResource}- and pilot -{ModState.PendingPlayerCmdParams.PilotOverride}- should be the same.");
+                                }));
+                                goto RenderNow;
+                            }
                         case 2:
-                        {
-                            var beacon = beacons[1];
-                            var id = beacon.Def.ComponentTags.FirstOrDefault((string x) =>
-                                x.StartsWith("mechdef_") || x.StartsWith("vehicledef_") ||
-                                x.StartsWith("turretdef_"));
-                            var pilotID = beacon.Def.ComponentTags.FirstOrDefault(x => x.StartsWith("StratOpsPilot_"))
-                                ?.Remove(0, 14);
-                            var waveString = beacon.Def.ComponentTags.FirstOrDefault(x => x.StartsWith("StrafeWaves_"));
-                            int.TryParse(waveString?.Substring(11), out var waves);
+                            {
+                                var beacon = beacons[1];
+                                var id = beacon.Def.ComponentTags.FirstOrDefault((string x) =>
+                                    x.StartsWith("mechdef_") || x.StartsWith("vehicledef_") ||
+                                    x.StartsWith("turretdef_"));
+                                var pilotID = beacon.Def.ComponentTags.FirstOrDefault(x => x.StartsWith("StratOpsPilot_"))
+                                    ?.Remove(0, 14);
+                                var waveString = beacon.Def.ComponentTags.FirstOrDefault(x => x.StartsWith("StrafeWaves_"));
+                                int.TryParse(waveString?.Substring(11), out var waves);
                                 ModInit.modLog?.Info?.Write(
                                 $"beacon for button 3. will be {beacon.Def.Description.Name}, ID will be {id}, pilot will be {pilotID}");
-                            var id1 = id;
-                            var pilotID1 = pilotID;
-                            var waves1 = waves;
-                            var beacon1 = beacon;
-                            popup.AddButton("3.", (Action) (() =>
-                            {
-                                ModState.StrafeWaves = waves1;
-                                ModState.PopupActorResource = id1;
-                                ModState.PilotOverride = pilotID1;
-                                ModState.IsStrafeAOE = beacon1.IsAOEStrafe(
-                                    __instance.FromButton.Ability.Def.specialRules == AbilityDef.SpecialRules.Strafe);
-                                ModInit.modLog?.Info?.Write(
-                                    $"Player pressed {id1} with pilot {pilotID1}. Now -{ModState.PopupActorResource}- and pilot -{ModState.PilotOverride}- should be the same.");
-                            }));
+                                var id1 = id;
+                                var pilotID1 = pilotID;
+                                var waves1 = waves;
+                                var beacon1 = beacon;
+                                popup.AddButton("3.", (Action)(() =>
+                                {
+                                    //ModState.StrafeWaves = waves1;
+                                    //ModState.PopupActorResource = id1;
+                                    //ModState.PilotOverride = pilotID1;
+                                    //ModState.IsStrafeAOE = beacon1.IsAOEStrafe(__instance.FromButton.Ability.Def.specialRules == AbilityDef.SpecialRules.Strafe);
+                                    ModState.PendingPlayerCmdParams = new CmdInvocationParams(waves1, id1, pilotID1, __instance.FromButton.Ability.Def.specialRules, "",
+                                        beacon1.IsAOEStrafe(
+                                            __instance.FromButton.Ability.Def.specialRules ==
+                                            AbilityDef.SpecialRules.Strafe));
+                                    ModInit.modLog?.Info?.Write(
+                                        $"Player pressed {id1} with pilot {pilotID1}. Now -{ModState.PendingPlayerCmdParams.ActorResource}- and pilot -{ModState.PendingPlayerCmdParams.PilotOverride}- should be the same.");
+                                }));
 
-                            beacon = beacons[0];
-                            id = beacon.Def.ComponentTags.FirstOrDefault((string x) =>
-                                x.StartsWith("mechdef_") || x.StartsWith("vehicledef_") ||
-                                x.StartsWith("turretdef_"));
-                            pilotID = beacon.Def.ComponentTags.FirstOrDefault(x => x.StartsWith("StratOpsPilot_"))
-                                ?.Remove(0, 14);
-                            waveString = beacon.Def.ComponentTags.FirstOrDefault(x => x.StartsWith("StrafeWaves_"));
-                            int.TryParse(waveString?.Substring(11), out waves);
+                                beacon = beacons[0];
+                                id = beacon.Def.ComponentTags.FirstOrDefault((string x) =>
+                                    x.StartsWith("mechdef_") || x.StartsWith("vehicledef_") ||
+                                    x.StartsWith("turretdef_"));
+                                pilotID = beacon.Def.ComponentTags.FirstOrDefault(x => x.StartsWith("StratOpsPilot_"))
+                                    ?.Remove(0, 14);
+                                waveString = beacon.Def.ComponentTags.FirstOrDefault(x => x.StartsWith("StrafeWaves_"));
+                                int.TryParse(waveString?.Substring(11), out waves);
                                 ModInit.modLog?.Info?.Write(
                                 $"beacon for button 2. will be {beacon.Def.Description.Name}, ID will be {id}, pilot will be {pilotID}");
-                            popup.AddButton("2.", (Action) (() =>
-                            {
-                                ModState.StrafeWaves = waves;
-                                ModState.PopupActorResource = id;
-                                ModState.PilotOverride = pilotID;
-                                ModState.IsStrafeAOE = beacon.IsAOEStrafe(
-                                    __instance.FromButton.Ability.Def.specialRules == AbilityDef.SpecialRules.Strafe);
-                                ModInit.modLog?.Info?.Write(
-                                    $"Player pressed {id} with pilot {pilotID}. Now -{ModState.PopupActorResource}- and pilot -{ModState.PilotOverride}- should be the same.");
-                            }));
+                                popup.AddButton("2.", (Action)(() =>
+                                {
+                                    //ModState.StrafeWaves = waves;
+                                    //ModState.PopupActorResource = id;
+                                    //ModState.PilotOverride = pilotID;
+                                    //ModState.IsStrafeAOE = beacon.IsAOEStrafe(__instance.FromButton.Ability.Def.specialRules == AbilityDef.SpecialRules.Strafe);
+                                    ModState.PendingPlayerCmdParams = new CmdInvocationParams(waves, id, pilotID, __instance.FromButton.Ability.Def.specialRules, "",
+                                        beacon.IsAOEStrafe(
+                                            __instance.FromButton.Ability.Def.specialRules ==
+                                            AbilityDef.SpecialRules.Strafe));
+                                    ModInit.modLog?.Info?.Write(
+                                        $"Player pressed {id} with pilot {pilotID}. Now -{ModState.PendingPlayerCmdParams.ActorResource}- and pilot -{ModState.PendingPlayerCmdParams.PilotOverride}- should be the same.");
+                                }));
 
-                            goto RenderNow;
-                        }
+                                goto RenderNow;
+                            }
                     }
 
                     if (beacons.Count > 2)
@@ -1912,15 +1943,18 @@ namespace StrategicOperations.Patches
                         var pilotID1 = pilotID;
                         var waves1 = waves;
                         var beacon1 = beacon;
-                        popup.AddButton("3.", (Action) (() =>
+                        popup.AddButton("3.", (Action)(() =>
                         {
-                            ModState.StrafeWaves = waves1;
-                            ModState.PopupActorResource = id1;
-                            ModState.PilotOverride = pilotID1;
-                            ModState.IsStrafeAOE = beacon1.IsAOEStrafe(
-                                __instance.FromButton.Ability.Def.specialRules == AbilityDef.SpecialRules.Strafe);
+                            //ModState.StrafeWaves = waves1;
+                            //ModState.PopupActorResource = id1;
+                            //ModState.PilotOverride = pilotID1;
+                            //ModState.IsStrafeAOE = beacon1.IsAOEStrafe(__instance.FromButton.Ability.Def.specialRules == AbilityDef.SpecialRules.Strafe);
+                            ModState.PendingPlayerCmdParams = new CmdInvocationParams(waves1, id1, pilotID1, __instance.FromButton.Ability.Def.specialRules, "",
+                                beacon1.IsAOEStrafe(
+                                    __instance.FromButton.Ability.Def.specialRules ==
+                                    AbilityDef.SpecialRules.Strafe));
                             ModInit.modLog?.Info?.Write(
-                                $"Player pressed {id1} with pilot {pilotID1}. Now -{ModState.PopupActorResource}- and pilot -{ModState.PilotOverride}- should be the same.");
+                                $"Player pressed {id1} with pilot {pilotID1}. Now -{ModState.PendingPlayerCmdParams.ActorResource}- and pilot -{ModState.PendingPlayerCmdParams.PilotOverride}- should be the same.");
                         }));
 
                         beacon = beacons[0];
@@ -1937,15 +1971,18 @@ namespace StrategicOperations.Patches
                         var pilotID2 = pilotID;
                         var waves2 = waves;
                         var beacon2 = beacon;
-                        popup.AddButton("2.", (Action) (() =>
+                        popup.AddButton("2.", (Action)(() =>
                         {
-                            ModState.StrafeWaves = waves2;
-                            ModState.PopupActorResource = id2;
-                            ModState.PilotOverride = pilotID2;
-                            ModState.IsStrafeAOE = beacon2.IsAOEStrafe(
-                                __instance.FromButton.Ability.Def.specialRules == AbilityDef.SpecialRules.Strafe);
+                            //ModState.StrafeWaves = waves2;
+                            //ModState.PopupActorResource = id2;
+                            //ModState.PilotOverride = pilotID2;
+                            //ModState.IsStrafeAOE = beacon2.IsAOEStrafe(__instance.FromButton.Ability.Def.specialRules == AbilityDef.SpecialRules.Strafe);
+                            ModState.PendingPlayerCmdParams = new CmdInvocationParams(waves2, id2, pilotID2, __instance.FromButton.Ability.Def.specialRules, "",
+                                beacon2.IsAOEStrafe(
+                                    __instance.FromButton.Ability.Def.specialRules ==
+                                    AbilityDef.SpecialRules.Strafe));
                             ModInit.modLog?.Info?.Write(
-                                $"Player pressed {id2} with pilot {pilotID2}. Now -{ModState.PopupActorResource}- and pilot -{ModState.PilotOverride}- should be the same.");
+                                $"Player pressed {id2} with pilot {pilotID2}. Now -{ModState.PendingPlayerCmdParams.ActorResource}- and pilot -{ModState.PendingPlayerCmdParams.PilotOverride}- should be the same.");
                         }));
 
                         for (var index = 2; index < beacons.Count; index++)
@@ -1954,7 +1991,7 @@ namespace StrategicOperations.Patches
                             id = beacon.Def.ComponentTags.FirstOrDefault(x =>
                                 x.StartsWith("mechdef_") || x.StartsWith("vehicledef_") ||
                                 x.StartsWith("turretdef_"));
-                            
+
                             pilotID = beacon.Def.ComponentTags.FirstOrDefault(x => x.StartsWith("StratOpsPilot_"))
                                 ?.Remove(0, 14);
                             waveString = beacon.Def.ComponentTags.FirstOrDefault(x => x.StartsWith("StrafeWaves_"));
@@ -1968,22 +2005,25 @@ namespace StrategicOperations.Patches
                             var waves3 = waves;
                             var beacon3 = beacon;
                             popup.AddButton(buttonName,
-                                (Action) (() =>
+                                (Action)(() =>
                                 {
-                                    ModState.StrafeWaves = waves3;
-                                    ModState.PopupActorResource = id3;
-                                    ModState.PilotOverride = pilotID3;
-                                    ModState.IsStrafeAOE = beacon3.IsAOEStrafe(
-                                        __instance.FromButton.Ability.Def.specialRules == AbilityDef.SpecialRules.Strafe);
+                                    //ModState.StrafeWaves = waves3;
+                                    //ModState.PopupActorResource = id3;
+                                    //ModState.PilotOverride = pilotID3;
+                                    //ModState.IsStrafeAOE = beacon3.IsAOEStrafe(__instance.FromButton.Ability.Def.specialRules == AbilityDef.SpecialRules.Strafe);
+                                    ModState.PendingPlayerCmdParams = new CmdInvocationParams(waves3, id3, pilotID3, __instance.FromButton.Ability.Def.specialRules, "",
+                                        beacon3.IsAOEStrafe(
+                                            __instance.FromButton.Ability.Def.specialRules ==
+                                            AbilityDef.SpecialRules.Strafe));
                                     ModInit.modLog?.Info?.Write(
-                                        $"Player pressed {id3} with pilot {pilotID3}. Now -{ModState.PopupActorResource}- and pilot -{ModState.PilotOverride}- should be the same.");
+                                        $"Player pressed {id3} with pilot {pilotID3}. Now -{ModState.PendingPlayerCmdParams.ActorResource}- and pilot -{ModState.PendingPlayerCmdParams.PilotOverride}- should be the same.");
                                 }));
                             ModInit.modLog?.Info?.Write(
                                 $"Added button for {buttonName}");
                         }
                     }
 
-                    RenderNow:
+                RenderNow:
                     popup.CancelOnEscape();
                     popup.Render();
 
@@ -2017,7 +2057,7 @@ namespace StrategicOperations.Patches
                     var cHUD = Traverse.Create(__instance).Property("HUD").GetValue<CombatHUD>();
                     var creator = cHUD.SelectedActor;
                     ModState.cancelChanceForPlayerStrafe = 0f;
-                    
+
                     var opforUnit = creator.FindMeAnOpforUnit();
                     if (opforUnit != null)
                     {
@@ -2027,6 +2067,28 @@ namespace StrategicOperations.Patches
                     cHUD.AttackModeSelector.FireButton.FireText.SetText($"{chanceDisplay}% - Confirm", Array.Empty<object>());
 
                     ModInit.modLog?.Trace?.Write($"[SelectionStateCommandTargetTwoPoints.ProcessLeftClick] Creator {creator.DisplayName} initializing strafe vs target {opforUnit.team.DisplayName}. Calculated cancelChance {ModState.cancelChanceForPlayerStrafe}, display success chance: {chanceDisplay}.");
+                }
+            }
+        }
+
+        [HarmonyPatch(typeof(SelectionStateCommandTargetTwoPoints), "ProcessPressedButton")]
+        public static class SelectionStateCommandTargetTwoPoints_ProcessPressedButton
+        {
+            public static void Prefix(SelectionStateCommandTargetTwoPoints __instance, string button)
+            {
+                if (button == "BTN_FireConfirm")
+                {
+                    if (!string.IsNullOrEmpty(ModState.PendingPlayerCmdParams.ActorResource))
+                    {
+                        var posA = Traverse.Create(__instance).Property("positionA").GetValue<Vector3>();
+                        var posB = Traverse.Create(__instance).Property("positionB").GetValue<Vector3>();
+                        var quid = __instance.FromButton.Ability.Generate2PtCMDQuasiGUID(posA, posB);
+                        ModState.PendingPlayerCmdParams.QUID = quid;
+                        ModState.StoredCmdParams.Add(quid, new CmdInvocationParams(ModState.PendingPlayerCmdParams));
+                        ModState.PendingPlayerCmdParams = new CmdInvocationParams();
+                        ModInit.modLog?.Trace?.Write(
+                            $"[SelectionStateCommandTargetTwoPoints_ProcessPressedButton] Transferred pending strafe params to dictionary: {ModState.StoredCmdParams[quid].QUID}");
+                    }
                 }
             }
         }
@@ -2144,7 +2206,7 @@ namespace StrategicOperations.Patches
         }
 
         [HarmonyPatch(typeof(CombatHUDEquipmentSlotEx), "ResetAbilityButton",
-            new Type[] {typeof(AbstractActor), typeof(CombatHUDActionButton), typeof(Ability), typeof(bool)})]
+            new Type[] { typeof(AbstractActor), typeof(CombatHUDActionButton), typeof(Ability), typeof(bool) })]
         public static class CombatHUDEquipmentSlotEx_ResetAbilityButton
         {
             public static void Postfix(CombatHUDEquipmentSlotEx __instance, AbstractActor actor,

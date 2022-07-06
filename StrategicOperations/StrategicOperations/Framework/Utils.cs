@@ -22,6 +22,12 @@ namespace StrategicOperations.Framework
 {
     public static class Utils
     {
+        public static string Generate2PtCMDQuasiGUID(this Ability ability, Vector3 positionA, Vector3 positionB)
+        {
+            var sim = UnityGameInstance.BattleTechGame.Simulation;
+            return $"STRAFE_ID_{ability.Def.Id}_{positionA}_{positionB}";
+        }
+
         public static void ForceUnitToLastActualPhase(this AbstractActor actor)
         {
             if (actor.Combat.TurnDirector.IsInterleaved && actor.Initiative != actor.Combat.TurnDirector.LastPhase)

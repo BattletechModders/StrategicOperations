@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using System.Runtime.Remoting.Messaging;
+using Abilifier.Patches;
 using BattleTech;
 using BattleTech.DataObjects;
 using BattleTech.UI;
@@ -467,12 +468,25 @@ namespace StrategicOperations.Patches
 
                 if (!ModState.AiCmds.ContainsKey(unit.GUID)) return true;
                 if (!ModState.AiCmds[unit.GUID].active) return true;
-                ModState.PopupActorResource =
-                    AI_Utils.AssignRandomSpawnAsset(ModState.AiCmds[unit.GUID].ability, unit.team.FactionValue.Name,
-                        out var waves);
-                ModState.StrafeWaves = waves;
-                //assign waves here if needed
+                //ModState.PopupActorResource = AI_Utils.AssignRandomSpawnAsset(ModState.AiCmds[unit.GUID].ability, unit.team.FactionValue.Name, out var waves);
+                //ModState.StrafeWaves = waves;
+                var newParams = new CmdInvocationParams();
+                newParams.ActorResource  = AI_Utils.AssignRandomSpawnAsset(ModState.AiCmds[unit.GUID].ability, unit.team.FactionValue.Name,
+                    out var waves);
+                newParams.StrafeWaves = waves;
 
+                if (!string.IsNullOrEmpty(ModState.AiCmds[unit.GUID].ability.Def.getAbilityDefExtension()
+                        .CMDPilotOverride))
+                {
+                    newParams.PilotOverride = ModState.AiCmds[unit.GUID].ability.Def.getAbilityDefExtension()
+                        .CMDPilotOverride;
+                }
+
+                var quid = ModState.AiCmds[unit.GUID].ability
+                    .Generate2PtCMDQuasiGUID(ModState.AiCmds[unit.GUID].vectorOne,
+                        ModState.AiCmds[unit.GUID].vectorTwo);
+                ModState.StoredCmdParams.Add(quid, newParams);
+                //assign waves here if needed
                 ModInit.modLog?.Debug?.Write(
                     $"AICMD DUMP: {ModState.AiCmds[unit.GUID].active}, {ModState.AiCmds[unit.GUID].vectorOne}, {ModState.AiCmds[unit.GUID].vectorTwo}.");
                 ModInit.modLog?.Debug?.Write(
