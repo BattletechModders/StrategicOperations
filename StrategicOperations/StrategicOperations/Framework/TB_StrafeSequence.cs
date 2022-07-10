@@ -127,7 +127,7 @@ namespace StrategicOperations.Framework
                         var targetDist = Vector3.Distance(this.Attacker.CurrentPosition,
                             this.CurrentTargets[i].CurrentPosition);
                         ModInit.modLog?.Info?.Write(
-                            $"Strafing unit {Attacker.DisplayName} is {targetDist}m from  {target.DisplayName}");
+                            $"Strafing unit {Attacker.DisplayName} is {targetDist}m from {target.DisplayName}, at loc {this.Attacker.CurrentPosition}. {base.Combat.MapMetaData.GetLerpedHeightAt(this.Attacker.CurrentPosition, false)} above map");
                         if (targetDist <= this.MaxWeaponRange)
                         {
                             var filteredWeapons =
@@ -336,10 +336,10 @@ namespace StrategicOperations.Framework
             var dist = Vector3.Distance(vector, currentPosition);
             if (dist < this.Radius)
             {
-                ModInit.modLog?.Info?.Write($"Target {combatant.DisplayName} is within weapons range. Distance: {dist}, Range: {this.Radius}");
+                ModInit.modLog?.Info?.Write($"Target {combatant.DisplayName} is within strafe radius range. Distance: {dist}, Range: {this.Radius}");
                 return true;
             }
-            ModInit.modLog?.Debug?.Write($"Target {combatant.DisplayName} not within weapons range. Distance: {dist}, Range: {this.Radius}");
+            ModInit.modLog?.Debug?.Write($"Target {combatant.DisplayName} not within strafe radius range. Distance: {dist}, Range: {this.Radius}");
             return false;
         }
         public override void Load(SerializationStream stream)
@@ -498,7 +498,15 @@ namespace StrategicOperations.Framework
             {
                 case TB_StrafeSequence.SequenceState.Incoming:
                     var pos2 = this.Attacker.CurrentPosition + this.Velocity * Time.deltaTime;
-                    pos2.y = this.Combat.MapMetaData.GetLerpedHeightAt(pos2, false) + this.HeightOffset;
+                    var terrainHeight = this.Combat.MapMetaData.GetLerpedHeightAt(pos2, false);
+                    if (pos2.y < terrainHeight)
+                    {
+                        ModInit.modLog?.Debug?.Write($"We're going under the map, should be fixing.");
+                    }
+                    if (pos2.y - terrainHeight < this.HeightOffset)
+                    {
+                        pos2.y = terrainHeight + this.HeightOffset; //add gate here so it doesnt continue up forever?
+                    }
                     this.SetPosition(pos2, this.Attacker.CurrentRotation);
                     if (true)// switched this? should give AI visibility too i guess (StrafingTeam.IsLocalPlayer)
                     {
@@ -528,10 +536,14 @@ namespace StrategicOperations.Framework
                 case TB_StrafeSequence.SequenceState.Strafing:
                     var pos3 = this.Attacker.CurrentPosition + this.Velocity * Time.deltaTime;
                     // maybe try to smooth out altitude changes here. but i dont really care.
-
-                    if (this.Combat.MapMetaData.GetLerpedHeightAt(pos3, false) < this.HeightOffset)
+                    var terrainHeight2 = this.Combat.MapMetaData.GetLerpedHeightAt(pos3, false);
+                    if (pos3.y < terrainHeight2)
                     {
-                        pos3.y = this.Combat.MapMetaData.GetLerpedHeightAt(pos3, false) + this.HeightOffset;
+                        ModInit.modLog?.Debug?.Write($"We're going under the map, should be fixing.");
+                    }
+                    if (pos3.y - terrainHeight2 < this.HeightOffset)
+                    {
+                        pos3.y = terrainHeight2 + this.HeightOffset;
                     }
                     this.SetPosition(pos3, this.Attacker.CurrentRotation);
                     this.AttackNextTargets();
