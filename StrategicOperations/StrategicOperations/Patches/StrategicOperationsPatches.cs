@@ -569,6 +569,24 @@ namespace StrategicOperations.Patches
             }
         }
 
+        [HarmonyPatch(typeof(Ability), "IsAvailable", MethodType.Getter)]
+        public static class Ability_IsAvailable_Getter
+        {
+            public static void Postfix(Ability __instance, ref bool __result)
+            {
+                if (UnityGameInstance.BattleTechGame.Combat.ActiveContract.ContractTypeValue.IsSkirmish) return;
+                if ((__instance.Def.specialRules == AbilityDef.SpecialRules.Strafe ||
+                     __instance.Def.specialRules == AbilityDef.SpecialRules.SpawnTurret) &&
+                    (ModInit.modSettings.BeaconExcludedContractIDs.Contains(
+                         __instance.Combat.ActiveContract.Override.ID) ||
+                     ModInit.modSettings.BeaconExcludedContractTypes.Contains(__instance.Combat.ActiveContract
+                         .ContractTypeValue.Name)))
+                {
+                    __result = false;
+                }
+            }
+        }
+
         [HarmonyPatch(typeof(Ability), "Activate",
             new Type[] { typeof(AbstractActor), typeof(ICombatant) })]
         public static class Ability_Activate_ICombatant
@@ -685,6 +703,12 @@ namespace StrategicOperations.Patches
                                 }
                                 else
                                 {
+//                                    if (!targetActor.StatCollection.GetValue<bool>("irbtmu_immobile_unit"))
+//                                    {
+//                                        targetActor.StatCollection.Set("irbtmu_immobile_unit", true);
+//                                        targetActor.ResetPathing();
+//                                        ModState.UnitPendingAirliftInvocation = targetActor.GUID;
+//                                    }
                                     //ModState.AirliftDropoffEvasion = creator.EvasivePipsCurrent;
                                     MessageCenterMessage invocation =
                                         new StrategicMovementInvocation(creator, true, targetActor, true, false);

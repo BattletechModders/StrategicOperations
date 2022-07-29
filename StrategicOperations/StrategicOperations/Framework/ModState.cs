@@ -11,6 +11,7 @@ namespace StrategicOperations.Framework
 {
     public static class ModState
     {
+        //public static string UnitPendingAirliftInvocation = "";
         //public static AbstractActor startUnitFromInvocation = null;
         public static float cancelChanceForPlayerStrafe = 0f;
         public static List<string> TeamsWithResupply = new List<string>();
@@ -166,6 +167,7 @@ namespace StrategicOperations.Framework
 
         public static void ResetAll()
         {
+            //UnitPendingAirliftInvocation = "";
             cancelChanceForPlayerStrafe = 0f;
             ResupplyShutdownPhases = new Dictionary<string, int>();
             TeamsWithResupply = new List<string>();

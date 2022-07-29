@@ -176,11 +176,16 @@ namespace StrategicOperations.Framework
 
         public static void MountUnitToAirliftCarrier(this AbstractActor carrier, AbstractActor targetUnit, bool isFriendly)
         {
+//            if (targetUnit.GUID == ModState.UnitPendingAirliftInvocation)
+//            {
+//                targetUnit.StatCollection.Set("irbtmu_immobile_unit", false);
+//            }
+//            ModState.UnitPendingAirliftInvocation = "";
             if (targetUnit is Mech targetMech) //handle turret also below this
             {
                 foreach (var airliftEffect in ModState.AirliftEffects)
                 {
-                    if (airliftEffect.FriendlyAirlift && isFriendly)
+                    if (airliftEffect.FriendlyAirlift && isFriendly) 
                     {
                         foreach (var effectData in airliftEffect.effects)
                         {
@@ -396,7 +401,7 @@ namespace StrategicOperations.Framework
 
             if (ModState.AirliftTrackers[actor.GUID].IsCarriedInternal)
             {
-                if (ModInit.modSettings.AirliftCapacityByTonnage && !actor.getOverrideCapacityMethod() || !ModInit.modSettings.AirliftCapacityByTonnage && actor.getOverrideCapacityMethod())
+                if (ModInit.modSettings.AirliftCapacityByTonnage && !carrier.getOverrideCapacityMethod() || !ModInit.modSettings.AirliftCapacityByTonnage && carrier.getOverrideCapacityMethod())
                 {
                     var tonnage = 0;
                     if (actor is Mech mech) tonnage = Mathf.RoundToInt(mech.tonnage);
@@ -412,7 +417,7 @@ namespace StrategicOperations.Framework
             }
             else
             {
-                if (ModInit.modSettings.AirliftCapacityByTonnage && !actor.getOverrideCapacityMethod() || !ModInit.modSettings.AirliftCapacityByTonnage && actor.getOverrideCapacityMethod())
+                if (ModInit.modSettings.AirliftCapacityByTonnage && !carrier.getOverrideCapacityMethod() || !ModInit.modSettings.AirliftCapacityByTonnage && carrier.getOverrideCapacityMethod())
                 {
                     var tonnage = 0;
                     if (actor is Mech mech) tonnage = Mathf.RoundToInt(mech.tonnage);
