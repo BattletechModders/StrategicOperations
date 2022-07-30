@@ -672,6 +672,33 @@ namespace StrategicOperations.Patches
             }
         }
 
+        [HarmonyPatch(typeof(Team), "DeferAllAvailableActors",
+            new Type[] { })]
+        public static class Team_DeferAllAvailableActors
+        {
+            static bool Prepare() => ModInit.modSettings.EnableQuickReserve;
+            public static bool Prefix(Team __instance)
+            {
+                var hk = Input.GetKey(KeyCode.LeftShift) || Input.GetKey(KeyCode.RightShift);
+                if (hk)
+                {
+                    for (int i = 0; i < __instance.units.Count; i++)
+                    {
+                        if (__instance.units[i].Combat.TurnDirector.IsInterleaved && !__instance.units[i].IsDead && !__instance.units[i].IsFlaggedForDeath && !__instance.units[i].HasActivatedThisRound && !__instance.units[i].HasBegunActivation)
+                        {
+                            if (__instance.units[i].Initiative != __instance.units[i].Combat.TurnDirector.LastPhase)
+                            {
+                                __instance.units[i].DeferUnit();
+                                __instance.units[i].ForceUnitToLastActualPhase();
+                            }
+                        }
+                    }
+                    return false;
+                }
+                return true;
+            }
+        }
+
         [HarmonyPatch(typeof(CombatHUDButtonBase), "OnClick",
             new Type[] { })]
         public static class CombatHUDButtonBase_OnClick
