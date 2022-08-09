@@ -1752,20 +1752,39 @@ namespace StrategicOperations.Patches
         public static class SelectionStateCommandTargetTwoPoints_ProcessLeftClick
         {
             public static bool Prefix(SelectionStateCommandTargetTwoPoints __instance, Vector3 worldPos,
-                int ___numPositionsLocked, ref bool __result)
+                int ___numPositionsLocked, ref bool __result, ref bool __state)
             {
                 if (UnityGameInstance.BattleTechGame.Combat.ActiveContract.ContractTypeValue.IsSkirmish) return true;
                 var dm = __instance.FromButton.Ability.Combat.DataManager;
                 var hk = Input.GetKey(KeyCode.LeftShift) || Input.GetKey(KeyCode.RightShift);
                 var actorResource = __instance.FromButton.Ability.Def.ActorResource;
-
                 if (___numPositionsLocked < 1)
                 {
                     //ModState.PopupActorResource = actorResource;
                     ModState.PendingPlayerCmdParams = new CmdInvocationParams(ModInit.modSettings.strafeWaves, actorResource, __instance.FromButton.Ability.Def.getAbilityDefExtension().CMDPilotOverride, __instance.FromButton.Ability.Def.specialRules);
                 }
-                if (hk && string.IsNullOrEmpty(ModState.DeferredActorResource) && //will need to set it at as "placeholder" info, but only add on ProcessedPressedButton?
-                    !ModState.OutOfRange)
+
+                var HUD = Traverse.Create(__instance).Property("HUD").GetValue<CombatHUD>();
+                var theActor = HUD.SelectedActor;
+                if (theActor == null) return true;
+                var distance = Mathf.RoundToInt(Vector3.Distance(theActor.CurrentPosition, worldPos));
+                var maxRange = Mathf.RoundToInt(__instance.FromButton.Ability.Def.IntParam2);
+                __result = true;
+                if (__instance.FromButton.Ability.Def.specialRules == AbilityDef.SpecialRules.Strafe && distance > maxRange)
+                {
+                    __state = true;
+                    __result = false;
+                    return false;
+                }
+                else if (__instance.FromButton.Ability.Def.specialRules == AbilityDef.SpecialRules.SpawnTurret && distance > maxRange && ___numPositionsLocked < 1)
+                {
+                    __state = true;
+                    __result = false;
+                    return false;
+                }
+
+                if (hk && string.IsNullOrEmpty(ModState.DeferredActorResource) && !ModState.OutOfRange)//will need to set it at as "placeholder" info, but only add on ProcessedPressedButton?
+                     
                 {
                     var beaconDescs = "";
                     var type = "";
@@ -2047,35 +2066,19 @@ namespace StrategicOperations.Patches
                         }
                     }
 
-                RenderNow:
+                    RenderNow:
                     popup.CancelOnEscape();
                     popup.Render();
 
-                    var HUD = Traverse.Create(__instance).Property("HUD").GetValue<CombatHUD>();
-                    var theActor = HUD.SelectedActor;
-                    if (theActor == null) return true;
-                    var distance = Mathf.RoundToInt(Vector3.Distance(theActor.CurrentPosition, worldPos));
-                    var maxRange = Mathf.RoundToInt(__instance.FromButton.Ability.Def.IntParam2);
-                    __result = true;
-                    if ((__instance.FromButton.Ability.Def.specialRules == AbilityDef.SpecialRules.Strafe &&
-                         distance > maxRange) ||
-                        (__instance.FromButton.Ability.Def.specialRules ==
-                         AbilityDef.SpecialRules.SpawnTurret &&
-                         distance > maxRange))
-                    {
-                        __result = false;
-                        return false;
-                    }
-
                     return true;
                 }
-
                 return true;
             }
 
             public static void Postfix(SelectionStateCommandTargetTwoPoints __instance, Vector3 worldPos,
-                int ___numPositionsLocked)
+                int ___numPositionsLocked, bool __state)
             {
+                if (__state) return;
                 if (___numPositionsLocked == 2)
                 {
                     var cHUD = Traverse.Create(__instance).Property("HUD").GetValue<CombatHUD>();

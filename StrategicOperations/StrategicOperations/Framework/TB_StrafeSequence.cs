@@ -9,6 +9,7 @@ using CustomAmmoCategoriesPatches;
 using Harmony;
 using HBS.Math;
 using HBS.Util;
+using IRBTModUtils;
 using UnityEngine;
 
 namespace StrategicOperations.Framework
@@ -215,7 +216,8 @@ namespace StrategicOperations.Framework
             if (IsStrafeAOE)
             {
                 ModInit.modLog?.Info?.Write($"Calculating impact points for AOE Strafe.");
-                this.HUD = Traverse.Create(CameraControl.Instance).Property("HUD").GetValue<CombatHUD>();
+                this.HUD = SharedState.CombatHUD;
+                //this.HUD = Traverse.Create(CameraControl.Instance).Property("HUD").GetValue<CombatHUD>();
                 Vector3 b = (this.EndPos - StartPos) / Math.Max(this.AOECount - 1, 1);
                 Vector3 vector = StartPos;
                 vector.y = base.Combat.MapMetaData.GetLerpedHeightAt(vector, false);

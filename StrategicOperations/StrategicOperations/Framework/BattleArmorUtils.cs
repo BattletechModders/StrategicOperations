@@ -13,6 +13,7 @@ using CustomComponents;
 using CustomUnits;
 using Harmony;
 using HBS.Math;
+using IRBTModUtils;
 using Localize;
 using UIWidgets;
 using UnityEngine;
@@ -736,8 +737,8 @@ namespace StrategicOperations.Framework
                 }
 
                 actor.FiringArc(actor.GetCustomInfo().FiringArc);
-
-                var hud = Traverse.Create(CameraControl.Instance).Property("HUD").GetValue<CombatHUD>();
+                var hud = SharedState.CombatHUD;
+                //var hud = Traverse.Create(CameraControl.Instance).Property("HUD").GetValue<CombatHUD>();
                 //actor.GameRep.IsTargetable = true;
 
                 ModState.PositionLockMount.Remove(actor.GUID);
@@ -817,7 +818,8 @@ namespace StrategicOperations.Framework
                 }
             }
             squad.FiringArc(squad.GetCustomInfo().FiringArc);
-            var hud = Traverse.Create(CameraControl.Instance).Property("HUD").GetValue<CombatHUD>();
+            var hud = SharedState.CombatHUD;
+            //var hud = Traverse.Create(CameraControl.Instance).Property("HUD").GetValue<CombatHUD>();
             //actor.GameRep.IsTargetable = true;
 
             building.RemoveFromTeam();
