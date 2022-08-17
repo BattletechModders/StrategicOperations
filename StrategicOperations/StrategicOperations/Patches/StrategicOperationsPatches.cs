@@ -1526,7 +1526,7 @@ namespace StrategicOperations.Patches
                 Vector3 positionA, //prefix to try and make command abilities behave like normal ones
                 Vector3 positionB)
             {
-                var HUD = Traverse.Create(__instance).Property("HUD").GetValue<CombatHUD>();
+                var HUD = IRBTModUtils.SharedState.CombatHUD;//Traverse.Create(__instance).Property("HUD").GetValue<CombatHUD>();
                 var theActor = HUD.SelectedActor;
                 if (theActor == null) return true;
                 var combat = HUD.Combat;
@@ -1555,7 +1555,7 @@ namespace StrategicOperations.Patches
             {
                 if (UnityGameInstance.BattleTechGame.Combat.ActiveContract.ContractTypeValue.IsSkirmish) return;
                 var def = __instance.Ability.Def;
-                var HUD = Traverse.Create(__instance).Property("HUD").GetValue<CombatHUD>();
+                var HUD = IRBTModUtils.SharedState.CombatHUD; //Traverse.Create(__instance).Property("HUD").GetValue<CombatHUD>();
                 var theActor = HUD.SelectedActor;
                 if (theActor == null) return;
                 if (def.specialRules == AbilityDef.SpecialRules.Strafe &&
@@ -1594,7 +1594,7 @@ namespace StrategicOperations.Patches
             public static bool Prefix(CombatHUDEquipmentSlot __instance, string teamGUID, Vector3 positionA,
                 Vector3 positionB)
             {
-                var HUD = Traverse.Create(__instance).Property("HUD").GetValue<CombatHUD>();
+                var HUD = IRBTModUtils.SharedState.CombatHUD;// Traverse.Create(__instance).Property("HUD").GetValue<CombatHUD>();
                 var theActor = HUD.SelectedActor;
                 if (theActor == null) return true;
                 var combat = HUD.Combat;
@@ -1623,7 +1623,7 @@ namespace StrategicOperations.Patches
             {
                 if (__instance.Ability.Combat.ActiveContract.ContractTypeValue.IsSkirmish) return;
                 var def = __instance.Ability.Def;
-                var HUD = Traverse.Create(__instance).Property("HUD").GetValue<CombatHUD>();
+                var HUD = IRBTModUtils.SharedState.CombatHUD;//Traverse.Create(__instance).Property("HUD").GetValue<CombatHUD>();
                 var theActor = HUD.SelectedActor;
                 if (theActor == null) return;
                 if (def.specialRules == AbilityDef.SpecialRules.Strafe &&
@@ -1660,7 +1660,7 @@ namespace StrategicOperations.Patches
             public static void Postfix(SelectionStateCommand __instance)
             {
                 if (UnityGameInstance.BattleTechGame.Combat.ActiveContract.ContractTypeValue.IsSkirmish) return;
-                var HUD = Traverse.Create(__instance).Property("HUD").GetValue<CombatHUD>();
+                var HUD = IRBTModUtils.SharedState.CombatHUD;//Traverse.Create(__instance).Property("HUD").GetValue<CombatHUD>();
                 var theActor = HUD.SelectedActor;
                 if (theActor == null) return;
                 CombatTargetingReticle.Instance.HideReticle();
@@ -1679,7 +1679,7 @@ namespace StrategicOperations.Patches
             {
                 if (UnityGameInstance.BattleTechGame.Combat.ActiveContract.ContractTypeValue.IsSkirmish) return true;
                 CombatSpawningReticle.Instance.ShowReticle();
-                var HUD = Traverse.Create(__instance).Property("HUD").GetValue<CombatHUD>();
+                var HUD = IRBTModUtils.SharedState.CombatHUD;//Traverse.Create(__instance).Property("HUD").GetValue<CombatHUD>();
                 var theActor = HUD.SelectedActor;
                 if (theActor == null) return true;
                 var distance = Mathf.RoundToInt(Vector3.Distance(theActor.CurrentPosition, worldPos));
@@ -1718,7 +1718,7 @@ namespace StrategicOperations.Patches
             {
                 if (UnityGameInstance.BattleTechGame.Combat.ActiveContract.ContractTypeValue.IsSkirmish) return true;
 
-                var HUD = Traverse.Create(__instance).Property("HUD").GetValue<CombatHUD>();
+                var HUD = IRBTModUtils.SharedState.CombatHUD;//Traverse.Create(__instance).Property("HUD").GetValue<CombatHUD>();
                 var positionA = Traverse.Create(__instance).Property("positionA").GetValue<Vector3>();
                 var positionB = Traverse.Create(__instance).Property("positionB").GetValue<Vector3>();
 
@@ -1764,7 +1764,7 @@ namespace StrategicOperations.Patches
                     ModState.PendingPlayerCmdParams = new CmdInvocationParams(ModInit.modSettings.strafeWaves, actorResource, __instance.FromButton.Ability.Def.getAbilityDefExtension().CMDPilotOverride, __instance.FromButton.Ability.Def.specialRules);
                 }
 
-                var HUD = Traverse.Create(__instance).Property("HUD").GetValue<CombatHUD>();
+                var HUD = IRBTModUtils.SharedState.CombatHUD;//Traverse.Create(__instance).Property("HUD").GetValue<CombatHUD>();
                 var theActor = HUD.SelectedActor;
                 if (theActor == null) return true;
                 var distance = Mathf.RoundToInt(Vector3.Distance(theActor.CurrentPosition, worldPos));
@@ -2081,7 +2081,7 @@ namespace StrategicOperations.Patches
                 if (__state) return;
                 if (___numPositionsLocked == 2)
                 {
-                    var cHUD = Traverse.Create(__instance).Property("HUD").GetValue<CombatHUD>();
+                    var cHUD = IRBTModUtils.SharedState.CombatHUD;//Traverse.Create(__instance).Property("HUD").GetValue<CombatHUD>();
                     var creator = cHUD.SelectedActor;
                     ModState.cancelChanceForPlayerStrafe = 0f;
 
@@ -2303,7 +2303,6 @@ namespace StrategicOperations.Patches
             }
         }
 
-
         [HarmonyPatch(typeof(CameraControl), "ShowActorCam")]
         public static class CameraControl_ShowActorCam
         {
@@ -2388,7 +2387,82 @@ namespace StrategicOperations.Patches
                     apObject.transform.localScale = new Vector3(num * 2f, 1f, num * 2f);
                 }
                 ___currentAPRange = num;
+            }
+        }
 
+        [HarmonyPatch(typeof(CombatSelectionHandler), "ProcessInput")]
+        public static class CombatSelectionHandler_ProcessInput
+        {
+            public static bool Prefix(CombatSelectionHandler __instance)
+            {
+                if (__instance.SelectedActor != null && __instance.SelectedActor.team != null && __instance.SelectedActor.team.IsLocalPlayer)
+                {
+                    var combat = UnityGameInstance.BattleTechGame.Combat;
+                    if (!LazySingletonBehavior<UIManager>.Instance.ToggleUINode ||
+                        combat.StackManager.TopSequence is ArtilleryObjectiveSequence)
+                    {
+                        return false;
+                    }
+
+                    if (__instance.CombatInputBlocked)
+                    {
+                        return false;
+                    }
+
+                    if (!combat.TurnDirector.GameHasBegun)
+                    {
+                        if (CameraControl.Instance != null && CameraControl.Instance.IsInTutorialMode)
+                        {
+                            return true;
+                        }
+                    }
+
+                    if (Input.anyKeyDown)
+                    {
+                        if (Input.GetKey(KeyCode.LeftShift) || Input.GetKey(KeyCode.RightShift))
+                        {
+                            if (Input.GetKey(ModInit.modSettings.EquipmentButtonsHotkey))
+                            {
+                                var hud = IRBTModUtils.SharedState.CombatHUD;
+                                if (hud.SelectedActor == __instance.SelectedActor)
+                                {
+                                    var slots = CombatHUDEquipmentPanel.Instance.slots;
+                                    var lastActive = new Tuple<int, int>(-1,-1);
+                                    var buttonList = new List<CombatHUDActionButton>();
+                                    for (var slotIndex = 0; slotIndex < slots.Count; slotIndex++)
+                                    {
+                                        if (slots[slotIndex].buttons.Count > 0)
+                                        {
+                                            for (var buttonIndex = 0;
+                                                 buttonIndex < slots[slotIndex].buttons.Count;
+                                                 buttonIndex++)
+                                            {
+                                                buttonList.Add(slots[slotIndex].buttons[buttonIndex]);
+                                            }
+                                        }
+                                    }
+
+                                    if (buttonList.Count <= 0) return false;
+                                    for (var index = 0; index < buttonList.Count; index++)
+                                    {
+                                        if (buttonList[index].IsActive)
+                                        {
+                                            buttonList[index].OnClick();
+                                            if (buttonList.Count > index)
+                                            {
+                                                buttonList[index + 1].OnClick();
+                                                return false;
+                                            }
+                                        }
+                                    }
+                                    buttonList[0].OnClick();
+                                }
+                            }
+                            return false;
+                        }
+                    }
+                }
+                return true;
             }
         }
     }

@@ -291,7 +291,7 @@ namespace StrategicOperations.Patches
 
                 if (__instance.FromButton.Ability.Def.Id == ModInit.modSettings.BattleArmorMountAndSwarmID)
                 {
-                    var cHUD = Traverse.Create(__instance).Property("HUD").GetValue<CombatHUD>();
+                    var cHUD = IRBTModUtils.SharedState.CombatHUD;//Traverse.Create(__instance).Property("HUD").GetValue<CombatHUD>();
                     var creator = cHUD.SelectedActor;
                     if (!creator.Pathing.ArePathGridsComplete)
                     {
@@ -310,7 +310,7 @@ namespace StrategicOperations.Patches
                 }
                 else if (__instance.FromButton.Ability.Def.Id == ModInit.modSettings.AirliftAbilityID)
                 {
-                    var cHUD = Traverse.Create(__instance).Property("HUD").GetValue<CombatHUD>();
+                    var cHUD = IRBTModUtils.SharedState.CombatHUD;//Traverse.Create(__instance).Property("HUD").GetValue<CombatHUD>();
                     var creator = cHUD.SelectedActor;
                     if (!creator.Pathing.ArePathGridsComplete)
                     {
@@ -326,7 +326,7 @@ namespace StrategicOperations.Patches
         {
             public static void Postfix(SelectionStateAbilityInstant __instance)
             {
-                var cHUD = Traverse.Create(__instance).Property("HUD").GetValue<CombatHUD>();
+                var cHUD = IRBTModUtils.SharedState.CombatHUD;//Traverse.Create(__instance).Property("HUD").GetValue<CombatHUD>();
                 var creator = cHUD.SelectedActor;
                 if (__instance.FromButton.Ability.Def.Id == ModInit.modSettings.BattleArmorDeSwarmRoll)
                 {
@@ -707,7 +707,7 @@ namespace StrategicOperations.Patches
             public static bool Prefix(CombatHUDButtonBase __instance)
             {
                 if (__instance.GUID != "BTN_DoneWithMech") return true;
-                var hud = Traverse.Create(__instance).Property("HUD").GetValue<CombatHUD>();
+                var hud = IRBTModUtils.SharedState.CombatHUD;//Traverse.Create(__instance).Property("HUD").GetValue<CombatHUD>();
                 var actor = hud.SelectedActor;
                 if (ModInit.modSettings.EnableQuickReserve)
                 {
@@ -979,7 +979,7 @@ namespace StrategicOperations.Patches
         {
             public static void Postfix(CombatHUDEquipmentSlot __instance, string creatorGUID, string targetGUID)
             {
-                var HUD = Traverse.Create(__instance).Property("HUD").GetValue<CombatHUD>();
+                var HUD = IRBTModUtils.SharedState.CombatHUD;//Traverse.Create(__instance).Property("HUD").GetValue<CombatHUD>();
                 var theActor = HUD.SelectedActor;
                 if (theActor == null) return;
                 if (__instance.Ability == null || __instance.Ability?.Def?.Id != ModInit.modSettings.BattleArmorMountAndSwarmID) return;
@@ -1072,7 +1072,7 @@ namespace StrategicOperations.Patches
                             .GetValue<List<SelectionState>>();
                         if (!SelectionStack.Any(x => x is SelectionStateDoneWithMech))
                         {
-                            var HUD = Traverse.Create(__instance).Property("HUD").GetValue<CombatHUD>();
+                            var HUD = IRBTModUtils.SharedState.CombatHUD;//Traverse.Create(__instance).Property("HUD").GetValue<CombatHUD>();
                             var doneState = new SelectionStateDoneWithMech(actor.Combat, HUD,
                                 HUD.MechWarriorTray.DoneWithMechButton, actor);
                             var addState = Traverse.Create(__instance)
@@ -1119,7 +1119,7 @@ namespace StrategicOperations.Patches
                     var SelectionStack = Traverse.Create(__instance).Property("SelectionStack").GetValue<List<SelectionState>>();
                     if (!SelectionStack.Any(x => x is SelectionStateDoneWithMech))
                     {
-                        var HUD = Traverse.Create(__instance).Property("HUD").GetValue<CombatHUD>();
+                        var HUD = IRBTModUtils.SharedState.CombatHUD;//Traverse.Create(__instance).Property("HUD").GetValue<CombatHUD>();
                         var doneState = new SelectionStateDoneWithMech(actor.Combat, HUD,
                             HUD.MechWarriorTray.DoneWithMechButton, actor);
                         var addState = Traverse.Create(__instance)
@@ -1144,7 +1144,7 @@ namespace StrategicOperations.Patches
                     var SelectionStack = Traverse.Create(__instance).Property("SelectionStack").GetValue<List<SelectionState>>();
                     if (!SelectionStack.Any(x => x is SelectionStateDoneWithMech))
                     {
-                        var HUD = Traverse.Create(__instance).Property("HUD").GetValue<CombatHUD>();
+                        var HUD = IRBTModUtils.SharedState.CombatHUD;//Traverse.Create(__instance).Property("HUD").GetValue<CombatHUD>();
                         var doneState = new SelectionStateDoneWithMech(actor.Combat, HUD,
                             HUD.MechWarriorTray.DoneWithMechButton, actor);
                         var addState = Traverse.Create(__instance)

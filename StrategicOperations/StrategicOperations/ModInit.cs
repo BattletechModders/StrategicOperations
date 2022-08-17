@@ -9,6 +9,7 @@ using IRBTModUtils.Logging;
 using Localize;
 using Newtonsoft.Json;
 using StrategicOperations.Framework;
+using UnityEngine;
 using static StrategicOperations.Framework.Classes;
 using Random = System.Random;
 
@@ -151,5 +152,6 @@ namespace StrategicOperations
         public bool ShowAmmoInVehicleTooltips = false;
         public bool EnableQuickReserve = false;
         public float SBI_HesitationMultiplier = 0f;
+        public KeyCode EquipmentButtonsHotkey = KeyCode.M; // with shift to activate/cycle through any existing buttons
     }
 }
