@@ -455,7 +455,8 @@ settings in the mod.json:
 	"ShowAmmoInVehicleTooltips": true,
 	"EnforceIFFForAmmoTooltips": false,
 	"EnableQuickReserve": true,
-	"SBI_HesitationMultiplier": 0
+	"SBI_HesitationMultiplier": 0,
+	"EquipmentButtonsHotkey": "N"
 ```
 
 `enableLogging` - bool, enable logging
@@ -669,6 +670,8 @@ Using the following settings, ClanGhostBear and ClanWolf have baseline 30% chanc
 `EnableQuickReserve` - if true, `Shift-minus` (Shift-click the "Done" button) will reserve the current unit all the way to the last phase of the round.
 
 `SBI_HesitationMultiplier` - float, if EnableQuickReserve is enabled, this value will integrate with SkillBasedInitiative (if found). Using the "quick reserve" function will result in a final "hesitation" value calculated by: `final hesitation = SBI_HesitationMultiplier x phasesMoved + SBI_MOD_HESITATION (from the unit, since i saw its a thing in SBI) + currentHesitation`
+
+"EquipmentButtonsHotkey" -  Shift+this button will cycle through any activateable equipment mech has (including abilities). think how the alpha 1 through 0 hotkeys work for fire, walk, sprint, etc. It won't actually *activate* the ability, it will just bring it up for confirmation/selection. Probably don't set this to something that has an existing keybinding in-game.
 	
 ## Spawns
 	
