@@ -616,6 +616,8 @@ namespace StrategicOperations.Patches
                             if (__instance.Def.Id == ModInit.modSettings.BattleArmorDeSwarmRoll)
                             {
                                 creator.ProcessDeswarmRoll(swarmingUnits);
+                                creator.FlagForKnockdown();
+                                creator.HandleKnockdown(-1, creator.GUID, Vector2.one, null);
                                 return;
                             }
 
@@ -637,13 +639,7 @@ namespace StrategicOperations.Patches
                             {
                                 mech.GenerateAndPublishHeatSequence(-1, true, false, mech.GUID);
                             }
-
-                            if (__instance.Def.Id == ModInit.modSettings.BattleArmorDeSwarmRoll)
-                            {
-                                creator.FlagForKnockdown();
-                                creator.HandleKnockdown(-1, creator.GUID, Vector2.one, null);
-                            }
-
+                            
                             if (creator.team.IsLocalPlayer)
                             {
                                 var sequence = creator.DoneWithActor();
@@ -2419,44 +2415,43 @@ namespace StrategicOperations.Patches
 
                     if (Input.anyKeyDown)
                     {
-                        if (Input.GetKey(KeyCode.LeftShift) || Input.GetKey(KeyCode.RightShift))
+ //                       if (Input.GetKey(KeyCode.LeftShift) || Input.GetKey(KeyCode.RightShift))
+                        
+                        if (Input.GetKey(ModInit.modSettings.EquipmentButtonsHotkey))
                         {
-                            if (Input.GetKey(ModInit.modSettings.EquipmentButtonsHotkey))
+                            var hud = IRBTModUtils.SharedState.CombatHUD;
+                            if (hud.SelectedActor == __instance.SelectedActor)
                             {
-                                var hud = IRBTModUtils.SharedState.CombatHUD;
-                                if (hud.SelectedActor == __instance.SelectedActor)
+                                var slots = CombatHUDEquipmentPanel.Instance.slots;
+                                var lastActive = new Tuple<int, int>(-1,-1);
+                                var buttonList = new List<CombatHUDActionButton>();
+                                for (var slotIndex = 0; slotIndex < slots.Count; slotIndex++)
                                 {
-                                    var slots = CombatHUDEquipmentPanel.Instance.slots;
-                                    var lastActive = new Tuple<int, int>(-1,-1);
-                                    var buttonList = new List<CombatHUDActionButton>();
-                                    for (var slotIndex = 0; slotIndex < slots.Count; slotIndex++)
+                                    if (slots[slotIndex].buttons.Count > 0)
                                     {
-                                        if (slots[slotIndex].buttons.Count > 0)
+                                        for (var buttonIndex = 0;
+                                             buttonIndex < slots[slotIndex].buttons.Count;
+                                             buttonIndex++)
                                         {
-                                            for (var buttonIndex = 0;
-                                                 buttonIndex < slots[slotIndex].buttons.Count;
-                                                 buttonIndex++)
-                                            {
-                                                buttonList.Add(slots[slotIndex].buttons[buttonIndex]);
-                                            }
+                                            buttonList.Add(slots[slotIndex].buttons[buttonIndex]);
                                         }
                                     }
-
-                                    if (buttonList.Count <= 0) return false;
-                                    for (var index = 0; index < buttonList.Count; index++)
-                                    {
-                                        if (buttonList[index].IsActive)
-                                        {
-                                            buttonList[index].OnClick();
-                                            if (buttonList.Count > index)
-                                            {
-                                                buttonList[index + 1].OnClick();
-                                                return false;
-                                            }
-                                        }
-                                    }
-                                    buttonList[0].OnClick();
                                 }
+
+                                if (buttonList.Count <= 0) return false;
+                                for (var index = 0; index < buttonList.Count; index++)
+                                {
+                                    if (buttonList[index].IsActive)
+                                    {
+                                        buttonList[index].OnClick();
+                                        if (buttonList.Count > index)
+                                        {
+                                            buttonList[index + 1].OnClick();
+                                            return false;
+                                        }
+                                    }
+                                }
+                                buttonList[0].OnClick();
                             }
                             return false;
                         }
