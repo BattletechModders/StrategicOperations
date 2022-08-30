@@ -822,9 +822,14 @@ namespace StrategicOperations.Framework
             //var hud = Traverse.Create(CameraControl.Instance).Property("HUD").GetValue<CombatHUD>();
             //actor.GameRep.IsTargetable = true;
 
-            building.RemoveFromTeam();
-            building.AddToTeam(squad?.Combat?.Teams?.FirstOrDefault(x=>x?.GUID == "421027ec-8480-4cc6-bf01-369f84a22012")); // add back to world team.
-
+            if (ModState.GarrisonFriendlyTeam.ContainsKey(building.GUID))
+            {
+                if (!ModState.GarrisonFriendlyTeam[building.GUID])
+                {
+                    building.AddToTeam(squad?.Combat?.Teams?.FirstOrDefault(x => x?.GUID == "421027ec-8480-4cc6-bf01-369f84a22012")); // add back to world team.
+                }
+            }
+            
             if (!calledFromHandleDeath)
             {
                 locationOverride = ModState.PositionLockGarrison[squad.GUID].OriginalSquadPos;
@@ -1128,7 +1133,12 @@ namespace StrategicOperations.Framework
             creator.FiringArc(360f);
            // var alliedTeam = 
             //squad.team.SupportTeam.AddCombatant(targetBuilding);
-            targetBuilding.AddToTeam(creator.team.SupportTeam);
+
+            if (!targetBuilding.team.IsFriendly(creator.team))
+            {
+                targetBuilding.AddToTeam(creator.team.SupportTeam);
+                ModState.GarrisonFriendlyTeam.Add(targetBuilding.GUID, false);
+            }
             //targetBuilding.BuildingRep.IsTargetable = true;
             //targetBuilding.BuildingRep.SetHighlightColor(creator.Combat, creator.team);
             //targetBuilding.BuildingRep.RefreshEdgeCache();

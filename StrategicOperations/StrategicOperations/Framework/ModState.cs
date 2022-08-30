@@ -18,7 +18,7 @@ namespace StrategicOperations.Framework
         public static AbstractActor CurrentGarrisonSquadForLOS = null;
         public static AbstractActor CurrentGarrisonSquadForLOF = null;
         public static List<CustomSpawner> CurrentContractBASpawners = new List<CustomSpawner>();
-
+        public static Dictionary<string, bool> GarrisonFriendlyTeam = new Dictionary<string, bool>();
         public static float SwarmSuccessChance = 0f;
         public static float DeSwarmSuccessChance = 0f;
 
@@ -168,6 +168,7 @@ namespace StrategicOperations.Framework
         public static void ResetAll()
         {
             //UnitPendingAirliftInvocation = "";
+            GarrisonFriendlyTeam = new Dictionary<string, bool>();
             cancelChanceForPlayerStrafe = 0f;
             ResupplyShutdownPhases = new Dictionary<string, int>();
             TeamsWithResupply = new List<string>();

@@ -49,10 +49,7 @@ namespace StrategicOperations.Patches
 
             static void Postfix(AbstractActor source, Vector3 sourcePosition, ICombatant target, Vector3 targetPosition, Quaternion targetRotation, VisibilityLevel __result)
             {
-                if (ModState.CurrentGarrisonSquadForLOS != null)
-                {
-                    ModState.CurrentGarrisonSquadForLOS = null;
-                }
+                ModState.CurrentGarrisonSquadForLOS = null;
             }
         }
 
@@ -1742,15 +1739,16 @@ namespace StrategicOperations.Patches
         {
             //static bool Prepare() => false;
             public static void Postfix(LOFCache __instance, AbstractActor source, Vector3 sourcePosition,
-                ICombatant target, Vector3 targetPosition, Quaternion targetRotation, out Vector3 collisionWorldPos,
+                ICombatant target, Vector3 targetPosition, Quaternion targetRotation, ref Vector3 collisionWorldPos,
                 ref LineOfFireLevel __result)
             {
-                collisionWorldPos = targetPosition;
+                //collisionWorldPos = targetPosition;
 
                 if (target is AbstractActor actorTarget)
                 {
                     if (actorTarget.IsSwarmingUnit() || actorTarget.IsMountedUnit()) //|| actorTarget.isGarrisoned())
                     {
+                        collisionWorldPos = targetPosition;
                         __result = LineOfFireLevel
                             .NotSet; // added 3/27 to block all LOF to swarming/mounted units. NotSet, or should it be LOS.Blocked?
                         return;
