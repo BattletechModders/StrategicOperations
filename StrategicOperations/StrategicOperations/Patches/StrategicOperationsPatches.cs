@@ -2422,7 +2422,7 @@ namespace StrategicOperations.Patches
                             var hud = IRBTModUtils.SharedState.CombatHUD;
                             if (hud.SelectedActor == __instance.SelectedActor)
                             {
-                                var slots = CombatHUDEquipmentPanel.Instance.slots;
+                                var slots = Traverse.Create(CombatHUDEquipmentPanel.Instance).Property("operatinalSlots").GetValue<List<CombatHUDEquipmentSlotEx>>();
                                 var lastActive = new Tuple<int, int>(-1,-1);
                                 var buttonList = new List<CombatHUDActionButton>();
                                 for (var slotIndex = 0; slotIndex < slots.Count; slotIndex++)
@@ -2433,7 +2433,8 @@ namespace StrategicOperations.Patches
                                              buttonIndex < slots[slotIndex].buttons.Count;
                                              buttonIndex++)
                                         {
-                                            buttonList.Add(slots[slotIndex].buttons[buttonIndex]);
+                                            if (slots[slotIndex].buttons[buttonIndex].isActiveAndEnabled && slots[slotIndex].buttons[buttonIndex].gameObject.activeSelf)
+                                                buttonList.Add(slots[slotIndex].buttons[buttonIndex]);
                                         }
                                     }
                                 }
