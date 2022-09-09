@@ -554,7 +554,7 @@ namespace StrategicOperations.Patches
                 //debugMsg = default(string);
                 if (target is AbstractActor actor)
                 {
-                    if (actor.IsSwarmingUnit() || actor.IsMountedUnit()) // same as UnitHasVisibilityToTargetFromCurrentPosition; let the AI shoot at garrison direclty?
+                    if (actor.IsSwarmingUnit() || actor.IsMountedUnit() || actor.HasSwarmingUnits()) // added swarming check so AI doesnt shoot at units being swarmed// same as UnitHasVisibilityToTargetFromCurrentPosition; let the AI shoot at garrison direclty?
                     {
                         __result = false;
                     }

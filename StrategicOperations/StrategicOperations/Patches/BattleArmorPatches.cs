@@ -784,20 +784,20 @@ namespace StrategicOperations.Patches
                     ModInit.modLog?.Trace?.Write(
                         $"[Mech.OnLocationDestroyed] Evaluating {squadInfo.Key} for {squadInfo.Value.TargetGUID}");
                     if (ModInit.Random.NextDouble() >= (double) 1 / 3 || wereSwarmingUnitsResponsible) continue;
-                    if (__instance.Combat.FindActorByGUID(squadInfo.Key) is Mech BattleArmorAsMech)
+                    if (__instance.Combat.FindActorByGUID(squadInfo.Key) is Mech battleArmorAsMech)
                     {
-                        var BattleArmorMounts =
+                        var battleArmorMounts =
                             squadInfo.Value.BA_MountedLocations.Where(x => x.Value == (int) location);
-                        foreach (var mount in BattleArmorMounts)
+                        foreach (var mount in battleArmorMounts)
                         {
                             var BALocArmor = (ArmorLocation) mount.Key;
                             var BALocStruct = MechStructureRules.GetChassisLocationFromArmorLocation(BALocArmor);
-                            BattleArmorAsMech.NukeStructureLocation(hitInfo, 1, BALocStruct, attackDirection,
+                            battleArmorAsMech.NukeStructureLocation(hitInfo, 1, BALocStruct, attackDirection,
                                 damageType);
                         }
-                        BattleArmorAsMech.DismountBA(__instance, Vector3.zero, false, true, true);
-                        BattleArmorAsMech.FlagForDeath("Killed When Mount Died", DeathMethod.VitalComponentDestroyed, DamageType.Melee, 0, -1, __instance.GUID, false);
-                        BattleArmorAsMech.HandleDeath(__instance.GUID);
+                        battleArmorAsMech.DismountBA(__instance, Vector3.zero, false, true, true);
+                        battleArmorAsMech.FlagForDeath("Killed When Mount Died", DeathMethod.VitalComponentDestroyed, DamageType.Melee, 0, -1, __instance.GUID, false);
+                        battleArmorAsMech.HandleDeath(__instance.GUID); //this is probably wrong but i dont care
                     }
                 }
             }

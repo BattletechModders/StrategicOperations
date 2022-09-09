@@ -181,6 +181,20 @@ namespace StrategicOperations.Patches
             }
         }
 
+        [HarmonyPatch(typeof(AbstractActor), "FlagForDeath",
+            new Type[] {typeof(string), typeof(DeathMethod), typeof(DamageType), typeof(int), typeof(int), typeof(string), typeof(bool) })]
+        public static class AbstractActor_FlagForDeath
+        {
+            public static void Postfix(AbstractActor __instance, string reason, DeathMethod deathMethod, DamageType damageType, int location, int stackItemID, string attackerID, bool isSilent)
+            {
+                if (__instance.IsAirlifted())
+                {
+                    var carrier = __instance.Combat.FindActorByGUID(ModState.AirliftTrackers[__instance.GUID].CarrierGUID);
+                    __instance.DetachFromAirliftCarrier(carrier, false); // try to drop destroyed units from airlifter
+                }
+            }
+        }
+
         [HarmonyPatch(typeof(SimGameState), "RequestDataManagerResources")]
         public static class SimGameState_RequestDataManagerResources_Patch
         {
@@ -190,6 +204,21 @@ namespace StrategicOperations.Patches
                 loadRequest.AddAllOfTypeBlindLoadRequest(BattleTechResourceType.TurretDef,
                     new bool?(true)); //but TurretDefs
                 loadRequest.ProcessRequests(10U);
+            }
+        }
+
+        [HarmonyPatch(typeof(EncounterLayerData), "BuildItemRegistry", new Type[]{typeof(CombatGameState)})]
+        public static class EncounterLayerData_BuildItemRegistry
+        {
+            public static void Postfix(EncounterLayerData __instance, CombatGameState combat)
+            {
+                foreach (var team in combat.Teams)
+                {
+                    if (!team.IsLocalPlayer && TeamDefinition.FullTeamDefinitionGuidNames.ContainsKey(team.GUID))
+                    {
+                        Utils.FetchAISupportTeam(team);
+                    }
+                }
             }
         }
 
@@ -848,7 +877,7 @@ namespace StrategicOperations.Patches
                 }
                 else
                 {
-                    supportTeam = Utils.CreateOrUpdateAISupportTeam(team);
+                    supportTeam = Utils.FetchAISupportTeam(team); //need to add to Phase Thingies or some shit, cos it breaks
                 }
 
                 //}

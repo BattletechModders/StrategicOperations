@@ -434,6 +434,12 @@ namespace StrategicOperations.Framework
             return aiteam;
         }
 
+        public static Team FetchAISupportTeam(Team team)
+        {
+            if (team.SupportTeam != null) return team.SupportTeam;
+            return CreateOrUpdateAISupportTeam(team);
+        }
+
         public static List<MechComponentRef> GetOwnedDeploymentBeacons()
         {
             var sgs = UnityGameInstance.BattleTechGame.Simulation;
