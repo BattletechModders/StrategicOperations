@@ -2,8 +2,10 @@
 using BattleTech;
 using BattleTech.Framework;
 using BattleTech.UI;
+using Gaia;
 using Harmony;
 using StrategicOperations.Framework;
+using Utils = StrategicOperations.Framework.Utils;
 
 namespace StrategicOperations.Patches
 {
@@ -32,7 +34,7 @@ namespace StrategicOperations.Patches
         [HarmonyPatch(typeof(Contract), "CompleteContract", new Type[] {typeof(MissionResult), typeof(bool)})]
         public static class Contract_CompleteContract_Patch
         {
-            public static void Postfix(Contract __instance, MissionResult result, bool isGoodFaithEffort)
+           public static void Postfix(Contract __instance, MissionResult result, bool isGoodFaithEffort)
             {
                 if (UnityGameInstance.BattleTechGame.Simulation == null) return;
                 if (ModState.CommandUses.Count <= 0) return;

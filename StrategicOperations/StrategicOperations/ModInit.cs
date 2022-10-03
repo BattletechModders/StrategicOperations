@@ -153,5 +153,8 @@ namespace StrategicOperations
         public bool EnableQuickReserve = false;
         public float SBI_HesitationMultiplier = 0f;
         public KeyCode EquipmentButtonsHotkey = KeyCode.M; // with shift to activate/cycle through any existing buttons
+
+        public bool PlayerControlSpawns = false;
+
     }
 }

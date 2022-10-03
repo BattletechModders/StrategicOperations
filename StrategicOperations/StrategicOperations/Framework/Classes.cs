@@ -664,8 +664,17 @@ namespace StrategicOperations.Framework
                 newUnit.AddToTeam(TeamSelection);
                 newUnit.AddToLance(CustomLance);
                 CustomLance.AddUnitGUID(newUnit.GUID);
-                newUnit.BehaviorTree = BehaviorTreeFactory.MakeBehaviorTree(
-                    Combat.BattleTechGame, newUnit, BehaviorTreeIDEnum.CoreAITree);
+                if (!TeamSelection.IsLocalPlayer && ModInit.modSettings.PlayerControlSpawns)
+                {
+                    newUnit.BehaviorTree = BehaviorTreeFactory.MakeBehaviorTree(
+                        Combat.BattleTechGame, newUnit, BehaviorTreeIDEnum.CoreAITree);
+                    ModState.PlayerSpawnGUIDs.Add(newUnit.GUID);
+                }
+                else
+                {
+                    newUnit.BehaviorTree = BehaviorTreeFactory.MakeBehaviorTree(
+                        Combat.BattleTechGame, newUnit, BehaviorTreeIDEnum.DoNothingTree);
+                }
                 //newUnit.OnPlayerVisibilityChanged(VisibilityLevel.None);
                 newUnit.OnPositionUpdate(SpawnLoc, SpawnRotation, -1, true, null, false);
                 newUnit.DynamicUnitRole = UnitRole.Brawler;
@@ -696,7 +705,10 @@ namespace StrategicOperations.Framework
                 ModInit.modLog?.Trace?.Write($"loaded prefabs success");
                 dropSpawner.StartCoroutine(dropSpawner.StartDropPodAnimation(0f));
                 ModInit.modLog?.Trace?.Write($"started drop pod anim");
-
+                if (TeamSelection.IsLocalPlayer && ModInit.modSettings.PlayerControlSpawns)
+                {
+                    IRBTModUtils.SharedState.CombatHUD.MechWarriorTray.RefreshTeam(Combat.LocalPlayerTeam);
+                }
                 if (SourceTeam.IsLocalPlayer && (ModInit.modSettings.commandUseCostsMulti > 0 ||
                                                SourceAbility.Def.getAbilityDefExtension().CBillCost > 0))
                 {

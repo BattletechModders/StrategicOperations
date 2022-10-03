@@ -956,16 +956,17 @@ namespace StrategicOperations.Patches
             public static bool Prefix(Ability __instance, Team team, Vector3 positionA, Vector3 positionB)
             {
                 if (__instance.Combat.ActiveContract.ContractTypeValue.IsSkirmish) return true;
-                ModInit.modLog?.Info?.Write($"Running Ability.ActivateSpawnTurret");
+                ModInit.modLog?.Info?.Write($"[Ability_ActivateSpawnTurret] Running Ability.ActivateSpawnTurret");
                 var combat = UnityGameInstance.BattleTechGame.Combat;
                 var dm = combat.DataManager;
                 var sim = UnityGameInstance.BattleTechGame.Simulation;
 
-                var teamSelection = team.SupportTeam;
+                var teamSelection = ModInit.modSettings.PlayerControlSpawns ? team : team.SupportTeam;//.SupportTeam; change to player control?
                 if (!team.IsLocalPlayer)
                 {
                     teamSelection = team as AITeam;
                 }
+
                 var actorResource = __instance.Def.ActorResource;
                 var supportHeraldryDef = Utils.SwapHeraldryColors(team.HeraldryDef, dm);
                 var quid = __instance.Generate2PtCMDQuasiGUID(positionA, positionB);
@@ -993,7 +994,7 @@ namespace StrategicOperations.Patches
                         }
                     }
 
-                    ModInit.modLog?.Info?.Write($"Decrementing count of {actorResource} in deploymentAssetsDict");
+                    ModInit.modLog?.Info?.Write($"[Ability_ActivateSpawnTurret] Decrementing count of {actorResource} in deploymentAssetsDict");
                 }
 
                 var instanceGUID =
@@ -1002,7 +1003,7 @@ namespace StrategicOperations.Patches
                 if (ModState.DeferredInvokeSpawns.All(x => x.Key != instanceGUID) && !ModState.DeferredSpawnerFromDelegate)
                 {
                     ModInit.modLog?.Info?.Write(
-                        $"Deferred Spawner = null, creating delegate and returning false. Delegate should spawn {actorResource}");
+                        $"[Ability_ActivateSpawnTurret] Deferred Spawner = null, creating delegate and returning false. Delegate should spawn {actorResource}");
 
                     void DeferredInvokeSpawn() =>
                         Utils._activateSpawnTurretMethod.Invoke(__instance, new object[] { team, positionA, positionB });
@@ -1019,7 +1020,7 @@ namespace StrategicOperations.Patches
                 if (!string.IsNullOrEmpty(ModState.DeferredActorResource))
                 {
                     actorResource = ModState.DeferredActorResource;
-                    ModInit.modLog?.Info?.Write($"{actorResource} restored from deferredActorResource");
+                    ModInit.modLog?.Info?.Write($"[Ability_ActivateSpawnTurret] {actorResource} restored from deferredActorResource");
                 }
 
                 var pilotID = "pilot_sim_starter_dekker";
@@ -1033,15 +1034,24 @@ namespace StrategicOperations.Patches
                     pilotID = __instance.Def.getAbilityDefExtension().CMDPilotOverride;
                 }
 
-                ModInit.modLog?.Info?.Write($"Pilot should be {pilotID}");
-
-                var cmdLance = Utils.CreateOrFetchCMDLance(teamSelection);
-
+                ModInit.modLog?.Info?.Write($"[Ability_ActivateSpawnTurret] Pilot should be {pilotID}");
+                var cmdLance = new Lance();
+                if (team.IsLocalPlayer && ModInit.modSettings.PlayerControlSpawns)
+                {
+                    if (team.lances.Count > 0) cmdLance = team.lances[0];
+                    else
+                    {
+                        cmdLance = new Lance();
+                        ModInit.modLog?.Error?.Write($"[Ability_ActivateSpawnTurret] No lances found for team! This is fucked up!");
+                    }
+                }
+                else cmdLance = Utils.CreateOrFetchCMDLance(teamSelection);
+                
                 Quaternion quaternion = Quaternion.LookRotation(positionB - positionA);
 
                 if (actorResource.StartsWith("mechdef_") || actorResource.StartsWith("vehicledef_"))
                 {
-                    ModInit.modLog?.Info?.Write($"Attempting to spawn {actorResource} as mech.");
+                    ModInit.modLog?.Info?.Write($"[Ability_ActivateSpawnTurret] Attempting to spawn {actorResource} as mech."); 
                     var spawner = new Classes.CustomSpawner(team, __instance, combat, actorResource, cmdLance, teamSelection, positionA, quaternion, supportHeraldryDef, pilotID);
                     spawner.SpawnBeaconUnitAtLocation();
                     return false;
@@ -1257,7 +1267,7 @@ namespace StrategicOperations.Patches
 #endif
                 else
                 {
-                    ModInit.modLog?.Info?.Write($"Attempting to spawn {actorResource} as turret.");
+                    ModInit.modLog?.Info?.Write($"[Ability_ActivateSpawnTurret] Attempting to spawn {actorResource} as turret.");
                     var spawnTurretMethod = Traverse.Create(__instance).Method("SpawnTurret",
                         new object[] { teamSelection, actorResource, positionA, quaternion });
                     var turretActor = spawnTurretMethod.GetValue<AbstractActor>();
@@ -1295,14 +1305,14 @@ namespace StrategicOperations.Patches
                     dropSpawner.DropPodPosition = positionA;
                     dropSpawner.DropPodRotation = quaternion;
 
-                    ModInit.modLog?.Trace?.Write($"DropPodAnim location {positionA} is also {dropSpawner.DropPodPosition}");
-                    ModInit.modLog?.Trace?.Write($"Is dropAnim null fuckin somehow? {dropSpawner == null}");
+                    ModInit.modLog?.Trace?.Write($"[Ability_ActivateSpawnTurret] DropPodAnim location {positionA} is also {dropSpawner.DropPodPosition}");
+                    ModInit.modLog?.Trace?.Write($"[Ability_ActivateSpawnTurret] Is dropAnim null fuckin somehow? {dropSpawner == null}");
                     dropSpawner.DropPodVfxPrefab = dropSpawner.Parent.DropPodVfxPrefab;
                     dropSpawner.DropPodLandedPrefab = dropSpawner.Parent.dropPodLandedPrefab;
                     dropSpawner.LoadDropPodPrefabs(dropSpawner.DropPodVfxPrefab, dropSpawner.DropPodLandedPrefab);
-                    ModInit.modLog?.Trace?.Write($"loaded prefabs success");
+                    ModInit.modLog?.Trace?.Write($"[Ability_ActivateSpawnTurret] loaded prefabs success");
                     dropSpawner.StartCoroutine(dropSpawner.StartDropPodAnimation(0f));
-                    ModInit.modLog?.Trace?.Write($"started drop pod anim");
+                    ModInit.modLog?.Trace?.Write($"[Ability_ActivateSpawnTurret] started drop pod anim");
 
                     ///////////////
 
@@ -1328,7 +1338,7 @@ namespace StrategicOperations.Patches
 
                             ModState.CommandUses.Add(commandUse);
                             ModInit.modLog?.Info?.Write(
-                                $"Added usage cost for {commandUse.CommandName} - {commandUse.UnitName}. UnitUseCost (unadjusted): {unitCost}. Ability Use Cost: {__instance.Def.getAbilityDefExtension().CBillCost}");
+                                $"[Ability_ActivateSpawnTurret] Added usage cost for {commandUse.CommandName} - {commandUse.UnitName}. UnitUseCost (unadjusted): {unitCost}. Ability Use Cost: {__instance.Def.getAbilityDefExtension().CBillCost}");
                         }
                         else
                         {
@@ -1341,7 +1351,7 @@ namespace StrategicOperations.Patches
                             {
                                 cmdUse.UseCount += 1;
                                 ModInit.modLog?.Info?.Write(
-                                    $"Added usage cost for {cmdUse.CommandName} - {cmdUse.UnitName}. UnitUseCost (unadjusted): {unitCost}. Ability Use Cost: {__instance.Def.getAbilityDefExtension().CBillCost}. Now used {cmdUse.UseCount} times.");
+                                    $"[Ability_ActivateSpawnTurret] Added usage cost for {cmdUse.CommandName} - {cmdUse.UnitName}. UnitUseCost (unadjusted): {unitCost}. Ability Use Cost: {__instance.Def.getAbilityDefExtension().CBillCost}. Now used {cmdUse.UseCount} times.");
                             }
                         }
                     }

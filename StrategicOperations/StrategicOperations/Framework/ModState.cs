@@ -4,6 +4,7 @@ using System.Collections.Specialized;
 using System.Configuration;
 using Abilifier;
 using BattleTech;
+using JetBrains.Annotations;
 using UnityEngine;
 using static StrategicOperations.Framework.Classes;
 
@@ -93,6 +94,8 @@ namespace StrategicOperations.Framework
         public static List<AirliftTargetEffect> AirliftEffects = new List<AirliftTargetEffect>();
 
         public static BA_DeswarmMovementInfo DeSwarmMovementInfo = new BA_DeswarmMovementInfo();
+
+        public static List<string> PlayerSpawnGUIDs = new List<string>();
 
         public static void Initialize()
         {
@@ -204,6 +207,7 @@ namespace StrategicOperations.Framework
             AiCmds = new Dictionary<string, AI_CmdInvocation>();
             StrategicActorTargetInvocationCmds = new Dictionary<string, StrategicActorTargetInvocation>();
             IsStrafeAOE = false;
+            PlayerSpawnGUIDs = new List<string>();
         }
 
         public static void ResetDelegateInfos()
