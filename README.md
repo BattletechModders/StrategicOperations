@@ -456,7 +456,8 @@ settings in the mod.json:
 	"EnforceIFFForAmmoTooltips": false,
 	"EnableQuickReserve": true,
 	"SBI_HesitationMultiplier": 0,
-	"EquipmentButtonsHotkey": "N"
+	"EquipmentButtonsHotkey": "N",
+	"PlayerControlBeacons": true
 ```
 
 `enableLogging` - bool, enable logging
@@ -672,6 +673,8 @@ Using the following settings, ClanGhostBear and ClanWolf have baseline 30% chanc
 `SBI_HesitationMultiplier` - float, if EnableQuickReserve is enabled, this value will integrate with SkillBasedInitiative (if found). Using the "quick reserve" function will result in a final "hesitation" value calculated by: `final hesitation = SBI_HesitationMultiplier x phasesMoved + SBI_MOD_HESITATION (from the unit, since i saw its a thing in SBI) + currentHesitation`
 
 "EquipmentButtonsHotkey" -  This button will cycle through activating any equipment abilities the unit has. Abilities (with a button), NOT CAE component functions like LAM transformation. Think how the alpha 1 through 0 hotkeys work for fire, walk, sprint, etc. It won't actually *activate* the ability, it will just bring it up for confirmation/selection. Probably don't set this to something that has an existing keybinding in-game.
+	
+"PlayerControlSpawns" - bool. if true, friendly mechs and vehicles *(not turrets)* deployed via beacons will be placed under normal player control rather than an AI-controlled friendly team. Their pilots are still defined by either CMDPilotOverride in the spawn ability, or by pilot overrides in the unit beacon as normal.
 	
 ## Spawns
 	
