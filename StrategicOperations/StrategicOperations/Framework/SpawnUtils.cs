@@ -60,9 +60,7 @@ namespace StrategicOperations.Framework
                     }
                 }
             }
-
             return usableNodes[0].Loc;
-
         }
     }
 }

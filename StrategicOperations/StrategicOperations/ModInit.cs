@@ -154,7 +154,16 @@ namespace StrategicOperations
         public float SBI_HesitationMultiplier = 0f;
         public KeyCode EquipmentButtonsHotkey = KeyCode.M; // with shift to activate/cycle through any existing buttons
 
-        public bool PlayerControlSpawns = false;
+        public bool PlayerControlSpawns = false; //complete override. players always control all spawns.
 
+        public List<string> PlayerControlSpawnAbilities = new List<string>(); //abilities here will always allow player control
+
+        public List<string> PlayerControlSpawnAbilitiesBlacklist = new List<string>(); // abilities here will never allow player control
+
+        //StratOps_player_control_enable -> component tag for player control always
+        //StratOps_player_control_disable-> component tag for player control NEVER
+
+        //BD wants controllable gated on item: companystat and use ROI?
+        //RT wants specific ability or reinforcement thingy controllable: component tag on the beacon item. per abilitry will suck bc abilities suck.
     }
 }

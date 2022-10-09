@@ -961,15 +961,15 @@ namespace StrategicOperations.Patches
                 var dm = combat.DataManager;
                 var sim = UnityGameInstance.BattleTechGame.Simulation;
 
-                var teamSelection = ModInit.modSettings.PlayerControlSpawns ? team : team.SupportTeam;//.SupportTeam; change to player control?
+                var actorResource = __instance.Def.ActorResource;
+                var supportHeraldryDef = Utils.SwapHeraldryColors(team.HeraldryDef, dm);
+                var quid = __instance.Generate2PtCMDQuasiGUID(positionA, positionB);
+                var playerControl = Utils.ShouldPlayerControlSpawn(team, __instance, quid);
+                var teamSelection = playerControl ? team : team.SupportTeam;//.SupportTeam; change to player control?
                 if (!team.IsLocalPlayer)
                 {
                     teamSelection = team as AITeam;
                 }
-
-                var actorResource = __instance.Def.ActorResource;
-                var supportHeraldryDef = Utils.SwapHeraldryColors(team.HeraldryDef, dm);
-                var quid = __instance.Generate2PtCMDQuasiGUID(positionA, positionB);
                 if (!ModState.StoredCmdParams.ContainsKey(quid))
                 {
                     ModInit.modLog?.Info?.Write($"[Ability_ActivateSpawnTurret] No spawn params stored, wtf");
@@ -1036,7 +1036,7 @@ namespace StrategicOperations.Patches
 
                 ModInit.modLog?.Info?.Write($"[Ability_ActivateSpawnTurret] Pilot should be {pilotID}");
                 var cmdLance = new Lance();
-                if (team.IsLocalPlayer && ModInit.modSettings.PlayerControlSpawns)
+                if (playerControl)
                 {
                     if (team.lances.Count > 0) cmdLance = team.lances[0];
                     else
@@ -1052,7 +1052,7 @@ namespace StrategicOperations.Patches
                 if (actorResource.StartsWith("mechdef_") || actorResource.StartsWith("vehicledef_"))
                 {
                     ModInit.modLog?.Info?.Write($"[Ability_ActivateSpawnTurret] Attempting to spawn {actorResource} as mech."); 
-                    var spawner = new Classes.CustomSpawner(team, __instance, combat, actorResource, cmdLance, teamSelection, positionA, quaternion, supportHeraldryDef, pilotID);
+                    var spawner = new Classes.CustomSpawner(team, __instance, combat, actorResource, cmdLance, teamSelection, positionA, quaternion, supportHeraldryDef, pilotID, playerControl);
                     spawner.SpawnBeaconUnitAtLocation();
                     return false;
                 }
@@ -1929,6 +1929,8 @@ namespace StrategicOperations.Patches
                                     ?.Remove(0, 14);
                                 var waveString = beacon.Def.ComponentTags.FirstOrDefault(x => x.StartsWith("StrafeWaves_"));
                                 int.TryParse(waveString?.Substring(11), out var waves);
+                                var playerControl =
+                                    beacon.Def.ComponentTags.IsComponentPlayerControllable(out var forced);
                                 ModInit.modLog?.Info?.Write(
                                 $"beacon for button 2. will be {beacon.Def.Description.Name}, ID will be {id}, pilot will be {pilotID}");
                                 popup.AddButton("2.", (Action)(() =>
@@ -1941,7 +1943,7 @@ namespace StrategicOperations.Patches
                                     ModState.PendingPlayerCmdParams = new CmdInvocationParams(waves, id, pilotID, __instance.FromButton.Ability.Def.specialRules, "",
                                         beacon.IsAOEStrafe(
                                             __instance.FromButton.Ability.Def.specialRules ==
-                                            AbilityDef.SpecialRules.Strafe));
+                                            AbilityDef.SpecialRules.Strafe), playerControl, forced);
                                     ModInit.modLog?.Info?.Write(
                                         $"Player pressed {id} with pilot {pilotID}. Now -{ModState.PendingPlayerCmdParams.ActorResource}- and pilot -{ModState.PendingPlayerCmdParams.PilotOverride}- should be the same.");
                                 }));
@@ -1957,11 +1959,15 @@ namespace StrategicOperations.Patches
                                     ?.Remove(0, 14);
                                 var waveString = beacon.Def.ComponentTags.FirstOrDefault(x => x.StartsWith("StrafeWaves_"));
                                 int.TryParse(waveString?.Substring(11), out var waves);
+                                var playerControl =
+                                    beacon.Def.ComponentTags.IsComponentPlayerControllable(out var forced);
                                 ModInit.modLog?.Info?.Write(
                                 $"beacon for button 3. will be {beacon.Def.Description.Name}, ID will be {id}, pilot will be {pilotID}");
                                 var id1 = id;
                                 var pilotID1 = pilotID;
                                 var waves1 = waves;
+                                var playerControl1 = playerControl;
+                                var forced1 = forced;
                                 var beacon1 = beacon;
                                 popup.AddButton("3.", (Action)(() =>
                                 {
@@ -1972,7 +1978,7 @@ namespace StrategicOperations.Patches
                                     ModState.PendingPlayerCmdParams = new CmdInvocationParams(waves1, id1, pilotID1, __instance.FromButton.Ability.Def.specialRules, "",
                                         beacon1.IsAOEStrafe(
                                             __instance.FromButton.Ability.Def.specialRules ==
-                                            AbilityDef.SpecialRules.Strafe));
+                                            AbilityDef.SpecialRules.Strafe), playerControl1, forced1);
                                     ModInit.modLog?.Info?.Write(
                                         $"Player pressed {id1} with pilot {pilotID1}. Now -{ModState.PendingPlayerCmdParams.ActorResource}- and pilot -{ModState.PendingPlayerCmdParams.PilotOverride}- should be the same.");
                                 }));
@@ -1985,6 +1991,8 @@ namespace StrategicOperations.Patches
                                     ?.Remove(0, 14);
                                 waveString = beacon.Def.ComponentTags.FirstOrDefault(x => x.StartsWith("StrafeWaves_"));
                                 int.TryParse(waveString?.Substring(11), out waves);
+                                playerControl =
+                                    beacon.Def.ComponentTags.IsComponentPlayerControllable(out forced);
                                 ModInit.modLog?.Info?.Write(
                                 $"beacon for button 2. will be {beacon.Def.Description.Name}, ID will be {id}, pilot will be {pilotID}");
                                 popup.AddButton("2.", (Action)(() =>
@@ -1996,7 +2004,7 @@ namespace StrategicOperations.Patches
                                     ModState.PendingPlayerCmdParams = new CmdInvocationParams(waves, id, pilotID, __instance.FromButton.Ability.Def.specialRules, "",
                                         beacon.IsAOEStrafe(
                                             __instance.FromButton.Ability.Def.specialRules ==
-                                            AbilityDef.SpecialRules.Strafe));
+                                            AbilityDef.SpecialRules.Strafe), playerControl, forced);
                                     ModInit.modLog?.Info?.Write(
                                         $"Player pressed {id} with pilot {pilotID}. Now -{ModState.PendingPlayerCmdParams.ActorResource}- and pilot -{ModState.PendingPlayerCmdParams.PilotOverride}- should be the same.");
                                 }));
@@ -2015,11 +2023,15 @@ namespace StrategicOperations.Patches
                             ?.Remove(0, 14);
                         var waveString = beacon.Def.ComponentTags.FirstOrDefault(x => x.StartsWith("StrafeWaves_"));
                         int.TryParse(waveString?.Substring(11), out var waves);
+                        var playerControl =
+                            beacon.Def.ComponentTags.IsComponentPlayerControllable(out var forced);
                         ModInit.modLog?.Info?.Write(
                             $"beacon for button 3. will be {beacon.Def.Description.Name}, ID will be {id}, pilot will be {pilotID}");
                         var id1 = id;
                         var pilotID1 = pilotID;
                         var waves1 = waves;
+                        var playerControl1 = playerControl;
+                        var forced1 = forced;
                         var beacon1 = beacon;
                         popup.AddButton("3.", (Action)(() =>
                         {
@@ -2030,7 +2042,7 @@ namespace StrategicOperations.Patches
                             ModState.PendingPlayerCmdParams = new CmdInvocationParams(waves1, id1, pilotID1, __instance.FromButton.Ability.Def.specialRules, "",
                                 beacon1.IsAOEStrafe(
                                     __instance.FromButton.Ability.Def.specialRules ==
-                                    AbilityDef.SpecialRules.Strafe));
+                                    AbilityDef.SpecialRules.Strafe), playerControl1, forced1);
                             ModInit.modLog?.Info?.Write(
                                 $"Player pressed {id1} with pilot {pilotID1}. Now -{ModState.PendingPlayerCmdParams.ActorResource}- and pilot -{ModState.PendingPlayerCmdParams.PilotOverride}- should be the same.");
                         }));
@@ -2043,11 +2055,15 @@ namespace StrategicOperations.Patches
                             ?.Remove(0, 14);
                         waveString = beacon.Def.ComponentTags.FirstOrDefault(x => x.StartsWith("StrafeWaves_"));
                         int.TryParse(waveString?.Substring(11), out waves);
+                        playerControl =
+                            beacon.Def.ComponentTags.IsComponentPlayerControllable(out forced);
                         ModInit.modLog?.Info?.Write(
                             $"beacon for button 2. will be {beacon.Def.Description.Name}, ID will be {id}, pilot will be {pilotID}");
                         var id2 = id;
                         var pilotID2 = pilotID;
                         var waves2 = waves;
+                        var playerControl2 = playerControl;
+                        var forced2 = forced;
                         var beacon2 = beacon;
                         popup.AddButton("2.", (Action)(() =>
                         {
@@ -2058,7 +2074,7 @@ namespace StrategicOperations.Patches
                             ModState.PendingPlayerCmdParams = new CmdInvocationParams(waves2, id2, pilotID2, __instance.FromButton.Ability.Def.specialRules, "",
                                 beacon2.IsAOEStrafe(
                                     __instance.FromButton.Ability.Def.specialRules ==
-                                    AbilityDef.SpecialRules.Strafe));
+                                    AbilityDef.SpecialRules.Strafe), playerControl2, forced2);
                             ModInit.modLog?.Info?.Write(
                                 $"Player pressed {id2} with pilot {pilotID2}. Now -{ModState.PendingPlayerCmdParams.ActorResource}- and pilot -{ModState.PendingPlayerCmdParams.PilotOverride}- should be the same.");
                         }));
@@ -2074,6 +2090,8 @@ namespace StrategicOperations.Patches
                                 ?.Remove(0, 14);
                             waveString = beacon.Def.ComponentTags.FirstOrDefault(x => x.StartsWith("StrafeWaves_"));
                             int.TryParse(waveString?.Substring(11), out waves);
+                            playerControl =
+                                beacon.Def.ComponentTags.IsComponentPlayerControllable(out forced);
                             ModInit.modLog?.Info?.Write(
                                 $"beacon for button {index + 2}. will be {beacon.Def.Description.Name}, ID will be {id}, pilot will be {pilotID}");
                             var buttonName = $"{index + 2}.";
@@ -2081,6 +2099,8 @@ namespace StrategicOperations.Patches
                             var id3 = id;
                             var pilotID3 = pilotID;
                             var waves3 = waves;
+                            var playerControl3 = playerControl;
+                            var forced3 = forced;
                             var beacon3 = beacon;
                             popup.AddButton(buttonName,
                                 (Action)(() =>
@@ -2092,7 +2112,7 @@ namespace StrategicOperations.Patches
                                     ModState.PendingPlayerCmdParams = new CmdInvocationParams(waves3, id3, pilotID3, __instance.FromButton.Ability.Def.specialRules, "",
                                         beacon3.IsAOEStrafe(
                                             __instance.FromButton.Ability.Def.specialRules ==
-                                            AbilityDef.SpecialRules.Strafe));
+                                            AbilityDef.SpecialRules.Strafe), playerControl3, forced3);
                                     ModInit.modLog?.Info?.Write(
                                         $"Player pressed {id3} with pilot {pilotID3}. Now -{ModState.PendingPlayerCmdParams.ActorResource}- and pilot -{ModState.PendingPlayerCmdParams.PilotOverride}- should be the same.");
                                 }));

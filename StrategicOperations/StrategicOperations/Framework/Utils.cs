@@ -22,6 +22,52 @@ namespace StrategicOperations.Framework
 {
     public static class Utils
     {
+        public static bool IsComponentPlayerControllable(this TagSet tagset, out bool forced)
+        {
+            if (tagset.Any(x => x == "StratOps_player_control_enable"))
+            {
+                forced = true;
+                return true;
+            }
+            if (tagset.Any(x => x == "StratOps_player_control_disable"))
+            {
+                forced = true;
+                return false;
+            }
+
+            forced = false;
+            return true;
+        }
+        public static bool ShouldPlayerControlSpawn(Team team, Ability ability, string quid)
+        {
+            var sim = UnityGameInstance.BattleTechGame.Simulation;
+            if (sim == null) return false;
+            if (!team.IsLocalPlayer) return false;
+            if (ModInit.modSettings.PlayerControlSpawns) return true;
+
+            if (ModState.StoredCmdParams.ContainsKey(quid))
+            {
+                if (ModState.StoredCmdParams[quid].PlayerControl &&
+                    ModState.StoredCmdParams[quid].PlayerControlOverridden) return true;
+                if (!ModState.StoredCmdParams[quid].PlayerControl &&
+                    ModState.StoredCmdParams[quid].PlayerControlOverridden) return false;
+            }
+
+            if (ModInit.modSettings.PlayerControlSpawnAbilities.Contains(ability.Def.Id)) return true;
+            if (ModInit.modSettings.PlayerControlSpawnAbilitiesBlacklist.Contains(ability.Def.Id)) return false;
+
+            return sim.CompanyStats.GetValue<bool>("StratOps_ControlSpawns");
+        }
+
+        public static bool CheckOrInitSpawnControl(this SimGameState sim)
+        {
+            if (!sim.CompanyStats.ContainsStatistic("StratOps_ControlSpawns"))
+            {
+                sim.CompanyStats.AddStatistic<bool>("StratOps_ControlSpawns", false);
+                return false;
+            }
+            return sim.CompanyStats.GetValue<bool>("StratOps_ControlSpawns");
+        }
         public static string Generate2PtCMDQuasiGUID(this Ability ability, Vector3 positionA, Vector3 positionB)
         {
             var sim = UnityGameInstance.BattleTechGame.Simulation;

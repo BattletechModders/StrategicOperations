@@ -457,7 +457,9 @@ settings in the mod.json:
 	"EnableQuickReserve": true,
 	"SBI_HesitationMultiplier": 0,
 	"EquipmentButtonsHotkey": "N",
-	"PlayerControlBeacons": true
+	"PlayerControlBeacons": true,
+	"PlayerControlSpawnAbilities": [],
+	"PlayerControlSpawnAbilitiesBlacklist": []
 ```
 
 `enableLogging` - bool, enable logging
@@ -672,13 +674,32 @@ Using the following settings, ClanGhostBear and ClanWolf have baseline 30% chanc
 
 `SBI_HesitationMultiplier` - float, if EnableQuickReserve is enabled, this value will integrate with SkillBasedInitiative (if found). Using the "quick reserve" function will result in a final "hesitation" value calculated by: `final hesitation = SBI_HesitationMultiplier x phasesMoved + SBI_MOD_HESITATION (from the unit, since i saw its a thing in SBI) + currentHesitation`
 
-"EquipmentButtonsHotkey" -  This button will cycle through activating any equipment abilities the unit has. Abilities (with a button), NOT CAE component functions like LAM transformation. Think how the alpha 1 through 0 hotkeys work for fire, walk, sprint, etc. It won't actually *activate* the ability, it will just bring it up for confirmation/selection. Probably don't set this to something that has an existing keybinding in-game.
+`EquipmentButtonsHotkey` -  This button will cycle through activating any equipment abilities the unit has. Abilities (with a button), NOT CAE component functions like LAM transformation. Think how the alpha 1 through 0 hotkeys work for fire, walk, sprint, etc. It won't actually *activate* the ability, it will just bring it up for confirmation/selection. Probably don't set this to something that has an existing keybinding in-game.
 	
-"PlayerControlSpawns" - bool. if true, friendly mechs and vehicles *(not turrets)* deployed via beacons will be placed under normal player control rather than an AI-controlled friendly team. Their pilots are still defined by either CMDPilotOverride in the spawn ability, or by pilot overrides in the unit beacon as normal.
+`PlayerControlSpawns` - bool. if true, friendly mechs and vehicles *(not turrets)* deployed via beacons will be placed under normal player control rather than an AI-controlled friendly team. Their pilots are still defined by either CMDPilotOverride in the spawn ability, or by pilot overrides in the unit beacon as normal. Overrides all other player-control factors described below.
+
+`PlayerControlSpawnAbilities` - list, string. List of AbilityDef IDs which will always allow player control spawns regardless of all other factors.
+
+`PlayerControlSpawnAbilitiesBlacklist` - list, string. List of AbilityDef IDs which will never allow player control spawns regardless of all other factors.
 	
 ## Spawns
 	
-Spawns are basically what they sound like: spawning reinforcement units at the selected location. These units will be AI-controlled (allied). Exactly <i>what</i> unit gets deployed depends on a few things.
+Spawns are basically what they sound like: spawning reinforcement units at the selected location. These units may be either freindly AI-controlled (including all turrets), or can be player-controlled depending on settings. If `PlayerControlSpawns`, all friendly vehicles, mechs, BA spawns are player-controlled. If `PlayerControlSpawns` is false, the following applies, in this order:
+
+- If a spawnable unit beacon item (described further below) contains the tag `StratOps_player_control_enable`, the player will control the unit, regardless of any other factors.
+- If a spawnable unit beacon item (described further below) contains the tag `StratOps_player_control_disable`, the player will never control the unit, regardless of any other factors.
+
+If neither of the above applies:
+
+- If the ability doing the spawning is listed in mod.json setting `PlayerControlSpawnAbilities`, the player will control the unit.
+- If the ability doing the spawning is listed in mod.json setting `PlayerControlSpawnAbilitiesBlacklist`, the player will not control the unit.
+
+If none of the above applies:
+
+- If the player has the company statistic `StratOps_ControlSpawns` set to true, the player will control the unit.
+
+
+Exactly <i>what</i> unit gets deployed depends on a few things.
 
 1) The "type" of the unit noted in `ActorResource` defines the type of unit that can be deployed by that ability. If it starts with "mechdef_", then mechs can be deployed. If it starts with "vehicledef_", then vehicles can be deployed. If it starts with "turretdef_" then turrets can be deployed.
 	

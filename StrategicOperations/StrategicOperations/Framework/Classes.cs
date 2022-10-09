@@ -513,6 +513,7 @@ namespace StrategicOperations.Framework
             public HeraldryDef SupportHeraldryDef;
             public PendingStrafeWave StrafeWave;
             public string ParentSequenceIDForStrafe = "";
+            public bool PlayerControl = false;
 
             public CustomSpawner(CombatGameState combat, AbstractActor actor, string chosen, Lance custLance)
             {
@@ -523,7 +524,7 @@ namespace StrategicOperations.Framework
                 this.DM = UnityGameInstance.BattleTechGame.DataManager;
             }
 
-            public CustomSpawner(Team team, Ability ability, CombatGameState combat, string chosen, Lance custLance, Team teamSelection, Vector3 loc, Quaternion rotation, HeraldryDef heraldry, string chosenPilot)
+            public CustomSpawner(Team team, Ability ability, CombatGameState combat, string chosen, Lance custLance, Team teamSelection, Vector3 loc, Quaternion rotation, HeraldryDef heraldry, string chosenPilot, bool playerControl)
             {
                 this.SourceTeam = team;
                 this.SourceAbility = ability;
@@ -536,6 +537,7 @@ namespace StrategicOperations.Framework
                 this.SpawnRotation = rotation;
                 this.SupportHeraldryDef = heraldry;
                 this.ChosenPilot = chosenPilot;
+                this.PlayerControl = playerControl;
             }
 
             public CustomSpawner(string parentSequenceID, PendingStrafeWave wave)
@@ -664,16 +666,16 @@ namespace StrategicOperations.Framework
                 newUnit.AddToTeam(TeamSelection);
                 newUnit.AddToLance(CustomLance);
                 CustomLance.AddUnitGUID(newUnit.GUID);
-                if (!TeamSelection.IsLocalPlayer && ModInit.modSettings.PlayerControlSpawns)
+                if (PlayerControl)
                 {
                     newUnit.BehaviorTree = BehaviorTreeFactory.MakeBehaviorTree(
-                        Combat.BattleTechGame, newUnit, BehaviorTreeIDEnum.CoreAITree);
+                        Combat.BattleTechGame, newUnit, BehaviorTreeIDEnum.DoNothingTree);
                     ModState.PlayerSpawnGUIDs.Add(newUnit.GUID);
                 }
                 else
                 {
                     newUnit.BehaviorTree = BehaviorTreeFactory.MakeBehaviorTree(
-                        Combat.BattleTechGame, newUnit, BehaviorTreeIDEnum.DoNothingTree);
+                        Combat.BattleTechGame, newUnit, BehaviorTreeIDEnum.CoreAITree);
                 }
                 //newUnit.OnPlayerVisibilityChanged(VisibilityLevel.None);
                 newUnit.OnPositionUpdate(SpawnLoc, SpawnRotation, -1, true, null, false);
@@ -705,7 +707,7 @@ namespace StrategicOperations.Framework
                 ModInit.modLog?.Trace?.Write($"loaded prefabs success");
                 dropSpawner.StartCoroutine(dropSpawner.StartDropPodAnimation(0f));
                 ModInit.modLog?.Trace?.Write($"started drop pod anim");
-                if (TeamSelection.IsLocalPlayer && ModInit.modSettings.PlayerControlSpawns)
+                if (PlayerControl)
                 {
                     IRBTModUtils.SharedState.CombatHUD.MechWarriorTray.RefreshTeam(Combat.LocalPlayerTeam);
                 }
@@ -1251,9 +1253,11 @@ public class AI_BeaconProxyInfo
             public string PilotOverride;
             public AbilityDef.SpecialRules Rules;
             public bool IsStrafeAOE;
+            public bool PlayerControl;
+            public bool PlayerControlOverridden;
 
             public CmdInvocationParams(int strafeWaves, string actorResource, string pilotOverride,
-                AbilityDef.SpecialRules rules, string quid = "", bool isStrafeAOE = false)
+                AbilityDef.SpecialRules rules, string quid = "", bool isStrafeAOE = false, bool playerControl = false, bool playerControlOverridden = false)
             {
                 QUID = quid;
                 StrafeWaves = strafeWaves;
@@ -1261,6 +1265,8 @@ public class AI_BeaconProxyInfo
                 PilotOverride = pilotOverride;
                 Rules = rules;
                 IsStrafeAOE = isStrafeAOE;
+                PlayerControl = playerControl;
+                PlayerControlOverridden = playerControlOverridden;
             }
 
             public CmdInvocationParams()
@@ -1271,6 +1277,8 @@ public class AI_BeaconProxyInfo
                 PilotOverride = "";
                 Rules = AbilityDef.SpecialRules.NotSet;
                 IsStrafeAOE = false;
+                PlayerControl = false;
+                PlayerControlOverridden = false;
             }
 
             public CmdInvocationParams(CmdInvocationParams cmdParams)
@@ -1281,6 +1289,8 @@ public class AI_BeaconProxyInfo
                 PilotOverride = cmdParams.PilotOverride;
                 Rules = cmdParams.Rules;
                 IsStrafeAOE = cmdParams.IsStrafeAOE;
+                PlayerControl = cmdParams.PlayerControl;
+                PlayerControlOverridden = cmdParams.PlayerControlOverridden;
             }
         }
         public class PendingStrafeWave
