@@ -2361,6 +2361,7 @@ namespace StrategicOperations.Patches
         [HarmonyPatch(typeof(CameraControl), "ShowActorCam")]
         public static class CameraControl_ShowActorCam
         {
+            static bool Prepare() => false; //disabled. im not fucking with the follow cam anymore, and apparently it causes problems with harmonyx for some goddamn reason?
             public static bool Prefix(CameraControl __instance, AbstractActor actor, Quaternion rotation,
                 float duration, ref AttachToActorCameraSequence __result)
             {
