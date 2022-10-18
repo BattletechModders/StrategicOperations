@@ -19,13 +19,16 @@ using Harmony;
 using HBS;
 using HBS.Math;
 using HBS.Pooling;
+using IRBTModUtils;
 using IRTweaks.Modules.Combat;
 using Localize;
 using StrategicOperations.Framework;
 using SVGImporter;
 using UnityEngine;
 using UnityEngine.UI;
+using static BattleTech.FiringPreviewManager;
 using MechStructureRules = BattleTech.MechStructureRules;
+using ModState = StrategicOperations.Framework.ModState;
 using TrooperSquad = CustomUnits.TrooperSquad;
 
 namespace StrategicOperations.Patches
@@ -1791,6 +1794,25 @@ namespace StrategicOperations.Patches
 
                 //                }
                 //__result = LineOfFireLevel.LOFClear;
+            }
+        }
+
+        [HarmonyPatch(typeof(WeaponRangeIndicators), "DrawLine")]
+        public static class WeaponRangeIndicators_DrawLine //maybe change LOS color if friendly swarmers?
+        {
+            static bool Prepare() => false; //doersnt work, fuckit.
+            public static void Prefix(WeaponRangeIndicators __instance, Vector3 position, Quaternion rotation, bool isPositionLocked,
+                AbstractActor selectedActor, ICombatant target, bool usingMultifire, bool isLocked, bool isMelee)
+            {
+                if (target is AbstractActor targetActor && targetActor.HasSwarmingUnits())
+                {
+                    if (selectedActor.team.IsEnemy(targetActor.team))
+                    {
+                        var previewInfo = SharedState.CombatHUD.SelectionHandler.ActiveState.FiringPreview.GetPreviewInfo(target);
+                        Traverse.Create(previewInfo).Field("collisionPoint").SetValue(selectedActor.CurrentPosition);
+                        //previewInfo.collisionPoint = selectedActor.CurrentPosition;
+                    }
+                }
             }
         }
 
