@@ -129,8 +129,6 @@ namespace StrategicOperations.Patches
                             unit.GetPilot().ActiveAbilities.Add(ability);
                         }
                     }
-
-
                     return;
                 }
 
