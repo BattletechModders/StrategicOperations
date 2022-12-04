@@ -1,14 +1,12 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Reflection;
-using BattleTech;
-using CustomComponents;
+﻿using CustomComponents;
 using Harmony;
 using IRBTModUtils.CustomInfluenceMap;
 using IRBTModUtils.Logging;
-using Localize;
 using Newtonsoft.Json;
 using StrategicOperations.Framework;
+using System;
+using System.Collections.Generic;
+using System.Reflection;
 using UnityEngine;
 using static StrategicOperations.Framework.Classes;
 using Random = System.Random;
