@@ -17,8 +17,8 @@ namespace StrategicOperations.Framework
             pathing.ResetPathGrid(target.CurrentPosition, target.CurrentRotation.eulerAngles.y, target, false);
             pathing.UpdateBuild();
 
-            var sprintGrid = Traverse.Create(pathing).Property("SprintingGrid").GetValue<PathNodeGrid>();
-            var nodes = Traverse.Create(sprintGrid).Field("pathNodes").GetValue<PathNode[,]>();
+            var sprintGrid = pathing.SprintingGrid;//Traverse.Create(pathing).Property("SprintingGrid").GetValue<PathNodeGrid>();
+            var nodes = sprintGrid.pathNodes;//Traverse.Create(sprintGrid).Field("pathNodes").GetValue<PathNode[,]>();
             var usableNodes = new List<Classes.SpawnCoords>();
             ModInit.modLog?.Trace?.Write($"There are {nodes.Length} nodes to check.");
             foreach (var node in nodes)

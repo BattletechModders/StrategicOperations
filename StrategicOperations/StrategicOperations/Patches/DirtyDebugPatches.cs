@@ -69,43 +69,43 @@ namespace StrategicOperations.Patches
         [HarmonyPatch(typeof(MultiSequence), "RevealRadius", new Type[] {typeof(Vector3), typeof(float), typeof(string)})]
         public static class MultiSequence_RevealRadius_GrossPatchReplacer
         {
-            public static bool Prefix(MultiSequence __instance, Vector3 focalPosition, float revealRadius, string parentGUID, ref GameObject ___focalPoint, ref List<PilotableActorRepresentation> ___shownList, ref int ___nextRevealatronIndex)
+            public static bool Prefix(MultiSequence __instance, Vector3 focalPosition, float revealRadius, string parentGUID)
             {
                 if (revealRadius != 0f)
                 {
                     var combat = UnityGameInstance.BattleTechGame.Combat;
                     //__instance.ClearFocalPoint();
-                    if (___focalPoint != null)
+                    if (__instance.focalPoint != null)
                     {
-                        UnityEngine.Object.Destroy(___focalPoint);
-                        ___focalPoint = null;
+                        UnityEngine.Object.Destroy(__instance.focalPoint);
+                        __instance.focalPoint = null;
                     }
 
-                    ___focalPoint = new GameObject("focalPoint");
-                    SnapToTerrain snapToTerrain = ___focalPoint.AddComponent<SnapToTerrain>();
+                    __instance.focalPoint = new GameObject("focalPoint");
+                    SnapToTerrain snapToTerrain = __instance.focalPoint.AddComponent<SnapToTerrain>();
                     snapToTerrain.verticalOffset = 10f;
                     snapToTerrain.transform.position = focalPosition;
                     snapToTerrain.UpdatePosition();
-                    FogOfWarRevealatron fogOfWarRevealatron = ___focalPoint.AddComponent<FogOfWarRevealatron>();
+                    FogOfWarRevealatron fogOfWarRevealatron = __instance.focalPoint.AddComponent<FogOfWarRevealatron>();
 
-                    ___nextRevealatronIndex++;
-                    fogOfWarRevealatron.GUID = parentGUID + string.Format(".{0}", ___nextRevealatronIndex);
+                    __instance.nextRevealatronIndex++;
+                    fogOfWarRevealatron.GUID = parentGUID + string.Format(".{0}", __instance.nextRevealatronIndex);
                     fogOfWarRevealatron.radiusMeters = revealRadius;
                     LazySingletonBehavior<FogOfWarView>.Instance.FowSystem.AddRevealatronViewer(fogOfWarRevealatron);
                     List<AbstractActor> GetAllLivingActors = combat.GetAllLivingActors();
                     //__instance.ClearShownList();
 
-                    if (___shownList != null)
+                    if (__instance.shownList != null)
                     {
                         List<ICombatant> allCombatants = combat.GetAllLivingCombatants();
-                        for (int i = 0; i < ___shownList.Count; i++)
+                        for (int i = 0; i < __instance.shownList.Count; i++)
                         {
-                            ___shownList[i].ClearForcedPlayerVisibilityLevel(allCombatants);
+                            __instance.shownList[i].ClearForcedPlayerVisibilityLevel(allCombatants);
                         }
-                        ___shownList = null;
+                        __instance.shownList = null;
                     }
 
-                    ___shownList = new List<PilotableActorRepresentation>();
+                    __instance.shownList = new List<PilotableActorRepresentation>();
                     for (int i = 0; i < GetAllLivingActors.Count; i++)
                     {
                         AbstractActor abstractActor = GetAllLivingActors[i];
@@ -122,7 +122,7 @@ namespace StrategicOperations.Patches
                             if (pilotableActorRepresentation != null)
                             {
                                 pilotableActorRepresentation.SetForcedPlayerVisibilityLevel(VisibilityLevel.LOSFull, false);
-                                ___shownList.Add(pilotableActorRepresentation);
+                                __instance.shownList.Add(pilotableActorRepresentation);
                             }
                         }
                     }

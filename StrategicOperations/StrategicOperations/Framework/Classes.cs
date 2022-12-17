@@ -4,6 +4,7 @@ using System.Linq;
 using Abilifier.Patches;
 using BattleTech;
 using BattleTech.Data;
+using BattleTech.UI;
 using CustomComponents;
 using CustomUnits;
 using HBS.Collections;
@@ -709,7 +710,7 @@ namespace StrategicOperations.Framework
                 ModInit.modLog?.Trace?.Write($"started drop pod anim");
                 if (PlayerControl)
                 {
-                    IRBTModUtils.SharedState.CombatHUD.MechWarriorTray.RefreshTeam(Combat.LocalPlayerTeam);
+                    CameraControl.Instance.HUD.MechWarriorTray.RefreshTeam(Combat.LocalPlayerTeam);
                 }
                 if (SourceTeam.IsLocalPlayer && (ModInit.modSettings.commandUseCostsMulti > 0 ||
                                                SourceAbility.Def.getAbilityDefExtension().CBillCost > 0))

@@ -56,8 +56,7 @@ namespace StrategicOperations.Framework
         }
         public static void ShowBATargetsMeleeIndicator(this CombatHUDInWorldElementMgr inWorld, List<AbstractActor> targets, AbstractActor unit)
         {
-            var tickMarks = Traverse.Create(inWorld).Field("WeaponTickMarks")
-                .GetValue<List<CombatHUDWeaponTickMarks>>();
+            var tickMarks = inWorld.WeaponTickMarks;//Traverse.Create(inWorld).Field("WeaponTickMarks").GetValue<List<CombatHUDWeaponTickMarks>>();
 
             for (int i = 0; i < tickMarks.Count; i++)
             {
@@ -199,8 +198,7 @@ namespace StrategicOperations.Framework
         }
         public static void ReInitIndicator(this CombatHUD hud, AbstractActor actor)
         {
-            var indicators = Traverse.Create(hud.InWorldMgr).Field("AttackDirectionIndicators")
-                .GetValue<List<AttackDirectionIndicator>>();
+            var indicators = hud.InWorldMgr.AttackDirectionIndicators;//Traverse.Create(hud.InWorldMgr).Field("AttackDirectionIndicators").GetValue<List<AttackDirectionIndicator>>();
             foreach (var indicator in indicators)
             {
                 if (indicator.Owner.GUID == actor.GUID)
@@ -673,7 +671,7 @@ namespace StrategicOperations.Framework
             for (int i = 0; i < points.Count; i++)
             {
                 Vector3 resultPos  = Vector3.zero;
-                var walkGrid = Traverse.Create(actor.Pathing).Property("WalkingGrid").GetValue<PathNodeGrid>();
+                var walkGrid = actor.Pathing.WalkingGrid;//Traverse.Create(actor.Pathing).Property("WalkingGrid").GetValue<PathNodeGrid>();
                 var pathNode = walkGrid.GetClosestPathNode(points[i], 0f, 1000f, points[i], ref resultPos,
                     out var resultAngle, false, false);
                 if (pathNode != null)
@@ -737,7 +735,7 @@ namespace StrategicOperations.Framework
                 }
 
                 actor.FiringArc(actor.GetCustomInfo().FiringArc);
-                var hud = SharedState.CombatHUD;
+                var hud = CameraControl.Instance.HUD;//SharedState.CombatHUD;
                 //var hud = Traverse.Create(CameraControl.Instance).Property("HUD").GetValue<CombatHUD>();
                 //actor.GameRep.IsTargetable = true;
 
@@ -818,7 +816,7 @@ namespace StrategicOperations.Framework
                 }
             }
             squad.FiringArc(squad.GetCustomInfo().FiringArc);
-            var hud = SharedState.CombatHUD;
+            var hud = CameraControl.Instance.HUD;//SharedState.CombatHUD;
             //var hud = Traverse.Create(CameraControl.Instance).Property("HUD").GetValue<CombatHUD>();
             //actor.GameRep.IsTargetable = true;
 

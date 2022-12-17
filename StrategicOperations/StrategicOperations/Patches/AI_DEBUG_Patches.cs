@@ -16,43 +16,27 @@ namespace StrategicOperations.Patches
     class AI_DEBUG_Patches
     {
 
-        [HarmonyPatch]
+        [HarmonyPatch(typeof(SortMoveCandidatesByInfMapNode), "Tick")]
         public static class SortMoveCandidatesByInfMapNode_Tick
         {
-            public static MethodBase TargetMethod()
-            {
-                var type = AccessTools.TypeByName("SortMoveCandidatesByInfMapNode");
-                return AccessTools.Method(type, "Tick");
-            }
+           static bool Prepare() => ModInit.modSettings.Debug;
 
-            static bool Prepare() => ModInit.modSettings.Debug;
-
-            public static void Postfix(ref BehaviorTreeResults __result, string ___name,
-                AbstractActor ___unit)
+            public static void Postfix(SortMoveCandidatesByInfMapNode __instance, ref BehaviorTreeResults __result)
             {
                 ModInit.modLog?.Debug?.Write(
-                    $"[SortMoveCandidatesByInfMapNode Tick] Sorting finished. Actor {___unit.DisplayName} eval'd highest weighted position as {___unit.BehaviorTree.influenceMapEvaluator.WorkspaceEvaluationEntries[0].Position} with weight {___unit.BehaviorTree.influenceMapEvaluator.WorkspaceEvaluationEntries[0].GetHighestAccumulator()}");
+                    $"[SortMoveCandidatesByInfMapNode Tick] Sorting finished. Actor {__instance.unit.DisplayName} eval'd highest weighted position as {__instance.unit.BehaviorTree.influenceMapEvaluator.WorkspaceEvaluationEntries[0].Position} with weight {__instance.unit.BehaviorTree.influenceMapEvaluator.WorkspaceEvaluationEntries[0].GetHighestAccumulator()}");
             }
         }
 
-        [HarmonyPatch]
+        [HarmonyPatch(typeof(MoveTowardsHighestPriorityMoveCandidateNode), "Tick")]
         public static class MoveTowardsHighestPriorityMoveCandidateNode_Tick
         {
-            public static MethodBase TargetMethod()
-            {
-                var type = AccessTools.TypeByName("MoveTowardsHighestPriorityMoveCandidateNode");
-                return AccessTools.Method(type, "Tick");
-            }
+           static bool Prepare() => ModInit.modSettings.Debug;
 
-            static bool Prepare() => ModInit.modSettings.Debug;
-
-            public static void Postfix(ref BehaviorTreeResults __result, string ___name,
-                AbstractActor ___unit)
+            public static void Postfix(MoveTowardsHighestPriorityMoveCandidateNode __instance, ref BehaviorTreeResults __result)
             {
                 ModInit.modLog?.Debug?.Write(
-                    $"[MoveTowardsHighestPriorityMoveCandidateNode Tick] Moving towards highest eval'd position: Actor {___unit.DisplayName} eval'd highest weighted position as {___unit.BehaviorTree.influenceMapEvaluator.WorkspaceEvaluationEntries[0].Position} with weight {___unit.BehaviorTree.influenceMapEvaluator.WorkspaceEvaluationEntries[0].GetHighestAccumulator()}");
-                ModInit.modLog?.Debug?.Write(
-                    $"[MoveTowardsHighestPriorityMoveCandidateNode Tick] Moving towards highest eval'd position: Actor {___unit.DisplayName} eval'd highest weighted position as {___unit.BehaviorTree.influenceMapEvaluator.WorkspaceEvaluationEntries[0].Position} with weight {___unit.BehaviorTree.influenceMapEvaluator.WorkspaceEvaluationEntries[0].GetHighestAccumulator()}");
+                    $"[MoveTowardsHighestPriorityMoveCandidateNode Tick] Moving towards highest eval'd position: Actor {__instance.unit.DisplayName} eval'd highest weighted position as {__instance.unit.BehaviorTree.influenceMapEvaluator.WorkspaceEvaluationEntries[0].Position} with weight {__instance.unit.BehaviorTree.influenceMapEvaluator.WorkspaceEvaluationEntries[0].GetHighestAccumulator()}");
             }
         }
 

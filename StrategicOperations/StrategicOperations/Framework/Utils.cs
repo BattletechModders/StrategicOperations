@@ -624,7 +624,8 @@ namespace StrategicOperations.Framework
             {
                 ModInit.modLog?.Info?.Write($"Adding {ModInit.modSettings.deployProtection} evasion pips");
                 actor.EvasivePipsCurrent = ModInit.modSettings.deployProtection;
-                Traverse.Create(actor).Property("EvasivePipsTotal").SetValue(actor.EvasivePipsCurrent);
+                //Traverse.Create(actor).Property("EvasivePipsTotal").SetValue(actor.EvasivePipsCurrent);
+                actor.EvasivePipsTotal = actor.EvasivePipsCurrent;
                 actor.Combat.MessageCenter.PublishMessage(new EvasiveChangedMessage(actor.GUID, actor.EvasivePipsCurrent));
             }
         }
@@ -642,7 +643,8 @@ namespace StrategicOperations.Framework
             var carrierEvasion = carrier.EvasivePipsCurrent;
             ModInit.modLog?.Info?.Write($"Setting evasion to {carrierEvasion} from carrier");
             actor.EvasivePipsCurrent = carrierEvasion;
-            Traverse.Create(actor).Property("EvasivePipsTotal").SetValue(actor.EvasivePipsCurrent);
+            actor.EvasivePipsTotal = actor.EvasivePipsCurrent;
+            //Traverse.Create(actor).Property("EvasivePipsTotal").SetValue(actor.EvasivePipsCurrent);
         }
 
 

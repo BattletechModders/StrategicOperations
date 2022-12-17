@@ -18,15 +18,15 @@ namespace StrategicOperations.Patches
             {
                 if (UnityGameInstance.BattleTechGame.Simulation == null) return;
                 if (ModState.CommandUses.Count <= 0) return;
-                var addObjectiveMethod = Traverse.Create(__instance).Method("AddObjective", new Type[] { typeof(MissionObjectiveResult) });
+                //var addObjectiveMethod = Traverse.Create(__instance).Method("AddObjective", new Type[] { typeof(MissionObjectiveResult) });
                 foreach (var cmdUse in ModState.CommandUses)
                 {
                     if (cmdUse.TotalCost <= 0) continue;
                     var cmdUseCost = $"Command Ability Costs for {cmdUse.CommandName}: {cmdUse.UnitName}: {cmdUse.UseCount} Uses x {cmdUse.UseCostAdjusted} ea. = ¢-{cmdUse.TotalCost}";
 
                     var cmdUseCostResult = new MissionObjectiveResult($"{cmdUseCost}", Guid.NewGuid().ToString(), false, true, ObjectiveStatus.Ignored, false);
-
-                    addObjectiveMethod.GetValue(cmdUseCostResult);
+                    __instance.AddObjective(cmdUseCostResult);
+                    //addObjectiveMethod.GetValue(cmdUseCostResult);
                 }
             }
         }
@@ -46,7 +46,8 @@ namespace StrategicOperations.Patches
                 }
 
                 var moneyResults = __instance.MoneyResults - finalCommandCosts;
-                Traverse.Create(__instance).Property("MoneyResults").SetValue(moneyResults);
+                //Traverse.Create(__instance).Property("MoneyResults").SetValue(moneyResults);
+                __instance.MoneyResults = moneyResults;
             }
         }
     }

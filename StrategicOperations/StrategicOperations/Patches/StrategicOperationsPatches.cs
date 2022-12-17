@@ -330,141 +330,140 @@ namespace StrategicOperations.Patches
                 //ModInit.modLog?.Info?.Write($"Couldn't find UnitSpawnPointGameLogic for {____parentActor?.DisplayName}. Should be CMD Ability actor; skipping safety teleport!");
             }
         }
-
-
+        
         [HarmonyPatch(typeof(GameRepresentation), "Update")]
         public static class GameRepresentation_Update
         {
-            public static bool Prefix(GameRepresentation __instance, AbstractActor ____parentActor)
+            public static bool Prefix(GameRepresentation __instance)
             {
-                if (____parentActor == null) return true;
+                if (__instance._parentActor == null) return true;
                 var combat = UnityGameInstance.BattleTechGame.Combat;
                 if (combat == null) return true;
                 if (combat.ActiveContract.ContractTypeValue.IsSkirmish) return true;
                 var registry = combat.ItemRegistry;
 
-                if (____parentActor?.spawnerGUID == null)
+                if (__instance._parentActor?.spawnerGUID == null)
                 {
                     //ModInit.modLog?.Info?.Write($"Couldn't find UnitSpawnPointGameLogic for {____parentActor?.DisplayName}. Should be CMD Ability actor; skipping safety teleport!");
                     return false;
                 }
 
-                return registry.GetItemByGUID<UnitSpawnPointGameLogic>(____parentActor?.spawnerGUID) != null;
+                return registry.GetItemByGUID<UnitSpawnPointGameLogic>(__instance._parentActor?.spawnerGUID) != null;
                 //ModInit.modLog?.Info?.Write($"Couldn't find UnitSpawnPointGameLogic for {____parentActor?.DisplayName}. Should be CMD Ability actor; skipping safety teleport!");
             }
 
-            public static void Postfix(GameRepresentation __instance, AbstractActor ____parentActor)
+            public static void Postfix(GameRepresentation __instance)
             {
-                if (____parentActor == null) return;
+                if (__instance._parentActor == null) return;
 
-                if (ModState.CachedUnitCoordinates.ContainsKey(____parentActor.GUID))
+                if (ModState.CachedUnitCoordinates.ContainsKey(__instance._parentActor.GUID))
                 {
-                    if (____parentActor is CustomMech mech)
+                    if (__instance._parentActor is CustomMech mech)
                     {
-                        if (ModState.CachedUnitCoordinates[____parentActor.GUID] == ____parentActor.CurrentPosition && !mech.custGameRep.HeightController.isInChangeHeight) return;
+                        if (ModState.CachedUnitCoordinates[__instance._parentActor.GUID] == __instance._parentActor.CurrentPosition && !mech.custGameRep.HeightController.isInChangeHeight) return;
                     }
-                    else if (ModState.CachedUnitCoordinates[____parentActor.GUID] == ____parentActor.CurrentPosition)
+                    else if (ModState.CachedUnitCoordinates[__instance._parentActor.GUID] == __instance._parentActor.CurrentPosition)
                     {
                         return;
                     }
                 }
-                var combat = ____parentActor.Combat;
-                if (____parentActor.HasAirliftedUnits())
+                var combat = __instance._parentActor.Combat;
+                if (__instance._parentActor.HasAirliftedUnits())
                 {
                     var airliftedUnits = ModState.AirliftTrackers.Where(x =>
-                        x.Value.CarrierGUID == ____parentActor.GUID);
+                        x.Value.CarrierGUID == __instance._parentActor.GUID);
                     foreach (var trackerInfo in airliftedUnits)
                     {
                         var targetActor = combat.FindActorByGUID(trackerInfo.Key);
                         if (targetActor == null) continue;
                         var pos = Vector3.zero;
-                        if (____parentActor is CustomMech mech)
+                        if (__instance._parentActor is CustomMech mech)
                         {
-                            pos = ____parentActor.CurrentPosition + Vector3.down * trackerInfo.Value.Offset + Vector3.up * mech.custGameRep.HeightController.CurrentHeight;
+                            pos = __instance._parentActor.CurrentPosition + Vector3.down * trackerInfo.Value.Offset + Vector3.up * mech.custGameRep.HeightController.CurrentHeight;
                             targetActor.TeleportActor(pos);
                             if (targetActor is CustomMech customMech)
                             {
                                 customMech.custGameRep.j_Root.localRotation = Quaternion.identity;
                             }
-                            targetActor.GameRep.transform.rotation = ____parentActor.GameRep.transform.rotation;
-                            targetActor.CurrentRotation = ____parentActor.CurrentRotation;
+                            targetActor.GameRep.transform.rotation = __instance._parentActor.GameRep.transform.rotation;
+                            targetActor.CurrentRotation = __instance._parentActor.CurrentRotation;
                         }
                         else
                         {
-                            pos = ____parentActor.CurrentPosition + Vector3.down * trackerInfo.Value.Offset;
+                            pos = __instance._parentActor.CurrentPosition + Vector3.down * trackerInfo.Value.Offset;
                             targetActor.TeleportActor(pos);
                             if (targetActor is CustomMech customMech)
                             {
                                 customMech.custGameRep.j_Root.localRotation = Quaternion.identity;
                             }
-                            targetActor.GameRep.transform.rotation = ____parentActor.GameRep.transform.rotation;
-                            targetActor.CurrentRotation = ____parentActor.CurrentRotation;
+                            targetActor.GameRep.transform.rotation = __instance._parentActor.GameRep.transform.rotation;
+                            targetActor.CurrentRotation = __instance._parentActor.CurrentRotation;
                         }
-                        targetActor.MountedEvasion(____parentActor);
-                        ModInit.modLog?.Debug?.Write($"PositionLockMount- Setting airlifted unit {targetActor.DisplayName} position to same as carrier unit {____parentActor.DisplayName}");
+                        targetActor.MountedEvasion(__instance._parentActor);
+                        ModInit.modLog?.Debug?.Write($"PositionLockMount- Setting airlifted unit {targetActor.DisplayName} position to same as carrier unit {__instance._parentActor.DisplayName}");
 
-                        if (!ModState.CachedUnitCoordinates.ContainsKey(____parentActor.GUID))
+                        if (!ModState.CachedUnitCoordinates.ContainsKey(__instance._parentActor.GUID))
                         {
-                            ModState.CachedUnitCoordinates.Add(____parentActor.GUID, ____parentActor.CurrentPosition);
+                            ModState.CachedUnitCoordinates.Add(__instance._parentActor.GUID, __instance._parentActor.CurrentPosition);
                         }
                         else
                         {
-                            ModState.CachedUnitCoordinates[____parentActor.GUID] = ____parentActor.CurrentPosition;
+                            ModState.CachedUnitCoordinates[__instance._parentActor.GUID] = __instance._parentActor.CurrentPosition;
                         }
                     }
                 }
 
 
-                if (____parentActor.HasMountedUnits())
+                if (__instance._parentActor.HasMountedUnits())
                 {
-                    var targetActorGUIDs = ModState.PositionLockMount.Where(x => x.Value == ____parentActor.GUID);
+                    var targetActorGUIDs = ModState.PositionLockMount.Where(x => x.Value == __instance._parentActor.GUID);
                     foreach (var targetActorGUID in targetActorGUIDs)
                     {
                         var targetActor = combat.FindActorByGUID(targetActorGUID.Key);
                         if (targetActor == null) continue;
                         var pos = Vector3.zero;
-                        if (____parentActor is CustomMech mech)
+                        if (__instance._parentActor is CustomMech mech)
                         {
-                            pos = ____parentActor.CurrentPosition +
+                            pos = __instance._parentActor.CurrentPosition +
                                       Vector3.up * mech.custGameRep.HeightController.CurrentHeight;
                             targetActor.TeleportActor(pos);
                         }
                         else
                         {
-                            targetActor.TeleportActor(____parentActor.CurrentPosition);
+                            targetActor.TeleportActor(__instance._parentActor.CurrentPosition);
                         }
-                        targetActor.MountedEvasion(____parentActor);
-                        ModInit.modLog?.Debug?.Write($"PositionLockMount- Setting riding unit {targetActor.DisplayName} position to same as carrier unit {____parentActor.DisplayName}");
+                        targetActor.MountedEvasion(__instance._parentActor);
+                        ModInit.modLog?.Debug?.Write($"PositionLockMount- Setting riding unit {targetActor.DisplayName} position to same as carrier unit {__instance._parentActor.DisplayName}");
 
-                        if (!ModState.CachedUnitCoordinates.ContainsKey(____parentActor.GUID))
+                        if (!ModState.CachedUnitCoordinates.ContainsKey(__instance._parentActor.GUID))
                         {
-                            ModState.CachedUnitCoordinates.Add(____parentActor.GUID, ____parentActor.CurrentPosition);
+                            ModState.CachedUnitCoordinates.Add(__instance._parentActor.GUID, __instance._parentActor.CurrentPosition);
                         }
                         else
                         {
-                            ModState.CachedUnitCoordinates[____parentActor.GUID] = ____parentActor.CurrentPosition;
+                            ModState.CachedUnitCoordinates[__instance._parentActor.GUID] = __instance._parentActor.CurrentPosition;
                         }
                     }
                 }
                 // removed return/else so swarming units are locked to carrier even if carrier has mounted units. derp.
-                if (____parentActor.HasSwarmingUnits())
+                if (__instance._parentActor.HasSwarmingUnits())
                 {
-                    var targetActorGUIDs = ModState.PositionLockSwarm.Where(x => x.Value == ____parentActor.GUID);
+                    var targetActorGUIDs = ModState.PositionLockSwarm.Where(x => x.Value == __instance._parentActor.GUID);
                     foreach (var targetActorGUID in targetActorGUIDs)
                     {
                         var targetActor = combat.FindActorByGUID(targetActorGUID.Key);
                         if (targetActor == null) continue;
-                        targetActor.TeleportActor(____parentActor.CurrentPosition);
-                        targetActor.MountedEvasion(____parentActor);
-                        ModInit.modLog?.Debug?.Write($"PositionLockMount- Setting riding unit {targetActor.DisplayName} position to same as carrier unit {____parentActor.DisplayName}");
+                        targetActor.TeleportActor(__instance._parentActor.CurrentPosition);
+                        targetActor.MountedEvasion(__instance._parentActor);
+                        ModInit.modLog?.Debug?.Write($"PositionLockMount- Setting riding unit {targetActor.DisplayName} position to same as carrier unit {__instance._parentActor.DisplayName}");
 
-                        if (!ModState.CachedUnitCoordinates.ContainsKey(____parentActor.GUID))
+                        if (!ModState.CachedUnitCoordinates.ContainsKey(__instance._parentActor.GUID))
                         {
-                            ModState.CachedUnitCoordinates.Add(____parentActor.GUID, ____parentActor.CurrentPosition);
+                            ModState.CachedUnitCoordinates.Add(__instance._parentActor.GUID, __instance._parentActor.CurrentPosition);
                         }
                         else
                         {
-                            ModState.CachedUnitCoordinates[____parentActor.GUID] = ____parentActor.CurrentPosition;
+                            ModState.CachedUnitCoordinates[__instance._parentActor.GUID] = __instance._parentActor.CurrentPosition;
                         }
                     }
                 }
@@ -1266,9 +1265,8 @@ namespace StrategicOperations.Patches
                 else
                 {
                     ModInit.modLog?.Info?.Write($"[Ability_ActivateSpawnTurret] Attempting to spawn {actorResource} as turret.");
-                    var spawnTurretMethod = Traverse.Create(__instance).Method("SpawnTurret",
-                        new object[] { teamSelection, actorResource, positionA, quaternion });
-                    var turretActor = spawnTurretMethod.GetValue<AbstractActor>();
+                    //var spawnTurretMethod = Traverse.Create(__instance).Method("SpawnTurret", new object[] { teamSelection, actorResource, positionA, quaternion });
+                    var turretActor = __instance.SpawnTurret(teamSelection, actorResource, positionA, quaternion);//spawnTurretMethod.GetValue<AbstractActor>());
 
                     teamSelection.AddUnit(turretActor);
                     turretActor.AddToTeam(teamSelection);
@@ -1559,7 +1557,7 @@ namespace StrategicOperations.Patches
                 Vector3 positionA, //prefix to try and make command abilities behave like normal ones
                 Vector3 positionB)
             {
-                var HUD = IRBTModUtils.SharedState.CombatHUD;//Traverse.Create(__instance).Property("HUD").GetValue<CombatHUD>();
+                var HUD = __instance.HUD;//IRBTModUtils.SharedState.CombatHUD;//Traverse.Create(__instance).Property("HUD").GetValue<CombatHUD>();
                 var theActor = HUD.SelectedActor;
                 if (theActor == null) return true;
                 var combat = HUD.Combat;
@@ -1588,7 +1586,7 @@ namespace StrategicOperations.Patches
             {
                 if (UnityGameInstance.BattleTechGame.Combat.ActiveContract.ContractTypeValue.IsSkirmish) return;
                 var def = __instance.Ability.Def;
-                var HUD = IRBTModUtils.SharedState.CombatHUD; //Traverse.Create(__instance).Property("HUD").GetValue<CombatHUD>();
+                var HUD = __instance.HUD;//IRBTModUtils.SharedState.CombatHUD; //Traverse.Create(__instance).Property("HUD").GetValue<CombatHUD>();
                 var theActor = HUD.SelectedActor;
                 if (theActor == null) return;
                 if (def.specialRules == AbilityDef.SpecialRules.Strafe &&
@@ -1627,7 +1625,7 @@ namespace StrategicOperations.Patches
             public static bool Prefix(CombatHUDEquipmentSlot __instance, string teamGUID, Vector3 positionA,
                 Vector3 positionB)
             {
-                var HUD = IRBTModUtils.SharedState.CombatHUD;// Traverse.Create(__instance).Property("HUD").GetValue<CombatHUD>();
+                var HUD = __instance.HUD;//IRBTModUtils.SharedState.CombatHUD;// Traverse.Create(__instance).Property("HUD").GetValue<CombatHUD>();
                 var theActor = HUD.SelectedActor;
                 if (theActor == null) return true;
                 var combat = HUD.Combat;
@@ -1656,7 +1654,7 @@ namespace StrategicOperations.Patches
             {
                 if (__instance.Ability.Combat.ActiveContract.ContractTypeValue.IsSkirmish) return;
                 var def = __instance.Ability.Def;
-                var HUD = IRBTModUtils.SharedState.CombatHUD;//Traverse.Create(__instance).Property("HUD").GetValue<CombatHUD>();
+                var HUD = __instance.HUD;//IRBTModUtils.SharedState.CombatHUD;//Traverse.Create(__instance).Property("HUD").GetValue<CombatHUD>();
                 var theActor = HUD.SelectedActor;
                 if (theActor == null) return;
                 if (def.specialRules == AbilityDef.SpecialRules.Strafe &&
@@ -1693,7 +1691,7 @@ namespace StrategicOperations.Patches
             public static void Postfix(SelectionStateCommand __instance)
             {
                 if (UnityGameInstance.BattleTechGame.Combat.ActiveContract.ContractTypeValue.IsSkirmish) return;
-                var HUD = IRBTModUtils.SharedState.CombatHUD;//Traverse.Create(__instance).Property("HUD").GetValue<CombatHUD>();
+                var HUD = __instance.HUD;//IRBTModUtils.SharedState.CombatHUD;//Traverse.Create(__instance).Property("HUD").GetValue<CombatHUD>();
                 var theActor = HUD.SelectedActor;
                 if (theActor == null) return;
                 CombatTargetingReticle.Instance.HideReticle();
@@ -1707,12 +1705,11 @@ namespace StrategicOperations.Patches
         [HarmonyPatch(typeof(SelectionStateCommandSpawnTarget), "ProcessMousePos")]
         public static class SelectionStateCommandSpawnTarget_ProcessMousePos
         {
-            public static bool Prefix(SelectionStateCommandSpawnTarget __instance, Vector3 worldPos,
-                int ___numPositionsLocked)
+            public static bool Prefix(SelectionStateCommandSpawnTarget __instance, Vector3 worldPos)
             {
                 if (UnityGameInstance.BattleTechGame.Combat.ActiveContract.ContractTypeValue.IsSkirmish) return true;
                 CombatSpawningReticle.Instance.ShowReticle();
-                var HUD = IRBTModUtils.SharedState.CombatHUD;//Traverse.Create(__instance).Property("HUD").GetValue<CombatHUD>();
+                var HUD = __instance.HUD;//IRBTModUtils.SharedState.CombatHUD;//Traverse.Create(__instance).Property("HUD").GetValue<CombatHUD>();
                 var theActor = HUD.SelectedActor;
                 if (theActor == null) return true;
                 var distance = Mathf.RoundToInt(Vector3.Distance(theActor.CurrentPosition, worldPos));
@@ -1720,7 +1717,7 @@ namespace StrategicOperations.Patches
                 //CombatTargetingReticle.Instance.ShowRangeIndicators(theActor.CurrentPosition, 0f, maxRange, true, true);
                 //CombatTargetingReticle.Instance.ShowReticle();
                 if (__instance.FromButton.Ability.Def.specialRules == AbilityDef.SpecialRules.SpawnTurret &&
-                    distance > maxRange && ___numPositionsLocked == 0)
+                    distance > maxRange && __instance.numPositionsLocked == 0)
                 {
                     ModState.OutOfRange = true;
                     CombatSpawningReticle.Instance.HideReticle();
@@ -1746,14 +1743,13 @@ namespace StrategicOperations.Patches
         [HarmonyPatch(typeof(SelectionStateCommandTargetTwoPoints), "ProcessMousePos")]
         public static class SelectionStateCommandTargetTwoPoints_ProcessMousePos
         {
-            public static bool Prefix(SelectionStateCommandTargetTwoPoints __instance, Vector3 worldPos,
-                int ___numPositionsLocked)
+            public static bool Prefix(SelectionStateCommandTargetTwoPoints __instance, Vector3 worldPos)
             {
                 if (UnityGameInstance.BattleTechGame.Combat.ActiveContract.ContractTypeValue.IsSkirmish) return true;
 
-                var HUD = IRBTModUtils.SharedState.CombatHUD;//Traverse.Create(__instance).Property("HUD").GetValue<CombatHUD>();
-                var positionA = Traverse.Create(__instance).Property("positionA").GetValue<Vector3>();
-                var positionB = Traverse.Create(__instance).Property("positionB").GetValue<Vector3>();
+                var HUD = __instance.HUD;//IRBTModUtils.SharedState.CombatHUD;//Traverse.Create(__instance).Property("HUD").GetValue<CombatHUD>();
+                var positionA = __instance.positionA;//Traverse.Create(__instance).Property("positionA").GetValue<Vector3>();
+                var positionB = __instance.positionB;//Traverse.Create(__instance).Property("positionB").GetValue<Vector3>();
 
                 var theActor = HUD.SelectedActor;
                 if (theActor == null) return true;
@@ -1767,8 +1763,8 @@ namespace StrategicOperations.Patches
                 //CombatTargetingReticle.Instance.ShowRangeIndicators(theActor.CurrentPosition, 0f, maxRange, true, true);
                 CombatTargetingReticle.Instance.ShowReticle();
                 if (__instance.FromButton.Ability.Def.specialRules == AbilityDef.SpecialRules.Strafe &&
-                    (distance > maxRange && ___numPositionsLocked == 0) ||
-                    (distanceToA > maxRange && ___numPositionsLocked == 1))
+                    (distance > maxRange && __instance.numPositionsLocked == 0) ||
+                    (distanceToA > maxRange && __instance.numPositionsLocked == 1))
                 {
                     ModState.OutOfRange = true;
                     CombatTargetingReticle.Instance.HideReticle();
@@ -1784,20 +1780,19 @@ namespace StrategicOperations.Patches
         [HarmonyPatch(typeof(SelectionStateCommandTargetTwoPoints), "ProcessLeftClick")]
         public static class SelectionStateCommandTargetTwoPoints_ProcessLeftClick
         {
-            public static bool Prefix(SelectionStateCommandTargetTwoPoints __instance, Vector3 worldPos,
-                int ___numPositionsLocked, ref bool __result, ref bool __state)
+            public static bool Prefix(SelectionStateCommandTargetTwoPoints __instance, Vector3 worldPos, ref bool __result, ref bool __state)
             {
                 if (UnityGameInstance.BattleTechGame.Combat.ActiveContract.ContractTypeValue.IsSkirmish) return true;
                 var dm = __instance.FromButton.Ability.Combat.DataManager;
                 var hk = Input.GetKey(KeyCode.LeftShift) || Input.GetKey(KeyCode.RightShift);
                 var actorResource = __instance.FromButton.Ability.Def.ActorResource;
-                if (___numPositionsLocked < 1)
+                if (__instance.numPositionsLocked < 1)
                 {
                     //ModState.PopupActorResource = actorResource;
                     ModState.PendingPlayerCmdParams = new CmdInvocationParams(ModInit.modSettings.strafeWaves, actorResource, __instance.FromButton.Ability.Def.getAbilityDefExtension().CMDPilotOverride, __instance.FromButton.Ability.Def.specialRules);
                 }
 
-                var HUD = IRBTModUtils.SharedState.CombatHUD;//Traverse.Create(__instance).Property("HUD").GetValue<CombatHUD>();
+                var HUD = __instance.HUD;//IRBTModUtils.SharedState.CombatHUD;//Traverse.Create(__instance).Property("HUD").GetValue<CombatHUD>();
                 var theActor = HUD.SelectedActor;
                 if (theActor == null) return true;
                 var distance = Mathf.RoundToInt(Vector3.Distance(theActor.CurrentPosition, worldPos));
@@ -1809,7 +1804,7 @@ namespace StrategicOperations.Patches
                     __result = false;
                     return false;
                 }
-                else if (__instance.FromButton.Ability.Def.specialRules == AbilityDef.SpecialRules.SpawnTurret && distance > maxRange && ___numPositionsLocked < 1)
+                else if (__instance.FromButton.Ability.Def.specialRules == AbilityDef.SpecialRules.SpawnTurret && distance > maxRange && __instance.numPositionsLocked < 1)
                 {
                     __state = true;
                     __result = false;
@@ -2129,12 +2124,12 @@ namespace StrategicOperations.Patches
             }
 
             public static void Postfix(SelectionStateCommandTargetTwoPoints __instance, Vector3 worldPos,
-                int ___numPositionsLocked, bool __state)
+                bool __state)
             {
                 if (__state) return;
-                if (___numPositionsLocked == 2)
+                if (__instance.numPositionsLocked == 2)
                 {
-                    var cHUD = IRBTModUtils.SharedState.CombatHUD;//Traverse.Create(__instance).Property("HUD").GetValue<CombatHUD>();
+                    var cHUD = __instance.HUD;//IRBTModUtils.SharedState.CombatHUD;//Traverse.Create(__instance).Property("HUD").GetValue<CombatHUD>();
                     var creator = cHUD.SelectedActor;
                     ModState.cancelChanceForPlayerStrafe = 0f;
 
@@ -2160,8 +2155,8 @@ namespace StrategicOperations.Patches
                 {
                     if (!string.IsNullOrEmpty(ModState.PendingPlayerCmdParams.ActorResource))
                     {
-                        var posA = Traverse.Create(__instance).Property("positionA").GetValue<Vector3>();
-                        var posB = Traverse.Create(__instance).Property("positionB").GetValue<Vector3>();
+                        var posA = __instance.positionA;//Traverse.Create(__instance).Property("positionA").GetValue<Vector3>();
+                        var posB = __instance.positionB;//Traverse.Create(__instance).Property("positionB").GetValue<Vector3>();
                         var quid = __instance.FromButton.Ability.Generate2PtCMDQuasiGUID(posA, posB);
                         ModState.PendingPlayerCmdParams.QUID = quid;
                         ModState.StoredCmdParams.Add(quid, new CmdInvocationParams(ModState.PendingPlayerCmdParams));
@@ -2418,29 +2413,28 @@ namespace StrategicOperations.Patches
         public static class CombatAuraReticle_RefreshActiveProbeRange
         {
             static bool Prepare() => false; //disabled
-            public static void Postfix(CombatAuraReticle __instance, bool showActiveProbe, AbstractActor ___owner, ref float ___currentAPRange)
+            public static void Postfix(CombatAuraReticle __instance, bool showActiveProbe)
             {
                 if (!showActiveProbe || __instance.AuraBubble() != null) return;
 
                 float num = 0f;
-                if (___owner.ComponentAbilities.Count > 0)
+                if (__instance.owner.ComponentAbilities.Count > 0)
                 {
-                    for (int i = 0; i < ___owner.ComponentAbilities.Count; i++)
+                    for (int i = 0; i < __instance.owner.ComponentAbilities.Count; i++)
                     {
-                        if (___owner.ComponentAbilities[i].Def.Targeting == AbilityDef.TargetingType.ActiveProbe)
+                        if (__instance.owner.ComponentAbilities[i].Def.Targeting == AbilityDef.TargetingType.ActiveProbe)
                         {
-                            num = ___owner.ComponentAbilities[i].Def.FloatParam1;
+                            num = __instance.owner.ComponentAbilities[i].Def.FloatParam1;
                             break;
                         }
                     }
                 }
-                if (!Mathf.Approximately(num, ___currentAPRange))
+                if (!Mathf.Approximately(num, __instance.currentAPRange))
                 {
-                    var apObject = Traverse.Create(__instance).Property("activeProbeRangeScaledObject")
-                        .GetValue<GameObject>();
+                    var apObject = __instance.activeProbeRangeScaledObject;//Traverse.Create(__instance).Property("activeProbeRangeScaledObject").GetValue<GameObject>();
                     apObject.transform.localScale = new Vector3(num * 2f, 1f, num * 2f);
                 }
-                ___currentAPRange = num;
+                __instance.currentAPRange = num;
             }
         }
 
@@ -2477,7 +2471,7 @@ namespace StrategicOperations.Patches
                         
                         if (Input.GetKey(ModInit.modSettings.EquipmentButtonsHotkey))
                         {
-                            var hud = IRBTModUtils.SharedState.CombatHUD;
+                            var hud = __instance.HUD;//IRBTModUtils.SharedState.CombatHUD;
                             if (hud.SelectedActor == __instance.SelectedActor)
                             {
                                 var slots = Traverse.Create(CombatHUDEquipmentPanel.Instance).Property("operatinalSlots").GetValue<List<CombatHUDEquipmentSlotEx>>();

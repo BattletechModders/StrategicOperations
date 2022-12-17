@@ -61,7 +61,7 @@ namespace StrategicOperations.Patches
         static class LineOfSight_bresenhamVisionTest
         {
             static void Postfix(LineOfSight __instance, Point p0, float height0, Point p1, float height1, Vector3 unitDelta, string targetGuid,
-                ref float __result, CombatGameState ___Combat)
+                ref float __result)
             {
                 if (ModState.CurrentGarrisonSquadForLOS == null) return;
 
@@ -71,7 +71,7 @@ namespace StrategicOperations.Patches
                     return;
                 }
 
-                if (!___Combat.MapMetaData.IsWithinBounds(p0) || !___Combat.MapMetaData.IsWithinBounds(p1))
+                if (!__instance.Combat.MapMetaData.IsWithinBounds(p0) || !__instance.Combat.MapMetaData.IsWithinBounds(p1))
                 {
                     __result = float.MaxValue;
                     return;
@@ -84,11 +84,11 @@ namespace StrategicOperations.Patches
                 float greatestDivisor = Mathf.Max(Mathf.Abs(lineDeltaX), Mathf.Abs(lineDeltaZ));
                 float stepHeight = (height1 - height0) / greatestDivisor;
                 float sumVisionCost = 0f;
-
-                Traverse projectedHeightAtT = Traverse.Create(__instance).Method("getProjectedHeightAt", new Type[] { typeof(Point), typeof(float), typeof(Point), typeof(float) });
-                Traverse visCostOfCellT = Traverse.Create(__instance).Method("visCostOfCell", new Type[] { typeof(MapTerrainDataCell), typeof(float) });
+                
+                //Traverse projectedHeightAtT = Traverse.Create(__instance).Method("getProjectedHeightAt", new Type[] { typeof(Point), typeof(float), typeof(Point), typeof(float) });
+                //Traverse visCostOfCellT = Traverse.Create(__instance).Method("visCostOfCell", new Type[] { typeof(MapTerrainDataCell), typeof(float) });
                 string shellBuildingGUID = ModState.PositionLockGarrison[ModState.CurrentGarrisonSquadForLOS.GUID].BuildingGUID;
-                EncounterLayerData encounterLayerData = ___Combat.EncounterLayerData;
+                EncounterLayerData encounterLayerData = __instance.Combat.EncounterLayerData;
 
                 List<Point> list = BresenhamLineUtil.BresenhamLine(p0, p1);
                 for (int i = 1; i < list.Count; i++)
@@ -111,8 +111,9 @@ namespace StrategicOperations.Patches
                     }
                     else
                     {
-                        float projectedHeightAt = projectedHeightAtT.GetValue<float>(new object[] { p0, height0, list[i], stepHeight });
-                        MapTerrainDataCell mapTerrainDataCell = ___Combat.MapMetaData.mapTerrainDataCells[list[i].Z, list[i].X];
+                        //float projectedHeightAt = projectedHeightAtT.GetValue<float>(new object[] { p0, height0, list[i], stepHeight });
+                        float projectedHeightAt = __instance.getProjectedHeightAt(p0, height0, list[i], stepHeight);
+                        MapTerrainDataCell mapTerrainDataCell = __instance.Combat.MapMetaData.mapTerrainDataCells[list[i].Z, list[i].X];
                         if (mapTerrainDataCell.cachedHeight > projectedHeightAt)
                         {
                             if (mapTerrainDataCell.MapEncounterLayerDataCell.HasBuilding)
@@ -131,7 +132,8 @@ namespace StrategicOperations.Patches
                             return;
                         }
 
-                        sumVisionCost += visCostOfCellT.GetValue<float>(new object[] { mapTerrainDataCell, projectedHeightAt }) * stepDelta;
+                        //sumVisionCost += visCostOfCellT.GetValue<float>(new object[] { mapTerrainDataCell, projectedHeightAt }) * stepDelta;
+                        sumVisionCost += __instance.visCostOfCell(mapTerrainDataCell, projectedHeightAt) * stepDelta;
                     }
                 }
 
@@ -169,7 +171,7 @@ namespace StrategicOperations.Patches
         {
 
             static void Postfix(LineOfSight __instance, Point p0, float height0, Point p1, float height1, string targetedBuildingGuid, ref Point collisionWorldPos,
-                ref bool __result, CombatGameState ___Combat)
+                ref bool __result)
             {
 
                 if (ModState.CurrentGarrisonSquadForLOF == null) return;
@@ -187,14 +189,14 @@ namespace StrategicOperations.Patches
                 }
 
                 // If the origin or target points are outsie the bounds of the map, there is no collision (because how could there be)
-                if (!___Combat.MapMetaData.IsWithinBounds(p0) || !___Combat.MapMetaData.IsWithinBounds(p1))
+                if (!__instance.Combat.MapMetaData.IsWithinBounds(p0) || !__instance.Combat.MapMetaData.IsWithinBounds(p1))
                 {
                     __result = false;
                     return;
                 }
 
-                MapMetaData mapMetaData = ___Combat.MapMetaData;
-                EncounterLayerData encounterLayerData = ___Combat.EncounterLayerData;
+                MapMetaData mapMetaData = __instance.Combat.MapMetaData;
+                EncounterLayerData encounterLayerData = __instance.Combat.EncounterLayerData;
 
                 bool targetIsABuilding = !string.IsNullOrEmpty(targetedBuildingGuid);
                 string shellBuildingGUID = ModState.PositionLockGarrison[ModState.CurrentGarrisonSquadForLOF.GUID].BuildingGUID;
@@ -291,7 +293,7 @@ namespace StrategicOperations.Patches
 
                 if (__instance.FromButton.Ability.Def.Id == ModInit.modSettings.BattleArmorMountAndSwarmID)
                 {
-                    var cHUD = IRBTModUtils.SharedState.CombatHUD;//Traverse.Create(__instance).Property("HUD").GetValue<CombatHUD>();
+                    var cHUD = __instance.HUD;//IRBTModUtils.SharedState.CombatHUD;//Traverse.Create(__instance).Property("HUD").GetValue<CombatHUD>();
                     var creator = cHUD.SelectedActor;
                     if (!creator.Pathing.ArePathGridsComplete)
                     {
@@ -310,7 +312,7 @@ namespace StrategicOperations.Patches
                 }
                 else if (__instance.FromButton.Ability.Def.Id == ModInit.modSettings.AirliftAbilityID)
                 {
-                    var cHUD = IRBTModUtils.SharedState.CombatHUD;//Traverse.Create(__instance).Property("HUD").GetValue<CombatHUD>();
+                    var cHUD = __instance.HUD;//IRBTModUtils.SharedState.CombatHUD;//Traverse.Create(__instance).Property("HUD").GetValue<CombatHUD>();
                     var creator = cHUD.SelectedActor;
                     if (!creator.Pathing.ArePathGridsComplete)
                     {
@@ -326,7 +328,7 @@ namespace StrategicOperations.Patches
         {
             public static void Postfix(SelectionStateAbilityInstant __instance)
             {
-                var cHUD = IRBTModUtils.SharedState.CombatHUD;//Traverse.Create(__instance).Property("HUD").GetValue<CombatHUD>();
+                var cHUD = __instance.HUD;//IRBTModUtils.SharedState.CombatHUD;//Traverse.Create(__instance).Property("HUD").GetValue<CombatHUD>();
                 var creator = cHUD.SelectedActor;
                 if (__instance.FromButton.Ability.Def.Id == ModInit.modSettings.BattleArmorDeSwarmRoll)
                 {
@@ -424,7 +426,7 @@ namespace StrategicOperations.Patches
                             $"[ActorMovementSequence.CompleteOrders] Found DeSwarmMovementInfo for unit {__instance.owningActor.DisplayName} {__instance.owningActor.GUID}. Rolled {roll} vs finalChance {finalChance} from baseChance {baseChance} and evasive chance {chanceFromPips}");
                         if (roll <= finalChance)
                         {
-                            var waypoints = Traverse.Create(__instance).Property("Waypoints").GetValue<List<WayPoint>>();
+                            var waypoints = __instance.Waypoints;//Traverse.Create(__instance).Property("Waypoints").GetValue<List<WayPoint>>();
                             foreach (var swarmingUnit in ModState.DeSwarmMovementInfo?.SwarmingUnits)
                             {
                                 var selectedWaypoint = waypoints.GetRandomElement();
@@ -518,10 +520,8 @@ namespace StrategicOperations.Patches
                 if (UnityGameInstance.BattleTechGame.Combat.ActiveContract.ContractTypeValue.IsSkirmish) return;
                 if (actor == null) return;
 
-                var moraleButtons = Traverse.Create(__instance).Property("MoraleButtons")
-                    .GetValue<CombatHUDActionButton[]>();
-                var abilityButtons = Traverse.Create(__instance).Property("AbilityButtons")
-                    .GetValue<CombatHUDActionButton[]>();
+                var moraleButtons = __instance.MoraleButtons;//Traverse.Create(__instance).Property("MoraleButtons").GetValue<CombatHUDActionButton[]>();
+                var abilityButtons = __instance.AbilityButtons;//Traverse.Create(__instance).Property("AbilityButtons").GetValue<CombatHUDActionButton[]>();
 
                 if (actor.IsAirlifted())
                 {
@@ -707,7 +707,7 @@ namespace StrategicOperations.Patches
             public static bool Prefix(CombatHUDButtonBase __instance)
             {
                 if (__instance.GUID != "BTN_DoneWithMech") return true;
-                var hud = IRBTModUtils.SharedState.CombatHUD;//Traverse.Create(__instance).Property("HUD").GetValue<CombatHUD>();
+                var hud = __instance.HUD;//IRBTModUtils.SharedState.CombatHUD;//Traverse.Create(__instance).Property("HUD").GetValue<CombatHUD>();
                 var actor = hud.SelectedActor;
                 if (ModInit.modSettings.EnableQuickReserve)
                 {
@@ -979,7 +979,7 @@ namespace StrategicOperations.Patches
         {
             public static void Postfix(CombatHUDEquipmentSlot __instance, string creatorGUID, string targetGUID)
             {
-                var HUD = IRBTModUtils.SharedState.CombatHUD;//Traverse.Create(__instance).Property("HUD").GetValue<CombatHUD>();
+                var HUD = __instance.HUD;//Traverse.Create(__instance).Property("HUD").GetValue<CombatHUD>();
                 var theActor = HUD.SelectedActor;
                 if (theActor == null) return;
                 if (__instance.Ability == null || __instance.Ability?.Def?.Id != ModInit.modSettings.BattleArmorMountAndSwarmID) return;
@@ -1052,8 +1052,8 @@ namespace StrategicOperations.Patches
                     }
                     else
                     {
-                        Traverse.Create(__instance).Method("ClearSelectionStack").GetValue();
-                        //__instance.ClearSelectionStack();
+                        //Traverse.Create(__instance).Method("ClearSelectionStack").GetValue();
+                        __instance.ClearSelectionStack();
                     }
 
                     __instance.ActivatedAbilityButtons.Clear();
@@ -1068,16 +1068,15 @@ namespace StrategicOperations.Patches
                         __instance.AddFireState(actor);
                         ModInit.modLog?.Trace?.Write(
                             $"[CombatSelectionHandler.TrySelectActor] {actor.DisplayName} should be adding fire state.");
-                        var SelectionStack = Traverse.Create(__instance).Property("SelectionStack")
-                            .GetValue<List<SelectionState>>();
+                        var SelectionStack = __instance.SelectionStack; //Traverse.Create(__instance).Property("SelectionStack").GetValue<List<SelectionState>>();
                         if (!SelectionStack.Any(x => x is SelectionStateDoneWithMech))
                         {
-                            var HUD = IRBTModUtils.SharedState.CombatHUD;//Traverse.Create(__instance).Property("HUD").GetValue<CombatHUD>();
+                            var HUD = __instance.HUD;//Traverse.Create(__instance).Property("HUD").GetValue<CombatHUD>();
                             var doneState = new SelectionStateDoneWithMech(actor.Combat, HUD,
                                 HUD.MechWarriorTray.DoneWithMechButton, actor);
-                            var addState = Traverse.Create(__instance)
-                                .Method("addNewState", new Type[] {typeof(SelectionState)});
-                            addState.GetValue(doneState);
+                            //var addState = Traverse.Create(__instance).Method("addNewState", new Type[] {typeof(SelectionState)});
+                            __instance.addNewState(doneState);
+                            //addState.GetValue(doneState);
                         }
 
                         if (ActiveOrDefaultSettings.CloudSettings.autoCenterOnSelection)
@@ -1085,8 +1084,8 @@ namespace StrategicOperations.Patches
                             CameraControl.Instance.SetMovingToGroundPos(actor.CurrentPosition, 0.95f);
                         }
 
-                        Traverse.Create(__instance).Method("logSelectionStack").GetValue();
-                        //__instance.logSelectionStack();
+                        //Traverse.Create(__instance).Method("logSelectionStack").GetValue();
+                        __instance.logSelectionStack();
                         __result = true;
                         return false;
                     }
@@ -1116,15 +1115,15 @@ namespace StrategicOperations.Patches
                 if (actor.IsMountedUnit() || actor.IsSwarmingUnit() || actor.IsAirlifted() || actor.isGarrisoned())
                 {
                     ModInit.modLog?.Trace?.Write($"[CombatSelectionHandler.AddSprintState] Actor {actor.DisplayName}: Disabling SprintState");
-                    var SelectionStack = Traverse.Create(__instance).Property("SelectionStack").GetValue<List<SelectionState>>();
+                    var SelectionStack = __instance.SelectionStack; //Traverse.Create(__instance).Property("SelectionStack").GetValue<List<SelectionState>>();
                     if (!SelectionStack.Any(x => x is SelectionStateDoneWithMech))
                     {
-                        var HUD = IRBTModUtils.SharedState.CombatHUD;//Traverse.Create(__instance).Property("HUD").GetValue<CombatHUD>();
+                        var HUD = __instance.HUD;//IRBTModUtils.SharedState.CombatHUD;//Traverse.Create(__instance).Property("HUD").GetValue<CombatHUD>();
                         var doneState = new SelectionStateDoneWithMech(actor.Combat, HUD,
                             HUD.MechWarriorTray.DoneWithMechButton, actor);
-                        var addState = Traverse.Create(__instance)
-                            .Method("addNewState", new Type[] {typeof(SelectionState)});
-                        addState.GetValue(doneState);
+                        //var addState = Traverse.Create(__instance).Method("addNewState", new Type[] {typeof(SelectionState)});
+                        //addState.GetValue(doneState);
+                        __instance.addNewState(doneState);
                     }
                     return false;
                 }
@@ -1141,15 +1140,15 @@ namespace StrategicOperations.Patches
                 if (actor.IsSwarmingUnit() || actor.IsMountedUnit() || actor.IsAirlifted() || actor.isGarrisoned())
                 {
                     ModInit.modLog?.Trace?.Write($"[CombatSelectionHandler.AddMoveState] Actor {actor.DisplayName}: Disabling AddMoveState");
-                    var SelectionStack = Traverse.Create(__instance).Property("SelectionStack").GetValue<List<SelectionState>>();
+                    var SelectionStack = __instance.SelectionStack;//Traverse.Create(__instance).Property("SelectionStack").GetValue<List<SelectionState>>();
                     if (!SelectionStack.Any(x => x is SelectionStateDoneWithMech))
                     {
-                        var HUD = IRBTModUtils.SharedState.CombatHUD;//Traverse.Create(__instance).Property("HUD").GetValue<CombatHUD>();
+                        var HUD = __instance.HUD;//IRBTModUtils.SharedState.CombatHUD;//Traverse.Create(__instance).Property("HUD").GetValue<CombatHUD>();
                         var doneState = new SelectionStateDoneWithMech(actor.Combat, HUD,
                             HUD.MechWarriorTray.DoneWithMechButton, actor);
-                        var addState = Traverse.Create(__instance)
-                            .Method("addNewState", new Type[] { typeof(SelectionState) });
-                        addState.GetValue(doneState);
+                        //var addState = Traverse.Create(__instance).Method("addNewState", new Type[] { typeof(SelectionState) });
+                        //addState.GetValue(doneState);
+                        __instance.addNewState(doneState);
                     }
                     return false;
                 }
@@ -1465,7 +1464,7 @@ namespace StrategicOperations.Patches
             public static void Postfix(CombatHUDMechTrayArmorHover __instance, Mech mech, ArmorLocation location)
             {
                 if (!mech.HasSwarmingUnits() && !mech.HasMountedUnits()) return;
-                var tooltip = Traverse.Create(__instance).Property("ToolTip").GetValue<CombatHUDTooltipHoverElement>();
+                var tooltip = __instance.ToolTip;//Traverse.Create(__instance).Property("ToolTip").GetValue<CombatHUDTooltipHoverElement>();
                 foreach (var squadInfo in ModState.BADamageTrackers.Where(x =>
                     x.Value.TargetGUID == mech.GUID && !x.Value.IsSquadInternal &&
                     x.Value.BA_MountedLocations.ContainsValue((int)location)))
@@ -1511,7 +1510,7 @@ namespace StrategicOperations.Patches
             public static void Postfix(CombatHUDVehicleArmorHover __instance, Vehicle vehicle, VehicleChassisLocations location)
             {
                 if (!vehicle.HasSwarmingUnits() && !vehicle.HasMountedUnits()) return;
-                var tooltip = Traverse.Create(__instance).Property("ToolTip").GetValue<CombatHUDTooltipHoverElement>();
+                var tooltip = __instance.ToolTip;//Traverse.Create(__instance).Property("ToolTip").GetValue<CombatHUDTooltipHoverElement>();
                 foreach (var squadInfo in ModState.BADamageTrackers.Where(x =>
                     x.Value.TargetGUID == vehicle.GUID && !x.Value.IsSquadInternal &&
                     x.Value.BA_MountedLocations.ContainsValue((int)location)))
@@ -1808,9 +1807,10 @@ namespace StrategicOperations.Patches
                 {
                     if (selectedActor.team.IsEnemy(targetActor.team))
                     {
-                        var previewInfo = SharedState.CombatHUD.SelectionHandler.ActiveState.FiringPreview.GetPreviewInfo(target);
-                        Traverse.Create(previewInfo).Field("collisionPoint").SetValue(selectedActor.CurrentPosition);
-                        //previewInfo.collisionPoint = selectedActor.CurrentPosition;
+                        var previewInfo = __instance.HUD.SelectionHandler.ActiveState.FiringPreview.GetPreviewInfo(target);
+                        //Traverse.Create(previewInfo).Field("collisionPoint").SetValue(selectedActor.CurrentPosition);
+
+                        previewInfo.collisionPoint = selectedActor.CurrentPosition;
                     }
                 }
             }
@@ -1819,7 +1819,7 @@ namespace StrategicOperations.Patches
         [HarmonyPatch(typeof(MechRepresentation), "ToggleHeadlights")]
         public static class MechRepresentation_ToggleHeadlights
         {
-            public static void Postfix(MechRepresentation __instance, bool headlightsActive, List<GameObject> ___headlightReps)
+            public static void Postfix(MechRepresentation __instance, bool headlightsActive)
             {
                 if (__instance.parentActor.IsSwarmingUnit() || __instance.parentActor.IsMountedUnit() || __instance.parentActor.IsAirlifted() || __instance.parentActor.isGarrisoned())
                 {
@@ -1830,9 +1830,9 @@ namespace StrategicOperations.Patches
                     }
                     else
                     {
-                        for (int i = 0; i < ___headlightReps.Count; i++)
+                        for (int i = 0; i < __instance.headlightReps.Count; i++)
                         {
-                            ___headlightReps[i].SetActive(false);
+                            __instance.headlightReps[i].SetActive(false);
                         }
                     }
                 }

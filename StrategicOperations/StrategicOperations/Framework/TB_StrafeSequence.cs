@@ -216,7 +216,7 @@ namespace StrategicOperations.Framework
             if (IsStrafeAOE)
             {
                 ModInit.modLog?.Info?.Write($"Calculating impact points for AOE Strafe.");
-                this.HUD = SharedState.CombatHUD;
+                this.HUD = CameraControl.Instance.HUD;
                 //this.HUD = Traverse.Create(CameraControl.Instance).Property("HUD").GetValue<CombatHUD>();
                 Vector3 b = (this.EndPos - StartPos) / Math.Max(this.AOECount - 1, 1);
                 Vector3 vector = StartPos;
@@ -259,7 +259,7 @@ namespace StrategicOperations.Framework
                 if (allCombatants[i] is BattleTech.Building building && !building.isDropshipNotLanded())
                 {
                     var rollBuilding = ModInit.Random.NextDouble();
-                    var isObjective = Traverse.Create(building).Field("isObjectiveTarget").GetValue<bool>();
+                    var isObjective = building.isObjectiveTarget;//Traverse.Create(building).Field("isObjectiveTarget").GetValue<bool>();
                     if (isObjective)
                     {
                         var chanceBuilding = ModInit.modSettings.strafeObjectiveBuildingsChance;

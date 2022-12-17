@@ -73,8 +73,7 @@ namespace StrategicOperations.Patches
                 if (!ModInit.modSettings.EnforceIFFForAmmoTooltips || (ModInit.modSettings.EnforceIFFForAmmoTooltips &&
                     vehicle.team.IsFriendly(vehicle.Combat.LocalPlayerTeam)))
                 {
-                    var tooltip = Traverse.Create(__instance).Property("ToolTip")
-                        .GetValue<CombatHUDTooltipHoverElement>();
+                    var tooltip = Traverse.Create(__instance).Property("ToolTip").GetValue<CombatHUDTooltipHoverElement>();
                     tooltip.BuffStrings.Clear();
                     tooltip.DebuffStrings.Clear();
                     tooltip.BasicString = new Text(Vehicle.GetLongChassisLocation(location.toVehicleLocation()),
