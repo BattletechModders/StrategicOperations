@@ -804,8 +804,8 @@ namespace StrategicOperations.Patches
 
                 if (specialRules == AbilityDef.SpecialRules.Strafe)
                 {
-                    Utils._activateStrafeMethod.Invoke(__instance,
-                         new object[] { creator.team, positionA, positionB, __instance.Def.FloatParam1 });
+                    //Utils._activateStrafeMethod.Invoke(__instance, new object[] { creator.team, positionA, positionB, __instance.Def.FloatParam1 });
+                    __instance.ActivateStrafe(creator.team, positionA, positionB, __instance.Def.FloatParam1);
                     ModInit.modLog?.Info?.Write($"[Ability.Activate - 2pts] {creator.Description?.Name}: ActivateStrafe invoked from Ability.Activate. Distance was {Vector3.Distance(positionA, positionB)}");
                     __instance.Combat.MessageCenter.PublishMessage(new AbilityActivatedMessage(creator.GUID,
                         creator.GUID, __instance.Def.Id, positionA, positionB));
@@ -816,8 +816,8 @@ namespace StrategicOperations.Patches
 
                 else if (specialRules == AbilityDef.SpecialRules.SpawnTurret)
                 {
-                    Utils._activateSpawnTurretMethod.Invoke(__instance,
-                        new object[] { creator.team, positionA, positionB });
+                    //Utils._activateSpawnTurretMethod.Invoke(__instance, new object[] { creator.team, positionA, positionB });
+                    __instance.ActivateSpawnTurret(creator.team, positionA, positionB);
                     ModInit.modLog?.Info?.Write($"[Ability.Activate - 2pts] {creator.Description?.Name}: ActivateSpawnTurret invoked from Ability.Activate. Distance was {Vector3.Distance(positionA, positionB)}");
                     __instance.Combat.MessageCenter.PublishMessage(new AbilityActivatedMessage(creator.GUID,
                         creator.GUID, __instance.Def.Id, positionA, positionB));
@@ -1002,8 +1002,7 @@ namespace StrategicOperations.Patches
                     ModInit.modLog?.Info?.Write(
                         $"[Ability_ActivateSpawnTurret] Deferred Spawner = null, creating delegate and returning false. Delegate should spawn {actorResource}");
 
-                    void DeferredInvokeSpawn() =>
-                        Utils._activateSpawnTurretMethod.Invoke(__instance, new object[] { team, positionA, positionB });
+                    void DeferredInvokeSpawn() => __instance.ActivateSpawnTurret(team, positionA, positionB);//Utils._activateSpawnTurretMethod.Invoke(__instance, new object[] { team, positionA, positionB });
 
                     var kvp = new KeyValuePair<string, Action>(instanceGUID, DeferredInvokeSpawn);
                     ModState.DeferredInvokeSpawns.Add(kvp);
@@ -1456,7 +1455,8 @@ namespace StrategicOperations.Patches
                 foreach (var despawn in ModState.DeferredDespawnersFromStrafe)
                 {
                     var msg = new DespawnActorMessage(EncounterLayerData.MapLogicGuid, despawn.Key, (DeathMethod)DespawnFloatieMessage.Escaped);
-                    Utils._despawnActorMethod.Invoke(despawn.Value, new object[] { msg });
+                    //Utils._despawnActorMethod.Invoke(despawn.Value, new object[] { msg });
+                    despawn.Value.DespawnActor(msg);
                 }
 
                 //var team = __instance as Team;
