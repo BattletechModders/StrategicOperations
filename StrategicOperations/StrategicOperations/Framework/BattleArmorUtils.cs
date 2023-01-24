@@ -575,6 +575,7 @@ namespace StrategicOperations.Framework
 
         public static bool canSwarm(this AbstractActor actor)
         {
+            if (actor.GetStaticUnitTags().Contains(ModInit.modSettings.DisableSwarmTag) && actor.team is AITeam) return false;
             return actor.StatCollection.GetValue<bool>("CanSwarm");
         }
 

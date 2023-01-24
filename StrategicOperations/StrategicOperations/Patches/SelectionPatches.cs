@@ -338,7 +338,7 @@ namespace StrategicOperations.Patches
                     this.HighlightPotentialTargets();
                 }
             }
-            protected override bool CanTargetCombatant(ICombatant potentialTarget)
+            public override bool CanTargetCombatant(ICombatant potentialTarget)
             {
                 if (SelectedActor.VisibilityToTargetUnit(potentialTarget) == VisibilityLevel.None)
                 {
