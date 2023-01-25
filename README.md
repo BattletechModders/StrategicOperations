@@ -683,7 +683,7 @@ Using the following settings, ClanGhostBear and ClanWolf have baseline 30% chanc
 
 `PlayerControlSpawnAbilitiesBlacklist` - list, string. List of AbilityDef IDs which will never allow player control spawns regardless of all other factors.
 
-`DisableAISwarmTag` - string, units with unit def tag are unable to swarm regardless of equipment
+`DisableAISwarmTag` - string, AI units with unit def tag are unable to swarm regardless of equipment
 	
 ## Spawns
 	
