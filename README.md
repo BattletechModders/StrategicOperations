@@ -459,7 +459,8 @@ settings in the mod.json:
 	"EquipmentButtonsHotkey": "N",
 	"PlayerControlBeacons": true,
 	"PlayerControlSpawnAbilities": [],
-	"PlayerControlSpawnAbilitiesBlacklist": []
+	"PlayerControlSpawnAbilitiesBlacklist": [],
+	"DisableAISwarmTag": "AI_DISABLE_SWARM"
 ```
 
 `enableLogging` - bool, enable logging
@@ -681,6 +682,8 @@ Using the following settings, ClanGhostBear and ClanWolf have baseline 30% chanc
 `PlayerControlSpawnAbilities` - list, string. List of AbilityDef IDs which will always allow player control spawns regardless of all other factors.
 
 `PlayerControlSpawnAbilitiesBlacklist` - list, string. List of AbilityDef IDs which will never allow player control spawns regardless of all other factors.
+
+`DisableAISwarmTag` - string, units with unit def tag are unable to swarm regardless of equipment
 	
 ## Spawns
 	
@@ -1040,7 +1043,7 @@ If the mech chassis location where BA is mounted is destroyed, any BA mounted to
 
 Once BA is swarming an enemy, they cannot do any other actions on their activation. The only options are to either activate the mount/swarm ability again (and thus stop swarming the enemy), or to end their activation ("Done" button). If you choose "Done", the BA will fire all active weapons at the unit they are swarming automatically.
 
-The AI will also attempt to use Swarm against you. If an AI unit has BA (dictated by `AI_BattleArmorSpawnChance`, `BattleArmorFactionAssociations` and the unit has either HasBattleArmorMounts or InternalBattleArmorSquadCap > 0), some very ugly AI behavior patches should <i>try</i> to get the AI to move closer to your units. Once within a certain range, the AI BA will dismount from its carrier and attempt to swarm you if you're within range. If not, it'll just attack like a normal unit.
+The AI will also attempt to use Swarm against you. If an AI unit has BA (dictated by `AI_BattleArmorSpawnChance`, `BattleArmorFactionAssociations` and the unit has either HasBattleArmorMounts or InternalBattleArmorSquadCap > 0), some very ugly AI behavior patches should <i>try</i> to get the AI to move closer to your units. Once within a certain range, the AI BA will dismount from its carrier and attempt to swarm you if you're within range. If not, it'll just attack like a normal unit. Units with mechdef tag defined in `DisableAISwarmTag` will not swarm, regardless of equipment
 
 #### Firing Ports
 

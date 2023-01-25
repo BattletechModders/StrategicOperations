@@ -161,7 +161,7 @@ namespace StrategicOperations
         //StratOps_player_control_enable -> component tag for player control always
         //StratOps_player_control_disable-> component tag for player control NEVER
 
-        public string DisableSwarmTag = "AI_DISABLE_SWARM";
+        public string DisableAISwarmTag = "AI_DISABLE_SWARM";
 
         //BD wants controllable gated on item: companystat and use ROI?
         //RT wants specific ability or reinforcement thingy controllable: component tag on the beacon item. per abilitry will suck bc abilities suck.

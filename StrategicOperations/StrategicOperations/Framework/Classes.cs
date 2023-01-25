@@ -564,7 +564,7 @@ namespace StrategicOperations.Framework
                 var newBattleArmor = ActorFactory.CreateMech(NewUnitDef, NewPilotDef,
                     CustomEncounterTags, TeamSelection.Combat,
                     TeamSelection.GetNextSupportUnitGuid(), "", Actor.team.HeraldryDef);
-                newBattleArmor.Init(Actor.CurrentPosition, Actor.CurrentRotation.eulerAngles.y, false);
+                newBattleArmor.Init(Actor.CurrentPosition, Actor.CurrentRotation.eulerAngles.y, true);
                 newBattleArmor.InitGameRep(null);
                 TeamSelection.AddUnit(newBattleArmor);
                 newBattleArmor.AddToTeam(TeamSelection);
@@ -584,7 +584,7 @@ namespace StrategicOperations.Framework
                 {
                     squad.AttachToCarrier(Actor, true);
                 }
-                Actor.Combat.ItemRegistry.AddItem(newBattleArmor);
+                //Actor.Combat.ItemRegistry.AddItem(newBattleArmor);
                 Actor.Combat.RebuildAllLists();
                 ModInit.modLog?.Info?.Write(
                     $"[SpawnBattleArmorAtActor] Added PositionLockMount with rider  {newBattleArmor.DisplayName} {newBattleArmor.GUID} and carrier {Actor.DisplayName} {Actor.GUID}.");
@@ -661,7 +661,7 @@ namespace StrategicOperations.Framework
                 var newUnit= ActorFactory.CreateMech(NewUnitDef, NewPilotDef,
                     CustomEncounterTags, TeamSelection.Combat,
                     TeamSelection.GetNextSupportUnitGuid(), "", SupportHeraldryDef);
-                newUnit.Init(SpawnLoc, SpawnRotation.eulerAngles.y, false);
+                newUnit.Init(SpawnLoc, SpawnRotation.eulerAngles.y, PlayerControl);
                 newUnit.InitGameRep(null);
                 TeamSelection.AddUnit(newUnit);
                 newUnit.AddToTeam(TeamSelection);
@@ -672,6 +672,7 @@ namespace StrategicOperations.Framework
                     newUnit.BehaviorTree = BehaviorTreeFactory.MakeBehaviorTree(
                         Combat.BattleTechGame, newUnit, BehaviorTreeIDEnum.DoNothingTree);
                     ModState.PlayerSpawnGUIDs.Add(newUnit.GUID);
+                    newUnit.encounterTags.Add("player_unit");
                 }
                 else
                 {
@@ -687,7 +688,7 @@ namespace StrategicOperations.Framework
                 var underMap = newUnit.CurrentPosition;
                 underMap.y = -1000f;
                 newUnit.TeleportActor(underMap);
-                Combat.ItemRegistry.AddItem(newUnit);
+                //Combat.ItemRegistry.AddItem(newUnit);
                 Combat.RebuildAllLists();
                 EncounterLayerParent encounterLayerParent = Combat.EncounterLayerData.gameObject.GetComponentInParent<EncounterLayerParent>();
                 DropPodUtils.DropPodSpawner dropSpawner = encounterLayerParent.gameObject.GetComponent<DropPodUtils.DropPodSpawner>();

@@ -1287,7 +1287,7 @@ namespace StrategicOperations.Patches
                     var underMap = turretActor.CurrentPosition;
                     underMap.y = -1000f;
                     turretActor.TeleportActor(underMap);
-                    combat.ItemRegistry.AddItem(turretActor);
+                    //combat.ItemRegistry.AddItem(turretActor);
                     combat.RebuildAllLists();
                     EncounterLayerParent encounterLayerParent = combat.EncounterLayerData.gameObject.GetComponentInParent<EncounterLayerParent>();
                     DropPodUtils.DropPodSpawner dropSpawner = encounterLayerParent.gameObject.GetComponent<DropPodUtils.DropPodSpawner>();
