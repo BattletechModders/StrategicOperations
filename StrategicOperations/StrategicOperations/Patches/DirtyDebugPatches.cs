@@ -91,8 +91,12 @@ namespace StrategicOperations.Patches
                     __instance.nextRevealatronIndex++;
                     fogOfWarRevealatron.GUID = parentGUID + string.Format(".{0}", __instance.nextRevealatronIndex);
                     fogOfWarRevealatron.radiusMeters = revealRadius;
-                    LazySingletonBehavior<FogOfWarView>.Instance.FowSystem.AddRevealatronViewer(fogOfWarRevealatron);
-                    List<AbstractActor> GetAllLivingActors = combat.GetAllLivingActors();
+                    
+                    //LazySingletonBehavior<FogOfWarView>.Instance?.FowSystem?.AddRevealatronViewer(fogOfWarRevealatron);
+                    var fowSystem = LazySingletonBehavior<FogOfWarView>.Instance?.FowSystem;
+                    if (fowSystem == null) return true;
+                    fowSystem.AddRevealatronViewer(fogOfWarRevealatron);
+                    List <AbstractActor> GetAllLivingActors = combat.GetAllLivingActors();
                     //__instance.ClearShownList();
 
                     if (__instance.shownList != null)
