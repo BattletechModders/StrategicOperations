@@ -595,6 +595,16 @@ namespace StrategicOperations.Patches
             }
         }
 
+        [HarmonyPatch(typeof(AbstractActor), "OnActorDestroyed",
+            new Type[] {typeof(AbstractActor), typeof(string), typeof(string), typeof(Vector3), typeof(Vector3)})]
+        public static class AbstractActor_OnActorDestroyed
+        {
+            public static bool Prefix(AbstractActor __instance)
+            {
+                return !__instance.IsAirlifted(); // maybe prevent airlifted units from teleporting if over a building
+            }
+        }
+
         [HarmonyPatch(typeof(Ability), "IsAvailable", MethodType.Getter)]
         public static class Ability_IsAvailable_Getter
         {
