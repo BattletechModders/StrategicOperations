@@ -595,8 +595,7 @@ namespace StrategicOperations.Patches
             }
         }
 
-        [HarmonyPatch(typeof(AbstractActor), "OnActorDestroyed",
-            new Type[] {typeof(AbstractActor), typeof(string), typeof(string), typeof(Vector3), typeof(Vector3)})]
+        [HarmonyPatch(typeof(AbstractActor), "OnActorDestroyed", new Type[] {typeof(MessageCenterMessage)})]
         public static class AbstractActor_OnActorDestroyed
         {
             public static bool Prefix(AbstractActor __instance)
@@ -2254,9 +2253,27 @@ namespace StrategicOperations.Patches
                     return;
                 }
 
-                if (ability.Def.Id != ModInit.modSettings.BattleArmorMountAndSwarmID && ((actor.IsMountedUnit() && !actor.IsMountedInternal()) || actor.IsSwarmingUnit()))
+                if (ability.Def.Id != ModInit.modSettings.BattleArmorMountAndSwarmID)
                 {
-                    button.DisableButton(); // maybe remove this for mounted units?
+                    if (actor.IsMountedUnit())
+                    {
+                        if (!actor.IsMountedInternal())
+                        {
+                            button.DisableButton();
+                        }
+                        else
+                        {
+                            var carrier = actor.Combat.FindActorByGUID(ModState.PositionLockMount[actor.GUID]);
+                            if (!carrier.hasFiringPorts())
+                            {
+                                button.DisableButton();
+                            }
+                        }
+                    }
+                    else if (actor.IsSwarmingUnit())
+                    {
+                        button.DisableButton();
+                    }
                 }
 
                 if (ability.Def.Id == ModInit.modSettings.BattleArmorDeSwarmRoll ||
