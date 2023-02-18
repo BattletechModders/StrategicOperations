@@ -127,8 +127,11 @@ namespace StrategicOperations.Framework
                         }
                         var targetDist = Vector3.Distance(this.Attacker.CurrentPosition,
                             this.CurrentTargets[i].CurrentPosition);
+                        var currentAlt = this.Attacker.CurrentPosition.y -
+                                         this.Attacker.Combat.MapMetaData.GetLerpedHeightAt(
+                                             this.Attacker.CurrentPosition, false);
                         ModInit.modLog?.Info?.Write(
-                            $"Strafing unit {Attacker.DisplayName} is {targetDist}m from {target.DisplayName}, at loc {this.Attacker.CurrentPosition}. {base.Combat.MapMetaData.GetLerpedHeightAt(this.Attacker.CurrentPosition, false)} above map");
+                            $"Strafing unit {Attacker.DisplayName} is {targetDist}m from {target.DisplayName}, at loc {this.Attacker.CurrentPosition}. {currentAlt} above map");
                         if (targetDist <= this.MaxWeaponRange)
                         {
                             var filteredWeapons =
@@ -501,14 +504,11 @@ namespace StrategicOperations.Framework
                 case TB_StrafeSequence.SequenceState.Incoming:
                     var pos2 = this.Attacker.CurrentPosition + this.Velocity * Time.deltaTime;
                     var terrainHeight = this.Combat.MapMetaData.GetLerpedHeightAt(pos2, false);
-                    if (pos2.y < terrainHeight)
-                    {
-                        ModInit.modLog?.Debug?.Write($"We're going under the map, should be fixing.");
-                    }
-                    if (pos2.y - terrainHeight < this.HeightOffset)
-                    {
-                        pos2.y = terrainHeight + this.HeightOffset; //add gate here so it doesnt continue up forever?
-                    }
+                    var pendingMin = terrainHeight + ModInit.modSettings.strafeAltitudeMin;
+                    var pendingMax = terrainHeight + ModInit.modSettings.strafeAltitudeMax;
+                    ModInit.modLog?.Info?.Write($"[Strafe Incoming] Processing altitude: terrain height {terrainHeight}. clamping y {pos2.y} between min {pendingMin} and max {pendingMax}");
+                    pos2.y = Mathf.Clamp(pos2.y, pendingMin, pendingMax);
+
                     this.SetPosition(pos2, this.Attacker.CurrentRotation);
                     if (true)// switched this? should give AI visibility too i guess (StrafingTeam.IsLocalPlayer)
                     {
@@ -539,14 +539,10 @@ namespace StrategicOperations.Framework
                     var pos3 = this.Attacker.CurrentPosition + this.Velocity * Time.deltaTime;
                     // maybe try to smooth out altitude changes here. but i dont really care.
                     var terrainHeight2 = this.Combat.MapMetaData.GetLerpedHeightAt(pos3, false);
-                    if (pos3.y < terrainHeight2)
-                    {
-                        ModInit.modLog?.Debug?.Write($"We're going under the map, should be fixing.");
-                    }
-                    if (pos3.y - terrainHeight2 < this.HeightOffset)
-                    {
-                        pos3.y = terrainHeight2 + this.HeightOffset;
-                    }
+                    var pendingMin2 = terrainHeight2 + ModInit.modSettings.strafeAltitudeMin;
+                    var pendingMax2 = terrainHeight2 + ModInit.modSettings.strafeAltitudeMax;
+                    ModInit.modLog?.Info?.Write($"[Strafe Strafing] Processing altitude: terrain height {terrainHeight2}. clamping y {pos3.y} between min {pendingMin2} and max {pendingMax2}");
+                    pos3.y = Mathf.Clamp(pos3.y, pendingMin2, pendingMax2);
                     this.SetPosition(pos3, this.Attacker.CurrentRotation);
                     this.AttackNextTargets();
                     break;
