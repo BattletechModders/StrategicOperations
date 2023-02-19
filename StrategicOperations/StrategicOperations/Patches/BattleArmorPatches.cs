@@ -530,12 +530,13 @@ namespace StrategicOperations.Patches
                     __instance.MoveButton.DisableButton();
                     __instance.SprintButton.DisableButton();
                     __instance.JumpButton.DisableButton();
-                    foreach (var moraleButton in moraleButtons)
-                    {
-                        moraleButton.DisableButton();
-                    }
+                    
                     if (ModState.AirliftTrackers[actor.GUID].IsCarriedInternal)
                     {
+                        foreach (var moraleButton in moraleButtons)
+                        {
+                            moraleButton.DisableButton();
+                        }
                         __instance.FireButton.DisableButton();
                     }
                 }
