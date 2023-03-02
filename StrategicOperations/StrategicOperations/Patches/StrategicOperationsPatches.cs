@@ -141,20 +141,8 @@ namespace StrategicOperations.Patches
             }
         }
 
-        [HarmonyPatch(typeof(Weapon), "InitStats",
-            new Type[] {})]
-        public static class Weapon_InitStats
-        {
-            public static void Postfix(Weapon __instance)
-            {
-                __instance.StatCollection.AddStatistic<bool>("IsFiringDisabled", false);
-            }
-        }
-
-
-
         [HarmonyPatch(typeof(AbstractActor), "InitEffectStats",
-            new Type[] {})]
+            new Type[] { })]
         public static class AbstractActor_InitEffectStats
         {
             public static void Postfix(AbstractActor __instance)
@@ -613,22 +601,6 @@ namespace StrategicOperations.Patches
             public static bool Prefix(AbstractActor __instance)
             {
                 return !__instance.IsAirlifted(); // maybe prevent airlifted units from teleporting if over a building
-            }
-        }
-
-        [HarmonyPatch(typeof(Weapon), "IsDisabled", MethodType.Getter)]
-        public static class Weapon_IsDisabled
-        {
-            //static bool Prepare() => !ModInit.modSettings.UsingMechAffinityForSwarmBreach;
-            public static void Postfix(Weapon __instance, ref bool __result)
-            {
-                if (!__result)
-                {
-                    if (__instance.GetIsFiringDisabled())
-                    {
-                        __result = true;
-                    }
-                }
             }
         }
 
