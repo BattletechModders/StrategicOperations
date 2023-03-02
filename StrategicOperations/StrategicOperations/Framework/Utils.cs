@@ -138,6 +138,10 @@ namespace StrategicOperations.Framework
         {
             return actor.StatCollection.GetValue<bool>("UseAAAFactor") ? actor.StatCollection.GetValue<float>("AAAFactor") : 0f;
         }
+        public static bool GetIsFiringDisabled(this Weapon weapon)
+        {
+            return weapon.StatCollection.GetValue<bool>("IsFiringDisabled");
+        }
         public static void PublishInvocationExternal(this MessageCenter messageCenter, MessageCenterMessage invocation)
         {
             messageCenter.AddSubscriber(MessageCenterMessageType.InvocationStackSequenceCreated, new ReceiveMessageCenterMessage(HandleInvocationStackSequenceCreatedExternal));

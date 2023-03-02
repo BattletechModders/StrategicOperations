@@ -402,7 +402,6 @@ namespace StrategicOperations.Patches
             }
         }
 
-
         [HarmonyPatch(typeof(ActorMovementSequence), "CompleteOrders")]
         public static class ActorMovementSequence_CompleteOrders
         {
