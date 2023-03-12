@@ -5,6 +5,7 @@ using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading.Tasks;
 using BattleTech;
+using BattleTech.StringInterpolation;
 using BattleTech.UI;
 using CustAmmoCategories;
 using CustAmmoCategoriesPatches;
@@ -166,6 +167,12 @@ namespace StrategicOperations.Framework
                                         magicBox.zeroAmmoCount();
                                         ModInit.modLog?.Trace?.Write(
                                             $"[ProcessResupplyUnit - Internal Ammo!] - Partial Resupply complete for weapon {weapon.Description.UIName}. Ammobox now has {weapon.InternalAmmo}/{weapon.weaponDef.StartingAmmoCapacity} {startingCapacity} ammo, SPAMMY box has {magicBox.CurrentAmmo}/{magicBox.AmmoCapacity} remaining. \n\nMathDumps: Replacement of ammo needs to use {sourceTonnageNeeded} tons of SPAMMY. SPAMMY has {magicTonnageAvailable} tons available at {magicTonnagePerShot} per shot for total SPAMMY shots needed of {totalMagicShotsConsumed}");
+
+                                        //update missing ammo amounts here
+                                        missingAmmoForMagicBox = startingCapacity - weapon.InternalAmmo;
+                                        sourceTonnageNeeded = missingAmmoForMagicBox * sourceTonnagePerShot;
+                                        ModInit.modLog?.Trace?.Write(
+                                            $"[ProcessResupplyUnit - Internal Ammo!] - Updating ammo needed after partial resupply. missingAmmoForMagicBox: {missingAmmoForMagicBox}, sourceTonnageNeeded: {sourceTonnageNeeded}");
                                     }
                                 }
                             }
@@ -245,6 +252,9 @@ namespace StrategicOperations.Framework
                                 ModInit.modLog?.Trace?.Write(
                                     $"[ProcessResupplyUnit - Use SpAce Magic Modular (by Yang) Ammo!] - Partial Resupply complete for ammoBox {ammoBoxToFill.Description.UIName}. Ammobox now has {ammoBoxToFill.CurrentAmmo}/{ammoBoxToFill.AmmoCapacity} ammo, SPAMMY box has {magicBox.CurrentAmmo}/{magicBox.AmmoCapacity} remaining. \n\nMathDumps: Replacement of ammo needs to use {sourceTonnageNeeded} tons of SPAMMY. SPAMMY has {magicTonnageAvailable} tons available at {magicTonnagePerShot} per shot for total SPAMMY shots needed of {totalMagicShotsConsumed}");
                                 missingAmmoForMagicBox = ammoBoxToFill.AmmoCapacity - ammoBoxToFill.CurrentAmmo;
+                                sourceTonnageNeeded = missingAmmoForMagicBox * sourceTonnagePerShot;
+                                ModInit.modLog?.Trace?.Write(
+                                    $"[ProcessResupplyUnit - Use SpAce Magic Modular (by Yang) Ammo!] - Updating ammo needed after partial resupply. missingAmmoForMagicBox: {missingAmmoForMagicBox}, sourceTonnageNeeded: {sourceTonnageNeeded}");
                             }
                         }
                     }
