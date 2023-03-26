@@ -13,6 +13,7 @@ using CustomAmmoCategoriesPatches;
 using CustomUnits;
 using Harmony;
 using HBS.Collections;
+using UIWidgetsSamples.Shops;
 using UnityEngine;
 using static StrategicOperations.Framework.Classes;
 using Log = CustomAmmoCategoriesLog.Log;
@@ -479,7 +480,8 @@ namespace StrategicOperations.Framework
             team.SetSupportTeam(aiteam);
             if (!ModState.ReinitPhaseIcons)
             {
-                var phaseIcons = CameraControl.Instance.HUD.PhaseTrack.PhaseIcons;
+                var phaseIcons = CameraControl.Instance?.HUD?.PhaseTrack?.PhaseIcons;
+                if (phaseIcons == null) return aiteam;
                 foreach (var icon in phaseIcons)
                 {
                     icon.Init(combat);
@@ -491,7 +493,20 @@ namespace StrategicOperations.Framework
 
         public static Team FetchAISupportTeam(Team team)
         {
-            if (team.SupportTeam != null) return team.SupportTeam;
+            if (team.SupportTeam != null)
+            {
+                if (!ModState.ReinitPhaseIcons)
+                {
+                    var phaseIcons = CameraControl.Instance?.HUD?.PhaseTrack?.PhaseIcons;
+                    if (phaseIcons == null) return team.SupportTeam;
+                    foreach (var icon in phaseIcons)
+                    {
+                        icon.Init(team.combat);
+                    }
+                    ModState.ReinitPhaseIcons = true;
+                }
+                return team.SupportTeam;
+            }
             return CreateOrUpdateAISupportTeam(team);
         }
 
