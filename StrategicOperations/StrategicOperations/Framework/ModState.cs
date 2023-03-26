@@ -14,6 +14,7 @@ namespace StrategicOperations.Framework
     {
         //public static string UnitPendingAirliftInvocation = "";
         //public static AbstractActor startUnitFromInvocation = null;
+        public static bool ReinitPhaseIcons = false;
         public static float cancelChanceForPlayerStrafe = 0f;
         public static List<string> TeamsWithResupply = new List<string>();
         public static AbstractActor CurrentGarrisonSquadForLOS = null;
@@ -208,6 +209,7 @@ namespace StrategicOperations.Framework
             StrategicActorTargetInvocationCmds = new Dictionary<string, StrategicActorTargetInvocation>();
             IsStrafeAOE = false;
             PlayerSpawnGUIDs = new List<string>();
+            ReinitPhaseIcons = false;
         }
 
         public static void ResetDelegateInfos()

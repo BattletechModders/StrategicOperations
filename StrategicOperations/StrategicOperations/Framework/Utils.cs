@@ -477,6 +477,15 @@ namespace StrategicOperations.Framework
             combat.TurnDirector.AddTurnActor(aiteam);
             combat.ItemRegistry.AddItem(aiteam);
             team.SetSupportTeam(aiteam);
+            if (!ModState.ReinitPhaseIcons)
+            {
+                var phaseIcons = CameraControl.Instance.HUD.PhaseTrack.PhaseIcons;
+                foreach (var icon in phaseIcons)
+                {
+                    icon.Init(combat);
+                }
+                ModState.ReinitPhaseIcons = true;
+            }
             return aiteam;
         }
 
