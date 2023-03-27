@@ -460,7 +460,11 @@ settings in the mod.json:
 	"PlayerControlBeacons": true,
 	"PlayerControlSpawnAbilities": [],
 	"PlayerControlSpawnAbilitiesBlacklist": [],
-	"DisableAISwarmTag": "AI_DISABLE_SWARM"
+	"DisableAISwarmTag": "AI_DISABLE_SWARM",
+	"crewOrCockpitCustomID": [
+				"CrewCompartment",
+				"Cockpit"
+			]
 ```
 
 `enableLogging` - bool, enable logging
@@ -684,6 +688,8 @@ Using the following settings, ClanGhostBear and ClanWolf have baseline 30% chanc
 `PlayerControlSpawnAbilitiesBlacklist` - list, string. List of AbilityDef IDs which will never allow player control spawns regardless of all other factors.
 
 `DisableAISwarmTag` - string, AI units with unit def tag are unable to swarm regardless of equipment
+
+`crewOrCockpitCustomID` - List <string> - define cockpit/crew compartment Custom Category IDs. used to ensure AI strafe/spawn abilities are associated with correct component. use same values as similar setting in TisButAScratch; defaults are `"CrewCompartment"` and `"Cockpit"`, but the setting is provided in case more IDs are needed or desired. AI strafe/spawn ability will be added to the first component that has a matching category ID.
 	
 ## Spawns
 	
