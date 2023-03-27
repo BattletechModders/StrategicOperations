@@ -852,7 +852,8 @@ namespace StrategicOperations.Patches
                 var dm = __instance.Combat.DataManager;
                 var sim = UnityGameInstance.BattleTechGame.Simulation;
                 var pilotID = "pilot_sim_starter_dekker";
-                var quid = __instance.Generate2PtCMDQuasiGUID(positionA, positionB);
+                //var actorGUID = __instance.parentComponent.GUID.Substring("Abilifier_ActorLink-".Length);
+                var quid = __instance.Generate2PtCMDQuasiGUID(__instance.parentComponent.parent.GUID, positionA, positionB);
                 if (!ModState.StoredCmdParams.ContainsKey(quid))
                 {
                     ModInit.modLog?.Info?.Write($"[Ability_ActivateStrafe] No strafe params stored, wtf");
@@ -969,7 +970,8 @@ namespace StrategicOperations.Patches
 
                 var actorResource = __instance.Def.ActorResource;
                 var supportHeraldryDef = Utils.SwapHeraldryColors(team.HeraldryDef, dm);
-                var quid = __instance.Generate2PtCMDQuasiGUID(positionA, positionB);
+                //var actorGUID = __instance.parentComponent.GUID.Substring("Abilifier_ActorLink-".Length);
+                var quid = __instance.Generate2PtCMDQuasiGUID(__instance.parentComponent.parent.GUID, positionA, positionB);
                 var playerControl = Utils.ShouldPlayerControlSpawn(team, __instance, quid);
                 var teamSelection = playerControl ? team : team.SupportTeam;//.SupportTeam; change to player control?
                 if (!team.IsLocalPlayer)
@@ -2166,8 +2168,15 @@ namespace StrategicOperations.Patches
                     {
                         var posA = __instance.positionA;//Traverse.Create(__instance).Property("positionA").GetValue<Vector3>();
                         var posB = __instance.positionB;//Traverse.Create(__instance).Property("positionB").GetValue<Vector3>();
-                        var quid = __instance.FromButton.Ability.Generate2PtCMDQuasiGUID(posA, posB);
+                        var quid = __instance.FromButton.Ability.Generate2PtCMDQuasiGUID(__instance.SelectedActor.GUID, posA, posB);
                         ModState.PendingPlayerCmdParams.QUID = quid;
+                        if (ModState.StoredCmdParams.ContainsKey(quid))
+                        {
+                            ModInit.modLog?.Trace?.Write(
+                                $"[SelectionStateCommandTargetTwoPoints_ProcessPressedButton] unit quid {quid} already exists. thats fucked up.");
+
+                            return;
+                        }
                         ModState.StoredCmdParams.Add(quid, new CmdInvocationParams(ModState.PendingPlayerCmdParams));
                         ModState.PendingPlayerCmdParams = new CmdInvocationParams();
                         ModInit.modLog?.Trace?.Write(

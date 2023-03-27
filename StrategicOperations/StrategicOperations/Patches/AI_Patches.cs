@@ -221,37 +221,46 @@ namespace StrategicOperations.Patches
 
                 if (!ModState.AiCmds.ContainsKey(__instance.unit.GUID))
                 {
-                    var strafeVal = AI_Utils.EvaluateStrafing(__instance.unit, out var abilityStrafe, out var vector1Strafe,
-                            out var vector2Strafe, out var startUnit);
-
-                    if (startUnit == null)
+                    var cmdAbility = __instance.unit.ComponentAbilities.FirstOrDefault(x => x.Def.Resource == AbilityDef.ResourceConsumed.CommandAbility);
+                    if (cmdAbility != null)
                     {
-                        //__result = new BehaviorTreeResults(BehaviorNodeState.Failure);
-                        return true;
-                    }
-
-                    var skipStrafeChance = startUnit.GetAvoidStrafeChanceForTeam(); //should i save the thing?
-                    //ModState.startUnitFromInvocation = startUnit;
-                    ModInit.modLog?.Trace?.Write($"final AA value for {startUnit.team.DisplayName}: {skipStrafeChance}");
-                    if (skipStrafeChance < ModInit.modSettings.strafeAAFailThreshold)
-                    {
-                        if (strafeVal >= ModInit.modSettings.AI_InvokeStrafeThreshold)
+                        if (cmdAbility.Def.specialRules == AbilityDef.SpecialRules.Strafe)
                         {
-                            var info = new AI_CmdInvocation(abilityStrafe, vector1Strafe, vector2Strafe, true);
-                            ModState.AiCmds.Add(__instance.unit.GUID, info);
-                            __result = new BehaviorTreeResults(BehaviorNodeState.Failure);
-                            return false;
-                        }
-                    }
+                            var strafeVal = AI_Utils.EvaluateStrafing(__instance.unit, out var abilityStrafe, out var vector1Strafe,
+                                out var vector2Strafe, out var startUnit);
 
-                    var spawnVal = AI_Utils.EvaluateSpawn(__instance.unit, out var abilitySpawn, out var vector1Spawn,
-                        out var vector2Spawn);
-                    if (spawnVal >= ModInit.modSettings.AI_InvokeSpawnThreshold)
-                    {
-                        var info = new AI_CmdInvocation(abilitySpawn, vector1Spawn, vector2Spawn, true);
-                        ModState.AiCmds.Add(__instance.unit.GUID, info);
-                        __result = new BehaviorTreeResults(BehaviorNodeState.Failure);
-                        return false;
+                            if (startUnit == null)
+                            {
+                                //__result = new BehaviorTreeResults(BehaviorNodeState.Failure);
+                                return true;
+                            }
+
+                            var skipStrafeChance = startUnit.GetAvoidStrafeChanceForTeam(); //should i save the thing?
+                            //ModState.startUnitFromInvocation = startUnit;
+                            ModInit.modLog?.Trace?.Write($"final AA value for {startUnit.team.DisplayName}: {skipStrafeChance}");
+                            if (skipStrafeChance < ModInit.modSettings.strafeAAFailThreshold)
+                            {
+                                if (strafeVal >= ModInit.modSettings.AI_InvokeStrafeThreshold)
+                                {
+                                    var info = new AI_CmdInvocation(abilityStrafe, vector1Strafe, vector2Strafe, true);
+                                    ModState.AiCmds.Add(__instance.unit.GUID, info);
+                                    __result = new BehaviorTreeResults(BehaviorNodeState.Failure);
+                                    return false;
+                                }
+                            }
+                        }
+                        else if (cmdAbility.Def.specialRules == AbilityDef.SpecialRules.SpawnTurret)
+                        {
+                            var spawnVal = AI_Utils.EvaluateSpawn(__instance.unit, out var abilitySpawn, out var vector1Spawn,
+                                out var vector2Spawn);
+                            if (spawnVal >= ModInit.modSettings.AI_InvokeSpawnThreshold)
+                            {
+                                var info = new AI_CmdInvocation(abilitySpawn, vector1Spawn, vector2Spawn, true);
+                                ModState.AiCmds.Add(__instance.unit.GUID, info);
+                                __result = new BehaviorTreeResults(BehaviorNodeState.Failure);
+                                return false;
+                            }
+                        }
                     }
                 }
                 else
@@ -262,36 +271,43 @@ namespace StrategicOperations.Patches
                         return false;
                     }
 
-                    var strafeVal = AI_Utils.EvaluateStrafing(__instance.unit, out var abilityStrafe, out var vector1Strafe,
-                        out var vector2Strafe, out var startUnit);
-                    if (startUnit == null)
+                    if (ModState.AiCmds[__instance.unit.GUID].ability.Def.specialRules ==
+                        AbilityDef.SpecialRules.Strafe)
                     {
-                        //__result = new BehaviorTreeResults(BehaviorNodeState.Failure);
-                        return true;
-                    }
-                    var skipStrafeChance = startUnit.GetAvoidStrafeChanceForTeam();
-                    ModInit.modLog?.Trace?.Write($"final AA value for {startUnit.team.DisplayName}: {skipStrafeChance}");
-                    //                    ModState.startUnitFromInvocation = startUnit;
-                    if (skipStrafeChance < ModInit.modSettings.strafeAAFailThreshold)
-                    {
-                        if (strafeVal > ModInit.modSettings.AI_InvokeStrafeThreshold)
+                        var strafeVal = AI_Utils.EvaluateStrafing(__instance.unit, out var abilityStrafe, out var vector1Strafe,
+                            out var vector2Strafe, out var startUnit);
+                        if (startUnit == null)
                         {
-                            var info = new AI_CmdInvocation(abilityStrafe, vector1Strafe, vector2Strafe, true);
+                            //__result = new BehaviorTreeResults(BehaviorNodeState.Failure);
+                            return true;
+                        }
+                        var skipStrafeChance = startUnit.GetAvoidStrafeChanceForTeam();
+                        ModInit.modLog?.Trace?.Write($"final AA value for {startUnit.team.DisplayName}: {skipStrafeChance}");
+                        //                    ModState.startUnitFromInvocation = startUnit;
+                        if (skipStrafeChance < ModInit.modSettings.strafeAAFailThreshold)
+                        {
+                            if (strafeVal > ModInit.modSettings.AI_InvokeStrafeThreshold)
+                            {
+                                var info = new AI_CmdInvocation(abilityStrafe, vector1Strafe, vector2Strafe, true);
+                                ModState.AiCmds[__instance.unit.GUID] = info;
+                                __result = new BehaviorTreeResults(BehaviorNodeState.Failure);
+                                return false;
+                            }
+                        }
+                    }
+                    else if (ModState.AiCmds[__instance.unit.GUID].ability.Def.specialRules ==
+                             AbilityDef.SpecialRules.SpawnTurret)
+                    {
+                        var spawnVal = AI_Utils.EvaluateSpawn(__instance.unit, out var abilitySpawn, out var vector1Spawn,
+                            out var vector2Spawn);
+
+                        if (spawnVal >= ModInit.modSettings.AI_InvokeSpawnThreshold)
+                        {
+                            var info = new AI_CmdInvocation(abilitySpawn, vector1Spawn, vector2Spawn, true);
                             ModState.AiCmds[__instance.unit.GUID] = info;
                             __result = new BehaviorTreeResults(BehaviorNodeState.Failure);
                             return false;
                         }
-                    }
-
-                    var spawnVal = AI_Utils.EvaluateSpawn(__instance.unit, out var abilitySpawn, out var vector1Spawn,
-                        out var vector2Spawn);
-
-                    if (spawnVal >= ModInit.modSettings.AI_InvokeSpawnThreshold)
-                    {
-                        var info = new AI_CmdInvocation(abilitySpawn, vector1Spawn, vector2Spawn, true);
-                        ModState.AiCmds[__instance.unit.GUID] = info;
-                        __result = new BehaviorTreeResults(BehaviorNodeState.Failure);
-                        return false;
                     }
                 }
                 return true;
@@ -462,6 +478,10 @@ namespace StrategicOperations.Patches
 
                 if (!ModState.AiCmds.ContainsKey(unit.GUID)) return true;
                 if (!ModState.AiCmds[unit.GUID].active) return true;
+                var quid = ModState.AiCmds[unit.GUID].ability
+                    .Generate2PtCMDQuasiGUID(unit.GUID, ModState.AiCmds[unit.GUID].vectorOne,
+                        ModState.AiCmds[unit.GUID].vectorTwo);
+                if (ModState.StoredCmdParams.ContainsKey(quid)) return true;
                 //ModState.PopupActorResource = AI_Utils.AssignRandomSpawnAsset(ModState.AiCmds[unit.GUID].ability, unit.team.FactionValue.Name, out var waves);
                 //ModState.StrafeWaves = waves;
                 var newParams = new CmdInvocationParams();
@@ -476,9 +496,6 @@ namespace StrategicOperations.Patches
                         .CMDPilotOverride;
                 }
 
-                var quid = ModState.AiCmds[unit.GUID].ability
-                    .Generate2PtCMDQuasiGUID(ModState.AiCmds[unit.GUID].vectorOne,
-                        ModState.AiCmds[unit.GUID].vectorTwo);
                 ModState.StoredCmdParams.Add(quid, newParams);
                 //assign waves here if needed
                 ModInit.modLog?.Debug?.Write(

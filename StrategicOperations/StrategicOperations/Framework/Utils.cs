@@ -69,10 +69,9 @@ namespace StrategicOperations.Framework
             }
             return sim.CompanyStats.GetValue<bool>("StratOps_ControlSpawns");
         }
-        public static string Generate2PtCMDQuasiGUID(this Ability ability, Vector3 positionA, Vector3 positionB)
+        public static string Generate2PtCMDQuasiGUID(this Ability ability, string actorGUID, Vector3 positionA, Vector3 positionB)
         {
-            var sim = UnityGameInstance.BattleTechGame.Simulation;
-            return $"STRAFE_ID_{ability.Def.Id}_{positionA}_{positionB}";
+            return $"AI_CMD_ID_{actorGUID}_{ability.Def.Id}_{positionA}_{positionB}";
         }
 
         public static void ForceUnitToLastActualPhase(this AbstractActor actor)

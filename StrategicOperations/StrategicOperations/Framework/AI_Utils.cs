@@ -4,7 +4,9 @@ using System.Linq;
 using Abilifier;
 using BattleTech;
 using BattleTech.Data;
+using BattleTech.Save.SaveGameStructure;
 using BattleTech.UI;
+using CustomComponents;
 using CustomUnits;
 using UnityEngine;
 
@@ -406,8 +408,6 @@ namespace StrategicOperations.Framework
                         if (roll <= chance)
                         {
                             ModInit.modLog?.Trace?.Write($"Rolled {roll}, < {chance}.");
-
-
                             if (!dm.AbilityDefs.TryGet(abilitySetting.AbilityDefID, out var def))
                             {
                                 LoadRequest loadRequest = dm.CreateLoadRequest();
@@ -418,12 +418,24 @@ namespace StrategicOperations.Framework
                                     ModInit.modLog?.Error?.Write($"ERROR couldnt find {abilitySetting.AbilityDefID} in DataManager after loadrequest.");
                                     return;
                                 }
-                            };
+                            }
                             var ability = new Ability(def);
                             ModInit.modLog?.Info?.Write(
                                 $"Adding {ability.Def?.Description?.Id} to {unit.Description?.Name}.");
                             ModState.CurrentCommandUnits[abilitySetting.AbilityDefID][unit.team.FactionValue.Name] ++;
-                            ability.Init(unit.Combat);
+                            
+                            var abilityComponent = unit.allComponents.FirstOrDefault(z => ModInit.modSettings.crewOrCockpitCustomID.Any((string x) => z.componentDef.GetComponents<Category>().Any((Category c) => c.CategoryID == x)));
+
+                            if (abilityComponent == null)
+                            {
+                                ModInit.modLog?.Info?.Write($"component was null; no CriticalComponents?");
+                            }
+
+                            if (abilityComponent?.parent == null)
+                            {
+                                ModInit.modLog?.Info?.Write($"component parent was null; no parent actor???");
+                            }
+                            ability.Init(unit.Combat, abilityComponent);
                             unit.ComponentAbilities.Add(ability);
                             return;
                         }
@@ -770,7 +782,7 @@ namespace StrategicOperations.Framework
                             $"Chosen point is {Vector3.Distance(actor.CurrentPosition, theCenter)} from source, should be < {maxRange}");
                     }
 
-                    theCenter = SpawnUtils.FindValidSpawn(targetEnemy, actor, spawnBehavior.MinRange, maxRange);
+                    theCenter = theCenter.FetchRandomAdjacentHexFromVector(actor, targetEnemy, spawnBehavior.MinRange, maxRange);//SpawnUtils.FindValidSpawn(targetEnemy, actor, spawnBehavior.MinRange, maxRange);
 
                     finalOrientation = targetEnemy.CurrentPosition - theCenter;
 
@@ -820,8 +832,8 @@ namespace StrategicOperations.Framework
                     var targetFriendly = Utils.GetClosestDetectedFriendly(theCenter, actor);
                     var closestEnemy = actor.GetClosestDetectedEnemy(theCenter);
 
-                    theCenter = SpawnUtils.FindValidSpawn(targetFriendly, actor, spawnBehavior.MinRange, maxRange);
-
+                    //theCenter = SpawnUtils.FindValidSpawn(targetFriendly, actor, spawnBehavior.MinRange, maxRange);
+                    theCenter = theCenter.FetchRandomAdjacentHexFromVector(actor, targetFriendly, spawnBehavior.MinRange, maxRange);//SpawnUtils.FindValidSpawn(targetEnemy, actor, spawnBehavior.MinRange, maxRange);
 
                     finalOrientation = closestEnemy.CurrentPosition - theCenter;
 
@@ -870,8 +882,8 @@ namespace StrategicOperations.Framework
 
                     var closestEnemy = actor.GetClosestDetectedEnemy(theCenter);
 
-                    theCenter = SpawnUtils.FindValidSpawn(closestEnemy, actor, spawnBehavior.MinRange, maxRange);
-
+                    //theCenter = SpawnUtils.FindValidSpawn(closestEnemy, actor, spawnBehavior.MinRange, maxRange);
+                    theCenter = theCenter.FetchRandomAdjacentHexFromVector(actor, closestEnemy, spawnBehavior.MinRange, maxRange);//SpawnUtils.FindValidSpawn(targetEnemy, actor, spawnBehavior.MinRange, maxRange);
                     finalOrientation = closestEnemy.CurrentPosition = theCenter;
 
                     skip:
