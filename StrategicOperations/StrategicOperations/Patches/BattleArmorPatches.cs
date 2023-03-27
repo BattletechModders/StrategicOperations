@@ -1100,7 +1100,7 @@ namespace StrategicOperations.Patches
         {
             public static void Postfix(AbstractActor __instance, ref bool __result)
             {
-                if (__instance is TrooperSquad || __instance.IsAirlifted())
+                if (__instance.canSwarm() || __instance.IsAirlifted())
                 {
                     __result = false;
                 }
