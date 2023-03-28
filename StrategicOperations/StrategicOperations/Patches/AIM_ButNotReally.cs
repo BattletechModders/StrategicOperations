@@ -62,8 +62,7 @@ namespace StrategicOperations.Patches
             }
         }
 
-        [HarmonyPatch(typeof(CombatHUDFakeVehicleArmorHover), "setToolTipInfo",
-            new Type[] {typeof(Mech), typeof(ChassisLocations)})]
+        [HarmonyPatch(typeof(CombatHUDFakeVehicleArmorHover), "setToolTipInfo", new Type[] {typeof(Mech), typeof(ChassisLocations)})]
         public static class CombatHUDFakeVehicleArmorHover_setToolTipInfo
         {
             static bool Prepare() => ModInit.modSettings.ShowAmmoInVehicleTooltips;
