@@ -1,12 +1,14 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Security.Cryptography;
 using Abilifier.Patches;
 using BattleTech;
 using BattleTech.Data;
 using BattleTech.Rendering;
 using BattleTech.UI;
 using CustomActivatableEquipment;
+using CustomComponents;
 using CustomUnits;
 using Harmony;
 using HBS;
@@ -129,6 +131,46 @@ namespace StrategicOperations.Patches
                             unit.GetPilot().ActiveAbilities.Add(ability);
                         }
                     }
+
+                    //add a parent component to strafe/spawn pilot abilities. even though it wont be used.
+
+                    //need to disentangle from abilifier though.
+                    if (false)
+                    {
+                        var list = unit.GetPilot().Abilities;
+                        for (var index = list.Count - 1; index >= 0; index--)
+                        {
+                            var pilotAbility = list[index];
+                            if (pilotAbility.Def.specialRules == AbilityDef.SpecialRules.Strafe ||
+                                pilotAbility.Def.specialRules == AbilityDef.SpecialRules.SpawnTurret)
+                            {
+                                var ability = new Ability(pilotAbility.Def);
+                                ModInit.modLog?.Trace?.Write(
+                                    $"[Team.AddUnit] moving {pilotAbility.Def?.Description?.Id} to {unit.Description?.Name} component abilities.");
+
+                                var abilityComponent = unit.allComponents.FirstOrDefault(z =>
+                                    ModInit.modSettings.crewOrCockpitCustomID.Any((string x) =>
+                                        z.componentDef.GetComponents<Category>()
+                                            .Any((Category c) => c.CategoryID == x)));
+                                if (abilityComponent == null)
+                                {
+                                    ModInit.modLog?.Info?.Write($"component was null; no CriticalComponents?");
+                                }
+
+                                if (abilityComponent?.parent == null)
+                                {
+                                    ModInit.modLog?.Info?.Write($"component parent was null; no parent actor???");
+                                }
+
+                                ability.Init(unit.Combat, abilityComponent);
+                                unit.GetPilot().Abilities.Remove(pilotAbility);
+                                unit.GetPilot().ActiveAbilities.Remove(pilotAbility);
+                                unit.GetPilot().Abilities.Add(ability);
+                                unit.GetPilot().ActiveAbilities.Add(ability);
+                            }
+                        }
+                    }
+
                     return;
                 }
 
@@ -853,7 +895,17 @@ namespace StrategicOperations.Patches
                 var sim = UnityGameInstance.BattleTechGame.Simulation;
                 var pilotID = "pilot_sim_starter_dekker";
                 //var actorGUID = __instance.parentComponent.GUID.Substring("Abilifier_ActorLink-".Length);
-                var quid = __instance.Generate2PtCMDQuasiGUID(__instance.parentComponent.parent.GUID, positionA, positionB);
+                var quid = "";
+                if (__instance?.parentComponent?.parent?.GUID != null)
+                {
+                    quid = __instance.Generate2PtCMDQuasiGUID(__instance.parentComponent.parent.GUID, positionA, positionB);
+                }
+                else if (__instance?.parentComponent?.GUID != null)
+                {
+                    var quidFromAbilifier = __instance.parentComponent.GUID.Substring(20);
+                    quid = __instance.Generate2PtCMDQuasiGUID(quidFromAbilifier, positionA, positionB);
+                }
+                
                 if (!ModState.StoredCmdParams.ContainsKey(quid))
                 {
                     ModInit.modLog?.Info?.Write($"[Ability_ActivateStrafe] No strafe params stored, wtf");
@@ -971,7 +1023,16 @@ namespace StrategicOperations.Patches
                 var actorResource = __instance.Def.ActorResource;
                 var supportHeraldryDef = Utils.SwapHeraldryColors(team.HeraldryDef, dm);
                 //var actorGUID = __instance.parentComponent.GUID.Substring("Abilifier_ActorLink-".Length);
-                var quid = __instance.Generate2PtCMDQuasiGUID(__instance.parentComponent.parent.GUID, positionA, positionB);
+                var quid = "";
+                if (__instance?.parentComponent?.parent?.GUID != null)
+                {
+                    quid = __instance.Generate2PtCMDQuasiGUID(__instance.parentComponent.parent.GUID, positionA, positionB);
+                }
+                else if (__instance?.parentComponent?.GUID != null)
+                {
+                    var quidFromAbilifier = __instance.parentComponent.GUID.Substring(20);
+                    quid = __instance.Generate2PtCMDQuasiGUID(quidFromAbilifier, positionA, positionB);
+                }
                 var playerControl = Utils.ShouldPlayerControlSpawn(team, __instance, quid);
                 var teamSelection = playerControl ? team : team.SupportTeam;//.SupportTeam; change to player control?
                 if (!team.IsLocalPlayer)

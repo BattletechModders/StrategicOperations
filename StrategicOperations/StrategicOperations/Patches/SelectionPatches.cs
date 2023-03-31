@@ -132,7 +132,6 @@ namespace StrategicOperations.Patches
                                             ModInit.modSettings.MountIndicatorColor.Gf,
                                             ModInit.modSettings.MountIndicatorColor.Bf);
                                         decalsFromCircle[j].DecalPropertyBlock.SetColor("_Color", customColor);
-
                                     }
                                     else
                                     {

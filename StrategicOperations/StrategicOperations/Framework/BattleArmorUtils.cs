@@ -768,17 +768,23 @@ namespace StrategicOperations.Framework
 
                 if (!calledFromHandleDeath && !calledFromDeswarm)
                 {
+                    ModInit.modLog?.Info?.Write($"[DismountBA] Not called from HandleDeath or Deswarm, resetting pathing.");
+                    if (actor.team.IsLocalPlayer)
+                    {
+                        ModInit.modLog?.Info?.Write($"[DismountBA] Local player unit, resetting buttons.");
+                        hud.MechWarriorTray.JumpButton.ResetButtonIfNotActive(actor);
+                        hud.MechWarriorTray.SprintButton.ResetButtonIfNotActive(actor);
+                        hud.MechWarriorTray.MoveButton.ResetButtonIfNotActive(actor);
+                        hud.SelectionHandler.AddJumpState(actor);
+                        hud.SelectionHandler.AddSprintState(actor);
+                        hud.SelectionHandler.AddMoveState(actor);
+                    }
                     ModInit.modLog?.Info?.Write(
-                        $"[DismountBA] Not called from HandleDeath or Deswarm, resetting buttons and pathing.");
-                    hud.MechWarriorTray.JumpButton.ResetButtonIfNotActive(actor);
-                    hud.MechWarriorTray.SprintButton.ResetButtonIfNotActive(actor);
-                    hud.MechWarriorTray.MoveButton.ResetButtonIfNotActive(actor);
-                    hud.SelectionHandler.AddJumpState(actor);
-                    hud.SelectionHandler.AddSprintState(actor);
-                    hud.SelectionHandler.AddMoveState(actor);
+                        $"[DismountBA] Local player unit, Not called from HandleDeath or Deswarm, resetting buttons and pathing.");
                     actor.ResetPathing(false);
                     actor.Pathing.UpdateCurrentPath(false);
                 }
+                
                 if (false) //(actor.HasBegunActivation)
                 {
                     ModInit.modLog?.Info?.Write(
@@ -855,14 +861,17 @@ namespace StrategicOperations.Framework
 
             if (!calledFromHandleDeath)
             {
-                ModInit.modLog?.Info?.Write(
-                    $"[DismountGarrison] Not called from HandleDeath or Deswarm, resetting buttons and pathing.");
-                hud.MechWarriorTray.JumpButton.ResetButtonIfNotActive(squad);
-                hud.MechWarriorTray.SprintButton.ResetButtonIfNotActive(squad);
-                hud.MechWarriorTray.MoveButton.ResetButtonIfNotActive(squad);
-                hud.SelectionHandler.AddJumpState(squad);
-                hud.SelectionHandler.AddSprintState(squad);
-                hud.SelectionHandler.AddMoveState(squad);
+                ModInit.modLog?.Info?.Write($"[DismountGarrison] Not called from HandleDeath or Deswarm, resetting pathing.");
+                if (squad.team.IsLocalPlayer)
+                {
+                    ModInit.modLog?.Info?.Write($"[DismountGarrison] Local player unit, resetting buttons.");
+                    hud.MechWarriorTray.JumpButton.ResetButtonIfNotActive(squad);
+                    hud.MechWarriorTray.SprintButton.ResetButtonIfNotActive(squad);
+                    hud.MechWarriorTray.MoveButton.ResetButtonIfNotActive(squad);
+                    hud.SelectionHandler.AddJumpState(squad);
+                    hud.SelectionHandler.AddSprintState(squad);
+                    hud.SelectionHandler.AddMoveState(squad);
+                }
                 squad.ResetPathing(false);
                 squad.Pathing.UpdateCurrentPath(false);
             }
