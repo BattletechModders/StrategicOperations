@@ -2229,7 +2229,11 @@ namespace StrategicOperations.Patches
                     {
                         var posA = __instance.positionA;//Traverse.Create(__instance).Property("positionA").GetValue<Vector3>();
                         var posB = __instance.positionB;//Traverse.Create(__instance).Property("positionB").GetValue<Vector3>();
-                        var quid = __instance.FromButton.Ability.Generate2PtCMDQuasiGUID(__instance.SelectedActor.GUID, posA, posB);
+                        var quid = "";
+                        if (__instance.SelectedActor?.GUID != null)
+                        {
+                            quid = __instance.FromButton.Ability.Generate2PtCMDQuasiGUID(__instance.SelectedActor?.GUID, posA, posB);
+                        }
                         ModState.PendingPlayerCmdParams.QUID = quid;
                         if (ModState.StoredCmdParams.ContainsKey(quid))
                         {
