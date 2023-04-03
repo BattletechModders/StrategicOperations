@@ -898,14 +898,17 @@ namespace StrategicOperations.Patches
                 var quid = "";
                 if (__instance?.parentComponent?.parent?.GUID != null)
                 {
+                    ModInit.modLog?.Info?.Write($"[Ability_ActivateStrafe] using {__instance.parentComponent.parent.GUID} from component parent");
                     quid = __instance.Generate2PtCMDQuasiGUID(__instance.parentComponent.parent.GUID, positionA, positionB);
+                    
                 }
                 else if (__instance?.parentComponent?.GUID != null)
                 {
                     var quidFromAbilifier = __instance.parentComponent.GUID.Substring(20);
+                    ModInit.modLog?.Info?.Write($"[Ability_ActivateStrafe] using {__instance.parentComponent.GUID} from abilifier component guid; processed down to {quidFromAbilifier}");
                     quid = __instance.Generate2PtCMDQuasiGUID(quidFromAbilifier, positionA, positionB);
                 }
-                
+                ModInit.modLog?.Info?.Write($"[Ability_ActivateStrafe] Trying to find params with key {quid}");
                 if (!ModState.StoredCmdParams.ContainsKey(quid))
                 {
                     ModInit.modLog?.Info?.Write($"[Ability_ActivateStrafe] No strafe params stored, wtf");
@@ -1026,12 +1029,21 @@ namespace StrategicOperations.Patches
                 var quid = "";
                 if (__instance?.parentComponent?.parent?.GUID != null)
                 {
+                    ModInit.modLog?.Info?.Write($"[Ability_ActivateSpawnTurret] using {__instance.parentComponent.parent.GUID} from component parent");
                     quid = __instance.Generate2PtCMDQuasiGUID(__instance.parentComponent.parent.GUID, positionA, positionB);
+
                 }
                 else if (__instance?.parentComponent?.GUID != null)
                 {
                     var quidFromAbilifier = __instance.parentComponent.GUID.Substring(20);
+                    ModInit.modLog?.Info?.Write($"[Ability_ActivateSpawnTurret] using {__instance.parentComponent.GUID} from abilifier component guid; processed down to {quidFromAbilifier}");
                     quid = __instance.Generate2PtCMDQuasiGUID(quidFromAbilifier, positionA, positionB);
+                }
+                ModInit.modLog?.Info?.Write($"[Ability_ActivateSpawnTurret] Trying to find params with key {quid}");
+                if (!ModState.StoredCmdParams.ContainsKey(quid))
+                {
+                    ModInit.modLog?.Info?.Write($"[Ability_ActivateSpawnTurret] No strafe params stored, wtf");
+                    return true;
                 }
                 var playerControl = Utils.ShouldPlayerControlSpawn(team, __instance, quid);
                 var teamSelection = playerControl ? team : team.SupportTeam;//.SupportTeam; change to player control?
@@ -2245,7 +2257,7 @@ namespace StrategicOperations.Patches
                         ModState.StoredCmdParams.Add(quid, new CmdInvocationParams(ModState.PendingPlayerCmdParams));
                         ModState.PendingPlayerCmdParams = new CmdInvocationParams();
                         ModInit.modLog?.Trace?.Write(
-                            $"[SelectionStateCommandTargetTwoPoints_ProcessPressedButton] Transferred pending strafe params to dictionary: {ModState.StoredCmdParams[quid].QUID}");
+                            $"[SelectionStateCommandTargetTwoPoints_ProcessPressedButton] Transferred pending strafe params to dictionary: {ModState.StoredCmdParams[quid].QUID}. Key: {quid}");
                     }
                 }
             }

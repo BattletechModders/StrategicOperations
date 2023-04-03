@@ -702,7 +702,7 @@ namespace StrategicOperations.Framework
                 dropSpawner.DropPodRotation = SpawnRotation;
 
                 ModInit.modLog?.Trace?.Write($"DropPodAnim location {SpawnLoc} is also {dropSpawner.DropPodPosition}");
-                ModInit.modLog?.Trace?.Write($"Is dropAnim null fuckin somehow? {dropSpawner == null}");
+                //ModInit.modLog?.Trace?.Write($"Is dropAnim null fuckin somehow? {dropSpawner == null}");
                 dropSpawner.DropPodVfxPrefab = dropSpawner.Parent.DropPodVfxPrefab;
                 dropSpawner.DropPodLandedPrefab = dropSpawner.Parent.dropPodLandedPrefab;
                 dropSpawner.LoadDropPodPrefabs(dropSpawner.DropPodVfxPrefab, dropSpawner.DropPodLandedPrefab);

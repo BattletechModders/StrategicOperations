@@ -97,7 +97,8 @@ namespace StrategicOperations
         public float strafeAAFailThreshold = 1f; //for AI strafes, if fail % is higher than this, they wont try
         public float timeBetweenAttacks = 0.35f;
         public float strafeMinDistanceToEnd = 10f;
-        public float commandUseCostsMulti = 1f;
+        public float commandUseCostsMulti = 1f; // deprecate?
+        public float lostBeaconUnitCostMult = 0f;
         
         public List<string> deploymentBeaconEquipment = new List<string>(); //e.g. Item.HeatSinkDef.Gear_HeatSink_Generic_Standard
         
