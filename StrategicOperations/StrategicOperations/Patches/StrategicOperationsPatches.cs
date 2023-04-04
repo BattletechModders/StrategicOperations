@@ -853,10 +853,14 @@ namespace StrategicOperations.Patches
                     return false;
                 }
 
+
+
+                // maybe rewrite ActivateStrafe and ActivateSpawnTurret to pass actor?
                 if (specialRules == AbilityDef.SpecialRules.Strafe)
                 {
                     //Utils._activateStrafeMethod.Invoke(__instance, new object[] { creator.team, positionA, positionB, __instance.Def.FloatParam1 });
-                    __instance.ActivateStrafe(creator.team, positionA, positionB, __instance.Def.FloatParam1);
+                    //__instance.ActivateStrafe(creator.team, positionA, positionB, __instance.Def.FloatParam1);
+                    __instance.ActivateStrafeFromActor(creator, creator.team, positionA, positionB, __instance.Def.FloatParam1);
                     ModInit.modLog?.Info?.Write($"[Ability.Activate - 2pts] {creator.Description?.Name}: ActivateStrafe invoked from Ability.Activate. Distance was {Vector3.Distance(positionA, positionB)}");
                     __instance.Combat.MessageCenter.PublishMessage(new AbilityActivatedMessage(creator.GUID,
                         creator.GUID, __instance.Def.Id, positionA, positionB));
@@ -868,7 +872,8 @@ namespace StrategicOperations.Patches
                 else if (specialRules == AbilityDef.SpecialRules.SpawnTurret)
                 {
                     //Utils._activateSpawnTurretMethod.Invoke(__instance, new object[] { creator.team, positionA, positionB });
-                    __instance.ActivateSpawnTurret(creator.team, positionA, positionB);
+                    //__instance.ActivateSpawnTurret(creator.team, positionA, positionB);
+                    __instance.ActivateSpawnTurretFromActor(creator, creator.team, positionA, positionB);
                     ModInit.modLog?.Info?.Write($"[Ability.Activate - 2pts] {creator.Description?.Name}: ActivateSpawnTurret invoked from Ability.Activate. Distance was {Vector3.Distance(positionA, positionB)}");
                     __instance.Combat.MessageCenter.PublishMessage(new AbilityActivatedMessage(creator.GUID,
                         creator.GUID, __instance.Def.Id, positionA, positionB));

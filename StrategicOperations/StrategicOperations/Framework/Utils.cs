@@ -23,6 +23,576 @@ namespace StrategicOperations.Framework
 {
     public static class Utils
     {
+        public static void ActivateSpawnTurretFromActor(this Ability __instance, AbstractActor creator, Team team, Vector3 positionA, Vector3 positionB)
+        {
+            if (__instance.Combat.ActiveContract.ContractTypeValue.IsSkirmish) return;
+            ModInit.modLog?.Info?.Write($"[ActivateSpawnTurretFromActor] Running Ability.ActivateSpawnTurret");
+            var combat = UnityGameInstance.BattleTechGame.Combat;
+            var dm = combat.DataManager;
+            var sim = UnityGameInstance.BattleTechGame.Simulation;
+
+            var actorResource = __instance.Def.ActorResource;
+            var supportHeraldryDef = Utils.SwapHeraldryColors(team.HeraldryDef, dm);
+            //var actorGUID = __instance.parentComponent.GUID.Substring("Abilifier_ActorLink-".Length);
+            var quid = "";
+            if (__instance?.parentComponent?.parent?.GUID != null)
+            {
+                ModInit.modLog?.Info?.Write($"[ActivateSpawnTurretFromActor] using {__instance.parentComponent.parent.GUID} from component parent");
+                quid = __instance.Generate2PtCMDQuasiGUID(__instance.parentComponent.parent.GUID, positionA, positionB);
+
+            }
+            else if (__instance?.parentComponent?.GUID != null)
+            {
+                var quidFromAbilifier = __instance.parentComponent.GUID.Substring(20);
+                ModInit.modLog?.Info?.Write($"[ActivateSpawnTurretFromActor] using {__instance.parentComponent.GUID} from abilifier component guid; processed down to {quidFromAbilifier}");
+                quid = __instance.Generate2PtCMDQuasiGUID(quidFromAbilifier, positionA, positionB);
+            }
+
+            if (string.IsNullOrEmpty(quid))
+            {
+                if (string.IsNullOrEmpty(quid))
+                {
+                    quid = __instance.Generate2PtCMDQuasiGUID(creator.GUID, positionA, positionB);
+                    ModInit.modLog?.Info?.Write($"[ActivateSpawnTurretFromActor] using creator GUID {quid}");
+                }
+            }
+
+            ModInit.modLog?.Info?.Write($"[ActivateSpawnTurretFromActor] Trying to find params with key {quid}");
+            if (!ModState.StoredCmdParams.ContainsKey(quid))
+            {
+                ModInit.modLog?.Info?.Write($"[ActivateSpawnTurretFromActor] No strafe params stored, wtf");
+                return;
+            }
+            var playerControl = Utils.ShouldPlayerControlSpawn(team, __instance, quid);
+            var teamSelection = playerControl ? team : team.SupportTeam;//.SupportTeam; change to player control?
+            if (!team.IsLocalPlayer)
+            {
+                teamSelection = team as AITeam;
+            }
+            if (!ModState.StoredCmdParams.ContainsKey(quid))
+            {
+                ModInit.modLog?.Info?.Write($"[ActivateSpawnTurretFromActor] No spawn params stored, wtf");
+                return;
+            }
+            if (!string.IsNullOrEmpty(ModState.StoredCmdParams[quid].ActorResource))
+            {
+                actorResource = ModState.StoredCmdParams[quid].ActorResource;
+                //ModState.PopupActorResource = "";
+            }
+
+            if (ModState.DeploymentAssetsStats.Any(x => x.ID == actorResource) && team.IsLocalPlayer)
+            {
+                var assetStatInfo = ModState.DeploymentAssetsStats.FirstOrDefault(x => x.ID == actorResource);
+                if (assetStatInfo != null)
+                {
+                    assetStatInfo.contractUses -= 1;
+                    if (assetStatInfo.consumeOnUse)
+                    {
+                        sim?.CompanyStats.ModifyStat("StratOps", -1, assetStatInfo.stat,
+                            StatCollection.StatOperation.Int_Subtract, 1);
+                    }
+                }
+
+                ModInit.modLog?.Info?.Write($"[ActivateSpawnTurretFromActor] Decrementing count of {actorResource} in deploymentAssetsDict");
+            }
+
+            var instanceGUID =
+                $"{__instance.Def.Id}_{team.Name}_{actorResource}_{positionA}_{positionB}@{actorResource}";
+
+            if (ModState.DeferredInvokeSpawns.All(x => x.Key != instanceGUID) && !ModState.DeferredSpawnerFromDelegate)
+            {
+                ModInit.modLog?.Info?.Write(
+                    $"[ActivateSpawnTurretFromActor] Deferred Spawner = null, creating delegate and returning false. Delegate should spawn {actorResource}");
+
+                void DeferredInvokeSpawn() => __instance.ActivateSpawnTurret(team, positionA, positionB);//Utils._activateSpawnTurretMethod.Invoke(__instance, new object[] { team, positionA, positionB });
+
+                var kvp = new KeyValuePair<string, Action>(instanceGUID, DeferredInvokeSpawn);
+                ModState.DeferredInvokeSpawns.Add(kvp);
+                Utils.SpawnFlares(__instance, positionA, positionB, ModInit.modSettings.flareResourceID, 1, __instance.Def.ActivationETA, team.IsLocalPlayer);
+                //                    var flares = Traverse.Create(__instance).Method("SpawnFlares",
+                //                        new object[] {positionA, positionA, __instance.Def., 1, 1});
+                //                    flares.GetValue();
+                return;
+            }
+
+            if (!string.IsNullOrEmpty(ModState.DeferredActorResource))
+            {
+                actorResource = ModState.DeferredActorResource;
+                ModInit.modLog?.Info?.Write($"[ActivateSpawnTurretFromActor] {actorResource} restored from deferredActorResource");
+            }
+
+            var pilotID = "pilot_sim_starter_dekker";
+            if (!string.IsNullOrEmpty(ModState.StoredCmdParams[quid].PilotOverride))
+            {
+                //pilotID = ModState.PilotOverride;
+                pilotID = ModState.StoredCmdParams[quid].PilotOverride;
+            }
+            else if (!string.IsNullOrEmpty(__instance.Def.getAbilityDefExtension().CMDPilotOverride))
+            {
+                pilotID = __instance.Def.getAbilityDefExtension().CMDPilotOverride;
+            }
+
+            ModInit.modLog?.Info?.Write($"[ActivateSpawnTurretFromActor] Pilot should be {pilotID}");
+            var cmdLance = new Lance();
+            if (playerControl)
+            {
+                if (team.lances.Count > 0) cmdLance = team.lances[0];
+                else
+                {
+                    cmdLance = new Lance();
+                    ModInit.modLog?.Error?.Write($"[ActivateSpawnTurretFromActor] No lances found for team! This is fucked up!");
+                }
+            }
+            else cmdLance = Utils.CreateOrFetchCMDLance(teamSelection);
+
+            Quaternion quaternion = Quaternion.LookRotation(positionB - positionA);
+
+            if (actorResource.StartsWith("mechdef_") || actorResource.StartsWith("vehicledef_"))
+            {
+                ModInit.modLog?.Info?.Write($"[ActivateSpawnTurretFromActor] Attempting to spawn {actorResource} as mech.");
+                var spawner = new Classes.CustomSpawner(team, __instance, combat, actorResource, cmdLance, teamSelection, positionA, quaternion, supportHeraldryDef, pilotID, playerControl);
+                spawner.SpawnBeaconUnitAtLocation();
+                return;
+            }
+
+#if NO_CAC
+                if (actorResource.StartsWith("mechdef_") && false)
+                {
+                    ModInit.modLog?.Info?.Write($"Attempting to spawn {actorResource} as mech.");
+                    dm.MechDefs.TryGet(actorResource, out var supportActorMechDef);
+                    supportActorMechDef.Refresh();
+                    var customEncounterTags = new TagSet(teamSelection.EncounterTags) {"SpawnedFromAbility"};
+                    var supportActorMech = ActorFactory.CreateMech(supportActorMechDef, supportPilotDef,
+                        customEncounterTags, teamSelection.Combat,
+                        teamSelection.GetNextSupportUnitGuid(), "", supportHeraldryDef);
+                    supportActorMech.Init(positionA, quaternion.eulerAngles.y, false);
+                    supportActorMech.InitGameRep(null);
+
+                    teamSelection.AddUnit(supportActorMech);
+                    supportActorMech.AddToTeam(teamSelection);
+
+                    supportActorMech.AddToLance(cmdLance);
+                    cmdLance.AddUnitGUID(supportActorMech.GUID);
+                    supportActorMech.SetBehaviorTree(BehaviorTreeIDEnum.CoreAITree);
+                    //supportActorMech.BehaviorTree = BehaviorTreeFactory.MakeBehaviorTree(__instance.Combat.BattleTechGame, supportActorMech, BehaviorTreeIDEnum.CoreAITree);
+                    //supportActorMech.GameRep.gameObject.SetActive(true);
+
+                    supportActorMech.OnPositionUpdate(positionA, quaternion, -1, true, null, false);
+                    supportActorMech.DynamicUnitRole = UnitRole.Brawler;
+                    UnitSpawnedMessage message = new UnitSpawnedMessage("FROM_ABILITY", supportActorMech.GUID);
+                    __instance.Combat.MessageCenter.PublishMessage(message);
+                    //supportActorMech.OnPlayerVisibilityChanged(VisibilityLevel.LOSFull);
+
+                    ModInit.modLog?.Info?.Write($"Added {supportActorMech?.MechDef?.Description?.Id} to SupportUnits");
+
+                    ////////////////
+
+                    //supportActorMech.PlaceFarAwayFromMap();
+                    var underMap = supportActorMech.CurrentPosition;
+                    underMap.y = -1000f;
+                    supportActorMech.TeleportActor(underMap);
+                    combat.ItemRegistry.AddItem(supportActorMech);
+                    combat.RebuildAllLists();
+                    EncounterLayerParent encounterLayerParent = combat.EncounterLayerData.gameObject.GetComponentInParent<EncounterLayerParent>();
+                    DropPodUtils.DropPodSpawner dropSpawner = encounterLayerParent.gameObject.GetComponent<DropPodUtils.DropPodSpawner>();
+                    if (dropSpawner == null) { dropSpawner = encounterLayerParent.gameObject.AddComponent<DropPodUtils.DropPodSpawner>(); }
+
+                    dropSpawner.Unit = supportActorMech;
+                    dropSpawner.Combat = combat;
+                    dropSpawner.Parent = UnityGameInstance.BattleTechGame.Combat.EncounterLayerData
+                        .GetComponentInParent<EncounterLayerParent>();
+                    dropSpawner.DropPodPosition = positionA;
+                    dropSpawner.DropPodRotation = quaternion;
+
+                    ModInit.modLog?.Trace?.Write($"DropPodAnim location {positionA} is also {dropSpawner.DropPodPosition}");
+                    ModInit.modLog?.Trace?.Write($"Is dropAnim null fuckin somehow? {dropSpawner == null}");
+                    dropSpawner.DropPodVfxPrefab = dropSpawner.Parent.DropPodVfxPrefab;
+                    dropSpawner.DropPodLandedPrefab = dropSpawner.Parent.dropPodLandedPrefab;
+                    dropSpawner.LoadDropPodPrefabs(dropSpawner.DropPodVfxPrefab, dropSpawner.DropPodLandedPrefab);
+                    ModInit.modLog?.Trace?.Write($"loaded prefabs success");
+                    dropSpawner.StartCoroutine(dropSpawner.StartDropPodAnimation(0f));
+                    ModInit.modLog?.Trace?.Write($"started drop pod anim");
+
+                    
+                    //supportActorMech.OnPlayerVisibilityChanged(VisibilityLevel.LOSFull);
+
+                    //Utils.DeployEvasion(supportActorMech);
+                    ///////////////
+
+                    if (team.IsLocalPlayer && (ModInit.modSettings.commandUseCostsMulti > 0 ||
+                                               __instance.Def.getAbilityDefExtension().CBillCost > 0))
+                    {
+                        var unitName = "";
+                        var unitCost = 0;
+                        var unitID = "";
+
+                        unitName = supportActorMechDef.Description.UIName;
+                        unitID = supportActorMechDef.Description.Id;
+                        unitCost = supportActorMechDef.Chassis.Description.Cost;
+
+                        if (ModState.CommandUses.All(x => x.UnitID != actorResource))
+                        {
+                            var commandUse =
+                                new CmdUseInfo(unitID, __instance.Def.Description.Name, unitName, unitCost,
+                                    __instance.Def.getAbilityDefExtension().CBillCost);
+
+                            ModState.CommandUses.Add(commandUse);
+                            ModInit.modLog?.Info?.Write(
+                                $"Added usage cost for {commandUse.CommandName} - {commandUse.UnitName}. UnitUseCost (unadjusted): {unitCost}. Ability Use Cost: {__instance.Def.getAbilityDefExtension().CBillCost}");
+                        }
+                        else
+                        {
+                            var cmdUse = ModState.CommandUses.FirstOrDefault(x => x.UnitID == actorResource);
+                            if (cmdUse == null)
+                            {
+                                ModInit.modLog?.Info?.Write($"ERROR: cmdUseInfo was null");
+                            }
+                            else
+                            {
+                                cmdUse.UseCount += 1;
+                                ModInit.modLog?.Info?.Write(
+                                    $"Added usage cost for {cmdUse.CommandName} - {cmdUse.UnitName}. UnitUseCost (unadjusted): {unitCost}. Ability Use Cost: {__instance.Def.getAbilityDefExtension().CBillCost}. Now used {cmdUse.UseCount} times.");
+                            }
+                        }
+                    }
+                }
+                else if (actorResource.StartsWith("vehicledef_") && false) //disable for CU
+                {
+                    ModInit.modLog?.Info?.Write($"Attempting to spawn {actorResource} as vehicle.");
+                    dm.VehicleDefs.TryGet(actorResource, out var supportActorVehicleDef);
+                    supportActorVehicleDef.Refresh();
+                    var customEncounterTags = new TagSet(teamSelection.EncounterTags) {"SpawnedFromAbility"};
+                    var supportActorVehicle = ActorFactory.CreateVehicle(supportActorVehicleDef, supportPilotDef,
+                        customEncounterTags, teamSelection.Combat,
+                        teamSelection.GetNextSupportUnitGuid(), "", supportHeraldryDef);
+                    supportActorVehicle.Init(positionA, quaternion.eulerAngles.y, false);
+                    supportActorVehicle.InitGameRep(null);
+
+                    teamSelection.AddUnit(supportActorVehicle);
+                    supportActorVehicle.AddToTeam(teamSelection);
+
+                    supportActorVehicle.AddToLance(cmdLance);
+                    cmdLance.AddUnitGUID(supportActorVehicle.GUID);
+                    supportActorVehicle.SetBehaviorTree(BehaviorTreeIDEnum.CoreAITree);
+                    //supportActorVehicle.BehaviorTree = BehaviorTreeFactory.MakeBehaviorTree(__instance.Combat.BattleTechGame, supportActorVehicle, BehaviorTreeIDEnum.CoreAITree);
+                    //supportActorVehicle.GameRep.gameObject.SetActive(true);
+
+                    supportActorVehicle.OnPositionUpdate(positionA, quaternion, -1, true, null, false);
+                    supportActorVehicle.DynamicUnitRole = UnitRole.Vehicle;
+
+                    UnitSpawnedMessage message = new UnitSpawnedMessage("FROM_ABILITY", supportActorVehicle.GUID);
+
+                    __instance.Combat.MessageCenter.PublishMessage(message);
+                    //supportActorVehicle.OnPlayerVisibilityChanged(VisibilityLevel.LOSFull);
+
+                    //Utils.DeployEvasion(supportActorVehicle);
+
+                    ModInit.modLog?.Info?.Write(
+                        $"Added {supportActorVehicle?.VehicleDef?.Description?.Id} to SupportUnits");
+
+
+                    ////////////////
+
+                    //supportActorMech.PlaceFarAwayFromMap();
+                    var underMap = supportActorVehicle.CurrentPosition;
+                    underMap.y = -1000f;
+                    supportActorVehicle.TeleportActor(underMap);
+                    combat.ItemRegistry.AddItem(supportActorVehicle);
+                    combat.RebuildAllLists();
+                    EncounterLayerParent encounterLayerParent = combat.EncounterLayerData.gameObject.GetComponentInParent<EncounterLayerParent>();
+                    DropPodUtils.DropPodSpawner dropSpawner = encounterLayerParent.gameObject.GetComponent<DropPodUtils.DropPodSpawner>();
+                    if (dropSpawner == null) { dropSpawner = encounterLayerParent.gameObject.AddComponent<DropPodUtils.DropPodSpawner>(); }
+
+                    dropSpawner.Unit = supportActorVehicle;
+                    dropSpawner.Combat = combat;
+                    dropSpawner.Parent = UnityGameInstance.BattleTechGame.Combat.EncounterLayerData
+                        .GetComponentInParent<EncounterLayerParent>();
+                    dropSpawner.DropPodPosition = positionA;
+                    dropSpawner.DropPodRotation = quaternion;
+
+                    ModInit.modLog?.Trace?.Write($"DropPodAnim location {positionA} is also {dropSpawner.DropPodPosition}");
+                    ModInit.modLog?.Trace?.Write($"Is dropAnim null fuckin somehow? {dropSpawner == null}");
+                    dropSpawner.DropPodVfxPrefab = dropSpawner.Parent.DropPodVfxPrefab;
+                    dropSpawner.DropPodLandedPrefab = dropSpawner.Parent.dropPodLandedPrefab;
+                    dropSpawner.LoadDropPodPrefabs(dropSpawner.DropPodVfxPrefab, dropSpawner.DropPodLandedPrefab);
+                    ModInit.modLog?.Trace?.Write($"loaded prefabs success");
+                    dropSpawner.StartCoroutine(dropSpawner.StartDropPodAnimation(0f));
+                    ModInit.modLog?.Trace?.Write($"started drop pod anim");
+
+
+                    //supportActorMech.OnPlayerVisibilityChanged(VisibilityLevel.LOSFull);
+
+                    //Utils.DeployEvasion(supportActorVehicle);
+                    ///////////////
+
+                    if (team.IsLocalPlayer && (ModInit.modSettings.commandUseCostsMulti > 0 ||
+                                               __instance.Def.getAbilityDefExtension().CBillCost > 0))
+                    {
+                        var unitName = "";
+                        var unitCost = 0;
+                        var unitID = "";
+
+                        unitName = supportActorVehicleDef.Description.UIName;
+                        unitID = supportActorVehicleDef.Description.Id;
+                        unitCost = supportActorVehicleDef.Chassis.Description.Cost;
+
+                        if (ModState.CommandUses.All(x => x.UnitID != actorResource))
+                        {
+                            var commandUse =
+                                new CmdUseInfo(unitID, __instance.Def.Description.Name, unitName, unitCost,
+                                    __instance.Def.getAbilityDefExtension().CBillCost);
+
+                            ModState.CommandUses.Add(commandUse);
+                            ModInit.modLog?.Info?.Write(
+                                $"Added usage cost for {commandUse.CommandName} - {commandUse.UnitName}. UnitUseCost (unadjusted): {unitCost}. Ability Use Cost: {__instance.Def.getAbilityDefExtension().CBillCost}");
+                        }
+                        else
+                        {
+                            var cmdUse = ModState.CommandUses.FirstOrDefault(x => x.UnitID == actorResource);
+                            if (cmdUse == null)
+                            {
+                                ModInit.modLog?.Info?.Write($"ERROR: cmdUseInfo was null");
+                            }
+                            else
+                            {
+                                cmdUse.UseCount += 1;
+                                ModInit.modLog?.Info?.Write(
+                                    $"Added usage cost for {cmdUse.CommandName} - {cmdUse.UnitName}. UnitUseCost (unadjusted): {unitCost}. Ability Use Cost: {__instance.Def.getAbilityDefExtension().CBillCost}. Now used {cmdUse.UseCount} times.");
+                            }
+                        }
+                    }
+                }
+#endif
+            else
+            {
+                ModInit.modLog?.Info?.Write($"[ActivateSpawnTurretFromActor] Attempting to spawn {actorResource} as turret.");
+                //var spawnTurretMethod = Traverse.Create(__instance).Method("SpawnTurret", new object[] { teamSelection, actorResource, positionA, quaternion });
+                var turretActor = __instance.SpawnTurret(teamSelection, actorResource, positionA, quaternion);//spawnTurretMethod.GetValue<AbstractActor>());
+
+                teamSelection.AddUnit(turretActor);
+                turretActor.AddToTeam(teamSelection);
+
+                turretActor.AddToLance(cmdLance);
+                cmdLance.AddUnitGUID(turretActor.GUID);
+                turretActor.SetBehaviorTree(BehaviorTreeIDEnum.CoreAITree);
+                //turretActor.BehaviorTree = BehaviorTreeFactory.MakeBehaviorTree(__instance.Combat.BattleTechGame, turretActor, BehaviorTreeIDEnum.CoreAITree);
+
+                turretActor.OnPositionUpdate(positionA, quaternion, -1, true, null, false);
+                turretActor.DynamicUnitRole = UnitRole.Turret;
+
+                UnitSpawnedMessage message = new UnitSpawnedMessage("FROM_ABILITY", turretActor.GUID);
+
+                __instance.Combat.MessageCenter.PublishMessage(message);
+                //turretActor.OnPlayerVisibilityChanged(VisibilityLevel.LOSFull);
+
+                //supportActorMech.PlaceFarAwayFromMap();
+                var underMap = turretActor.CurrentPosition;
+                underMap.y = -1000f;
+                turretActor.TeleportActor(underMap);
+                //combat.ItemRegistry.AddItem(turretActor);
+                combat.RebuildAllLists();
+                EncounterLayerParent encounterLayerParent = combat.EncounterLayerData.gameObject.GetComponentInParent<EncounterLayerParent>();
+                DropPodUtils.DropPodSpawner dropSpawner = encounterLayerParent.gameObject.GetComponent<DropPodUtils.DropPodSpawner>();
+                if (dropSpawner == null) { dropSpawner = encounterLayerParent.gameObject.AddComponent<DropPodUtils.DropPodSpawner>(); }
+
+                dropSpawner.Unit = turretActor;
+                dropSpawner.Combat = combat;
+                dropSpawner.Parent = UnityGameInstance.BattleTechGame.Combat.EncounterLayerData
+                    .GetComponentInParent<EncounterLayerParent>();
+                dropSpawner.DropPodPosition = positionA;
+                dropSpawner.DropPodRotation = quaternion;
+
+                ModInit.modLog?.Trace?.Write($"[ActivateSpawnTurretFromActor] DropPodAnim location {positionA} is also {dropSpawner.DropPodPosition}");
+                ModInit.modLog?.Trace?.Write($"[ActivateSpawnTurretFromActor] Is dropAnim null fuckin somehow? {dropSpawner == null}");
+                dropSpawner.DropPodVfxPrefab = dropSpawner.Parent.DropPodVfxPrefab;
+                dropSpawner.DropPodLandedPrefab = dropSpawner.Parent.dropPodLandedPrefab;
+                dropSpawner.LoadDropPodPrefabs(dropSpawner.DropPodVfxPrefab, dropSpawner.DropPodLandedPrefab);
+                ModInit.modLog?.Trace?.Write($"[ActivateSpawnTurretFromActor] loaded prefabs success");
+                dropSpawner.StartCoroutine(dropSpawner.StartDropPodAnimation(0f));
+                ModInit.modLog?.Trace?.Write($"[ActivateSpawnTurretFromActor] started drop pod anim");
+
+                ///////////////
+
+                if (team.IsLocalPlayer && (ModInit.modSettings.commandUseCostsMulti > 0 ||
+                                           __instance.Def.getAbilityDefExtension().CBillCost > 0))
+                {
+                    var unitName = "";
+                    var unitCost = 0;
+                    var unitID = "";
+
+                    dm.TurretDefs.TryGet(actorResource, out var turretDef);
+                    turretDef.Refresh();
+                    unitName = turretDef.Description.UIName;
+                    unitID = turretDef.Description.Id;
+                    unitCost = turretDef.Chassis.Description.Cost;
+
+
+                    if (ModState.CommandUses.All(x => x.UnitID != actorResource))
+                    {
+                        var commandUse =
+                            new CmdUseInfo(unitID, __instance.Def.Description.Name, unitName, unitCost,
+                                __instance.Def.getAbilityDefExtension().CBillCost);
+
+                        ModState.CommandUses.Add(commandUse);
+                        ModInit.modLog?.Info?.Write(
+                            $"[ActivateSpawnTurretFromActor] Added usage cost for {commandUse.CommandName} - {commandUse.UnitName}. UnitUseCost (unadjusted): {unitCost}. Ability Use Cost: {__instance.Def.getAbilityDefExtension().CBillCost}");
+                    }
+                    else
+                    {
+                        var cmdUse = ModState.CommandUses.FirstOrDefault(x => x.UnitID == actorResource);
+                        if (cmdUse == null)
+                        {
+                            ModInit.modLog?.Info?.Write($"ERROR: cmdUseInfo was null");
+                        }
+                        else
+                        {
+                            cmdUse.UseCount += 1;
+                            ModInit.modLog?.Info?.Write(
+                                $"[ActivateSpawnTurretFromActor] Added usage cost for {cmdUse.CommandName} - {cmdUse.UnitName}. UnitUseCost (unadjusted): {unitCost}. Ability Use Cost: {__instance.Def.getAbilityDefExtension().CBillCost}. Now used {cmdUse.UseCount} times.");
+                        }
+                    }
+                }
+            }
+            return;
+        }
+
+
+
+        public static void ActivateStrafeFromActor(this Ability __instance, AbstractActor creator, Team team, Vector3 positionA, Vector3 positionB, float radius)
+        {
+            if (__instance.Combat.ActiveContract.ContractTypeValue.IsSkirmish) return;
+            ModInit.modLog?.Info?.Write($"Running Ability.ActivateStrafe");
+            var dm = __instance.Combat.DataManager;
+            var sim = UnityGameInstance.BattleTechGame.Simulation;
+            var pilotID = "pilot_sim_starter_dekker";
+            //var actorGUID = __instance.parentComponent.GUID.Substring("Abilifier_ActorLink-".Length);
+            var quid = "";
+            if (__instance?.parentComponent?.parent?.GUID != null)
+            {
+                ModInit.modLog?.Info?.Write($"[ActivateStrafeFromActor] using {__instance.parentComponent.parent.GUID} from component parent");
+                quid = __instance.Generate2PtCMDQuasiGUID(__instance.parentComponent.parent.GUID, positionA, positionB);
+
+            }
+            else if (__instance?.parentComponent?.GUID != null)
+            {
+                var quidFromAbilifier = __instance.parentComponent.GUID.Substring(20);
+                ModInit.modLog?.Info?.Write($"[ActivateStrafeFromActor] using {__instance.parentComponent.GUID} from abilifier component guid; processed down to {quidFromAbilifier}");
+                quid = __instance.Generate2PtCMDQuasiGUID(quidFromAbilifier, positionA, positionB);
+            }
+
+            if (string.IsNullOrEmpty(quid))
+            {
+                quid = __instance.Generate2PtCMDQuasiGUID(creator.GUID, positionA, positionB);
+                ModInit.modLog?.Info?.Write($"[ActivateStrafeFromActor] using creator GUID {quid}");
+            }
+
+            ModInit.modLog?.Info?.Write($"[ActivateStrafeFromActor] Trying to find params with key {quid}");
+            if (!ModState.StoredCmdParams.ContainsKey(quid))
+            {
+                ModInit.modLog?.Info?.Write($"[ActivateStrafeFromActor] No strafe params stored, wtf");
+                return;
+            }
+
+            var strafeParams = ModState.StoredCmdParams[quid];
+            var supportHeraldryDef = Utils.SwapHeraldryColors(team.HeraldryDef, dm);
+
+            if (!string.IsNullOrEmpty(strafeParams.PilotOverride))
+            {
+                //pilotID = ModState.PilotOverride;
+                pilotID = strafeParams.PilotOverride;
+            }
+
+            else if (!string.IsNullOrEmpty(__instance.Def.getAbilityDefExtension().CMDPilotOverride))
+            {
+                pilotID = __instance.Def.getAbilityDefExtension().CMDPilotOverride;
+            }
+
+            //if (__instance.Combat.Teams.All(x => x.GUID != "61612bb3-abf9-4586-952a-0559fa9dcd75"))
+            //{
+            //Utils.CreateOrUpdateNeutralTeam();
+            Team supportTeam;
+            if (team.IsLocalPlayer)
+            {
+                supportTeam = team.SupportTeam;
+            }
+            else
+            {
+                supportTeam = Utils.FetchAISupportTeam(team); //need to add to Phase Thingies or some shit, cos it breaks
+            }
+
+            //}
+
+            //var supportTeam = __instance.Combat.Teams.FirstOrDefault(x => x.GUID == "61612bb3-abf9-4586-952a-0559fa9dcd75");
+
+            ModInit.modLog?.Info?.Write($"[ActivateStrafeFromActor] Team neutralTeam = {supportTeam?.DisplayName}");
+            var cmdLance = Utils.CreateOrFetchCMDLance(supportTeam);
+            var actorResource = __instance.Def.ActorResource;
+            var strafeWaves = ModInit.modSettings.strafeWaves;
+            if (strafeParams.StrafeWaves > 0)
+            {
+                //strafeWaves = ModState.StrafeWaves;
+                strafeWaves = strafeParams.StrafeWaves;
+            }
+            if (!string.IsNullOrEmpty(__instance.Def?.ActorResource))
+            {
+                if (!string.IsNullOrEmpty(strafeParams.ActorResource))
+                {
+                    actorResource = strafeParams.ActorResource;
+                    //ModState.PopupActorResource = "";
+                }
+
+                ModInit.modLog?.Info?.Write($"[ActivateStrafeFromActor]Pilot should be {pilotID}");
+                if (ModState.DeploymentAssetsStats.Any(x => x.ID == actorResource) && team.IsLocalPlayer)
+                {
+                    var assetStatInfo = ModState.DeploymentAssetsStats.FirstOrDefault(x => x.ID == actorResource);
+                    if (assetStatInfo != null)
+                    {
+                        assetStatInfo.contractUses -= 1;
+                        if (assetStatInfo.consumeOnUse)
+                        {
+                            sim?.CompanyStats.ModifyStat("StratOps", -1, assetStatInfo.stat,
+                                StatCollection.StatOperation.Int_Subtract, 1);
+                        }
+                    }
+
+                    ModInit.modLog?.Info?.Write($"[ActivateStrafeFromActor] Decrementing count of {actorResource} in deploymentAssetsDict");
+                }
+
+                var parentSequenceID = Guid.NewGuid().ToString();
+
+                LoadRequest loadRequest = dm.CreateLoadRequest();
+                loadRequest.AddBlindLoadRequest(BattleTechResourceType.MechDef, actorResource);
+                ModInit.modLog?.Info?.Write($"[ActivateStrafeFromActor] Added loadrequest for MechDef: {actorResource}");
+                loadRequest.AddBlindLoadRequest(BattleTechResourceType.PilotDef, pilotID);
+                ModInit.modLog?.Info?.Write($"[ActivateStrafeFromActor] Added loadrequest for PilotDef: {pilotID}");
+                loadRequest.ProcessRequests(1000U);
+                dm.PilotDefs.TryGet(pilotID, out var supportPilotDef);
+                if (supportPilotDef == null)
+                {
+                    ModInit.modLog?.Info?.Write($"[ERROR] [ActivateStrafeFromActor] Unable to fetch pilotdef from DataManager. Shits gon broke.");
+                }
+
+                var newWave = new PendingStrafeWave(strafeWaves - 1, __instance, team, positionA,
+                    positionB, radius, actorResource, supportTeam, cmdLance, supportPilotDef, supportHeraldryDef,
+                    dm);
+                ModState.PendingStrafeWaves.Add(parentSequenceID, newWave);
+                Utils.InitiateStrafe(parentSequenceID, newWave);
+                ModInit.modLog?.Info?.Write($"[ActivateStrafeFromActor] First time initializing strafe with GUID {parentSequenceID}");
+                if (__instance.Def.IntParam1 > 0)
+                {
+                    Utils.SpawnFlares(__instance, positionA, positionB, ModInit.modSettings.flareResourceID,
+                        __instance.Def.IntParam1, Math.Max(__instance.Def.ActivationETA * strafeWaves, strafeWaves), team.IsLocalPlayer); // make smoke last for all strafe waves because babies
+                }
+
+                ModState.StoredCmdParams.Remove(quid);
+            }
+            return;
+        }
+
+
+
+
+
         public static bool IsComponentPlayerControllable(this TagSet tagset, out bool forced)
         {
             if (tagset.Any(x => x == "StratOps_player_control_enable"))
