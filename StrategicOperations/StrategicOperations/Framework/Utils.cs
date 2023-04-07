@@ -104,7 +104,7 @@ namespace StrategicOperations.Framework
                 ModInit.modLog?.Info?.Write(
                     $"[ActivateSpawnTurretFromActor] Deferred Spawner = null, creating delegate and returning false. Delegate should spawn {actorResource}");
 
-                void DeferredInvokeSpawn() => __instance.ActivateSpawnTurret(team, positionA, positionB);//Utils._activateSpawnTurretMethod.Invoke(__instance, new object[] { team, positionA, positionB });
+                void DeferredInvokeSpawn() => __instance.ActivateSpawnTurretFromActor(creator, team, positionA, positionB);//Utils._activateSpawnTurretMethod.Invoke(__instance, new object[] { team, positionA, positionB });
 
                 var kvp = new KeyValuePair<string, Action>(instanceGUID, DeferredInvokeSpawn);
                 ModState.DeferredInvokeSpawns.Add(kvp);
