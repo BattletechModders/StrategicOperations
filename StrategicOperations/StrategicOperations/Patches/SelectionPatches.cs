@@ -1,17 +1,12 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using Abilifier.Patches;
 using BattleTech;
 using BattleTech.Rendering;
 using BattleTech.UI;
-using CustomAmmoCategoriesPatches;
 using CustomUnits;
-using Harmony;
 using HBS;
-using HBS.Pooling;
 using StrategicOperations.Framework;
 using UnityEngine;
 

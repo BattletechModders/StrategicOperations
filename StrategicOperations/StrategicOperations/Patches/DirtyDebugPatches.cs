@@ -1,19 +1,11 @@
 ﻿using System;
-using System.CodeDom;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
-using System.Reflection.Emit;
-using System.Text;
-using System.Threading.Tasks;
 using BattleTech;
-using CustAmmoCategories;
-using CustomAmmoCategoriesPatches;
 using FogOfWar;
-using Harmony;
 using HBS;
 using UnityEngine;
-using UnityEngine.PostProcessing;
 using ArmorLocation = BattleTech.ArmorLocation;
 
 namespace StrategicOperations.Patches
@@ -69,8 +61,9 @@ namespace StrategicOperations.Patches
         [HarmonyPatch(typeof(MultiSequence), "RevealRadius", new Type[] {typeof(Vector3), typeof(float), typeof(string)})]
         public static class MultiSequence_RevealRadius_GrossPatchReplacer
         {
-            public static bool Prefix(MultiSequence __instance, Vector3 focalPosition, float revealRadius, string parentGUID)
+            public static void Prefix(ref bool __runOriginal, MultiSequence __instance, Vector3 focalPosition, float revealRadius, string parentGUID)
             {
+                if (!__runOriginal) return;
                 if (revealRadius != 0f)
                 {
                     var combat = UnityGameInstance.BattleTechGame.Combat;
@@ -94,7 +87,11 @@ namespace StrategicOperations.Patches
                     
                     //LazySingletonBehavior<FogOfWarView>.Instance?.FowSystem?.AddRevealatronViewer(fogOfWarRevealatron);
                     var fowSystem = LazySingletonBehavior<FogOfWarView>.Instance?.FowSystem;
-                    if (fowSystem == null) return true;
+                    if (fowSystem == null)
+                    {
+                        __runOriginal = true;
+                        return;
+                    }
                     fowSystem.AddRevealatronViewer(fogOfWarRevealatron);
                     List <AbstractActor> GetAllLivingActors = combat.GetAllLivingActors();
                     //__instance.ClearShownList();
@@ -131,7 +128,8 @@ namespace StrategicOperations.Patches
                         }
                     }
                 }
-                return false;
+                __runOriginal = false;
+                return;
             }
         }
 

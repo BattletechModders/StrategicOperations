@@ -2,10 +2,7 @@
 using BattleTech;
 using BattleTech.Framework;
 using BattleTech.UI;
-using Gaia;
-using Harmony;
 using StrategicOperations.Framework;
-using Utils = StrategicOperations.Framework.Utils;
 
 namespace StrategicOperations.Patches
 {

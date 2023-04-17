@@ -4,12 +4,9 @@ using System.Linq;
 using BattleTech;
 using BattleTech.UI;
 using CustAmmoCategories;
-using CustAmmoCategoriesPatches;
 using CustomAmmoCategoriesPatches;
-using Harmony;
 using HBS.Math;
 using HBS.Util;
-using IRBTModUtils;
 using UnityEngine;
 
 namespace StrategicOperations.Framework

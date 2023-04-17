@@ -2,6 +2,8 @@
 
 **Depends On Abilifier v1.1.0.2 or higher!** 
 
+**Versions 3.1.0.0 and higher requires modtek v3 or higher**
+
 This mod enables, fixes, and expands the unused vanilla Command Abilities. There are two main "types" of abilities, Strafes and Spawns.
 
 settings in the mod.json:

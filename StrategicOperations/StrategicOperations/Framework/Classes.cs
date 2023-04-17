@@ -4,7 +4,6 @@ using System.Linq;
 using Abilifier.Patches;
 using BattleTech;
 using BattleTech.Data;
-using BattleTech.UI;
 using CustomComponents;
 using CustomUnits;
 using HBS.Collections;

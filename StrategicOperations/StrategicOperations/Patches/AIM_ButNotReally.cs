@@ -1,15 +1,8 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using BattleTech;
-using BattleTech.UI;
 using CustAmmoCategories;
 using CustomUnits;
-using Harmony;
 using Localize;
-using UnityEngine;
 
 namespace StrategicOperations.Patches
 {
@@ -67,12 +60,14 @@ namespace StrategicOperations.Patches
         {
             static bool Prepare() => ModInit.modSettings.ShowAmmoInVehicleTooltips;
             
-            public static bool Prefix(CombatHUDFakeVehicleArmorHover __instance, Mech vehicle, ChassisLocations location)
+            public static void Prefix(ref bool __runOriginal, CombatHUDFakeVehicleArmorHover __instance, Mech vehicle, ChassisLocations location)
             {
+                if (!__runOriginal) return;
                 if (!ModInit.modSettings.EnforceIFFForAmmoTooltips || (ModInit.modSettings.EnforceIFFForAmmoTooltips &&
                     vehicle.team.IsFriendly(vehicle.Combat.LocalPlayerTeam)))
                 {
-                    var tooltip = Traverse.Create(__instance).Property("ToolTip").GetValue<CombatHUDTooltipHoverElement>();
+                    //var tooltip = Traverse.Create(__instance).Property("ToolTip").GetValue<CombatHUDTooltipHoverElement>();
+                    var tooltip = __instance.ToolTip;
                     tooltip.BuffStrings.Clear();
                     tooltip.DebuffStrings.Clear();
                     tooltip.BasicString = new Text(Vehicle.GetLongChassisLocation(location.toVehicleLocation()),
@@ -128,9 +123,11 @@ namespace StrategicOperations.Patches
                             }
                         }
                     }
-                    return false;
+                    __runOriginal = false;
+                    return;
                 }
-                return true;
+                __runOriginal = true;
+                return;
             }
         }
     }

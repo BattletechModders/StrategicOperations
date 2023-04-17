@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Security.Cryptography;
 using Abilifier.Patches;
 using BattleTech;
 using BattleTech.Data;
@@ -10,15 +9,12 @@ using BattleTech.UI;
 using CustomActivatableEquipment;
 using CustomComponents;
 using CustomUnits;
-using Harmony;
 using HBS;
-using HBS.Collections;
 using IRTweaks.Modules.Combat;
 using Localize;
 using StrategicOperations.Framework;
 using UnityEngine;
 using static StrategicOperations.Framework.Classes;
-using Random = System.Random;
 
 namespace StrategicOperations.Patches
 {
@@ -28,13 +24,15 @@ namespace StrategicOperations.Patches
         [HarmonyPriority(Priority.First)]
         public static class MechStartupInvocation_Invoke
         {
-            public static bool Prefix(MechStartupInvocation __instance, CombatGameState combatGameState)
+            public static void Prefix(ref bool __runOriginal, MechStartupInvocation __instance, CombatGameState combatGameState)
             {
+                if (!__runOriginal) return;
                 Mech mech = combatGameState.FindActorByGUID(__instance.MechGUID) as Mech;
                 if (mech == null)
                 {
                     //InvocationMessage.logger.LogError("MechStartupInvocation.Invoke failed! Unable to Mech!");
-                    return false;
+                    __runOriginal = false;
+                    return;
                 }
 
                 if (ModState.ResupplyShutdownPhases.ContainsKey(mech.GUID))
@@ -53,10 +51,11 @@ namespace StrategicOperations.Patches
                         new InvocationStackSequenceCreated(doneWithActorSequence, __instance);
                     combatGameState.MessageCenter.PublishMessage(message);
                     AddSequenceToStackMessage.Publish(combatGameState.MessageCenter, doneWithActorSequence);
-
-                    return false;
+                    __runOriginal = false;
+                    return;
                 }
-                return true;
+                __runOriginal = true;
+                return;
             }
         }
 
@@ -354,21 +353,41 @@ namespace StrategicOperations.Patches
         [HarmonyPatch(typeof(CustomMechRepresentation), "GameRepresentation_Update")]
         public static class CustomMechRepresentation_GameRepresentation_Update
         {
-            public static bool Prefix(CustomMechRepresentation __instance)
+            public static void Prefix(ref bool __runOriginal, CustomMechRepresentation __instance)
             {
-                if (__instance.__parentActor == null) return true;
+                if (!__runOriginal) return;
+                if (__instance.__parentActor == null)
+                {
+                    __runOriginal = true;
+                    return;
+                }
                 var combat = UnityGameInstance.BattleTechGame.Combat;
-                if (combat == null) return true;
-                if (combat.ActiveContract.ContractTypeValue.IsSkirmish) return true;
+                if (combat == null)
+                {
+                    __runOriginal = true;
+                    return;
+                }
+                if (combat.ActiveContract.ContractTypeValue.IsSkirmish)
+                {
+                    __runOriginal = true;
+                    return;
+                }
                 var registry = combat.ItemRegistry;
 
                 if (__instance.__parentActor?.spawnerGUID == null)
                 {
                     //ModInit.modLog?.Info?.Write($"Couldn't find UnitSpawnPointGameLogic for {____parentActor?.DisplayName}. Should be CMD Ability actor; skipping safety teleport!");
-                    return false;
+                    __runOriginal = false;
+                    return;
                 }
 
-                return registry.GetItemByGUID<UnitSpawnPointGameLogic>(__instance.__parentActor?.spawnerGUID) != null;
+                if (registry.GetItemByGUID<UnitSpawnPointGameLogic>(__instance.__parentActor?.spawnerGUID) != null)
+                {
+                    __runOriginal = true;
+                    return;
+                }
+                __runOriginal = false;
+                return;
                 //ModInit.modLog?.Info?.Write($"Couldn't find UnitSpawnPointGameLogic for {____parentActor?.DisplayName}. Should be CMD Ability actor; skipping safety teleport!");
             }
         }
@@ -376,21 +395,43 @@ namespace StrategicOperations.Patches
         [HarmonyPatch(typeof(GameRepresentation), "Update")]
         public static class GameRepresentation_Update
         {
-            public static bool Prefix(GameRepresentation __instance)
+            public static void Prefix(ref bool __runOriginal, GameRepresentation __instance)
             {
-                if (__instance._parentActor == null) return true;
+                if (!__runOriginal) return;
+                if (__instance._parentActor == null)
+                {
+                    __runOriginal = true;
+                    return;
+                }
                 var combat = UnityGameInstance.BattleTechGame.Combat;
-                if (combat == null) return true;
-                if (combat.ActiveContract.ContractTypeValue.IsSkirmish) return true;
+                if (combat == null)
+                {
+                    __runOriginal = true;
+                    return;
+                }
+
+                if (combat.ActiveContract.ContractTypeValue.IsSkirmish)
+                {
+                    __runOriginal = true;
+                    return;
+                }
                 var registry = combat.ItemRegistry;
 
                 if (__instance._parentActor?.spawnerGUID == null)
                 {
                     //ModInit.modLog?.Info?.Write($"Couldn't find UnitSpawnPointGameLogic for {____parentActor?.DisplayName}. Should be CMD Ability actor; skipping safety teleport!");
-                    return false;
+                    __runOriginal = false;
+                    return;
                 }
 
-                return registry.GetItemByGUID<UnitSpawnPointGameLogic>(__instance._parentActor?.spawnerGUID) != null;
+                if (registry.GetItemByGUID<UnitSpawnPointGameLogic>(__instance._parentActor?.spawnerGUID) != null)
+                {
+                    __runOriginal = true;
+                    return;
+                }
+                __runOriginal = false;
+                return;
+                //return registry.GetItemByGUID<UnitSpawnPointGameLogic>(__instance._parentActor?.spawnerGUID) != null;
                 //ModInit.modLog?.Info?.Write($"Couldn't find UnitSpawnPointGameLogic for {____parentActor?.DisplayName}. Should be CMD Ability actor; skipping safety teleport!");
             }
 
@@ -515,15 +556,21 @@ namespace StrategicOperations.Patches
         [HarmonyPatch(typeof(Team), "ActivateAbility")]
         public static class Team_ActivateAbility
         {
-            public static bool Prefix(Team __instance, AbilityMessage msg)
+            public static void Prefix(ref bool __runOriginal, Team __instance, AbilityMessage msg)
             {
-                if (__instance.Combat.ActiveContract.ContractTypeValue.IsSkirmish) return true;
+                if (!__runOriginal) return;
+                if (__instance.Combat.ActiveContract.ContractTypeValue.IsSkirmish)
+                {
+                    __runOriginal = true;
+                    return;
+                }
                 Ability ability = ModState.CommandAbilities.Find((Ability x) => x.Def.Id == msg.abilityID);
                 if (ability == null)
                 {
                     ModInit.modLog?.Info?.Write(
                         $"Tried to use a CommandAbility the team doesnt have?");
-                    return false;
+                    __runOriginal = false;
+                    return;
                 }
 
                 switch (ability.Def.Targeting)
@@ -538,7 +585,8 @@ namespace StrategicOperations.Patches
                             {
                                 ModInit.modLog?.Info?.Write(
                                     $"Team.ActivateAbility couldn't find target with guid {msg.affectedObjectGuid}");
-                                return false;
+                                __runOriginal = false;
+                                return;
                             }
 
                             ability.Activate(__instance, combatant);
@@ -575,11 +623,13 @@ namespace StrategicOperations.Patches
 
                 ModInit.modLog?.Info?.Write(
                     $"Team.ActivateAbility needs to add handling for targetingtype {ability.Def.Targeting}");
-                return false;
+                __runOriginal = false;
+                return;
             publishAbilityConfirmed:
                 __instance.Combat.MessageCenter.PublishMessage(new AbilityConfirmedMessage(msg.actingObjectGuid,
                     msg.affectedObjectGuid, msg.abilityID, msg.positionA, msg.positionB));
-                return false;
+                __runOriginal = false;
+                return;
             }
         }
 
@@ -587,18 +637,21 @@ namespace StrategicOperations.Patches
             new Type[] { typeof(MessageCenterMessage) })]
         public static class AbstractActor_OnAbilityInvoked
         {
-            public static bool Prefix(AbstractActor __instance, MessageCenterMessage message)
+            public static void Prefix(ref bool __runOriginal, AbstractActor __instance, MessageCenterMessage message)
             {
+                if (!__runOriginal) return;
                 AbilityMessage msg = message as AbilityMessage;
                 if (msg.actingObjectGuid == __instance.GUID && msg.positionA != Vector3.zero && msg.positionB != Vector3.zero)
                 {
                     if (__instance.GetPilot().ActiveAbilities.Find((Ability x) => x.Def.Id == msg.abilityID) != null)
                     {
                         __instance.ActivateAbility(__instance, msg.abilityID, msg.affectedObjectGuid, msg.positionA, msg.positionB);
-                        return false;
+                        __runOriginal = false;
+                        return;
                     }
                 }
-                return true;
+                __runOriginal = true;
+                return;
             }
         }
 
@@ -606,10 +659,15 @@ namespace StrategicOperations.Patches
             new Type[] { typeof(AbstractActor), typeof(string), typeof(string), typeof(Vector3), typeof(Vector3) })]
         public static class AbstractActor_ActivateAbility
         {
-            public static bool Prefix(AbstractActor __instance, AbstractActor pilotedActor, string abilityName,
+            public static void Prefix(ref bool __runOriginal, AbstractActor __instance, AbstractActor pilotedActor, string abilityName,
                 string targetGUID, Vector3 posA, Vector3 posB)
             {
-                if (__instance.Combat.ActiveContract.ContractTypeValue.IsSkirmish) return true;
+                if (!__runOriginal) return;
+                if (__instance.Combat.ActiveContract.ContractTypeValue.IsSkirmish)
+                {
+                    __runOriginal = true;
+                    return;
+                }
                 Ability ability = __instance.ComponentAbilities.Find((Ability x) => x.Def.Id == abilityName);
                 if (ability == null)
                 {
@@ -619,30 +677,42 @@ namespace StrategicOperations.Patches
                 if (ability == null)
                 {
                     ModInit.modLog?.Trace?.Write($"[AbstractActor_ActivateAbility] - could not find ability {abilityName} in ActiveAbilities.");
-                    return true;
+                    __runOriginal = true;
+                    return;
                 }
                 if (ability.Def.Targeting == AbilityDef.TargetingType.CommandSpawnPosition)
                 {
                     ModInit.modLog?.Trace?.Write($"[AbstractActor_ActivateAbility] - activating turret spawny.");
                     ability.Activate(__instance, posA, posB); // added to try and unfuck strafe as regular ability
-                    return false;
+                    __runOriginal = false;
+                    return;
                 }
                 if (ability.Def.Targeting == AbilityDef.TargetingType.CommandTargetTwoPoints)
                 {
                     ModInit.modLog?.Trace?.Write($"[AbstractActor_ActivateAbility] - activating strafe.");
                     ability.Activate(__instance, posA, posB);
-                    return false;
+                    __runOriginal = false;
+                    return;
                 }
-                return true;
+                __runOriginal = true;
+                return;
             }
         }
 
         [HarmonyPatch(typeof(AbstractActor), "OnActorDestroyed", new Type[] {typeof(MessageCenterMessage)})]
         public static class AbstractActor_OnActorDestroyed
         {
-            public static bool Prefix(AbstractActor __instance)
+            public static void Prefix(ref bool __runOriginal, AbstractActor __instance)
             {
-                return !__instance.IsAirlifted(); // maybe prevent airlifted units from teleporting if over a building
+                if (!__runOriginal) return;
+                if (!__instance.IsAirlifted())
+                {
+                    __runOriginal = true;
+                    return;
+                }
+                __runOriginal = false;
+                return;
+                //return !__instance.IsAirlifted(); // maybe prevent airlifted units from teleporting if over a building
             }
         }
 
@@ -831,15 +901,21 @@ namespace StrategicOperations.Patches
             new Type[] { typeof(AbstractActor), typeof(Vector3), typeof(Vector3) })]
         public static class Ability_Activate_TwoPoints
         {
-            public static bool Prefix(Ability __instance, AbstractActor creator, Vector3 positionA, Vector3 positionB)
+            public static void Prefix(ref bool __runOriginal, Ability __instance, AbstractActor creator, Vector3 positionA, Vector3 positionB)
             {
+                if (!__runOriginal) return;
                 ModInit.modLog?.Info?.Write($"[Ability.Activate - 2pts] Running Ability.Activate; check if skirmish."); // need to add blocks for self-apply EffectData
-                if (__instance.Combat.ActiveContract.ContractTypeValue.IsSkirmish) return true;
+                if (__instance.Combat.ActiveContract.ContractTypeValue.IsSkirmish)
+                {
+                    __runOriginal = true;
+                    return;
+                }
                 if (!__instance.IsAvailable)
                 {
                     ModInit.modLog?.Info?.Write(
                         $"[Ability.Activate - 2pts] Ability {__instance.Def.Description.Name} was unavailable, continuing to vanilla handling.");
-                    return true;
+                    __runOriginal = true;
+                    return;
                 }
 
                 AbilityDef.SpecialRules specialRules = __instance.Def.specialRules;
@@ -850,10 +926,9 @@ namespace StrategicOperations.Patches
                     popup.AddButton("Confirm", null, true, null);
                     popup.IsNestedPopupWithBuiltInFader().CancelOnEscape().Render();
                     ModInit.modLog?.Info?.Write($"[Ability.Activate - 2pts] Ability {__instance.Def.Description.Name} unavailable due to exclusion settings. Aborting.");
-                    return false;
+                    __runOriginal = false;
+                    return;
                 }
-
-
 
                 // maybe rewrite ActivateStrafe and ActivateSpawnTurret to pass actor?
                 if (specialRules == AbilityDef.SpecialRules.Strafe)
@@ -866,7 +941,8 @@ namespace StrategicOperations.Patches
                         creator.GUID, __instance.Def.Id, positionA, positionB));
                     __instance.ActivateCooldown();
                     __instance.ApplyCreatorEffects(creator);
-                    return false;
+                    __runOriginal = false;
+                    return;
                 }
 
                 else if (specialRules == AbilityDef.SpecialRules.SpawnTurret)
@@ -879,10 +955,11 @@ namespace StrategicOperations.Patches
                         creator.GUID, __instance.Def.Id, positionA, positionB));
                     __instance.ActivateCooldown();
                     __instance.ApplyCreatorEffects(creator);
-                    return false;
+                    __runOriginal = false;
+                    return;
                 }
-
-                return true;
+                __runOriginal = true;
+                return;
             }
         }
 
@@ -892,9 +969,14 @@ namespace StrategicOperations.Patches
         [HarmonyPatch(typeof(Ability), "ActivateStrafe")]
         public static class Ability_ActivateStrafe
         {
-            public static bool Prefix(Ability __instance, Team team, Vector3 positionA, Vector3 positionB, float radius)
+            public static void Prefix(ref bool __runOriginal, Ability __instance, Team team, Vector3 positionA, Vector3 positionB, float radius)
             {
-                if (__instance.Combat.ActiveContract.ContractTypeValue.IsSkirmish) return true;
+                if (!__runOriginal) return;
+                if (__instance.Combat.ActiveContract.ContractTypeValue.IsSkirmish)
+                {
+                    __runOriginal = true;
+                    return;
+                }
                 ModInit.modLog?.Info?.Write($"Running Ability.ActivateStrafe");
                 var dm = __instance.Combat.DataManager;
                 var sim = UnityGameInstance.BattleTechGame.Simulation;
@@ -917,7 +999,8 @@ namespace StrategicOperations.Patches
                 if (!ModState.StoredCmdParams.ContainsKey(quid))
                 {
                     ModInit.modLog?.Info?.Write($"[Ability_ActivateStrafe] No strafe params stored, wtf");
-                    return true;
+                    __runOriginal = true;
+                    return;
                 }
 
                 var strafeParams = ModState.StoredCmdParams[quid];
@@ -1013,16 +1096,22 @@ namespace StrategicOperations.Patches
 
                     ModState.StoredCmdParams.Remove(quid);
                 }
-                return false;
+                __runOriginal = false;
+                return;
             }
         }
 
         [HarmonyPatch(typeof(Ability), "ActivateSpawnTurret")]
         public static class Ability_ActivateSpawnTurret
         {
-            public static bool Prefix(Ability __instance, Team team, Vector3 positionA, Vector3 positionB)
+            public static void Prefix(ref bool __runOriginal, Ability __instance, Team team, Vector3 positionA, Vector3 positionB)
             {
-                if (__instance.Combat.ActiveContract.ContractTypeValue.IsSkirmish) return true;
+                if (!__runOriginal) return;
+                if (__instance.Combat.ActiveContract.ContractTypeValue.IsSkirmish)
+                {
+                    __runOriginal = true;
+                    return;
+                }
                 ModInit.modLog?.Info?.Write($"[Ability_ActivateSpawnTurret] Running Ability.ActivateSpawnTurret");
                 var combat = UnityGameInstance.BattleTechGame.Combat;
                 var dm = combat.DataManager;
@@ -1048,7 +1137,8 @@ namespace StrategicOperations.Patches
                 if (!ModState.StoredCmdParams.ContainsKey(quid))
                 {
                     ModInit.modLog?.Info?.Write($"[Ability_ActivateSpawnTurret] No strafe params stored, wtf");
-                    return true;
+                    __runOriginal = true;
+                    return;
                 }
                 var playerControl = Utils.ShouldPlayerControlSpawn(team, __instance, quid);
                 var teamSelection = playerControl ? team : team.SupportTeam;//.SupportTeam; change to player control?
@@ -1059,7 +1149,8 @@ namespace StrategicOperations.Patches
                 if (!ModState.StoredCmdParams.ContainsKey(quid))
                 {
                     ModInit.modLog?.Info?.Write($"[Ability_ActivateSpawnTurret] No spawn params stored, wtf");
-                    return true;
+                    __runOriginal = true;
+                    return;
                 }
                 if (!string.IsNullOrEmpty(ModState.StoredCmdParams[quid].ActorResource))
                 {
@@ -1099,7 +1190,8 @@ namespace StrategicOperations.Patches
                     //                    var flares = Traverse.Create(__instance).Method("SpawnFlares",
                     //                        new object[] {positionA, positionA, __instance.Def., 1, 1});
                     //                    flares.GetValue();
-                    return false;
+                    __runOriginal = false;
+                    return;
                 }
 
                 if (!string.IsNullOrEmpty(ModState.DeferredActorResource))
@@ -1139,7 +1231,8 @@ namespace StrategicOperations.Patches
                     ModInit.modLog?.Info?.Write($"[Ability_ActivateSpawnTurret] Attempting to spawn {actorResource} as mech."); 
                     var spawner = new Classes.CustomSpawner(team, __instance, combat, actorResource, cmdLance, teamSelection, positionA, quaternion, supportHeraldryDef, pilotID, playerControl);
                     spawner.SpawnBeaconUnitAtLocation();
-                    return false;
+                    __runOriginal = false;
+                    return;
                 }
 
 #if NO_CAC
@@ -1441,7 +1534,8 @@ namespace StrategicOperations.Patches
                     }
                 }
 
-                return false;
+                __runOriginal = false;
+                return;
             }
         }
 
@@ -1449,10 +1543,15 @@ namespace StrategicOperations.Patches
         public static class Ability_SpawnFlares
         {
             static bool Prepare() => false; //disabled
-            private static bool Prefix(Ability __instance, Vector3 positionA, Vector3 positionB, string prefabName,
+            private static void Prefix(ref bool __runOriginal, Ability __instance, Vector3 positionA, Vector3 positionB, string prefabName,
                 int numFlares, int numPhases)
             {
-                if (__instance.Combat.ActiveContract.ContractTypeValue.IsSkirmish) return true;
+                if (!__runOriginal) return;
+                if (__instance.Combat.ActiveContract.ContractTypeValue.IsSkirmish)
+                {
+                    __runOriginal = true;
+                    return;
+                }
                 Vector3 b = (positionB - positionA) / (float)(numFlares - 1);
 
                 Vector3 line = positionB - positionA;
@@ -1500,7 +1599,8 @@ namespace StrategicOperations.Patches
                 TurnEvent tEvent = new TurnEvent(Guid.NewGuid().ToString(), __instance.Combat, numPhases, null,
                     eventSequence, __instance.Def, false);
                 __instance.Combat.TurnDirector.AddTurnEvent(tEvent);
-                return false;
+                __runOriginal = false;
+                return;
             }
         }
 
@@ -1642,15 +1742,24 @@ namespace StrategicOperations.Patches
             new Type[] { typeof(string), typeof(Vector3), typeof(Vector3) })]
         public static class CombatHUDActionButton_ActivateCommandAbility
         {
-            public static bool Prefix(CombatHUDActionButton __instance, string teamGUID,
+            public static void Prefix(ref bool __runOriginal, CombatHUDActionButton __instance, string teamGUID,
                 Vector3 positionA, //prefix to try and make command abilities behave like normal ones
                 Vector3 positionB)
             {
+                if (!__runOriginal) return;
                 var HUD = __instance.HUD;//IRBTModUtils.SharedState.CombatHUD;//Traverse.Create(__instance).Property("HUD").GetValue<CombatHUD>();
                 var theActor = HUD.SelectedActor;
-                if (theActor == null) return true;
+                if (theActor == null)
+                {
+                    __runOriginal = true;
+                    return;
+                }
                 var combat = HUD.Combat;
-                if (combat.ActiveContract.ContractTypeValue.IsSkirmish) return true;
+                if (combat.ActiveContract.ContractTypeValue.IsSkirmish)
+                {
+                    __runOriginal = true;
+                    return;
+                }
                 if (__instance.Ability != null &&
                     __instance.Ability.Def.ActivationTime == AbilityDef.ActivationTiming.CommandAbility &&
                     (__instance.Ability.Def.Targeting == AbilityDef.TargetingType.CommandTargetTwoPoints ||
@@ -1666,8 +1775,8 @@ namespace StrategicOperations.Patches
                     combat.MessageCenter.PublishMessage(messageCenterMessage);
                     __instance.DisableButton();
                 }
-
-                return false;
+                __runOriginal = false;
+                return;
             }
 
             public static void Postfix(CombatHUDActionButton __instance, string teamGUID, Vector3 positionA,
@@ -1711,14 +1820,23 @@ namespace StrategicOperations.Patches
             new Type[] { typeof(string), typeof(Vector3), typeof(Vector3) })]
         public static class CombatHUDEquipmentSlot_ActivateCommandAbility
         {
-            public static bool Prefix(CombatHUDEquipmentSlot __instance, string teamGUID, Vector3 positionA,
+            public static void Prefix(ref bool __runOriginal, CombatHUDEquipmentSlot __instance, string teamGUID, Vector3 positionA,
                 Vector3 positionB)
             {
+                if (!__runOriginal) return;
                 var HUD = __instance.HUD;//IRBTModUtils.SharedState.CombatHUD;// Traverse.Create(__instance).Property("HUD").GetValue<CombatHUD>();
                 var theActor = HUD.SelectedActor;
-                if (theActor == null) return true;
+                if (theActor == null)
+                {
+                    __runOriginal = true;
+                    return;
+                }
                 var combat = HUD.Combat;
-                if (combat.ActiveContract.ContractTypeValue.IsSkirmish) return true;
+                if (combat.ActiveContract.ContractTypeValue.IsSkirmish)
+                {
+                    __runOriginal = true;
+                    return;
+                }
                 if (__instance.Ability != null &&
                     __instance.Ability.Def.ActivationTime == AbilityDef.ActivationTiming.CommandAbility &&
                     (__instance.Ability.Def.Targeting == AbilityDef.TargetingType.CommandTargetTwoPoints ||
@@ -1734,8 +1852,8 @@ namespace StrategicOperations.Patches
                     combat.MessageCenter.PublishMessage(messageCenterMessage);
                     __instance.DisableButton();
                 }
-
-                return false;
+                __runOriginal = false;
+                return;
             }
 
             public static void Postfix(CombatHUDEquipmentSlot __instance, string teamGUID, Vector3 positionA,
@@ -1794,13 +1912,22 @@ namespace StrategicOperations.Patches
         [HarmonyPatch(typeof(SelectionStateCommandSpawnTarget), "ProcessMousePos")]
         public static class SelectionStateCommandSpawnTarget_ProcessMousePos
         {
-            public static bool Prefix(SelectionStateCommandSpawnTarget __instance, Vector3 worldPos)
+            public static void Prefix(ref bool __runOriginal, SelectionStateCommandSpawnTarget __instance, Vector3 worldPos)
             {
-                if (UnityGameInstance.BattleTechGame.Combat.ActiveContract.ContractTypeValue.IsSkirmish) return true;
+                if (!__runOriginal) return;
+                if (UnityGameInstance.BattleTechGame.Combat.ActiveContract.ContractTypeValue.IsSkirmish)
+                {
+                    __runOriginal = true;
+                    return;
+                }
                 CombatSpawningReticle.Instance.ShowReticle();
                 var HUD = __instance.HUD;//IRBTModUtils.SharedState.CombatHUD;//Traverse.Create(__instance).Property("HUD").GetValue<CombatHUD>();
                 var theActor = HUD.SelectedActor;
-                if (theActor == null) return true;
+                if (theActor == null)
+                {
+                    __runOriginal = true;
+                    return;
+                }
                 var distance = Mathf.RoundToInt(Vector3.Distance(theActor.CurrentPosition, worldPos));
                 var maxRange = Mathf.RoundToInt(__instance.FromButton.Ability.Def.IntParam2);
                 //CombatTargetingReticle.Instance.ShowRangeIndicators(theActor.CurrentPosition, 0f, maxRange, true, true);
@@ -1812,11 +1939,13 @@ namespace StrategicOperations.Patches
                     CombatSpawningReticle.Instance.HideReticle();
                     //CombatTargetingReticle.Instance.HideReticle();
                     //                    ModInit.modLog?.Info?.Write($"Cannot spawn turret with coordinates farther than __instance.Ability.Def.IntParam2: {__instance.FromButton.Ability.Def.IntParam2}");
-                    return false;
+                    __runOriginal = false;
+                    return;
                 }
 
                 ModState.OutOfRange = false;
-                return true;
+                __runOriginal = true;
+                return;
             }
         }
 
@@ -1832,16 +1961,25 @@ namespace StrategicOperations.Patches
         [HarmonyPatch(typeof(SelectionStateCommandTargetTwoPoints), "ProcessMousePos")]
         public static class SelectionStateCommandTargetTwoPoints_ProcessMousePos
         {
-            public static bool Prefix(SelectionStateCommandTargetTwoPoints __instance, Vector3 worldPos)
+            public static void Prefix(ref bool __runOriginal, SelectionStateCommandTargetTwoPoints __instance, Vector3 worldPos)
             {
-                if (UnityGameInstance.BattleTechGame.Combat.ActiveContract.ContractTypeValue.IsSkirmish) return true;
+                if (!__runOriginal) return;
+                if (UnityGameInstance.BattleTechGame.Combat.ActiveContract.ContractTypeValue.IsSkirmish)
+                {
+                    __runOriginal = true;
+                    return;
+                }
 
                 var HUD = __instance.HUD;//IRBTModUtils.SharedState.CombatHUD;//Traverse.Create(__instance).Property("HUD").GetValue<CombatHUD>();
                 var positionA = __instance.positionA;//Traverse.Create(__instance).Property("positionA").GetValue<Vector3>();
                 var positionB = __instance.positionB;//Traverse.Create(__instance).Property("positionB").GetValue<Vector3>();
 
                 var theActor = HUD.SelectedActor;
-                if (theActor == null) return true;
+                if (theActor == null)
+                {
+                    __runOriginal = true;
+                    return;
+                }
                 var distance = Mathf.RoundToInt(Vector3.Distance(theActor.CurrentPosition, worldPos));
                 var distanceToA = Mathf.RoundToInt(Vector3.Distance(theActor.CurrentPosition, positionA));
                 var distanceToB = Mathf.RoundToInt(Vector3.Distance(theActor.CurrentPosition, positionB));
@@ -1858,20 +1996,27 @@ namespace StrategicOperations.Patches
                     ModState.OutOfRange = true;
                     CombatTargetingReticle.Instance.HideReticle();
                     //                    ModInit.modLog?.Info?.Write($"Cannot strafe with coordinates farther than __instance.Ability.Def.IntParam2: {__instance.FromButton.Ability.Def.IntParam2}");
-                    return false;
+                    __runOriginal = false;
+                    return;
                 }
 
                 ModState.OutOfRange = false;
-                return true;
+                __runOriginal = true;
+                return;
             }
         }
 
         [HarmonyPatch(typeof(SelectionStateCommandTargetTwoPoints), "ProcessLeftClick")]
         public static class SelectionStateCommandTargetTwoPoints_ProcessLeftClick
         {
-            public static bool Prefix(SelectionStateCommandTargetTwoPoints __instance, Vector3 worldPos, ref bool __result, ref bool __state)
+            public static void Prefix(ref bool __runOriginal, SelectionStateCommandTargetTwoPoints __instance, Vector3 worldPos, ref bool __result, ref bool __state)
             {
-                if (UnityGameInstance.BattleTechGame.Combat.ActiveContract.ContractTypeValue.IsSkirmish) return true;
+                if (!__runOriginal) return;
+                if (UnityGameInstance.BattleTechGame.Combat.ActiveContract.ContractTypeValue.IsSkirmish)
+                {
+                    __runOriginal = true;
+                    return;
+                }
                 var dm = __instance.FromButton.Ability.Combat.DataManager;
                 var hk = Input.GetKey(KeyCode.LeftShift) || Input.GetKey(KeyCode.RightShift);
                 var actorResource = __instance.FromButton.Ability.Def.ActorResource;
@@ -1883,7 +2028,11 @@ namespace StrategicOperations.Patches
 
                 var HUD = __instance.HUD;//IRBTModUtils.SharedState.CombatHUD;//Traverse.Create(__instance).Property("HUD").GetValue<CombatHUD>();
                 var theActor = HUD.SelectedActor;
-                if (theActor == null) return true;
+                if (theActor == null)
+                {
+                    __runOriginal = true;
+                    return;
+                }
                 var distance = Mathf.RoundToInt(Vector3.Distance(theActor.CurrentPosition, worldPos));
                 var maxRange = Mathf.RoundToInt(__instance.FromButton.Ability.Def.IntParam2);
                 __result = true;
@@ -1891,13 +2040,15 @@ namespace StrategicOperations.Patches
                 {
                     __state = true;
                     __result = false;
-                    return false;
+                    __runOriginal = false;
+                    return;
                 }
                 else if (__instance.FromButton.Ability.Def.specialRules == AbilityDef.SpecialRules.SpawnTurret && distance > maxRange && __instance.numPositionsLocked < 1)
                 {
                     __state = true;
                     __result = false;
-                    return false;
+                    __runOriginal = false;
+                    return;
                 }
 
                 if (hk && string.IsNullOrEmpty(ModState.DeferredActorResource) && !ModState.OutOfRange)//will need to set it at as "placeholder" info, but only add on ProcessedPressedButton?
@@ -1939,8 +2090,6 @@ namespace StrategicOperations.Patches
 
                     beacons.Sort((MechComponentRef x, MechComponentRef y) =>
                         string.CompareOrdinal(x.Def.Description.UIName, y.Def.Description.UIName));
-
-
 
                     ModInit.modLog?.Info?.Write("sorted beacons at SSCT2Pts");
 
@@ -2206,10 +2355,11 @@ namespace StrategicOperations.Patches
                     RenderNow:
                     popup.CancelOnEscape();
                     popup.Render();
-
-                    return true;
+                    __runOriginal = true;
+                    return;
                 }
-                return true;
+                __runOriginal = true;
+                return;
             }
 
             public static void Postfix(SelectionStateCommandTargetTwoPoints __instance, Vector3 worldPos,
@@ -2510,15 +2660,21 @@ namespace StrategicOperations.Patches
         public static class CameraControl_ShowActorCam
         {
             static bool Prepare() => false; //disabled. im not fucking with the follow cam anymore, and apparently it causes problems with harmonyx for some goddamn reason?
-            public static bool Prefix(CameraControl __instance, AbstractActor actor, Quaternion rotation,
+            public static void Prefix(ref bool __runOriginal, CameraControl __instance, AbstractActor actor, Quaternion rotation,
                 float duration, ref AttachToActorCameraSequence __result)
             {
+                if (!__runOriginal) return;
                 var combat = UnityGameInstance.BattleTechGame.Combat;
-                if (combat.ActiveContract.ContractTypeValue.IsSkirmish) return true;
+                if (combat.ActiveContract.ContractTypeValue.IsSkirmish)
+                {
+                    __runOriginal = true;
+                    return;
+                }
                 Vector3 offset = new Vector3(0f, 50f, 50f);
                 __result = new AttachToActorCameraSequence(combat, actor.GameRep.transform, offset, rotation, duration,
                     true, false);
-                return false;
+                __runOriginal = false;
+                return;
             }
         }
 
@@ -2596,27 +2752,31 @@ namespace StrategicOperations.Patches
         [HarmonyPatch(typeof(CombatSelectionHandler), "ProcessInput")]
         public static class CombatSelectionHandler_ProcessInput
         {
-            public static bool Prefix(CombatSelectionHandler __instance)
+            public static void Prefix(ref bool __runOriginal, CombatSelectionHandler __instance)
             {
+                if (!__runOriginal) return;
                 if (__instance.SelectedActor != null && __instance.SelectedActor.team != null && __instance.SelectedActor.team.IsLocalPlayer)
                 {
                     var combat = UnityGameInstance.BattleTechGame.Combat;
                     if (!LazySingletonBehavior<UIManager>.Instance.ToggleUINode ||
                         combat.StackManager.TopSequence is ArtilleryObjectiveSequence)
                     {
-                        return false;
+                        __runOriginal = false;
+                        return;
                     }
 
                     if (__instance.CombatInputBlocked)
                     {
-                        return false;
+                        __runOriginal = false;
+                        return;
                     }
 
                     if (!combat.TurnDirector.GameHasBegun)
                     {
                         if (CameraControl.Instance != null && CameraControl.Instance.IsInTutorialMode)
                         {
-                            return true;
+                            __runOriginal = true;
+                            return;
                         }
                     }
 
@@ -2629,7 +2789,8 @@ namespace StrategicOperations.Patches
                             var hud = __instance.HUD;//IRBTModUtils.SharedState.CombatHUD;
                             if (hud.SelectedActor == __instance.SelectedActor)
                             {
-                                var slots = Traverse.Create(CombatHUDEquipmentPanel.Instance).Property("operatinalSlots").GetValue<List<CombatHUDEquipmentSlotEx>>();
+                                //var slots = Traverse.Create(CombatHUDEquipmentPanel.Instance).Property("operatinalSlots").GetValue<List<CombatHUDEquipmentSlotEx>>();
+                                var slots = CombatHUDEquipmentPanel.Instance.operatinalSlots;
                                 var lastActive = new Tuple<int, int>(-1,-1);
                                 var buttonList = new List<CombatHUDActionButton>();
                                 for (var slotIndex = 0; slotIndex < slots.Count; slotIndex++)
@@ -2646,7 +2807,11 @@ namespace StrategicOperations.Patches
                                     }
                                 }
 
-                                if (buttonList.Count <= 0) return false;
+                                if (buttonList.Count <= 0)
+                                {
+                                    __runOriginal = false;
+                                    return;
+                                }
                                 for (var index = 0; index < buttonList.Count; index++)
                                 {
                                     if (buttonList[index].IsActive)
@@ -2655,17 +2820,20 @@ namespace StrategicOperations.Patches
                                         if (buttonList.Count > index)
                                         {
                                             buttonList[index + 1].OnClick();
-                                            return false;
+                                            __runOriginal = false;
+                                            return;
                                         }
                                     }
                                 }
                                 buttonList[0].OnClick();
                             }
-                            return false;
+                            __runOriginal = false;
+                            return;
                         }
                     }
                 }
-                return true;
+                __runOriginal = true;
+                return;
             }
         }
     }

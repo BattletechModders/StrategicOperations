@@ -1,141 +1,124 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
-<Project ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
-  <Import Project="..\packages\BepInEx.AssemblyPublicizer.MSBuild.0.3.0\build\BepInEx.AssemblyPublicizer.MSBuild.props" Condition="Exists('..\packages\BepInEx.AssemblyPublicizer.MSBuild.0.3.0\build\BepInEx.AssemblyPublicizer.MSBuild.props')" />
-  <Import Project="$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props" Condition="Exists('$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props')" />
+﻿<Project Sdk="Microsoft.NET.Sdk" InitialTargets="ValidateBattleTechGameDir">
+  <Target Name="ValidateBattleTechGameDir" Condition="'$(BattleTechGameDir)' == '' Or !Exists('$(BattleTechGameDir)')">
+    <Error Text="BattleTechGameDir variable not set properly" />
+  </Target>
+  <PropertyGroup Condition="'$(StrategicOperationsModPath)' == '' And Exists('$(BattleTechGameDir)\Mods\Core\StrategicOperations')">
+    <!-- RogueTech -->
+    <StrategicOperationsModPath>$(BattleTechGameDir)\Mods\Core\StrategicOperations</StrategicOperationsModPath>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(StrategicOperationsModPath)' == '' And Exists('$(BattleTechGameDir)\Mods\StrategicOperations')">
+    <!-- flat dir -->
+    <StrategicOperationsModPath>$(BattleTechGameDir)\Mods\StrategicOperations</StrategicOperationsModPath>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(StrategicOperationsModPath)' == ''">
+    <!-- sources dir -->
+    <StrategicOperationsModPath>$(MSBuildProjectDirectory)\..</StrategicOperationsModPath>
+  </PropertyGroup>
   <PropertyGroup>
-    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
-    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
-    <ProjectGuid>{143DA379-46DB-4474-B9B2-E8A43EEDDCE2}</ProjectGuid>
     <OutputType>Library</OutputType>
-    <AppDesignerFolder>Properties</AppDesignerFolder>
-    <RootNamespace>StrategicOperations</RootNamespace>
-    <AssemblyName>StrategicOperations</AssemblyName>
-    <TargetFrameworkVersion>v4.7.2</TargetFrameworkVersion>
-    <FileAlignment>512</FileAlignment>
-    <Deterministic>true</Deterministic>
-    <NuGetPackageImportStamp>
-    </NuGetPackageImportStamp>
+    <TargetFramework>net472</TargetFramework>
+    <LangVersion>11</LangVersion>
+    <AssemblySearchPaths>
+      $(ReferencePath);
+      {HintPathFromItem};
+      $(BattleTechGameDir)\BattleTech_Data\Managed\
+    </AssemblySearchPaths>
+    <DisableImplicitFrameworkReferences>true</DisableImplicitFrameworkReferences>
+    <DebugType>none</DebugType>
+    <DebugSymbols>false</DebugSymbols>
+    <Nullable>enable</Nullable>
   </PropertyGroup>
-  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
-    <DebugSymbols>true</DebugSymbols>
-    <DebugType>full</DebugType>
-    <Optimize>false</Optimize>
-    <OutputPath>bin\Debug\</OutputPath>
-    <DefineConstants>DEBUG;TRACE</DefineConstants>
-    <ErrorReport>prompt</ErrorReport>
-    <WarningLevel>4</WarningLevel>
-  </PropertyGroup>
-  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
-    <DebugType>pdbonly</DebugType>
-    <Optimize>true</Optimize>
-    <OutputPath>bin\Release\</OutputPath>
-    <DefineConstants>TRACE</DefineConstants>
-    <ErrorReport>prompt</ErrorReport>
-    <WarningLevel>4</WarningLevel>
-  </PropertyGroup>
+  <Target Name="CopyFilesToGame" AfterTargets="CopyFilesToOutputDirectory">
+    <Copy SourceFiles="$(TargetPath)" DestinationFolder="$(StrategicOperationsModPath)" />
+  </Target>
   <PropertyGroup>
-    <AutoGenerateBindingRedirects>false</AutoGenerateBindingRedirects>
+    <!-- avoids IgnoresAccessChecksToAttribute warnings -->
+    <PublicizerRuntimeStrategies>Unsafe</PublicizerRuntimeStrategies>
+    <AssemblyVersion>3.1.0.0</AssemblyVersion>
+    <FileVersion>3.1.0.0</FileVersion>
   </PropertyGroup>
   <ItemGroup>
-    <PackageReference Include="BepInEx.AssemblyPublicizer.MSBuild" Version="0.3.0" />
-    <Reference Include="0Harmony">
-      <HintPath>$(BattleTechGameDir)\BattleTech_Data\Managed\0Harmony.dll</HintPath>
+    <Compile Remove="Framework\Logger.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Framework\Logger.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="Krafs.Publicizer" Version="2.2.1" />
+    <Publicize Include="Assembly-CSharp" />
+    <Publicize Include="CustomActivatableEquipment" />
+    <Publicize Include="CustomUnits" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="HarmonyX" Version="2.10.1">
+      <PrivateAssets>all</PrivateAssets>
+      <ExcludeAssets>runtime</ExcludeAssets>
+    </PackageReference>
+  </ItemGroup>
+  <ItemGroup>
+  <Reference Include="IRBTModUtils">
+      <HintPath>$(StrategicOperationsModPath)\..\IRBTModUtils\IRBTModUtils.dll</HintPath>
+      <Private>False</Private>
     </Reference>
-    <Reference Include="Abilifier, Version=1.1.0.8, Culture=neutral, processorArchitecture=MSIL">
-      <SpecificVersion>False</SpecificVersion>
-      <HintPath>$(BattleTechGameDir)\Mods\Abilifier\Abilifier.dll</HintPath>
+		<Reference Include="CustomComponents">
+      <HintPath>$(StrategicOperationsModPath)\..\CustomComponents\CustomComponents.dll</HintPath>
+      <Private>False</Private>
     </Reference>
-    <Reference Include="obj\Debug\publicized\Assembly-CSharp.dll">
+	<Reference Include="CustomActivatableEquipment">
+      <HintPath>$(StrategicOperationsModPath)\..\CustomActivatableEquipment\CustomActivatableEquipment.dll</HintPath>
+      <Private>False</Private>
     </Reference>
-    <Reference Include="Assembly-CSharp-firstpass, Version=0.0.0.0, Culture=neutral, processorArchitecture=MSIL">
-      <SpecificVersion>False</SpecificVersion>
-      <HintPath>$(BattleTechGameDir)\BattleTech_Data\Managed\Assembly-CSharp-firstpass.dll</HintPath>
+	<Reference Include="CustomAmmoCategories">
+      <HintPath>$(StrategicOperationsModPath)\..\CustomAmmoCategories\CustomAmmoCategories.dll</HintPath>
+      <Private>False</Private>
     </Reference>
-    <Reference Include="CustomActivatableEquipment">
-      <HintPath>$(BattleTechGameDir)\Mods\CustomActivatableEquipment\CustomActivatableEquipment.dll</HintPath>
+	<Reference Include="CustomUnits">
+      <HintPath>$(StrategicOperationsModPath)\..\CustomUnits\CustomUnits.dll</HintPath>
+      <Private>False</Private>
     </Reference>
-    <Reference Include="CustomAmmoCategories">
-      <HintPath>$(BattleTechGameDir)\Mods\CustomAmmoCategories\CustomAmmoCategories.dll</HintPath>
+	<Reference Include="IRTweaks">
+      <HintPath>$(StrategicOperationsModPath)\..\IRTweaks\IRTweaks.dll</HintPath>
+      <Private>False</Private>
     </Reference>
-    <Reference Include="CustomComponents, Version=8.5.1.0, Culture=neutral, processorArchitecture=MSIL">
-      <SpecificVersion>False</SpecificVersion>
-      <HintPath>$(BattleTechGameDir)\Mods\CustomComponents\CustomComponents.dll</HintPath>
+	 <Reference Include="Abilifier">
+      <HintPath>$(StrategicOperationsModPath)\..\Abilifier\Abilifier.dll</HintPath>
+      <Private>False</Private>
     </Reference>
-    <Reference Include="CustomUnits">
-      <HintPath>$(BattleTechGameDir)\Mods\CustomUnits\CustomUnits.dll</HintPath>
+    <Reference Include="Assembly-CSharp">
+      <Private>False</Private>
     </Reference>
-    <Reference Include="InControl, Version=0.0.0.0, Culture=neutral, processorArchitecture=MSIL">
-      <SpecificVersion>False</SpecificVersion>
-      <HintPath>$(BattleTechGameDir)\BattleTech_Data\Managed\InControl.dll</HintPath>
-    </Reference>
-    <Reference Include="IRBTModUtils">
-      <HintPath>$(BattleTechGameDir)\Mods\IRBTModUtils\IRBTModUtils.dll</HintPath>
-    </Reference>
-    <Reference Include="IRTweaks">
-      <HintPath>$(BattleTechGameDir)\Mods\IRTweaks\IRTweaks.dll</HintPath>
+	<Reference Include="Assembly-CSharp-firstpass">
+      <Private>False</Private>
     </Reference>
     <Reference Include="Newtonsoft.Json">
-      <HintPath>$(BattleTechGameDir)\BattleTech_Data\Managed\Newtonsoft.Json.dll</HintPath>
+      <Private>False</Private>
     </Reference>
-    <Reference Include="System" />
-    <Reference Include="System.Core" />
-    <Reference Include="Unity.TextMeshPro, Version=0.0.0.0, Culture=neutral, processorArchitecture=MSIL">
-      <SpecificVersion>False</SpecificVersion>
-      <HintPath>$(BattleTechGameDir)\BattleTech_Data\Managed\Unity.TextMeshPro.dll</HintPath>
+	<Reference Include="InControl">
+      <HintPath>$(BattleTechGameDir)\BattleTech_Data\Managed\InControl.dll</HintPath>
+    </Reference>
+    <Reference Include="System">
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="System.Core">
+      <Private>False</Private>
     </Reference>
     <Reference Include="UnityEngine">
-      <HintPath>$(BattleTechGameDir)\BattleTech_Data\Managed\UnityEngine.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+	<Reference Include="UnityEngine.UI">
+      <Private>False</Private>
     </Reference>
     <Reference Include="UnityEngine.CoreModule">
-      <HintPath>$(BattleTechGameDir)\BattleTech_Data\Managed\UnityEngine.CoreModule.dll</HintPath>
+      <Private>False</Private>
     </Reference>
-    <Reference Include="UnityEngine.ParticleSystemModule, Version=0.0.0.0, Culture=neutral, processorArchitecture=MSIL">
-      <SpecificVersion>False</SpecificVersion>
-      <HintPath>$(BattleTechGameDir)\BattleTech_Data\Managed\UnityEngine.ParticleSystemModule.dll</HintPath>
+	<Reference Include="Unity.TextMeshPro">
+      <Private>False</Private>
     </Reference>
-    <Reference Include="UnityEngine.PhysicsModule, Version=0.0.0.0, Culture=neutral, processorArchitecture=MSIL">
-      <SpecificVersion>False</SpecificVersion>
-      <HintPath>$(BattleTechGameDir)\BattleTech_Data\Managed\UnityEngine.PhysicsModule.dll</HintPath>
+	<Reference Include="UnityEngine.ParticleSystemModule">
+      <Private>False</Private>
     </Reference>
-    <Reference Include="UnityEngine.UI">
-      <HintPath>$(BattleTechGameDir)\BattleTech_Data\Managed\UnityEngine.UI.dll</HintPath>
+	<Reference Include="UnityEngine.PhysicsModule">
+      <Private>False</Private>
     </Reference>
   </ItemGroup>
-  <ItemGroup>
-    <Compile Include="Framework\AI_Utils.cs" />
-    <Compile Include="Framework\BattleArmorUtils.cs" />
-    <Compile Include="Framework\AirliftUtils.cs" />
-    <Compile Include="Framework\ResupplyUtils.cs" />
-    <Compile Include="Framework\TB_FlyAwaySequence.cs" />
-    <Compile Include="Framework\SpawnUtils.cs" />
-    <Compile Include="Framework\Classes.cs" />
-    <Compile Include="Framework\DropPodSpawn.cs" />
-    <Compile Include="Framework\Utils.cs" />
-    <Compile Include="Framework\ModState.cs" />
-    <Compile Include="Framework\TB_StrafeSequence.cs" />
-    <None Include="Framework\Logger.cs" />
-    <Compile Include="ModInit.cs" />
-    <Compile Include="Patches\AI_Patches.cs" />
-    <Compile Include="Patches\BattleArmorPatches.cs" />
-    <Compile Include="Patches\AI_DEBUG_Patches.cs" />
-    <Compile Include="Patches\AIM_ButNotReally.cs" />
-    <Compile Include="Patches\AI_InfluenceMapFactorPatches.cs" />
-    <Compile Include="Patches\SelectionPatches.cs" />
-    <Compile Include="Patches\DirtyDebugPatches.cs" />
-    <Compile Include="Patches\SimGamePatches.cs" />
-    <Compile Include="Patches\StrategicOperationsPatches.cs" />
-    <Compile Include="Properties\AssemblyInfo.cs" />
-    <None Include="packages.config" />
-  </ItemGroup>
-  <ItemGroup />
-  <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
-  <Target Name="AfterBuild">
-    <Copy SourceFiles="$(TargetPath)" DestinationFolder="$(BattleTechGameDir)\Mods\StrategicOperations" OverwriteReadOnlyFiles="true" SkipUnchangedFiles="false" />
-  </Target>
-  <Target Name="EnsureNuGetPackageBuildImports" BeforeTargets="PrepareForBuild">
-    <PropertyGroup>
-      <ErrorText>This project references NuGet package(s) that are missing on this computer. Use NuGet Package Restore to download them.  For more information, see http://go.microsoft.com/fwlink/?LinkID=322105. The missing file is {0}.</ErrorText>
-    </PropertyGroup>
-    <Error Condition="!Exists('..\packages\BepInEx.AssemblyPublicizer.MSBuild.0.3.0\build\BepInEx.AssemblyPublicizer.MSBuild.props')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\BepInEx.AssemblyPublicizer.MSBuild.0.3.0\build\BepInEx.AssemblyPublicizer.MSBuild.props'))" />
-  </Target>
 </Project>

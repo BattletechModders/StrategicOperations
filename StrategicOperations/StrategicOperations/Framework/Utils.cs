@@ -1,8 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Reflection;
-using System.Runtime.Remoting.Messaging;
 using Abilifier.Patches;
 using BattleTech;
 using BattleTech.Data;
@@ -10,14 +8,10 @@ using BattleTech.Framework;
 using BattleTech.UI;
 using CustAmmoCategories;
 using CustomAmmoCategoriesPatches;
-using CustomUnits;
-using Harmony;
 using HBS.Collections;
-using UIWidgetsSamples.Shops;
 using UnityEngine;
 using static StrategicOperations.Framework.Classes;
 using Log = CustomAmmoCategoriesLog.Log;
-using Random = UnityEngine.Random;
 
 namespace StrategicOperations.Framework
 {

@@ -1,9 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Runtime.CompilerServices;
-using System.Text;
-using System.Threading.Tasks;
 using BattleTech;
 using BattleTech.Data;
 using BattleTech.UI;
@@ -11,11 +8,8 @@ using CustAmmoCategories;
 using CustomActivatableEquipment;
 using CustomComponents;
 using CustomUnits;
-using Harmony;
 using HBS.Math;
-using IRBTModUtils;
 using Localize;
-using UIWidgets;
 using UnityEngine;
 using Random = UnityEngine.Random;
 

@@ -1,10 +1,8 @@
 ﻿using System;
 using System.Collections;
-using System.Runtime.CompilerServices;
 using BattleTech;
 using BattleTech.Rendering.UrbanWarfare;
 using BattleTech.UI;
-using Harmony;
 using UnityEngine;
 
 namespace StrategicOperations.Framework

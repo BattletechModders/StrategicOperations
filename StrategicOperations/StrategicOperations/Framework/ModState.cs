@@ -1,10 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Collections.Specialized;
-using System.Configuration;
-using Abilifier;
 using BattleTech;
-using JetBrains.Annotations;
 using UnityEngine;
 using static StrategicOperations.Framework.Classes;
 

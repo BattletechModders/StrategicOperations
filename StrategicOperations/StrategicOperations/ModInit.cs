@@ -1,5 +1,4 @@
 ﻿using CustomComponents;
-using Harmony;
 using IRBTModUtils.CustomInfluenceMap;
 using IRBTModUtils.Logging;
 using Newtonsoft.Json;
@@ -43,10 +42,11 @@ namespace StrategicOperations
             }
             
             ModInit.modLog?.Info?.Write($"Initializing StrategicOperations - Version {typeof(Settings).Assembly.GetName().Version}");
-            var harmony = HarmonyInstance.Create(HarmonyPackage);
+            //var harmony = HarmonyInstance.Create(HarmonyPackage);
+            //harmony.PatchAll(Assembly.GetExecutingAssembly());
             //FileLog.Log(HarmonyPackage);
             Registry.RegisterSimpleCustomComponents(Assembly.GetExecutingAssembly());
-            harmony.PatchAll(Assembly.GetExecutingAssembly());
+            Harmony.CreateAndPatchAll(Assembly.GetExecutingAssembly(), HarmonyPackage);
             ModState.Initialize();
             //dump settings
             ModInit.modLog?.Info?.Write($"Settings dump: {settings}");

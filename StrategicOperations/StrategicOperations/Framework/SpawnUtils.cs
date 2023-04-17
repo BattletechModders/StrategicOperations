@@ -1,13 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
 using BattleTech;
-using BattleTech.Data;
 using CustomUnits;
-using Harmony;
-using HBS.Collections;
 using UnityEngine;
-using static HoudiniEngineUnity.HEU_MaterialData;
 
 namespace StrategicOperations.Framework
 {
