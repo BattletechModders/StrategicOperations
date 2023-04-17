@@ -94,7 +94,6 @@
       <Private>False</Private>
     </Reference>
 	<Reference Include="InControl">
-      <HintPath>$(BattleTechGameDir)\BattleTech_Data\Managed\InControl.dll</HintPath>
     </Reference>
     <Reference Include="System">
       <Private>False</Private>
