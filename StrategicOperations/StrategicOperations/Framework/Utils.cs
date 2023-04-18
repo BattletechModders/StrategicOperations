@@ -10,6 +10,7 @@ using CustAmmoCategories;
 using CustomAmmoCategoriesPatches;
 using HBS.Collections;
 using UnityEngine;
+using static RootMotion.FinalIK.InteractionTrigger;
 using static StrategicOperations.Framework.Classes;
 using Log = CustomAmmoCategoriesLog.Log;
 
@@ -850,6 +851,20 @@ namespace StrategicOperations.Framework
                 {
                     ModInit.modLog?.Debug?.Write($"unit {enemy.DisplayName} is enemy of {actor.DisplayName}.");
                     detectedEnemies.Add(enemy);
+                }
+            }
+            return detectedEnemies;
+        }
+
+        public static List<AbstractActor> GetVisibleEnemyUnitsEnemiesOnly(this AbstractActor actor)
+        {
+            var detectedEnemies = actor.VisibilityCache.GetVisibleEnemyUnits();
+            for (var index = detectedEnemies.Count - 1; index >= 0; index--)
+            {
+                var enemy = detectedEnemies[index];
+                if (!actor.team.IsEnemy(enemy.team) || enemy.IsDead || enemy.IsFlaggedForDeath)
+                {
+                    detectedEnemies.Remove(enemy);
                 }
             }
             return detectedEnemies;
