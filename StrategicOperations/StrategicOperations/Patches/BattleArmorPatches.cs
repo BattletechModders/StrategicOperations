@@ -1893,6 +1893,7 @@ namespace StrategicOperations.Patches
                 float num2 = 0f;
                 float num3 = 0f;
                 float num4 = 0f;
+                if (collisionWorldPos == null) collisionWorldPos = new Vector3();
                 collisionWorldPos = targetPosition;
                 float num5 = 999999.9f;
                 Weapon longestRangeWeapon = source.GetLongestRangeWeapon(false, false);
