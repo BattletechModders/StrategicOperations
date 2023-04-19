@@ -1790,11 +1790,10 @@ namespace StrategicOperations.Patches
         {
             public static void Prefix(ref bool __runOriginal, LineOfSight __instance, AbstractActor source,
                 Vector3 sourcePosition, ICombatant target, Vector3 targetPosition, Quaternion targetRotation,
-                out Vector3 collisionWorldPos, ref LineOfFireLevel __result)
+                ref Vector3 collisionWorldPos, ref LineOfFireLevel __result)
             {
-                collisionWorldPos = new Vector3();
                 if (!__runOriginal) return;
-
+                collisionWorldPos = new Vector3();
                 //               if (target is BattleTech.Building building && !building.hasGarrisonedUnits()) return true;
 
                 if (target is AbstractActor actorTarget)
