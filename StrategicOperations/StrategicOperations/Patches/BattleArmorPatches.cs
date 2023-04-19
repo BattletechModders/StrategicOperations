@@ -1793,7 +1793,7 @@ namespace StrategicOperations.Patches
                 ref Vector3 collisionWorldPos, ref LineOfFireLevel __result)
             {
                 if (!__runOriginal) return;
-                collisionWorldPos = new Vector3();
+                //collisionWorldPos = new Vector3();
                 //               if (target is BattleTech.Building building && !building.hasGarrisonedUnits()) return true;
 
                 if (target is AbstractActor actorTarget)
