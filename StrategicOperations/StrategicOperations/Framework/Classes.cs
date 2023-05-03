@@ -397,9 +397,7 @@ namespace StrategicOperations.Framework
                 base.owningActor.ResetPathing(false);
 
                 if (base.owningActor.team.IsLocalPlayer)
-                {
-
-                }
+                {}
 
                 if (MountSwarmBA && owningActor is TrooperSquad squad)
                 {

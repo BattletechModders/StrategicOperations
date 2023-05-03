@@ -18,6 +18,16 @@ namespace StrategicOperations.Framework
 {
     public static class Utils
     {
+        public static void TeleportActorVisual(this AbstractActor actor, Vector3 newPosition)
+        {
+            actor.CurrentPosition = newPosition;
+            actor.GameRep.transform.position = newPosition;
+            //actor.OnPositionUpdate(newPosition, actor.CurrentRotation, -1, true, null, false);
+            //actor.previousPosition = newPosition;
+            //actor.ResetPathing(false);
+            //actor.RebuildPathingForNoMovement();
+            //actor.IsTeleportedOffScreen = false;
+        }
         public static void ActivateSpawnTurretFromActor(this Ability __instance, AbstractActor creator, Team team, Vector3 positionA, Vector3 positionB)
         {
             if (__instance.Combat.ActiveContract.ContractTypeValue.IsSkirmish) return;

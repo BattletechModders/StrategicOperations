@@ -391,6 +391,105 @@ namespace StrategicOperations.Patches
                 return;
                 //ModInit.modLog?.Info?.Write($"Couldn't find UnitSpawnPointGameLogic for {____parentActor?.DisplayName}. Should be CMD Ability actor; skipping safety teleport!");
             }
+
+            public static void Postfix(CustomMechRepresentation __instance)
+            {
+                if (__instance.HeightController.isInChangeHeight)
+                {
+
+                    var combat = __instance.parentActor.Combat;
+                    if (__instance.parentActor.HasAirliftedUnits())
+                    {
+                        var airliftedUnits = ModState.AirliftTrackers.Where(x =>
+                            x.Value.CarrierGUID == __instance.parentActor.GUID);
+                        foreach (var trackerInfo in airliftedUnits)
+                        {
+                            var targetActor = combat.FindActorByGUID(trackerInfo.Key);
+                            if (targetActor == null) continue;
+                            var pos = Vector3.zero;
+                            if (__instance.parentActor is CustomMech mech)
+                            {
+                                pos = __instance.parentActor.CurrentPosition + Vector3.down * trackerInfo.Value.Offset +
+                                      Vector3.up * mech.custGameRep.HeightController.CurrentHeight;
+                                targetActor.TeleportActorVisual(pos);
+                                if (targetActor is CustomMech customMech)
+                                {
+                                    customMech.custGameRep.j_Root.localRotation = Quaternion.identity;
+                                }
+
+                                targetActor.GameRep.transform.rotation =
+                                    __instance.parentActor.GameRep.transform.rotation;
+                                targetActor.CurrentRotation = __instance.parentActor.CurrentRotation;
+                            }
+                            else
+                            {
+                                pos = __instance.parentActor.CurrentPosition + Vector3.down * trackerInfo.Value.Offset;
+                                targetActor.TeleportActorVisual(pos);
+                                if (targetActor is CustomMech customMech)
+                                {
+                                    customMech.custGameRep.j_Root.localRotation = Quaternion.identity;
+                                }
+
+                                targetActor.GameRep.transform.rotation =
+                                    __instance.parentActor.GameRep.transform.rotation;
+                                targetActor.CurrentRotation = __instance.parentActor.CurrentRotation;
+                            }
+
+                            targetActor.MountedEvasion(__instance.parentActor);
+                            ModInit.modLog?.Debug?.Write(
+                                $"[CustomMechRepresentation_GameRepresentation_Update] PositionLockMount- Setting airlifted unit {targetActor.DisplayName} position to same as carrier unit {__instance.parentActor.DisplayName}");
+
+                            ModState.CachedUnitCoordinates[__instance.parentActor.GUID] = __instance.parentActor.CurrentPosition;
+                        }
+                    }
+
+                    if (__instance.parentActor.HasMountedUnits())
+                    {
+                        var targetActorGUIDs =
+                            ModState.PositionLockMount.Where(x => x.Value == __instance.parentActor.GUID);
+                        foreach (var targetActorGUID in targetActorGUIDs)
+                        {
+                            var targetActor = combat.FindActorByGUID(targetActorGUID.Key);
+                            if (targetActor == null) continue;
+                            var pos = Vector3.zero;
+                            if (__instance.parentActor is CustomMech mech)
+                            {
+                                pos = __instance.parentActor.CurrentPosition +
+                                      Vector3.up * mech.custGameRep.HeightController.CurrentHeight;
+                                targetActor.TeleportActorVisual(pos);
+                            }
+                            else
+                            {
+                                targetActor.TeleportActorVisual(__instance.parentActor.CurrentPosition);
+                            }
+
+                            targetActor.MountedEvasion(__instance.parentActor);
+                            ModInit.modLog?.Debug?.Write(
+                                $"[CustomMechRepresentation_GameRepresentation_Update] PositionLockMount- Setting riding unit {targetActor.DisplayName} position to same as carrier unit {__instance.parentActor.DisplayName}");
+
+                            ModState.CachedUnitCoordinates[__instance.parentActor.GUID] = __instance.parentActor.CurrentPosition;
+                        }
+                    }
+
+                    // removed return/else so swarming units are locked to carrier even if carrier has mounted units. derp.
+                    if (__instance.parentActor.HasSwarmingUnits())
+                    {
+                        var targetActorGUIDs =
+                            ModState.PositionLockSwarm.Where(x => x.Value == __instance.parentActor.GUID);
+                        foreach (var targetActorGUID in targetActorGUIDs)
+                        {
+                            var targetActor = combat.FindActorByGUID(targetActorGUID.Key);
+                            if (targetActor == null) continue;
+                            targetActor.TeleportActorVisual(__instance.parentActor.CurrentPosition);
+                            targetActor.MountedEvasion(__instance.parentActor);
+                            ModInit.modLog?.Debug?.Write(
+                                $"[CustomMechRepresentation_GameRepresentation_Update] PositionLockMount- Setting riding unit {targetActor.DisplayName} position to same as carrier unit {__instance.parentActor.DisplayName}");
+
+                            ModState.CachedUnitCoordinates[__instance.parentActor.GUID] = __instance.parentActor.CurrentPosition;
+                        }
+                    }
+                }
+            }
         }
 
         [HarmonyPatch(typeof(GameRepresentation), "Update")]
@@ -440,8 +539,8 @@ namespace StrategicOperations.Patches
             }
         }
 
-        [HarmonyPatch(typeof(OrderSequence), "OnComplete")]
-        public static class OrderSequence_OnComplete
+        [HarmonyPatch(typeof(OrderSequence), "OnUpdate")]
+        public static class OrderSequence_OnUpdate
         {
             public static void Postfix(OrderSequence __instance)
             {
@@ -462,6 +561,109 @@ namespace StrategicOperations.Patches
                         return;
                     }
                 }
+
+                var combat = __instance.owningActor.Combat;
+                if (__instance.owningActor.HasAirliftedUnits())
+                {
+                    var airliftedUnits = ModState.AirliftTrackers.Where(x =>
+                        x.Value.CarrierGUID == __instance.owningActor.GUID);
+                    foreach (var trackerInfo in airliftedUnits)
+                    {
+                        var targetActor = combat.FindActorByGUID(trackerInfo.Key);
+                        if (targetActor == null) continue;
+                        var pos = Vector3.zero;
+                        if (__instance.owningActor is CustomMech mech)
+                        {
+                            pos = __instance.owningActor.CurrentPosition + Vector3.down * trackerInfo.Value.Offset +
+                                  Vector3.up * mech.custGameRep.HeightController.CurrentHeight;
+                            targetActor.TeleportActorVisual(pos);
+                            if (targetActor is CustomMech customMech)
+                            {
+                                customMech.custGameRep.j_Root.localRotation = Quaternion.identity;
+                            }
+
+                            targetActor.GameRep.transform.rotation =
+                                __instance.owningActor.GameRep.transform.rotation;
+                            targetActor.CurrentRotation = __instance.owningActor.CurrentRotation;
+                        }
+                        else
+                        {
+                            pos = __instance.owningActor.CurrentPosition + Vector3.down * trackerInfo.Value.Offset;
+                            targetActor.TeleportActorVisual(pos);
+                            if (targetActor is CustomMech customMech)
+                            {
+                                customMech.custGameRep.j_Root.localRotation = Quaternion.identity;
+                            }
+
+                            targetActor.GameRep.transform.rotation =
+                                __instance.owningActor.GameRep.transform.rotation;
+                            targetActor.CurrentRotation = __instance.owningActor.CurrentRotation;
+                        }
+
+                        targetActor.MountedEvasion(__instance.owningActor);
+                        ModInit.modLog?.Debug?.Write(
+                            $"[OrderSequence_OnUpdate] PositionLockMount- Setting airlifted unit {targetActor.DisplayName} position to same as carrier unit {__instance.owningActor.DisplayName}");
+
+                        ModState.CachedUnitCoordinates[__instance.owningActor.GUID] = __instance.owningActor.CurrentPosition;
+                    }
+                }
+
+                if (__instance.owningActor.HasMountedUnits())
+                {
+                    var targetActorGUIDs =
+                        ModState.PositionLockMount.Where(x => x.Value == __instance.owningActor.GUID);
+                    foreach (var targetActorGUID in targetActorGUIDs)
+                    {
+                        var targetActor = combat.FindActorByGUID(targetActorGUID.Key);
+                        if (targetActor == null) continue;
+                        var pos = Vector3.zero;
+                        if (__instance.owningActor is CustomMech mech)
+                        {
+                            pos = __instance.owningActor.CurrentPosition +
+                                  Vector3.up * mech.custGameRep.HeightController.CurrentHeight;
+                            targetActor.TeleportActorVisual(pos);
+                        }
+                        else
+                        {
+                            targetActor.TeleportActorVisual(__instance.owningActor.CurrentPosition);
+                        }
+
+                        targetActor.MountedEvasion(__instance.owningActor);
+                        ModInit.modLog?.Debug?.Write(
+                            $"[OrderSequence_OnUpdate] PositionLockMount- Setting riding unit {targetActor.DisplayName} position to same as carrier unit {__instance.owningActor.DisplayName}");
+
+                        ModState.CachedUnitCoordinates[__instance.owningActor.GUID] = __instance.owningActor.CurrentPosition;
+                    }
+                }
+
+                // removed return/else so swarming units are locked to carrier even if carrier has mounted units. derp.
+                if (__instance.owningActor.HasSwarmingUnits())
+                {
+                    var targetActorGUIDs =
+                        ModState.PositionLockSwarm.Where(x => x.Value == __instance.owningActor.GUID);
+                    foreach (var targetActorGUID in targetActorGUIDs)
+                    {
+                        var targetActor = combat.FindActorByGUID(targetActorGUID.Key);
+                        if (targetActor == null) continue;
+                        targetActor.TeleportActorVisual(__instance.owningActor.CurrentPosition);
+                        targetActor.MountedEvasion(__instance.owningActor);
+                        ModInit.modLog?.Debug?.Write(
+                            $"[OrderSequence_OnUpdate] PositionLockMount- Setting riding unit {targetActor.DisplayName} position to same as carrier unit {__instance.owningActor.DisplayName}");
+
+                        ModState.CachedUnitCoordinates[__instance.owningActor.GUID] = __instance.owningActor.CurrentPosition;
+                    }
+                }
+            }
+        }
+
+        [HarmonyPatch(typeof(OrderSequence), "OnComplete")]
+        public static class OrderSequence_OnComplete
+        {
+            public static void Postfix(OrderSequence __instance)
+            {
+                if (__instance.owningActor == null) return;
+                if (__instance is not ActorMovementSequence && __instance is not MechJumpSequence &&
+                    __instance is not MechMeleeSequence && __instance is not MechDFASequence) return;
 
                 var combat = __instance.owningActor.Combat;
                 if (__instance.owningActor.HasAirliftedUnits())
@@ -503,7 +705,7 @@ namespace StrategicOperations.Patches
 
                         targetActor.MountedEvasion(__instance.owningActor);
                         ModInit.modLog?.Debug?.Write(
-                            $"[OrderSequence_OnComplete] PositionLockMount- Setting airlifted unit {targetActor.DisplayName} position to same as carrier unit {__instance.owningActor.DisplayName}");
+                            $"[OrderSequence_OnUpdate] PositionLockMount- Setting airlifted unit {targetActor.DisplayName} position to same as carrier unit {__instance.owningActor.DisplayName}");
 
                         ModState.CachedUnitCoordinates[__instance.owningActor.GUID] = __instance.owningActor.CurrentPosition;
                     }
@@ -531,7 +733,7 @@ namespace StrategicOperations.Patches
 
                         targetActor.MountedEvasion(__instance.owningActor);
                         ModInit.modLog?.Debug?.Write(
-                            $"[OrderSequence_OnComplete] PositionLockMount- Setting riding unit {targetActor.DisplayName} position to same as carrier unit {__instance.owningActor.DisplayName}");
+                            $"[OrderSequence_OnUpdate] PositionLockMount- Setting riding unit {targetActor.DisplayName} position to same as carrier unit {__instance.owningActor.DisplayName}");
 
                         ModState.CachedUnitCoordinates[__instance.owningActor.GUID] = __instance.owningActor.CurrentPosition;
                     }
@@ -549,7 +751,7 @@ namespace StrategicOperations.Patches
                         targetActor.TeleportActor(__instance.owningActor.CurrentPosition);
                         targetActor.MountedEvasion(__instance.owningActor);
                         ModInit.modLog?.Debug?.Write(
-                            $"[OrderSequence_OnComplete] PositionLockMount- Setting riding unit {targetActor.DisplayName} position to same as carrier unit {__instance.owningActor.DisplayName}");
+                            $"[OrderSequence_OnUpdate] PositionLockMount- Setting riding unit {targetActor.DisplayName} position to same as carrier unit {__instance.owningActor.DisplayName}");
 
                         ModState.CachedUnitCoordinates[__instance.owningActor.GUID] = __instance.owningActor.CurrentPosition;
                     }
@@ -557,8 +759,8 @@ namespace StrategicOperations.Patches
             }
         }
 
-        [HarmonyPatch(typeof(MechDisplacementSequence), "OnComplete")]
-        public static class MechDisplacementSequence_OnComplete
+        [HarmonyPatch(typeof(MechDisplacementSequence), "Update")]
+        public static class MechDisplacementSequence_Update
         {
             public static void Postfix(MechDisplacementSequence __instance)
             {
@@ -577,6 +779,107 @@ namespace StrategicOperations.Patches
                         return;
                     }
                 }
+
+                var combat = __instance.OwningMech.Combat;
+                if (__instance.OwningMech.HasAirliftedUnits())
+                {
+                    var airliftedUnits = ModState.AirliftTrackers.Where(x =>
+                        x.Value.CarrierGUID == __instance.OwningMech.GUID);
+                    foreach (var trackerInfo in airliftedUnits)
+                    {
+                        var targetActor = combat.FindActorByGUID(trackerInfo.Key);
+                        if (targetActor == null) continue;
+                        var pos = Vector3.zero;
+                        if (__instance.OwningMech is CustomMech mech)
+                        {
+                            pos = __instance.OwningMech.CurrentPosition + Vector3.down * trackerInfo.Value.Offset +
+                                  Vector3.up * mech.custGameRep.HeightController.CurrentHeight;
+                            targetActor.TeleportActorVisual(pos);
+                            if (targetActor is CustomMech customMech)
+                            {
+                                customMech.custGameRep.j_Root.localRotation = Quaternion.identity;
+                            }
+
+                            targetActor.GameRep.transform.rotation =
+                                __instance.OwningMech.GameRep.transform.rotation;
+                            targetActor.CurrentRotation = __instance.OwningMech.CurrentRotation;
+                        }
+                        else
+                        {
+                            pos = __instance.OwningMech.CurrentPosition + Vector3.down * trackerInfo.Value.Offset;
+                            targetActor.TeleportActorVisual(pos);
+                            if (targetActor is CustomMech customMech)
+                            {
+                                customMech.custGameRep.j_Root.localRotation = Quaternion.identity;
+                            }
+
+                            targetActor.GameRep.transform.rotation =
+                                __instance.OwningMech.GameRep.transform.rotation;
+                            targetActor.CurrentRotation = __instance.OwningMech.CurrentRotation;
+                        }
+
+                        targetActor.MountedEvasion(__instance.OwningMech);
+                        ModInit.modLog?.Debug?.Write(
+                            $"[MechDisplacementSequence_OnComplete] PositionLockMount- Setting airlifted unit {targetActor.DisplayName} position to same as carrier unit {__instance.OwningMech.DisplayName}");
+
+                        ModState.CachedUnitCoordinates[__instance.OwningMech.GUID] = __instance.OwningMech.CurrentPosition;
+                    }
+                }
+
+                if (__instance.OwningMech.HasMountedUnits())
+                {
+                    var targetActorGUIDs =
+                        ModState.PositionLockMount.Where(x => x.Value == __instance.OwningMech.GUID);
+                    foreach (var targetActorGUID in targetActorGUIDs)
+                    {
+                        var targetActor = combat.FindActorByGUID(targetActorGUID.Key);
+                        if (targetActor == null) continue;
+                        var pos = Vector3.zero;
+                        if (__instance.OwningMech is CustomMech mech)
+                        {
+                            pos = __instance.OwningMech.CurrentPosition +
+                                  Vector3.up * mech.custGameRep.HeightController.CurrentHeight;
+                            targetActor.TeleportActorVisual(pos);
+                        }
+                        else
+                        {
+                            targetActor.TeleportActorVisual(__instance.OwningMech.CurrentPosition);
+                        }
+
+                        targetActor.MountedEvasion(__instance.OwningMech);
+                        ModInit.modLog?.Debug?.Write(
+                            $"[MechDisplacementSequence_OnComplete] PositionLockMount- Setting riding unit {targetActor.DisplayName} position to same as carrier unit {__instance.OwningMech.DisplayName}");
+
+                        ModState.CachedUnitCoordinates[__instance.OwningMech.GUID] = __instance.OwningMech.CurrentPosition;
+                    }
+                }
+
+                // removed return/else so swarming units are locked to carrier even if carrier has mounted units. derp.
+                if (__instance.OwningMech.HasSwarmingUnits())
+                {
+                    var targetActorGUIDs =
+                        ModState.PositionLockSwarm.Where(x => x.Value == __instance.OwningMech.GUID);
+                    foreach (var targetActorGUID in targetActorGUIDs)
+                    {
+                        var targetActor = combat.FindActorByGUID(targetActorGUID.Key);
+                        if (targetActor == null) continue;
+                        targetActor.TeleportActorVisual(__instance.OwningMech.CurrentPosition);
+                        targetActor.MountedEvasion(__instance.OwningMech);
+                        ModInit.modLog?.Debug?.Write(
+                            $"[MechDisplacementSequence_OnComplete] PositionLockMount- Setting riding unit {targetActor.DisplayName} position to same as carrier unit {__instance.OwningMech.DisplayName}");
+
+                        ModState.CachedUnitCoordinates[__instance.OwningMech.GUID] = __instance.OwningMech.CurrentPosition;
+                    }
+                }
+            }
+        }
+
+        [HarmonyPatch(typeof(MechDisplacementSequence), "OnComplete")]
+        public static class MechDisplacementSequence_OnComplete
+        {
+            public static void Postfix(MechDisplacementSequence __instance)
+            {
+                if (__instance.OwningMech == null) return;
 
                 var combat = __instance.OwningMech.Combat;
                 if (__instance.OwningMech.HasAirliftedUnits())
