@@ -45,8 +45,37 @@ namespace StrategicOperations.Patches
             }
         }
 
+        [HarmonyPatch(typeof(LineOfSight), "FindSecondaryImpactTarget")]
+        static class LineOfSight_FindSecondaryImpactTarget
+        {
+            [HarmonyPriority(Priority.Last)]
+            static void Postfix(LineOfSight __instance, RaycastHit[] rayInfos, AbstractActor attacker, ICombatant initialTarget, Vector3 attackPosition, 
+                ref string impactTargetId, ref int impactHitLocation, ref AttackDirection attackDirection, ref Vector3 impactPoint, ref bool __result)
+            {
+                if (!__result) return;
+                if (string.IsNullOrEmpty(impactTargetId)) return;
+                var impactUnit = __instance.Combat.FindCombatantByGUID(impactTargetId);
+                if (impactUnit is BattleTech.Building impactBuilding)
+                {
+                    if (!attacker.isGarrisonedInTargetBuilding(impactBuilding)) return;
+                    impactTargetId = null;
+                    impactHitLocation = 0;
+                    attackDirection = AttackDirection.FromFront;
+                }
+
+                else if (impactUnit is AbstractActor impactActor)
+                {
+                    if (!attacker.IsMountedToUnit(impactActor) && !attacker.IsAirliftedByTarget(impactActor))
+                        return;
+                    impactTargetId = null;
+                    impactHitLocation = 0;
+                    attackDirection = AttackDirection.FromFront;
+                }
+            }
+        }
+
         // Modify the vision test to allow 'x-ray' vision through the shell building for trap turrets
-        [HarmonyPatch(typeof(LineOfSight), "bresenhamVisionTest")]
+                [HarmonyPatch(typeof(LineOfSight), "bresenhamVisionTest")]
         static class LineOfSight_bresenhamVisionTest
         {
             static void Postfix(LineOfSight __instance, Point p0, float height0, Point p1, float height1,
@@ -1788,6 +1817,7 @@ namespace StrategicOperations.Patches
         [HarmonyPatch(typeof(LineOfSight), "GetLineOfFireUncached")]
         public static class LineOfSight_GetLineOfFireUncached
         {
+            static bool Prepare() =>  !ModInit.modSettings.AllowIRBTUHandleVisibility;
             public static void Prefix(ref bool __runOriginal, LineOfSight __instance, AbstractActor source,
                 Vector3 sourcePosition, ICombatant target, Vector3 targetPosition, Quaternion targetRotation,
                 ref Vector3 collisionWorldPos, ref LineOfFireLevel __result)

@@ -73,6 +73,7 @@ namespace StrategicOperations
     }
     class Settings
     {
+        public bool AllowIRBTUHandleVisibility = false;
         public bool DEVTEST_AIPOS = false;
         public bool Debug = false;
         public bool debugFlares = false;
