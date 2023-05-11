@@ -28,7 +28,7 @@ namespace StrategicOperations.Framework
             return ModState.AirliftTrackers.ContainsKey(targetActor.GUID) && ModState.AirliftTrackers[targetActor.GUID].CarrierGUID == actor.GUID;
         }
 
-        public static bool IsAirliftedByTarget(AbstractActor actor, AbstractActor targetActor)
+        public static bool IsAirliftedByTarget(this AbstractActor actor, AbstractActor targetActor)
         {
             return ModState.AirliftTrackers.ContainsKey(actor.GUID) &&
                    ModState.AirliftTrackers[actor.GUID].CarrierGUID == targetActor.GUID;
