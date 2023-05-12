@@ -198,12 +198,10 @@ namespace StrategicOperations.Patches
         [HarmonyPatch(typeof(LineOfSight), "bresenhamHeightTest")]
         static class LineOfSight_bresenhamHeightTest
         {
-
             static void Postfix(LineOfSight __instance, Point p0, float height0, Point p1, float height1,
                 string targetedBuildingGuid, ref Point collisionWorldPos,
                 ref bool __result)
             {
-
                 if (ModState.CurrentGarrisonSquadForLOF == null) return;
 
                 ModInit.modLog?.Debug?.Write(
@@ -276,7 +274,6 @@ namespace StrategicOperations.Patches
 
                 __result = true;
                 return;
-
             }
         }
     }

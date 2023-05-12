@@ -392,11 +392,11 @@ namespace StrategicOperations.Patches
                 //ModInit.modLog?.Info?.Write($"Couldn't find UnitSpawnPointGameLogic for {____parentActor?.DisplayName}. Should be CMD Ability actor; skipping safety teleport!");
             }
 
+
             public static void Postfix(CustomMechRepresentation __instance)
             {
                 if (__instance.HeightController.isInChangeHeight)
                 {
-
                     var combat = __instance.parentActor.Combat;
                     if (__instance.parentActor.HasAirliftedUnits())
                     {
