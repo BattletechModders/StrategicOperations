@@ -193,7 +193,13 @@ namespace StrategicOperations.Framework
                     ModInit.modLog?.Debug?.Write(
                         $"We have {this.CurrentTargets.Count} targets remaining, none that we can attack.");
                 }
-                ModInit.modLog?.Debug?.Write($"There is already an attack sequence active, so we're not doing anything?");
+
+                var sequenceInfos = new List<string>();
+                foreach (var attackSequenceKvP in base.Combat.AttackDirector.allAttackSequences)
+                {
+                    sequenceInfos.Add($"{attackSequenceKvP.Key}: attacker - {attackSequenceKvP.Value.attacker.DisplayName}; target - {attackSequenceKvP.Value.chosenTarget.DisplayName}");
+                }
+                ModInit.modLog?.Info?.Write($"There is already an attack sequence active, so we're not doing anything? Unresolved sequences: {string.Join("\r\n", sequenceInfos)}");
             }
 //            ModInit.modLog?.Info?.Write($"timeSinceAttack was {this.timeSinceLastAttack} (needs to be > {timeBetweenAttacks}) and IsAnyAttackSequenceActive?: {base.Combat.AttackDirector.IsAnyAttackSequenceActive} should be false");
         }

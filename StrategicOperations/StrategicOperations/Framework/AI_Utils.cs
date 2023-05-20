@@ -341,13 +341,12 @@ namespace StrategicOperations.Framework
             
 
             //do we want to generate AI abilities if they already have BA? unsure.
-            if (ModInit.modSettings.BeaconExcludedContractIDs.Contains(unit.Combat.ActiveContract.Override
-                    .ID) || ModInit.modSettings.BeaconExcludedContractTypes.Contains(unit.Combat.ActiveContract
-                    .ContractTypeValue.Name))
-            {
-                ModInit.modLog?.Info?.Write($"Contract ID {unit.Combat.ActiveContract.Override.ID} or Type {unit.Combat.ActiveContract.ContractTypeValue.Name} found in command ability exclusion list.");
-                return;
-            }
+            //if (ModInit.modSettings.BeaconExcludedContractIDs.Contains(unit.Combat.ActiveContract.Override.ID) || ModInit.modSettings.BeaconExcludedContractTypes.Contains(unit.Combat.ActiveContract.ContractTypeValue.Name))
+            //{
+            //    ModInit.modLog?.Info?.Write($"Contract ID {unit.Combat.ActiveContract.Override.ID} or Type {unit.Combat.ActiveContract.ContractTypeValue.Name} found in command ability exclusion list.");
+            //    return;
+            //}
+
             if (unit.Combat.TurnDirector.CurrentRound > 1) return; // don't give abilities to reinforcements?
             if (unit.team.GUID != "be77cadd-e245-4240-a93e-b99cc98902a5") return; // TargetTeam is only team that gets cmdAbilities
                                                                                   // 
@@ -360,6 +359,11 @@ namespace StrategicOperations.Framework
             ModState.CurrentFactionSettingsList = new List<Classes.ConfigOptions.AI_FactionCommandAbilitySetting>(new List<Classes.ConfigOptions.AI_FactionCommandAbilitySetting>(
                 ModInit.modSettings.commandAbilities_AI.Where(x=>x.FactionIDs.Contains(unit.team.FactionValue.Name))).OrderBy(y=>y.AddChance));
             ModInit.modLog?.Debug?.Write($"Ordering setting dictionary.");
+
+            ModState.CurrentFactionSettingsList.RemoveAll(x => x.ContractBlacklist.Contains(unit.Combat.ActiveContract
+                .Override
+                .ID) || x.ContractBlacklist.Contains(unit.Combat.ActiveContract
+                .ContractTypeValue.Name));
 
             if (unit.GetPilot().Abilities.All(x => x.Def.Resource != AbilityDef.ResourceConsumed.CommandAbility))
             {

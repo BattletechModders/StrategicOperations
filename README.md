@@ -52,6 +52,10 @@ settings in the mod.json:
 	"strafeWaves": 3,
 	"commandAbilities_AI": [
 		{
+			"ContractBlacklist": [
+				"DuoDuel",
+				"CaptureBase_AbandonedFactory"
+			],
 			"AbilityDefID": "AbilityDefCMD_Strafe_AI",
 			"FactionIDs": [
 				"ClanGhostBear",
@@ -410,10 +414,20 @@ settings in the mod.json:
 			"SoloDuel"
 		],
 	"AI_BattleArmorExcludedContractIDs": [],
-	"BeaconExcludedContractTypes": [
-			"DuoDuel",
-			"SoloDuel"
-		],
+	"BeaconExclusionConfig": {
+		"DuoDuel": {
+			"ExcludedPlayerSpawn": true,
+			"ExcludedPlayerStrafe": true,
+			"ExcludedAISpawn": true,
+			"ExcludedAIStrafe": true
+		},
+		"CaptureBase_AbandonedFactory": {
+			"ExcludedPlayerSpawn": false,
+			"ExcludedPlayerStrafe": true,
+			"ExcludedAISpawn": false,
+			"ExcludedAIStrafe": false
+		}
+	},
 	"BeaconExcludedContractIDs": [],
 	"DisableGarrisons": false,
 	"GarrisonBuildingArmorFactor": 0.5,
@@ -521,28 +535,34 @@ settings in the mod.json:
 
 `commandAbilities_AI` - **Format Change in v2.0.2.8** - Changed to similar format as `BattleArmorFactionAssociations`. Can be used to give AI strafe and spawn (Beacon) abilities. Obviously the StrafeWaves field only applies to strafes, and will do nothing for beacons. MaxUsersAddedPerContract limit is based on only *this* ability, and is separate *per faction*. I.e, in a 3-way contract with you, ClanGhostBear and ClanWolf, both Ghost Bear and Wolf could get 3 units each with AbilityDefCMD_Strafe_AI.
 
+**new in v3.1.1.0** 
+"ContractBlacklist" defines contract types and/or individual contract IDs for which this specific ability cannot be added to the AI
 
 ```
 
 "commandAbilities_AI": [
-	{
-		"AbilityDefID": "AbilityDefCMD_Strafe_AI",
-		"FactionIDs": [
-			"ClanGhostBear",
-			"ClanWolf"
-		],
-		"AddChance": 0.5,
-		"DiffMod": 0.05,
-		"MaxUsersAddedPerContract": 3,
-		"AvailableBeacons": [
-			{
-				"UnitDefID": "vehicledef_MECHBUSTER_AERO",
-				"Weight": 10,
-				"StrafeWaves": 3
-			}
-		]
-	}
-],
+		{
+			"ContractBlacklist": [
+				"DuoDuel",
+				"CaptureBase_AbandonedFactory"
+			],
+			"AbilityDefID": "AbilityDefCMD_Strafe_AI",
+			"FactionIDs": [
+				"ClanGhostBear",
+				"ClanWolf"
+			],
+			"AddChance": 0.0,
+			"DiffMod": 0.0,
+			"MaxUsersAddedPerContract": 0,
+			"AvailableBeacons": [
+				{
+					"UnitDefID": "vehicledef_MECHBUSTER_AERO",
+					"Weight": 10,
+					"StrafeWaves": 3
+				}
+			]
+		}
+	]
 
 ```
 	
@@ -651,9 +671,28 @@ Using the following settings, ClanGhostBear and ClanWolf have baseline 30% chanc
 
 `AI_BattleArmorExcludedContractIDs` - List of contract IDs where AI is not allowed to spawn mounted Battle Armor
 	
-`BeaconExcludedContractTypes` - List of ContractTypes where deployment or strafing beacons are not allowed to be used
+**deprecated v3.1.1.0*, replaced by BeaconExclusionConfig*	
+~~`BeaconExcludedContractTypes` - List of ContractTypes where deployment or strafing beacons are not allowed to be used~~
+~~`BeaconExcludedContractIDs` - List of contract IDs where deployment or strafing beacons are not allowed to be used~~
 
-`BeaconExcludedContractIDs` - List of contract IDs where deployment or strafing beacons are not allowed to be used
+`BeaconExclusionConfig` - Dictionary of form <string, config>, where the key refers to either a ContractType name or specific contract ID. See below for example. Note that this configuration works in conjunction with `commandAbilities_AI` exclusions described later. Those exclusions simply prevent those specific abilities being added to AI procedurally at contract start. This setting will prevent such abilities from being used even if added. It is also necessary to prevent AI usage of abilities granted via equipment or pilots.
+
+```
+	"BeaconExclusionConfig": {
+		"DuoDuel": {
+			"ExcludedPlayerSpawn": true,
+			"ExcludedPlayerStrafe": true,
+			"ExcludedAISpawn": true,
+			"ExcludedAIStrafe": true
+		},
+		"CaptureBase_AbandonedFactory": {
+			"ExcludedPlayerSpawn": false,
+			"ExcludedPlayerStrafe": true,
+			"ExcludedAISpawn": false,
+			"ExcludedAIStrafe": false
+		}
+	},
+```
 
 **new/changed in 3.0.0.0**
 	

@@ -12,8 +12,11 @@ using CustomUnits;
 using HBS;
 using IRTweaks.Modules.Combat;
 using Localize;
+using Steamworks;
 using StrategicOperations.Framework;
 using UnityEngine;
+using static Localize.Text;
+using static MonoMod.Cil.RuntimeILReferenceBag.FastDelegateInvokers;
 using static StrategicOperations.Framework.Classes;
 
 namespace StrategicOperations.Patches
@@ -940,14 +943,41 @@ namespace StrategicOperations.Patches
             public static void Postfix(Ability __instance, ref bool __result)
             {
                 if (UnityGameInstance.BattleTechGame.Combat.ActiveContract.ContractTypeValue.IsSkirmish) return;
-                if ((__instance.Def.specialRules == AbilityDef.SpecialRules.Strafe ||
-                     __instance.Def.specialRules == AbilityDef.SpecialRules.SpawnTurret) &&
-                    (ModInit.modSettings.BeaconExcludedContractIDs.Contains(
-                         __instance.Combat.ActiveContract.Override.ID) ||
-                     ModInit.modSettings.BeaconExcludedContractTypes.Contains(__instance.Combat.ActiveContract
-                         .ContractTypeValue.Name)))
+
+                if (!__instance.TryFetchParentFromAbility(out var parent)) return;
+                if (ModInit.modSettings.BeaconExclusionConfig.TryGetValue(__instance.Combat.ActiveContract.ContractTypeValue.Name, out var configType))
                 {
-                    __result = false;
+                    if (parent.team.IsLocalPlayer)
+                    {
+                        if (__instance.Def.specialRules == AbilityDef.SpecialRules.Strafe)
+                            __result = !configType.ExcludedPlayerStrafe;
+                        else if (__instance.Def.specialRules == AbilityDef.SpecialRules.SpawnTurret)
+                            __result = !configType.ExcludedPlayerSpawn;
+                    }
+                    else
+                    {
+                        if (__instance.Def.specialRules == AbilityDef.SpecialRules.Strafe)
+                            __result = !configType.ExcludedAIStrafe;
+                        else if (__instance.Def.specialRules == AbilityDef.SpecialRules.SpawnTurret)
+                            __result = !configType.ExcludedAISpawn;
+                    }
+                }
+                else if (ModInit.modSettings.BeaconExclusionConfig.TryGetValue(__instance.Combat.ActiveContract.Override.ID, out var configID))
+                {
+                    if (parent.team.IsLocalPlayer)
+                    {
+                        if (__instance.Def.specialRules == AbilityDef.SpecialRules.Strafe)
+                            __result = !configID.ExcludedPlayerStrafe;
+                        else if (__instance.Def.specialRules == AbilityDef.SpecialRules.SpawnTurret)
+                            __result = !configID.ExcludedPlayerSpawn;
+                    }
+                    else
+                    {
+                        if (__instance.Def.specialRules == AbilityDef.SpecialRules.Strafe)
+                            __result = !configID.ExcludedAIStrafe;
+                        else if (__instance.Def.specialRules == AbilityDef.SpecialRules.SpawnTurret)
+                            __result = !configID.ExcludedAISpawn;
+                    }
                 }
             }
         }
@@ -1138,7 +1168,28 @@ namespace StrategicOperations.Patches
 
                 AbilityDef.SpecialRules specialRules = __instance.Def.specialRules;
 
-                if ((specialRules == AbilityDef.SpecialRules.Strafe || specialRules == AbilityDef.SpecialRules.SpawnTurret) && (ModInit.modSettings.BeaconExcludedContractIDs.Contains(__instance.Combat.ActiveContract.Override.ID) || ModInit.modSettings.BeaconExcludedContractTypes.Contains(__instance.Combat.ActiveContract.ContractTypeValue.Name)))
+
+                var showPopup = false;
+                if (ModInit.modSettings.BeaconExclusionConfig.TryGetValue(creator.Combat.ActiveContract.ContractTypeValue.Name, out var configType))
+                {
+                    if (creator.team.IsLocalPlayer)
+                    {
+                        if (specialRules == AbilityDef.SpecialRules.Strafe && configType.ExcludedPlayerStrafe) showPopup = true;
+                        else if (specialRules == AbilityDef.SpecialRules.SpawnTurret && configType.ExcludedPlayerSpawn) showPopup = true;
+                    }
+                }
+
+                else if (ModInit.modSettings.BeaconExclusionConfig.TryGetValue(creator.Combat.ActiveContract.Override.ID, out var configID))
+                {
+                    if (creator.team.IsLocalPlayer)
+                    {
+                        if (specialRules == AbilityDef.SpecialRules.Strafe && configID.ExcludedPlayerStrafe) showPopup = true;
+                        else if (specialRules == AbilityDef.SpecialRules.SpawnTurret && configID.ExcludedPlayerSpawn) showPopup = true;
+                    }
+                }
+
+                //if ((specialRules == AbilityDef.SpecialRules.Strafe || specialRules == AbilityDef.SpecialRules.SpawnTurret) && (ModInit.modSettings.BeaconExcludedContractIDs.Contains(__instance.Combat.ActiveContract.Override.ID) || ModInit.modSettings.BeaconExcludedContractTypes.Contains(__instance.Combat.ActiveContract.ContractTypeValue.Name)))
+                if (showPopup)
                 {
                     var popup = GenericPopupBuilder.Create(GenericPopupType.Info, $"Ability {__instance.Def.Description.Name} is unavailable during this contract!");
                     popup.AddButton("Confirm", null, true, null);
@@ -2860,12 +2911,37 @@ namespace StrategicOperations.Patches
                 }
 
                 var specialRules = ability.Def.specialRules;
-                if ((specialRules == AbilityDef.SpecialRules.Strafe || specialRules == AbilityDef.SpecialRules.SpawnTurret) &&
-                    (ModInit.modSettings.BeaconExcludedContractIDs.Contains(ability.Combat.ActiveContract.Override.ID) || ModInit.modSettings.BeaconExcludedContractTypes.Contains(ability.Combat.ActiveContract
-                         .ContractTypeValue.Name)))
+
+
+
+                if (ModInit.modSettings.BeaconExclusionConfig.TryGetValue(actor.Combat.ActiveContract.ContractTypeValue.Name, out var configType))
                 {
-                    button.DisableButton();
+                    if (actor.team.IsLocalPlayer)
+                    {
+                        if (specialRules == AbilityDef.SpecialRules.Strafe && configType.ExcludedPlayerStrafe)
+                            button.DisableButton();
+                        else if (specialRules == AbilityDef.SpecialRules.SpawnTurret && configType.ExcludedPlayerSpawn)
+                            button.DisableButton();
+                    }
                 }
+
+                else if (ModInit.modSettings.BeaconExclusionConfig.TryGetValue(actor.Combat.ActiveContract.Override.ID, out var configID))
+                {
+                    if (actor.team.IsLocalPlayer)
+                    {
+                        if (specialRules == AbilityDef.SpecialRules.Strafe && configID.ExcludedPlayerStrafe)
+                            button.DisableButton();
+                        else if (specialRules == AbilityDef.SpecialRules.SpawnTurret && configID.ExcludedPlayerSpawn)
+                            button.DisableButton();
+                    }
+                }
+
+                //if ((specialRules == AbilityDef.SpecialRules.Strafe || specialRules == AbilityDef.SpecialRules.SpawnTurret) &&
+                //    (ModInit.modSettings.BeaconExcludedContractIDs.Contains(ability.Combat.ActiveContract.Override.ID) || ModInit.modSettings.BeaconExcludedContractTypes.Contains(ability.Combat.ActiveContract
+                //         .ContractTypeValue.Name)))
+               // {
+               //     button.DisableButton();
+               // }
 
                 if (actor.GetAbilityUsedFiring())
                 {

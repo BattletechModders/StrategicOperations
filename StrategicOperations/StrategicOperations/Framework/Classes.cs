@@ -248,6 +248,14 @@ namespace StrategicOperations.Framework
     {
         public class ConfigOptions
         {
+            public class BeaconExclusionConfig
+            {
+                public bool ExcludedPlayerSpawn;
+                public bool ExcludedPlayerStrafe;
+                public bool ExcludedAISpawn;
+                public bool ExcludedAIStrafe;
+
+            }
             public enum BA_TargetEffectType
             {
                 MOUNT_INT,
@@ -288,6 +296,7 @@ namespace StrategicOperations.Framework
 
             public class AI_FactionCommandAbilitySetting
             {
+                public List<string> ContractBlacklist = new List<string>();
                 public string AbilityDefID = "";
                 public List<string> FactionIDs = new List<string>();
                 public float AddChance = 0f;

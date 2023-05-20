@@ -133,9 +133,10 @@ namespace StrategicOperations
         public List<string> AI_BattleArmorExcludedContractTypes = new List<string>();
         public List<string> AI_BattleArmorExcludedContractIDs = new List<string>();
 
-        public List<string> BeaconExcludedContractTypes = new List<string>();
-        public List<string> BeaconExcludedContractIDs = new List<string>();
-
+        public Dictionary<string, ConfigOptions.BeaconExclusionConfig> BeaconExclusionConfig =
+            new Dictionary<string, ConfigOptions.BeaconExclusionConfig>();
+        //public List<string> BeaconExcludedContractTypes = new List<string>();
+        //public List<string> BeaconExcludedContractIDs = new List<string>();
         public bool UsingMechAffinityForSwarmBreach = false;
 
         public bool DisableGarrisons = false;
