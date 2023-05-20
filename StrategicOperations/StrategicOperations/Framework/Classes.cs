@@ -250,10 +250,10 @@ namespace StrategicOperations.Framework
         {
             public class BeaconExclusionConfig
             {
-                public bool ExcludedPlayerSpawn;
-                public bool ExcludedPlayerStrafe;
-                public bool ExcludedAISpawn;
-                public bool ExcludedAIStrafe;
+                public bool ExcludedPlayerSpawn = true;
+                public bool ExcludedPlayerStrafe = true;
+                public bool ExcludedAISpawn = true;
+                public bool ExcludedAIStrafe = true;
 
             }
             public enum BA_TargetEffectType
