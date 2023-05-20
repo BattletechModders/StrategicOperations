@@ -915,17 +915,36 @@ The configurable parameters of the above:
 
 Starting in 2.0.0.0, the AI can be given command abilities (spawn and strafe) just like the player. To reiterate, the following setting controls when/if the AI will be given a command ability. Any given AI unit can only receive a single command ability (i.e, a spawn or a strafe, but not both).
 
-`commandAbilities_AI` - **Format Change in v2.0.0.3** - dictionary of command abilities and probabilities the AI can get per-faction (dictionary "key" is FactionValue.Name, e.g. "ClanGhostBear" or "Liao"), as well as the probability and difficulty modifier to that probability that a given AI unit will be given the corresponding ability. e.g for the following setting, Clan Ghost Bear units will have a 2% + 0.5% per-difficulty chance of being given `AbilityDefCMD_Strafe_AI` at contract start. Currently only the Target Team will recieve command abilities (their allies will not). If a faction is <i>not</i> listed in this setting, they will not be given any command abilities.
+`commandAbilities_AI` - **Format Change in v2.0.2.8** - Changed to similar format as `BattleArmorFactionAssociations`. Can be used to give AI strafe and spawn (Beacon) abilities. Obviously the StrafeWaves field only applies to strafes, and will do nothing for beacons. MaxUsersAddedPerContract limit is based on only *this* ability, and is separate *per faction*. I.e, in a 3-way contract with you, ClanGhostBear and ClanWolf, both Ghost Bear and Wolf could get 3 units each with AbilityDefCMD_Strafe_AI.
+
+**new in v3.1.1.0** 
+"ContractBlacklist" defines contract types and/or individual contract IDs for which this specific ability cannot be added to the AI
 
 ```
 
-"ClanGhostBear": [
-			{
-				"AbilityID": "AbilityDefCMD_Strafe_AI",
-				"AddChance": 0.02,
-				"DiffMod": 0.05
-			}
-		]
+"commandAbilities_AI": [
+		{
+			"ContractBlacklist": [
+				"DuoDuel",
+				"CaptureBase_AbandonedFactory"
+			],
+			"AbilityDefID": "AbilityDefCMD_Strafe_AI",
+			"FactionIDs": [
+				"ClanGhostBear",
+				"ClanWolf"
+			],
+			"AddChance": 0.0,
+			"DiffMod": 0.0,
+			"MaxUsersAddedPerContract": 0,
+			"AvailableBeacons": [
+				{
+					"UnitDefID": "vehicledef_MECHBUSTER_AERO",
+					"Weight": 10,
+					"StrafeWaves": 3
+				}
+			]
+		}
+	]
 
 ```
 
