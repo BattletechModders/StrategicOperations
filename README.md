@@ -673,6 +673,7 @@ Using the following settings, ClanGhostBear and ClanWolf have baseline 30% chanc
 	
 **deprecated v3.1.1.0*, replaced by BeaconExclusionConfig*	
 ~~`BeaconExcludedContractTypes` - List of ContractTypes where deployment or strafing beacons are not allowed to be used~~
+
 ~~`BeaconExcludedContractIDs` - List of contract IDs where deployment or strafing beacons are not allowed to be used~~
 
 `BeaconExclusionConfig` - Dictionary of form <string, config>, where the key refers to either a ContractType name or specific contract ID. See below for example. Note that this configuration works in conjunction with `commandAbilities_AI` exclusions described later. Those exclusions simply prevent those specific abilities being added to AI procedurally at contract start. This setting will prevent such abilities from being used even if added. It is also necessary to prevent AI usage of abilities granted via equipment or pilots.
