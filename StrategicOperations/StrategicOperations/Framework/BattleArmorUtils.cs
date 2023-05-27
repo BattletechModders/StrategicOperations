@@ -394,6 +394,12 @@ namespace StrategicOperations.Framework
                         tracker.IsSquadInternal = true;
                         // try and set firing arc to 360?
                         battleArmor.FiringArc(360f);
+                        //refresh firing button state to make sure firing ports are respected
+                        var hud = CameraControl.Instance.HUD;
+                        if (battleArmor.team.IsLocalPlayer && battleArmor == hud.selectedUnit)
+                        {
+                            CameraControl.Instance.HUD.MechWarriorTray.FireButton.DisableButton();
+                        }
                     }
 
                     foreach (var BA_Effect in ModState.BA_MountSwarmEffects)

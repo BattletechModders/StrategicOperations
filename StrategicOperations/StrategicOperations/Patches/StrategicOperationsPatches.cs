@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using Abilifier.Framework;
 using Abilifier.Patches;
 using BattleTech;
 using BattleTech.Data;
@@ -943,7 +944,7 @@ namespace StrategicOperations.Patches
             public static void Postfix(Ability __instance, ref bool __result)
             {
                 if (UnityGameInstance.BattleTechGame.Combat.ActiveContract.ContractTypeValue.IsSkirmish) return;
-
+                if (!__result) return;
                 if (!__instance.TryFetchParentFromAbility(out var parent)) return;
                 if (ModInit.modSettings.BeaconExclusionConfig.TryGetValue(__instance.Combat.ActiveContract.ContractTypeValue.Name, out var configType))
                 {

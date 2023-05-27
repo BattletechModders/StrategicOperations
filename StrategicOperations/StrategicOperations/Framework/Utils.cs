@@ -1685,25 +1685,7 @@ namespace StrategicOperations.Framework
             }
         }
 
-        public static bool TryFetchParentFromAbility(this Ability ability, out AbstractActor parent)
-        {
-            parent = null;
-            if (ability?.parentComponent?.parent != null)
-            {
-                ModInit.modLog?.Info?.Write($"[FetchParentFromAbility] found parent actor {ability?.parentComponent?.parent.DisplayName} {ability?.parentComponent?.parent.GUID} for ability {ability.Def.Id}");
-                parent = ability?.parentComponent?.parent;
-                return true;
-
-            }
-            else if (ability?.parentComponent?.GUID != null)
-            {
-                var quidFromAbilifier = ability.parentComponent.GUID.Substring(20);
-                parent = ability.Combat.FindActorByGUID(quidFromAbilifier);
-                ModInit.modLog?.Info?.Write($"[FetchParentFromAbility] found component GUID {ability.parentComponent.GUID} for ability {ability.Def.Id}, and fetched actor from CGS");
-                if (parent != null) return true;
-            }
-            return false;
-        }
+        
 
         //public static MethodInfo _activateSpawnTurretMethod = AccessTools.Method(typeof(Ability), "ActivateSpawnTurret");
         //public static MethodInfo _activateStrafeMethod = AccessTools.Method(typeof(Ability), "ActivateStrafe");
