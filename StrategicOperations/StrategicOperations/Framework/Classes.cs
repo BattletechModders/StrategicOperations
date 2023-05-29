@@ -65,7 +65,7 @@ namespace StrategicOperations.Framework
                     float angle, MoveType moveType, PathNode pathNode)
                 {
                     ModInit.modLog?.Trace?.Write(Name);
-                    if (!unit.HasMountedUnits() && !unit.canSwarm())
+                    if (!unit.HasMountedUnits() && !unit.CanSwarm())
                     {
                         IgnoreFactorNormalization = false;
                         return 0f;
@@ -174,7 +174,7 @@ namespace StrategicOperations.Framework
                 public override float EvaluateInfluenceMapFactorAtPositionWithHostile(AbstractActor unit, Vector3 position, float angle, MoveType moveType, ICombatant hostileUnit)
                 {
                     ModInit.modLog?.Trace?.Write(Name);
-                    if (!unit.HasMountedUnits() && !unit.canSwarm())
+                    if (!unit.HasMountedUnits() && !unit.CanSwarm())
                     {
                         IgnoreFactorNormalization = false;
                         return 0f;
@@ -436,7 +436,7 @@ namespace StrategicOperations.Framework
                                 }
                             }
 
-                            if (!squad2.IsSwarmingUnit() && squad2.canSwarm())
+                            if (!squad2.IsSwarmingUnit() && squad2.CanSwarm())
                             {
                                 squad2.ProcessSwarmEnemy(targetActor);
                             }

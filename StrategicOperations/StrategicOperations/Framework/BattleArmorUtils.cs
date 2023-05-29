@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 using BattleTech;
 using BattleTech.Data;
 using BattleTech.UI;
@@ -11,6 +12,7 @@ using CustomUnits;
 using HBS.Math;
 using Localize;
 using UnityEngine;
+using static MonoMod.Cil.RuntimeILReferenceBag.FastDelegateInvokers;
 using Random = UnityEngine.Random;
 
 namespace StrategicOperations.Framework
@@ -351,6 +353,7 @@ namespace StrategicOperations.Framework
         public static void MountBattleArmorToChassis(this AbstractActor carrier, AbstractActor battleArmor, bool shrinkRep, bool isFriendly)
         {
             battleArmor.TeleportActor(carrier.CurrentPosition);
+            var isPlayer = battleArmor.team.IsLocalPlayer;
             if (battleArmor is Mech battleArmorAsMech)
             {
                 //add irbtu immobile tag?
@@ -385,18 +388,18 @@ namespace StrategicOperations.Framework
                 {
                     ModState.PositionLockMount.Add(battleArmor.GUID, carrier.GUID);
 
-                    var internalCap = carrier.getInternalBACap();
-                    var currentInternalSquads = carrier.getInternalBASquads();
+                    var internalCap = carrier.GetInternalBACap();
+                    var currentInternalSquads = carrier.GetInternalBASquads();
                     if (currentInternalSquads < internalCap)
                     {
                         ModInit.modLog?.Info?.Write($"[MountBattleArmorToChassis] - target unit {carrier.DisplayName} has internal BA capacity of {internalCap}. Currently used: {currentInternalSquads}, mounting squad internally.");
-                        carrier.modifyInternalBASquads(1);
+                        carrier.ModifyInternalBASquads(1);
                         tracker.IsSquadInternal = true;
                         // try and set firing arc to 360?
                         battleArmor.FiringArc(360f);
                         //refresh firing button state to make sure firing ports are respected
                         var hud = CameraControl.Instance.HUD;
-                        if (battleArmor.team.IsLocalPlayer && battleArmor == hud.selectedUnit)
+                        if (isPlayer && battleArmor == hud.selectedUnit && !carrier.HasFiringPorts())
                         {
                             CameraControl.Instance.HUD.MechWarriorTray.FireButton.DisableButton();
                         }
@@ -436,20 +439,20 @@ namespace StrategicOperations.Framework
                     }
 
                     if (tracker.IsSquadInternal) return;
-                    carrier.setHasExternalMountedBattleArmor(true);
+                    carrier.SetHasExternalMountedBattleArmor(true);
                 }
                 else
                 {
                     ModState.PositionLockSwarm.Add(battleArmor.GUID, carrier.GUID);
                 }
 
-                foreach (ChassisLocations BattleArmorChassisLoc in Enum.GetValues(typeof(ChassisLocations)))
+                foreach (ChassisLocations battleArmorChassisLoc in Enum.GetValues(typeof(ChassisLocations)))
                 {
-                    var locationDef = battleArmorAsMech.MechDef.Chassis.GetLocationDef(BattleArmorChassisLoc);
+                    var locationDef = battleArmorAsMech.MechDef.Chassis.GetLocationDef(battleArmorChassisLoc);
 
-                    var statname = battleArmorAsMech.GetStringForStructureDamageLevel(BattleArmorChassisLoc);
+                    var statname = battleArmorAsMech.GetStringForStructureDamageLevel(battleArmorChassisLoc);
                     if (string.IsNullOrEmpty(statname) || !battleArmorAsMech.StatCollection.ContainsStatistic(statname)) continue;
-                    if (battleArmorAsMech.GetLocationDamageLevel(BattleArmorChassisLoc) == LocationDamageLevel.Destroyed) continue; // why did i do this?
+                    if (battleArmorAsMech.GetLocationDamageLevel(battleArmorChassisLoc) == LocationDamageLevel.Destroyed) continue; // why did i do this?
 
                     if (locationDef.MaxArmor > 0f || locationDef.InternalStructure > 1f)
                     {
@@ -468,10 +471,10 @@ namespace StrategicOperations.Framework
                                     var chassisLocSwarm =
                                         MechStructureRules.GetChassisLocationFromArmorLocation(tgtMechLoc);
                                     if (mech.GetLocationDamageLevel(chassisLocSwarm) > LocationDamageLevel.Penalized) continue;
-                                    if (!tracker.BA_MountedLocations.ContainsKey((int)BattleArmorChassisLoc))
+                                    if (!tracker.BA_MountedLocations.ContainsKey((int)battleArmorChassisLoc))
                                     {
-                                        ModInit.modLog?.Info?.Write($"[MountBattleArmorToChassis] - mounting BA {BattleArmorChassisLoc} to enemy mech location {tgtMechLoc}.");
-                                        tracker.BA_MountedLocations.Add((int)BattleArmorChassisLoc, (int)tgtMechLoc);
+                                        ModInit.modLog?.Info?.Write($"[MountBattleArmorToChassis] - mounting BA {battleArmorChassisLoc} to enemy mech location {tgtMechLoc}.");
+                                        tracker.BA_MountedLocations.Add((int)battleArmorChassisLoc, (int)tgtMechLoc);
                                         break;
                                     }
                                     hasLoopedOnce = true;
@@ -491,10 +494,10 @@ namespace StrategicOperations.Framework
                                     var chassisLocSwarm =
                                         MechStructureRules.GetChassisLocationFromArmorLocation(tgtMechLoc);
                                     if (mech.GetLocationDamageLevel(chassisLocSwarm) > LocationDamageLevel.Penalized) continue;
-                                    if (!tracker.BA_MountedLocations.ContainsKey((int)BattleArmorChassisLoc))
+                                    if (!tracker.BA_MountedLocations.ContainsKey((int)battleArmorChassisLoc))
                                     {
-                                        ModInit.modLog?.Info?.Write($"[MountBattleArmorToChassis] - mounting BA {BattleArmorChassisLoc} to friendly mech location {tgtMechLoc}.");
-                                        tracker.BA_MountedLocations.Add((int)BattleArmorChassisLoc, (int)tgtMechLoc);
+                                        ModInit.modLog?.Info?.Write($"[MountBattleArmorToChassis] - mounting BA {battleArmorChassisLoc} to friendly mech location {tgtMechLoc}.");
+                                        tracker.BA_MountedLocations.Add((int)battleArmorChassisLoc, (int)tgtMechLoc);
                                         break;
                                     }
                                     hasLoopedOnce = true;
@@ -514,10 +517,10 @@ namespace StrategicOperations.Framework
                                 }
 
                                 if (vehicle.GetLocationDamageLevel(tgtVicLoc) > LocationDamageLevel.Penalized) continue;
-                                if (!tracker.BA_MountedLocations.ContainsKey((int)BattleArmorChassisLoc))
+                                if (!tracker.BA_MountedLocations.ContainsKey((int)battleArmorChassisLoc))
                                 {
-                                    ModInit.modLog?.Info?.Write($"[MountBattleArmorToChassis] - mounting BA {BattleArmorChassisLoc} to vehicle location {tgtVicLoc}.");
-                                    tracker.BA_MountedLocations.Add((int)BattleArmorChassisLoc, (int)tgtVicLoc);
+                                    ModInit.modLog?.Info?.Write($"[MountBattleArmorToChassis] - mounting BA {battleArmorChassisLoc} to vehicle location {tgtVicLoc}.");
+                                    tracker.BA_MountedLocations.Add((int)battleArmorChassisLoc, (int)tgtVicLoc);
                                     break;
                                 }
                                 hasLoopedOnce = true;
@@ -526,8 +529,8 @@ namespace StrategicOperations.Framework
                         }
                         else if (carrier is Turret turret)
                         {
-                            ModInit.modLog?.Info?.Write($"[MountBattleArmorToChassis] - mounting BA {BattleArmorChassisLoc} to turret location {BuildingLocation.Structure}.");
-                            tracker.BA_MountedLocations.Add((int)BattleArmorChassisLoc, (int)BuildingLocation.Structure);
+                            ModInit.modLog?.Info?.Write($"[MountBattleArmorToChassis] - mounting BA {battleArmorChassisLoc} to turret location {BuildingLocation.Structure}.");
+                            tracker.BA_MountedLocations.Add((int)battleArmorChassisLoc, (int)BuildingLocation.Structure);
                         }
                         else
                         {
@@ -538,96 +541,96 @@ namespace StrategicOperations.Framework
             }
         }
 
-        public static bool hasGarrisonedUnits(this BattleTech.Building building)
+        public static bool HasGarrisonedUnits(this BattleTech.Building building)
         {
             return ModState.PositionLockGarrison.Any(x=>x.Value.BuildingGUID == building.GUID);
         }
-        public static bool isGarrisonedInTargetBuilding(this AbstractActor actor, BattleTech.Building building)
+        public static bool IsGarrisonedInTargetBuilding(this AbstractActor actor, BattleTech.Building building)
         {
             return ModState.PositionLockGarrison.ContainsKey(actor.GUID) && ModState.PositionLockGarrison[actor.GUID].BuildingGUID == building.GUID;
         }
-        public static bool isGarrisoned(this AbstractActor actor)
+        public static bool IsGarrisoned(this AbstractActor actor)
         {
             return ModState.PositionLockGarrison.ContainsKey(actor.GUID);
         }
 
-        public static float getMovementDeSwarmMinChance(this AbstractActor actor)
+        public static float GetMovementDeSwarmMinChance(this AbstractActor actor)
         {
             return actor.StatCollection.GetValue<float>("MovementDeSwarmMinChance");
         }
-        public static float getMovementDeSwarmMaxChance(this AbstractActor actor)
+        public static float GetMovementDeSwarmMaxChance(this AbstractActor actor)
         {
             return actor.StatCollection.GetValue<float>("MovementDeSwarmMaxChance");
         }
-        public static float getMovementDeSwarmEvasivePipsFactor(this AbstractActor actor)
+        public static float GetMovementDeSwarmEvasivePipsFactor(this AbstractActor actor)
         {
             return actor.StatCollection.GetValue<float>("MovementDeSwarmEvasivePipsFactor");
         }
-        public static float getMovementDeSwarmEvasiveJumpMovementMultiplier(this AbstractActor actor)
+        public static float GetMovementDeSwarmEvasiveJumpMovementMultiplier(this AbstractActor actor)
         {
             return actor.StatCollection.GetValue<float>("MovementDeSwarmEvasiveJumpMovementMultiplier");
         }
 
-        public static bool hasFiringPorts(this AbstractActor actor)
+        public static bool HasFiringPorts(this AbstractActor actor)
         {
             return actor.StatCollection.GetValue<bool>("HasFiringPorts");
         }
 
-        public static bool canSwarm(this AbstractActor actor)
+        public static bool CanSwarm(this AbstractActor actor)
         {
             if (actor.GetStaticUnitTags().Contains(ModInit.modSettings.DisableAISwarmTag) && actor.team is AITeam) return false;
             return actor.StatCollection.GetValue<bool>("CanSwarm");
         }
 
-        public static bool canRideInternalOnly(this AbstractActor actor)
+        public static bool CanRideInternalOnly(this AbstractActor actor)
         {
             return actor.StatCollection.GetValue<bool>("BattleArmorInternalMountsOnly");
         }
 
-        public static int getInternalBACap(this AbstractActor actor)
+        public static int GetInternalBACap(this AbstractActor actor)
         {
             return actor.StatCollection.GetValue<int>("InternalBattleArmorSquadCap");
         }
-        public static int getInternalBASquads(this AbstractActor actor)
+        public static int GetInternalBASquads(this AbstractActor actor)
         {
             return actor.StatCollection.GetValue<int>("InternalBattleArmorSquads");
         }
 
-        public static void modifyInternalBASquads(this AbstractActor actor, int value)
+        public static void ModifyInternalBASquads(this AbstractActor actor, int value)
         {
             actor.StatCollection.ModifyStat("BAMountDismount", -1, "InternalBattleArmorSquads", StatCollection.StatOperation.Int_Add, value);
         }
 
-        public static int getAvailableInternalBASpace(this AbstractActor actor)
+        public static int GetAvailableInternalBASpace(this AbstractActor actor)
         {
             return actor.StatCollection.GetValue<int>("InternalBattleArmorSquadCap") - actor.StatCollection.GetValue<int>("InternalBattleArmorSquads");
         }
 
-        public static bool getHasBattleArmorMounts(this AbstractActor actor)
+        public static bool GetHasBattleArmorMounts(this AbstractActor actor)
         {
             return actor.StatCollection.GetValue<bool>("HasBattleArmorMounts");
         }
 
-        public static bool getHasExternalMountedBattleArmor(this AbstractActor actor)
+        public static bool GetHasExternalMountedBattleArmor(this AbstractActor actor)
         {
             return actor.StatCollection.GetValue<bool>("HasExternalMountedBattleArmor");
         }
 
-        public static void setHasExternalMountedBattleArmor(this AbstractActor actor, bool value)
+        public static void SetHasExternalMountedBattleArmor(this AbstractActor actor, bool value)
         {
             actor.StatCollection.ModifyStat("BAMountDismount", -1, "HasExternalMountedBattleArmor", StatCollection.StatOperation.Set, value);
         }
 
-        public static bool getIsBattleArmorHandsy(this AbstractActor actor)
+        public static bool GetIsBattleArmorHandsy(this AbstractActor actor)
         {
             return actor.StatCollection.GetValue<bool>("IsBattleArmorHandsy");
         }
 
-        public static bool getIsUnMountable(this AbstractActor actor)
+        public static bool GetIsUnMountable(this AbstractActor actor)
         {
             return actor.StatCollection.GetValue<bool>("IsUnmountableBattleArmor");
         }
-        public static bool getIsUnSwarmable(this AbstractActor actor)
+        public static bool GetIsUnSwarmable(this AbstractActor actor)
         {
             return (actor is TrooperSquad || actor.StatCollection.GetValue<bool>("IsUnswarmableBattleArmor"));
         }
@@ -706,12 +709,12 @@ namespace StrategicOperations.Framework
                     {
                         if (ModState.BADamageTrackers[actor.GUID].IsSquadInternal)
                         {
-                            carrier.modifyInternalBASquads(-1);
+                            carrier.ModifyInternalBASquads(-1);
                             ModInit.modLog?.Info?.Write(
-                                $"[DismountBA] Dismounted {actor.DisplayName} from internal capacity. Capacity is now {carrier.getAvailableInternalBASpace()}.");
+                                $"[DismountBA] Dismounted {actor.DisplayName} from internal capacity. Capacity is now {carrier.GetAvailableInternalBASpace()}.");
                             squad.FiringArc(90f); //reset to 90?
                         }
-                        else carrier.setHasExternalMountedBattleArmor(false);
+                        else carrier.SetHasExternalMountedBattleArmor(false);
                     }
 
                     ModState.BADamageTrackers.Remove(actor.GUID);
@@ -765,7 +768,12 @@ namespace StrategicOperations.Framework
                 }
                 point.y = actor.Combat.MapMetaData.GetLerpedHeightAt(point, false);
                 actor.TeleportActor(point);
-
+                if (actor is CustomMech customMech)
+                {
+                    customMech.custGameRep.j_Root.localRotation = Quaternion.identity;
+                }
+                actor.GameRep.thisTransform.rotation = carrier.GameRep.thisTransform.rotation;
+                actor.CurrentRotation = carrier.CurrentRotation;
                 if (!calledFromHandleDeath && !calledFromDeswarm)
                 {
                     ModInit.modLog?.Info?.Write($"[DismountBA] Not called from HandleDeath or Deswarm, resetting pathing.");
@@ -1186,7 +1194,7 @@ namespace StrategicOperations.Framework
         public static void ProcessSwarmEnemy(this Mech creatorMech, AbstractActor targetActor)
         {
             var creatorActor = creatorMech as AbstractActor;
-            if (!creatorMech.canSwarm() && creatorMech.team.IsLocalPlayer)
+            if (!creatorMech.CanSwarm() && creatorMech.team.IsLocalPlayer)
             {
                 var popup = GenericPopupBuilder.Create(GenericPopupType.Info, $"Unit {creatorMech.DisplayName} is unable to make swarming attacks!");
                 popup.AddButton("Confirm", null, true, null);

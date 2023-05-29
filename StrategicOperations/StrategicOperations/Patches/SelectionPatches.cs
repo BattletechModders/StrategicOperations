@@ -218,7 +218,7 @@ namespace StrategicOperations.Patches
                 if (this.FromButton.Ability.Def.Id == ModInit.modSettings.BattleArmorMountAndSwarmID)
                 {
                     if (!SelectedActor.IsMountedUnit() && !SelectedActor.IsSwarmingUnit() &&
-                        !SelectedActor.isGarrisoned())
+                        !SelectedActor.IsGarrisoned())
                     {
                         var mountTargets = SelectedActor.GetAllFriendliesWithinRange(maxRange);
                         var swarmTargets = SelectedActor.GetAllEnemiesWithinRange(maxRange);
@@ -248,7 +248,7 @@ namespace StrategicOperations.Patches
                 else if (this.FromButton.Ability.Def.Id == ModInit.modSettings.ResupplyConfig.ResupplyAbilityID)
                 {
                     if (!SelectedActor.IsMountedUnit() && !SelectedActor.IsSwarmingUnit() &&
-                        !SelectedActor.isGarrisoned())
+                        !SelectedActor.IsGarrisoned())
                     {
                         var resupplyTargets = SelectedActor.GetAllFriendliesWithinRange(1000f);
 
@@ -322,7 +322,7 @@ namespace StrategicOperations.Patches
                     var carrier = Combat.FindCombatantByGUID(ModState.PositionLockSwarm[SelectedActor.GUID]);
                     this.ProcessClickedCombatant(carrier);
                 }
-                else if (SelectedActor.isGarrisoned())
+                else if (SelectedActor.IsGarrisoned())
                 {
                     var carrier = Combat.FindCombatantByGUID(ModState.PositionLockGarrison[SelectedActor.GUID].BuildingGUID);
                     this.ProcessClickedCombatant(carrier);
@@ -366,8 +366,8 @@ namespace StrategicOperations.Patches
                     {
                         if (ModInit.modSettings.DisableGarrisons) return false;
                         if (!Combat.EncounterLayerData.IsInEncounterBounds(building.CurrentPosition)) return false;
-                        if (SelectedActor.isGarrisonedInTargetBuilding(building)) return true;
-                        if (building.hasGarrisonedUnits()) return false;
+                        if (SelectedActor.IsGarrisonedInTargetBuilding(building)) return true;
+                        if (building.HasGarrisonedUnits()) return false;
                         if (building.team.IsNeutral(SelectedActor.team) || building.team.IsFriendly(SelectedActor.team))
                         {
                             return true;
@@ -399,13 +399,13 @@ namespace StrategicOperations.Patches
                                 return false;
                             }
 
-                            if (targetActor.getIsUnMountable())
+                            if (targetActor.GetIsUnMountable())
                             {
                                 return false;
                             }
 
-                            if (!SelectedActor.getIsBattleArmorHandsy() && !targetActor.getHasBattleArmorMounts() &&
-                                targetActor.getAvailableInternalBASpace() <= 0)
+                            if (!SelectedActor.GetIsBattleArmorHandsy() && !targetActor.GetHasBattleArmorMounts() &&
+                                targetActor.GetAvailableInternalBASpace() <= 0)
                             {
                                 return false;
                             }
@@ -415,8 +415,8 @@ namespace StrategicOperations.Patches
                                 return false;
                             }
 
-                            if (!SelectedActor.IsMountedUnit() && SelectedActor.canRideInternalOnly() &&
-                                targetActor.getAvailableInternalBASpace() <= 0)
+                            if (!SelectedActor.IsMountedUnit() && SelectedActor.CanRideInternalOnly() &&
+                                targetActor.GetAvailableInternalBASpace() <= 0)
                             {
                                 return false;
                             }
@@ -424,9 +424,9 @@ namespace StrategicOperations.Patches
                             if (!SelectedActor.IsMountedUnit())
                             {
                                 if (!targetActor.HasMountedUnits() ||
-                                    targetActor.getAvailableInternalBASpace() > 0 ||
-                                    (targetActor.getHasBattleArmorMounts() &&
-                                     !targetActor.getHasExternalMountedBattleArmor()))
+                                    targetActor.GetAvailableInternalBASpace() > 0 ||
+                                    (targetActor.GetHasBattleArmorMounts() &&
+                                     !targetActor.GetHasExternalMountedBattleArmor()))
                                 {
                                     return true;
                                 }
@@ -454,7 +454,7 @@ namespace StrategicOperations.Patches
                                 return false;
                             }
 
-                            if (targetActor.getIsUnSwarmable() || !SelectedActor.canSwarm())
+                            if (targetActor.GetIsUnSwarmable() || !SelectedActor.CanSwarm())
                             {
                                 return false;
                             }
@@ -492,8 +492,8 @@ namespace StrategicOperations.Patches
                         }
                         if (targetActor.team.IsFriendly(SelectedActor.team))
                         {
-                            if (SelectedActor.getHasAvailableInternalLiftCapacityForTarget(targetActor) ||
-                                SelectedActor.getHasAvailableExternalLiftCapacityForTarget(targetActor))
+                            if (SelectedActor.GetHasAvailableInternalLiftCapacityForTarget(targetActor) ||
+                                SelectedActor.GetHasAvailableExternalLiftCapacityForTarget(targetActor))
                             {
                                 return true;
                             }
@@ -502,7 +502,7 @@ namespace StrategicOperations.Patches
                         }
                         else
                         {
-                            if (SelectedActor.getHasAvailableExternalLiftCapacityForTarget(targetActor) && SelectedActor.getCanAirliftHostiles())
+                            if (SelectedActor.GetHasAvailableExternalLiftCapacityForTarget(targetActor) && SelectedActor.GetCanAirliftHostiles())
                             {
                                 return true;
                             }

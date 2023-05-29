@@ -12,20 +12,20 @@ namespace StrategicOperations.Framework
 {
     public static class ResupplyUtils
     {
-        public static void modifyAmmoCount(this Weapon weapon, int value)
+        public static void ModifyAmmoCount(this Weapon weapon, int value)
         {
             weapon.StatCollection.ModifyStat("resupplyAMMO", -1, "InternalAmmo", StatCollection.StatOperation.Int_Add, value);
         }
-        public static void modifyAmmoCount(this AmmunitionBox box, int value)
+        public static void ModifyAmmoCount(this AmmunitionBox box, int value)
         {
             box.StatCollection.ModifyStat("resupplyAMMO", -1, "CurrentAmmo", StatCollection.StatOperation.Int_Add, value);
             box.tCurrentAmmo(box.CurrentAmmo);
         }
-        public static void zeroAmmoCount(this AmmunitionBox box)
+        public static void ZeroAmmoCount(this AmmunitionBox box)
         {
             box.StatCollection.ModifyStat("resupplyAMMO", -1, "CurrentAmmo", StatCollection.StatOperation.Set, 0);
         }
-        public static void modifyMechArmorValue(this Mech mech, ArmorLocation loc, float value)
+        public static void ModifyMechArmorValue(this Mech mech, ArmorLocation loc, float value)
         {
             mech.StatCollection.ModifyStat("resupplyARMOR", -1, mech.GetStringForArmorLocation(loc), StatCollection.StatOperation.Float_Add, value);
         }
@@ -146,20 +146,20 @@ namespace StrategicOperations.Framework
                                         magicShotsPerSource * missingAmmoForMagicBox));
                                     if (replacementSourceShotsAvailable >= missingAmmoForMagicBox)
                                     {
-                                        weapon.modifyAmmoCount(missingAmmoForMagicBox);
+                                        weapon.ModifyAmmoCount(missingAmmoForMagicBox);
                                         weapon.DecInternalAmmo(-1,-missingAmmoForMagicBox);
                                         weapon.tInternalAmmo(weapon.InternalAmmo);
-                                        magicBox.modifyAmmoCount(-totalMagicShotsConsumed);
+                                        magicBox.ModifyAmmoCount(-totalMagicShotsConsumed);
                                         ModInit.modLog?.Trace?.Write(
                                             $"[ProcessResupplyUnit - Internal Ammo!] - Full Resupply complete for weapon {weapon.Description.UIName}. Ammobox now has {weapon.InternalAmmo}/{weapon.weaponDef.StartingAmmoCapacity} {startingCapacity} ammo, SPAMMY box has {magicBox.CurrentAmmo}/{magicBox.AmmoCapacity} remaining. \n\nMathDumps: Replacement of ammo needs to use {sourceTonnageNeeded} tons of SPAMMY. SPAMMY has {magicTonnageAvailable} tons available at {magicTonnagePerShot} per shot for total SPAMMY shots needed of {totalMagicShotsConsumed}");
                                         break;
                                     }
                                     else
                                     {
-                                        weapon.modifyAmmoCount(replacementSourceShotsAvailable);
+                                        weapon.ModifyAmmoCount(replacementSourceShotsAvailable);
                                         weapon.DecInternalAmmo(-1, -replacementSourceShotsAvailable);
                                         weapon.tInternalAmmo(weapon.InternalAmmo);
-                                        magicBox.zeroAmmoCount();
+                                        magicBox.ZeroAmmoCount();
                                         ModInit.modLog?.Trace?.Write(
                                             $"[ProcessResupplyUnit - Internal Ammo!] - Partial Resupply complete for weapon {weapon.Description.UIName}. Ammobox now has {weapon.InternalAmmo}/{weapon.weaponDef.StartingAmmoCapacity} {startingCapacity} ammo, SPAMMY box has {magicBox.CurrentAmmo}/{magicBox.AmmoCapacity} remaining. \n\nMathDumps: Replacement of ammo needs to use {sourceTonnageNeeded} tons of SPAMMY. SPAMMY has {magicTonnageAvailable} tons available at {magicTonnagePerShot} per shot for total SPAMMY shots needed of {totalMagicShotsConsumed}");
 
@@ -196,15 +196,15 @@ namespace StrategicOperations.Framework
                             ModInit.modLog?.Trace?.Write($"[ProcessResupplyUnit - Regular Ammo] - Found resupply box, has {resupplyBox.CurrentAmmo} available.");
                             if (resupplyBox.CurrentAmmo >= currentMissingAmmoCount)
                             {
-                                ammoBoxToFill.modifyAmmoCount(currentMissingAmmoCount);
-                                resupplyBox.modifyAmmoCount(-currentMissingAmmoCount);
+                                ammoBoxToFill.ModifyAmmoCount(currentMissingAmmoCount);
+                                resupplyBox.ModifyAmmoCount(-currentMissingAmmoCount);
                                 ModInit.modLog?.Trace?.Write($"[ProcessResupplyUnit - Regular Ammo] - Full Resupply complete for ammoBox {ammoBoxToFill.Description.UIName}. Ammobox now has {ammoBoxToFill.CurrentAmmo}/{ammoBoxToFill.AmmoCapacity} ammo, resupply box has {resupplyBox.CurrentAmmo}/{resupplyBox.AmmoCapacity} remaining");
                                 break;
                             }
                             else
                             {
-                                ammoBoxToFill.modifyAmmoCount(resupplyBox.CurrentAmmo);
-                                resupplyBox.modifyAmmoCount(-resupplyBox.CurrentAmmo);
+                                ammoBoxToFill.ModifyAmmoCount(resupplyBox.CurrentAmmo);
+                                resupplyBox.ModifyAmmoCount(-resupplyBox.CurrentAmmo);
                                 ModInit.modLog?.Trace?.Write($"[ProcessResupplyUnit - Regular Ammo] - Partial Resupply complete for ammoBox {ammoBoxToFill.Description.UIName}. Ammobox now has {ammoBoxToFill.CurrentAmmo}/{ammoBoxToFill.AmmoCapacity} ammo, resupply box has {resupplyBox.CurrentAmmo}/{resupplyBox.AmmoCapacity} remaining");
                             }
                         }
@@ -234,16 +234,16 @@ namespace StrategicOperations.Framework
                             var totalMagicShotsConsumed = Mathf.FloorToInt(Mathf.Min(magicShotsPerSource * replacementSourceShotsAvailable, magicShotsPerSource * missingAmmoForMagicBox));
                             if (replacementSourceShotsAvailable >= missingAmmoForMagicBox)
                             {
-                                ammoBoxToFill.modifyAmmoCount(missingAmmoForMagicBox);
-                                magicBox.modifyAmmoCount(-totalMagicShotsConsumed);
+                                ammoBoxToFill.ModifyAmmoCount(missingAmmoForMagicBox);
+                                magicBox.ModifyAmmoCount(-totalMagicShotsConsumed);
                                 ModInit.modLog?.Trace?.Write(
                                     $"[ProcessResupplyUnit - Use SpAce Magic Modular (by Yang) Ammo!] - Full Resupply complete for ammoBox {ammoBoxToFill.Description.UIName}. Ammobox now has {ammoBoxToFill.CurrentAmmo}/{ammoBoxToFill.AmmoCapacity} ammo, SPAMMY box has {magicBox.CurrentAmmo}/{magicBox.AmmoCapacity} remaining. \n\nMathDumps: Replacement of ammo needs to use {sourceTonnageNeeded} tons of SPAMMY. SPAMMY has {magicTonnageAvailable} tons available at {magicTonnagePerShot} per shot for total SPAMMY shots needed of {totalMagicShotsConsumed}");
                                 break;
                             }
                             else
                             {
-                                ammoBoxToFill.modifyAmmoCount(replacementSourceShotsAvailable);
-                                magicBox.zeroAmmoCount();
+                                ammoBoxToFill.ModifyAmmoCount(replacementSourceShotsAvailable);
+                                magicBox.ZeroAmmoCount();
                                 ModInit.modLog?.Trace?.Write(
                                     $"[ProcessResupplyUnit - Use SpAce Magic Modular (by Yang) Ammo!] - Partial Resupply complete for ammoBox {ammoBoxToFill.Description.UIName}. Ammobox now has {ammoBoxToFill.CurrentAmmo}/{ammoBoxToFill.AmmoCapacity} ammo, SPAMMY box has {magicBox.CurrentAmmo}/{magicBox.AmmoCapacity} remaining. \n\nMathDumps: Replacement of ammo needs to use {sourceTonnageNeeded} tons of SPAMMY. SPAMMY has {magicTonnageAvailable} tons available at {magicTonnagePerShot} per shot for total SPAMMY shots needed of {totalMagicShotsConsumed}");
                                 missingAmmoForMagicBox = ammoBoxToFill.AmmoCapacity - ammoBoxToFill.CurrentAmmo;
@@ -284,15 +284,15 @@ namespace StrategicOperations.Framework
                                     if (ammobox.CurrentAmmo >= armorAmmoNeeded)
                                     {
                                         totalArmorPoints += armorAmmoNeeded;
-                                        mech.modifyMechArmorValue(loc, missingArmor);
-                                        ammobox.modifyAmmoCount(-armorAmmoNeeded);
+                                        mech.ModifyMechArmorValue(loc, missingArmor);
+                                        ammobox.ModifyAmmoCount(-armorAmmoNeeded);
                                         ModInit.modLog?.Trace?.Write($"[ProcessResupplyUnit - ARMOR] - Location {loc} replaced {missingArmor} points of armor, using {armorAmmoNeeded} armorAmmo. {ammobox.CurrentAmmo} remains.");
                                     }
                                     else
                                     {
                                         totalArmorPoints += ammobox.CurrentAmmo;
-                                        mech.modifyMechArmorValue(loc, ammobox.CurrentAmmo);
-                                        ammobox.zeroAmmoCount();
+                                        mech.ModifyMechArmorValue(loc, ammobox.CurrentAmmo);
+                                        ammobox.ZeroAmmoCount();
                                         ModInit.modLog?.Trace?.Write($"[ProcessResupplyUnit - ARMOR] - Location {loc} replaced {missingArmor} points of armor, using {armorAmmoNeeded} armorAmmo. {ammobox.CurrentAmmo} remains.");
                                     }
                                 }

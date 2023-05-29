@@ -823,7 +823,7 @@ namespace StrategicOperations.Framework
             AbstractActor closestActor = null;
             foreach (var enemy in enemyUnits)
             {
-                if (!enemy.getIsUnSwarmable())
+                if (!enemy.GetIsUnSwarmable())
                 {
                     var magnitude = (loc - enemy.CurrentPosition).magnitude;
                     if (num < 0f || magnitude < num)

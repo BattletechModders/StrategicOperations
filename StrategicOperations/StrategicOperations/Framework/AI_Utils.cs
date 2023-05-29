@@ -100,7 +100,7 @@ namespace StrategicOperations.Framework
                     .ID) && !ModInit.modSettings.AI_BattleArmorExcludedContractTypes.Contains(unit.Combat.ActiveContract
                     .ContractTypeValue.Name))
             {
-                if (!unit.getIsUnMountable())
+                if (!unit.GetIsUnMountable())
                 {
 
                     if (ModInit.modSettings.BattleArmorFactionAssociations.Any(x =>
@@ -127,7 +127,7 @@ namespace StrategicOperations.Framework
                         var spawnChance = baConfig.SpawnChanceBase +
                                           (unit.Combat.ActiveContract.Override.finalDifficulty *
                                            baConfig.SpawnChanceDiffMod);
-                        var internalSpace = unit.getAvailableInternalBASpace();
+                        var internalSpace = unit.GetAvailableInternalBASpace();
                         if (internalSpace > 0)
                         {
                             ModInit.modLog?.Trace?.Write($"Unit has {internalSpace} internal space.");
@@ -182,7 +182,7 @@ namespace StrategicOperations.Framework
                             ModInit.modLog?.Trace?.Write($"Unit dont has internal space.");
                         }
 
-                        if (unit.getHasBattleArmorMounts())
+                        if (unit.GetHasBattleArmorMounts())
                         {
                             ModInit.modLog?.Trace?.Write($"Unit has mounts.");
 

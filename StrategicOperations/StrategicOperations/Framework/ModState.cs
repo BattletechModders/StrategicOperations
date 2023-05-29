@@ -11,7 +11,7 @@ namespace StrategicOperations.Framework
         //public static string UnitPendingAirliftInvocation = "";
         //public static AbstractActor startUnitFromInvocation = null;
         public static bool ReinitPhaseIcons = false;
-        public static float cancelChanceForPlayerStrafe = 0f;
+        public static float CancelChanceForPlayerStrafe = 0f;
         public static List<string> TeamsWithResupply = new List<string>();
         public static AbstractActor CurrentGarrisonSquadForLOS = null;
         public static AbstractActor CurrentGarrisonSquadForLOF = null;
@@ -169,7 +169,7 @@ namespace StrategicOperations.Framework
         {
             //UnitPendingAirliftInvocation = "";
             GarrisonFriendlyTeam = new Dictionary<string, bool>();
-            cancelChanceForPlayerStrafe = 0f;
+            CancelChanceForPlayerStrafe = 0f;
             ResupplyShutdownPhases = new Dictionary<string, int>();
             TeamsWithResupply = new List<string>();
             CurrentContractBASpawners = new List<CustomSpawner>();

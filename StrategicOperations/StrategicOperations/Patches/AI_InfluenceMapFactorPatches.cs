@@ -18,7 +18,7 @@ namespace StrategicOperations.Patches
                 Vector3 position, float angle, MoveType moveType_unused, PathNode pathNode_unused, ref float __result)
             {
                 if (!__runOriginal) return;
-                if (unit.HasMountedUnits() || (unit.canSwarm() && unit is TrooperSquad))
+                if (unit.HasMountedUnits() || (unit.CanSwarm() && unit is TrooperSquad))
                 {
                     var result = 9001 * (1 / unit.DistanceToClosestDetectedEnemy(position));
                     ModInit.modLog?.Debug?.Write(
@@ -54,7 +54,7 @@ namespace StrategicOperations.Patches
                 Vector3 position, float angle, MoveType moveType_unused, PathNode pathNode_unused, ref float __result)
             {
                 if (!__runOriginal) return;
-                if (unit.HasMountedUnits() || (unit.canSwarm() && unit is TrooperSquad))
+                if (unit.HasMountedUnits() || (unit.CanSwarm() && unit is TrooperSquad))
                 {
                     var result = 9001 * (1 / unit.DistanceToClosestDetectedEnemy(position));
                     ModInit.modLog?.Debug?.Write(
@@ -89,7 +89,7 @@ namespace StrategicOperations.Patches
                 Vector3 position, float angle, ICombatant allyUnit, ref float __result)
             {
                 if (!__runOriginal) return;
-                if (unit.HasMountedUnits() || (unit.canSwarm() && unit is TrooperSquad))
+                if (unit.HasMountedUnits() || (unit.CanSwarm() && unit is TrooperSquad))
                 {
                     var result = 9001 * (1 / unit.DistanceToClosestDetectedEnemy(position));
                     ModInit.modLog?.Debug?.Write(
@@ -125,7 +125,7 @@ namespace StrategicOperations.Patches
                 Vector3 position, float angle, MoveType moveType, ICombatant hostileUnit, ref float __result)
             {
                 if (!__runOriginal) return;
-                if (unit.HasMountedUnits() || (unit.canSwarm() && unit is TrooperSquad))
+                if (unit.HasMountedUnits() || (unit.CanSwarm() && unit is TrooperSquad))
                 {
                     var result = 9001 * (1 / unit.DistanceToClosestDetectedEnemy(position));
                     ModInit.modLog?.Debug?.Write(
@@ -161,7 +161,7 @@ namespace StrategicOperations.Patches
                 Vector3 position, float angle, MoveType moveType, ICombatant hostileUnit, ref float __result)
             {
                 if (!__runOriginal) return;
-                if (unit.HasMountedUnits() || (unit.canSwarm() && unit is TrooperSquad))
+                if (unit.HasMountedUnits() || (unit.CanSwarm() && unit is TrooperSquad))
                 {
                     var result = 9001 * (1 / unit.DistanceToClosestDetectedEnemy(position));
                     ModInit.modLog?.Debug?.Write(
@@ -196,7 +196,7 @@ namespace StrategicOperations.Patches
                 Vector3 position, float angle, MoveType moveType, ICombatant hostileUnit, ref float __result)
             {
                 if (!__runOriginal) return;
-                if (unit.HasMountedUnits() || (unit.canSwarm() && unit is TrooperSquad))
+                if (unit.HasMountedUnits() || (unit.CanSwarm() && unit is TrooperSquad))
                 {
                     var result = 9001 * (1 / unit.DistanceToClosestDetectedEnemy(position));
                     __result = result;

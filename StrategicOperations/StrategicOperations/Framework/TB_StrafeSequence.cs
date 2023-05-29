@@ -298,7 +298,7 @@ namespace StrategicOperations.Framework
                 {
                     if (this.StrafingTeam.IsLocalPlayer)
                     {
-                        cancelChanceFromAA = ModState.cancelChanceForPlayerStrafe;
+                        cancelChanceFromAA = ModState.CancelChanceForPlayerStrafe;
                     }
                     else if (cancelChanceFromAA == 0f)
                     {

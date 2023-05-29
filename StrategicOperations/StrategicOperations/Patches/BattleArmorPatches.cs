@@ -31,7 +31,7 @@ namespace StrategicOperations.Patches
             static void Prefix(AbstractActor source, Vector3 sourcePosition, ICombatant target, Vector3 targetPosition,
                 Quaternion targetRotation)
             {
-                if (source.isGarrisoned())
+                if (source.IsGarrisoned())
                 {
                     ModState.CurrentGarrisonSquadForLOS = source;
                 }
@@ -57,7 +57,7 @@ namespace StrategicOperations.Patches
                 var impactUnit = __instance.Combat.FindCombatantByGUID(impactTargetId);
                 if (impactUnit is BattleTech.Building impactBuilding)
                 {
-                    if (!attacker.isGarrisonedInTargetBuilding(impactBuilding)) return;
+                    if (!attacker.IsGarrisonedInTargetBuilding(impactBuilding)) return;
                     impactTargetId = null;
                     impactHitLocation = 0;
                     attackDirection = AttackDirection.FromFront;
@@ -177,7 +177,7 @@ namespace StrategicOperations.Patches
 
             static void Prefix(AbstractActor source, ICombatant target, LineOfFireLevel __result)
             {
-                if (source.isGarrisoned())
+                if (source.IsGarrisoned())
                 {
                     ModInit.modLog?.Debug?.Write(
                         $"unit {source.DisplayName} is calculating LOF to target {target.DisplayName} at x: {target.CurrentPosition.x}, z: {target.CurrentPosition.z}");
@@ -626,7 +626,7 @@ namespace StrategicOperations.Patches
                     }
                 }
 
-                if (actor.isGarrisoned())
+                if (actor.IsGarrisoned())
                 {
                     ModInit.modLog?.Trace?.Write(
                         $"[CombatHUDMechwarriorTray.ResetMechwarriorButtons] Actor {actor.DisplayName} {actor.GUID} found in garrison. Disabling buttons.");
@@ -646,7 +646,7 @@ namespace StrategicOperations.Patches
                     __instance.SprintButton.DisableButton();
                     __instance.JumpButton.DisableButton();
 
-                    if (!actor.IsMountedInternal() || !carrier.hasFiringPorts())
+                    if (!actor.IsMountedInternal() || !carrier.HasFiringPorts())
                     {
                         __instance.FireButton.DisableButton();
                         foreach (var moraleButton in moraleButtons)
@@ -942,7 +942,7 @@ namespace StrategicOperations.Patches
                 if (__instance.IsFlaggedForDeath) return;
                 ModInit.modLog?.Trace?.Write(
                     $"[Building.FlagForDeath] Building {__instance.DisplayName} {__instance.GUID} at position {__instance.CurrentPosition} dieded.");
-                if (!__instance.hasGarrisonedUnits()) return;
+                if (!__instance.HasGarrisonedUnits()) return;
                 var garrisons = new List<KeyValuePair<string, Classes.BA_GarrisonInfo>>(ModState.PositionLockGarrison
                     .Where(x => x.Value.BuildingGUID == __instance.GUID).ToList());
                 foreach (var garrison in garrisons)
@@ -1113,7 +1113,7 @@ namespace StrategicOperations.Patches
             {
                 if (actor == null) return;
                 if (Ability == null || Ability.Def?.Id != ModInit.modSettings.BattleArmorMountAndSwarmID) return;
-                if (actor.isGarrisoned())
+                if (actor.IsGarrisoned())
                 {
                     __instance.Text.SetText("DISMOUNT GARRISON", Array.Empty<object>());
                 }
@@ -1139,7 +1139,7 @@ namespace StrategicOperations.Patches
                 if (theActor == null) return;
                 if (__instance.Ability == null ||
                     __instance.Ability?.Def?.Id != ModInit.modSettings.BattleArmorMountAndSwarmID) return;
-                if (theActor.isGarrisoned())
+                if (theActor.IsGarrisoned())
                 {
                     __instance.Text.SetText("DISMOUNT GARRISON", Array.Empty<object>());
                 }
@@ -1187,7 +1187,7 @@ namespace StrategicOperations.Patches
                 if (actor.IsMountedUnit())
                 {
                     var carrier = actor.Combat.FindActorByGUID(ModState.PositionLockMount[actor.GUID]);
-                    if (!carrier.hasFiringPorts())
+                    if (!carrier.HasFiringPorts())
                     {
                         ModInit.modLog?.Trace?.Write(
                             $"[CombatSelectionHandler.TrySelectActor] {actor.DisplayName} is mounted, does not have firing ports.");
@@ -1199,7 +1199,7 @@ namespace StrategicOperations.Patches
                         $"[CombatSelectionHandler.TrySelectActor] {actor.DisplayName} is mounted, DOES HAVE firing ports.");
                 }
 
-                if (!actor.isGarrisoned() && !actor.IsMountedUnit())
+                if (!actor.IsGarrisoned() && !actor.IsMountedUnit())
                 {
                     ModInit.modLog?.Trace?.Write(
                         $"[CombatSelectionHandler.TrySelectActor] {actor.DisplayName}is not mounted or garrisoned.");
@@ -1276,7 +1276,7 @@ namespace StrategicOperations.Patches
         {
             public static void Postfix(AbstractActor __instance, ref bool __result)
             {
-                if (__instance.canSwarm() || __instance.IsAirlifted())
+                if (__instance.CanSwarm() || __instance.IsAirlifted())
                 {
                     __result = false;
                 }
@@ -1290,7 +1290,7 @@ namespace StrategicOperations.Patches
             public static void Prefix(ref bool __runOriginal, CombatSelectionHandler __instance, AbstractActor actor)
             {
                 if (!__runOriginal) return;
-                if (actor.IsMountedUnit() || actor.IsSwarmingUnit() || actor.IsAirlifted() || actor.isGarrisoned())
+                if (actor.IsMountedUnit() || actor.IsSwarmingUnit() || actor.IsAirlifted() || actor.IsGarrisoned())
                 {
                     ModInit.modLog?.Trace?.Write(
                         $"[CombatSelectionHandler.AddSprintState] Actor {actor.DisplayName}: Disabling SprintState");
@@ -1324,7 +1324,7 @@ namespace StrategicOperations.Patches
             public static void Prefix(ref bool __runOriginal, CombatSelectionHandler __instance, AbstractActor actor)
             {
                 if (!__runOriginal) return;
-                if (actor.IsSwarmingUnit() || actor.IsMountedUnit() || actor.IsAirlifted() || actor.isGarrisoned())
+                if (actor.IsSwarmingUnit() || actor.IsMountedUnit() || actor.IsAirlifted() || actor.IsGarrisoned())
                 {
                     ModInit.modLog?.Trace?.Write(
                         $"[CombatSelectionHandler.AddMoveState] Actor {actor.DisplayName}: Disabling AddMoveState");
@@ -1351,7 +1351,45 @@ namespace StrategicOperations.Patches
             }
         }
 
+        [HarmonyPatch(typeof(CombatSelectionHandler), "AddFireState",
+            new Type[] { typeof(AbstractActor) })]
+        public static class CombatSelectionHandler_AddFireState
+        {
+            public static void Prefix(ref bool __runOriginal, CombatSelectionHandler __instance, AbstractActor actor)
+            {
+                if (!__runOriginal) return;
+                var mountedNoPorts = false;
+                if (actor.IsMountedUnit())
+                {
+                    var carrier = actor.Combat.FindActorByGUID(ModState.PositionLockMount[actor.GUID]);
+                    if (!carrier.HasFiringPorts()) mountedNoPorts = true;
+                }
+                if (actor.IsSwarmingUnit() || mountedNoPorts)
+                {
+                    ModInit.modLog?.Trace?.Write(
+                        $"[CombatSelectionHandler.AddFireState] Actor {actor.DisplayName}: Disabling AddFireState");
+                    var selectionStack =
+                        __instance
+                            .SelectionStack; //Traverse.Create(__instance).Property("SelectionStack").GetValue<List<SelectionState>>();
+                    if (!selectionStack.Any(x => x is SelectionStateDoneWithMech))
+                    {
+                        var HUD = __instance
+                            .HUD; //IRBTModUtils.SharedState.CombatHUD;//Traverse.Create(__instance).Property("HUD").GetValue<CombatHUD>();
+                        var doneState = new SelectionStateDoneWithMech(actor.Combat, HUD,
+                            HUD.MechWarriorTray.DoneWithMechButton, actor);
+                        //var addState = Traverse.Create(__instance).Method("addNewState", new Type[] { typeof(SelectionState) });
+                        //addState.GetValue(doneState);
+                        __instance.addNewState(doneState);
+                    }
 
+                    __runOriginal = false;
+                    return;
+                }
+
+                __runOriginal = true;
+                return;
+            }
+        }
 
         [HarmonyPatch(typeof(Mech), "DamageLocation",
             new Type[]
@@ -1367,7 +1405,7 @@ namespace StrategicOperations.Patches
             {
                 if (__instance is TrooperSquad squad)
                 {
-                    if (squad.isGarrisoned())
+                    if (squad.IsGarrisoned())
                     {
                         var bldgCombatant =
                             squad.Combat.FindCombatantByGUID(ModState.PositionLockGarrison[squad.GUID].BuildingGUID);
@@ -1875,7 +1913,7 @@ namespace StrategicOperations.Patches
                 if (source.IsMountedUnit())
                 {
                     var carrier = source.Combat.FindActorByGUID(ModState.PositionLockMount[source.GUID]);
-                    if (carrier.hasFiringPorts())
+                    if (carrier.HasFiringPorts())
                     {
                         list.Remove(
                             carrier); // remove mound from LOS blocking (i have no idea if this will work or is even needed)
@@ -2070,7 +2108,7 @@ namespace StrategicOperations.Patches
                     else if (source.IsMountedUnit())
                     {
                         var carrier = source.Combat.FindActorByGUID(ModState.PositionLockMount[source.GUID]);
-                        if (carrier.hasFiringPorts())
+                        if (carrier.HasFiringPorts())
                         {
                             __result = source.Combat.LOFCache.GetLineOfFire(carrier, carrier.CurrentPosition, target,
                                 targetPosition, targetRotation, out collisionWorldPos);
@@ -2120,7 +2158,7 @@ namespace StrategicOperations.Patches
                 public static void Postfix(MechRepresentation __instance, bool headlightsActive)
                 {
                     if (__instance.parentActor.IsSwarmingUnit() || __instance.parentActor.IsMountedUnit() ||
-                        __instance.parentActor.IsAirlifted() || __instance.parentActor.isGarrisoned())
+                        __instance.parentActor.IsAirlifted() || __instance.parentActor.IsGarrisoned())
                     {
                         var customRep = __instance as CustomMechRepresentation;
                         if (customRep != null)

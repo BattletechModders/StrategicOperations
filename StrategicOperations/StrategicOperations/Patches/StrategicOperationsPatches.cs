@@ -1058,7 +1058,7 @@ namespace StrategicOperations.Patches
                                 }
 
                                 else if (target.team.IsEnemy(creator.team) && creator is Mech creatorMech &&
-                                         creatorMech.canSwarm())
+                                         creatorMech.CanSwarm())
                                 {
                                     //creatorMech.ProcessSwarmEnemy(targetActor);
                                     MessageCenterMessage invocation =
@@ -1127,7 +1127,7 @@ namespace StrategicOperations.Patches
                     if (target is BattleTech.Building building &&
                         __instance.Def.Id == ModInit.modSettings.BattleArmorMountAndSwarmID && creator is TrooperSquad squad2)
                     {
-                        if (!building.hasGarrisonedUnits())
+                        if (!building.HasGarrisonedUnits())
                         {
                             MessageCenterMessage invocation =
                                 new StrategicMovementInvocation(squad2, true, building, true, true);
@@ -1135,7 +1135,7 @@ namespace StrategicOperations.Patches
                         }
                         else
                         {
-                            if (squad2.isGarrisonedInTargetBuilding(building))
+                            if (squad2.IsGarrisonedInTargetBuilding(building))
                             {
                                 squad2.DismountGarrison(building, Vector3.zero, false);
                             }
@@ -2640,17 +2640,17 @@ namespace StrategicOperations.Patches
                 {
                     var cHUD = __instance.HUD;//IRBTModUtils.SharedState.CombatHUD;//Traverse.Create(__instance).Property("HUD").GetValue<CombatHUD>();
                     var creator = cHUD.SelectedActor;
-                    ModState.cancelChanceForPlayerStrafe = 0f;
+                    ModState.CancelChanceForPlayerStrafe = 0f;
 
                     var opforUnit = creator.FindMeAnOpforUnit();
                     if (opforUnit != null)
                     {
-                        ModState.cancelChanceForPlayerStrafe = opforUnit.GetAvoidStrafeChanceForTeam();
+                        ModState.CancelChanceForPlayerStrafe = opforUnit.GetAvoidStrafeChanceForTeam();
                     }
-                    var chanceDisplay = (float)Math.Round(1 - ModState.cancelChanceForPlayerStrafe, 2) * 100;
+                    var chanceDisplay = (float)Math.Round(1 - ModState.CancelChanceForPlayerStrafe, 2) * 100;
                     cHUD.AttackModeSelector.FireButton.FireText.SetText($"{chanceDisplay}% - Confirm", Array.Empty<object>());
 
-                    ModInit.modLog?.Trace?.Write($"[SelectionStateCommandTargetTwoPoints.ProcessLeftClick] Creator {creator.DisplayName} initializing strafe vs target {opforUnit.team.DisplayName}. Calculated cancelChance {ModState.cancelChanceForPlayerStrafe}, display success chance: {chanceDisplay}.");
+                    ModInit.modLog?.Trace?.Write($"[SelectionStateCommandTargetTwoPoints.ProcessLeftClick] Creator {creator.DisplayName} initializing strafe vs target {opforUnit.team.DisplayName}. Calculated cancelChance {ModState.CancelChanceForPlayerStrafe}, display success chance: {chanceDisplay}.");
                 }
             }
         }
@@ -2719,7 +2719,7 @@ namespace StrategicOperations.Patches
                         else
                         {
                             var carrier = actor.Combat.FindActorByGUID(ModState.PositionLockMount[actor.GUID]);
-                            if (!carrier.hasFiringPorts())
+                            if (!carrier.HasFiringPorts())
                             {
                                 button.DisableButton();
                             }
@@ -2794,7 +2794,7 @@ namespace StrategicOperations.Patches
                         else
                         {
                             var carrier = actor.Combat.FindActorByGUID(ModState.PositionLockMount[actor.GUID]);
-                            if (!carrier.hasFiringPorts())
+                            if (!carrier.HasFiringPorts())
                             {
                                 button.DisableButton();
                             }
@@ -2870,7 +2870,7 @@ namespace StrategicOperations.Patches
                         else
                         {
                             var carrier = actor.Combat.FindActorByGUID(ModState.PositionLockMount[actor.GUID]);
-                            if (!carrier.hasFiringPorts())
+                            if (!carrier.HasFiringPorts())
                             {
                                 button.DisableButton();
                             }

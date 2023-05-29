@@ -123,7 +123,7 @@ namespace StrategicOperations.Patches
                                ModInit.modLog?.Trace?.Write(
                                    $"[CanMoveAndShootWithoutOverheatingNode] Actor {__instance.unit.DisplayName} is currently mounted. Evaluating range to nearest enemy.");
                                if (distance <= 1.25 * maxRange ||
-                                   (!__instance.unit.canSwarm() && distance <= AIUtil.GetMaxWeaponRange(__instance.unit)))
+                                   (!__instance.unit.CanSwarm() && distance <= AIUtil.GetMaxWeaponRange(__instance.unit)))
                                {
                                    ModInit.modLog?.Trace?.Write(
                                        $"[CanMoveAndShootWithoutOverheatingNode] Actor {__instance.unit.DisplayName} is {distance} from nearest enemy, maxrange was {maxRange} * 1.25.");
@@ -162,7 +162,7 @@ namespace StrategicOperations.Patches
                            }
 
                            //if it isnt mounted, its on the ground and should try to swarm if it can.
-                           if (distance <= maxRange && !(closestEnemy is TrooperSquad) && __instance.unit.canSwarm())
+                           if (distance <= maxRange && !(closestEnemy is TrooperSquad) && __instance.unit.CanSwarm())
                            {
                                ModInit.modLog?.Trace?.Write(
                                    $"[CanMoveAndShootWithoutOverheatingNode] Actor {__instance.unit.DisplayName} is on the ground, trying to swarm at {distance} from nearest enemy, maxrange was {maxRange} * 1.25.");
