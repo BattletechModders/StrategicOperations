@@ -1,6 +1,6 @@
 # StrategicOperations
 
-**Depends On Abilifier v1.1.0.2 or higher!** 
+**Depends On Abilifier v1.4.1.0 or higher!** 
 
 **Versions 3.1.0.0 and higher requires modtek v3 or higher**
 
