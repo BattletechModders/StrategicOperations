@@ -86,7 +86,7 @@ namespace StrategicOperations.Framework
                 //ModState.PopupActorResource = "";
             }
 
-            if (ModState.DeploymentAssetsStats.Any(x => x.ID == actorResource) && team.IsLocalPlayer)
+            if (ModState.DeploymentAssetsStats.Any(x => x.ID == actorResource) && team.IsLocalPlayer && !ModState.DeferredSpawnerFromDelegate)
             {
                 var assetStatInfo = ModState.DeploymentAssetsStats.FirstOrDefault(x => x.ID == actorResource);
                 if (assetStatInfo != null)
@@ -98,7 +98,6 @@ namespace StrategicOperations.Framework
                             StatCollection.StatOperation.Int_Subtract, 1);
                     }
                 }
-
                 ModInit.modLog?.Info?.Write($"[ActivateSpawnTurretFromActor] Decrementing count of {actorResource} in deploymentAssetsDict");
             }
 
