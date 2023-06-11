@@ -911,18 +911,17 @@ namespace StrategicOperations.Patches
                     {
                         var battleArmorMounts =
                             squadInfo.Value.BA_MountedLocations.Where(x => x.Value == (int) location);
-                        foreach (var mount in battleArmorMounts)
+                        var battleArmorMountsCopy = new List<KeyValuePair<int, int>>(battleArmorMounts);
+                        foreach (var mount in battleArmorMountsCopy)
                         {
                             var BALocArmor = (ArmorLocation) mount.Key;
                             var BALocStruct = MechStructureRules.GetChassisLocationFromArmorLocation(BALocArmor);
                             battleArmorAsMech.NukeStructureLocation(hitInfo, 1, BALocStruct, attackDirection,
                                 damageType);
                         }
-
-                        battleArmorAsMech.DismountBA(__instance, Vector3.zero, false, true, true);
-                        battleArmorAsMech.FlagForDeath("Killed When Mount Died", DeathMethod.VitalComponentDestroyed,
-                            DamageType.Melee, 0, -1, __instance.GUID, false);
-                        battleArmorAsMech.HandleDeath(__instance.GUID); //this is probably wrong but i dont care
+                        //battleArmorAsMech.DismountBA(__instance, Vector3.zero, false, true, true);
+                        //battleArmorAsMech.FlagForDeath("Killed When Mount Died", DeathMethod.VitalComponentDestroyed, DamageType.Melee, 0, -1, __instance.GUID, false);
+                        //battleArmorAsMech.HandleDeath(__instance.GUID); //this is probably wrong but i dont care
                     }
                 }
             }
