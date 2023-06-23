@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using BattleTech;
+using BattleTech.UI;
 using UnityEngine;
 using static StrategicOperations.Framework.Classes;
 
@@ -8,8 +9,16 @@ namespace StrategicOperations.Framework
 {
     public static class ModState
     {
+        public static List<Color> ProcessedOverlayColors = new List<Color>();
+        public static Dictionary<string, Color> UsedOverlayColorsByCarrier = new Dictionary<string, Color>();
+        public static List<Color> UsedOverlayColors = new List<Color>();
+        public static Color DefaultOverlay = new Color();
+        public static Color PendingSelectionColor = new Color(0.15f, 0.15f, 0.17f, .5f);
         //public static string UnitPendingAirliftInvocation = "";
         //public static AbstractActor startUnitFromInvocation = null;
+        public static LanceLoadoutSlot PendingPairBAUnit = null;
+
+        public static Dictionary<string, BAPairingInfo> PairingInfos = new Dictionary<string, BAPairingInfo>();
         public static bool ReinitPhaseIcons = false;
         public static float CancelChanceForPlayerStrafe = 0f;
         public static List<string> TeamsWithResupply = new List<string>();
@@ -163,10 +172,22 @@ namespace StrategicOperations.Framework
                 }
                 AirliftEffects.Add(airliftEffect);
             }
+
+            ProcessedOverlayColors = new List<Color>();
+            ModInit.modLog?.Trace?.Write($"[Initializing BAMountPairColors] Parsing colors for overlay!");
+            foreach (var colorSetting in ModInit.modSettings.BAMountPairColors)
+            {
+                var processedColor = new Color(colorSetting.Rf, colorSetting.Gf, colorSetting.Bf, 0.5f);
+                ProcessedOverlayColors.Add(processedColor);
+            }
         }
 
         public static void ResetAll()
         {
+            UsedOverlayColors = new List<Color>();
+            UsedOverlayColorsByCarrier = new Dictionary<string, Color>();
+            PendingPairBAUnit = null; 
+            PairingInfos = new Dictionary<string, BAPairingInfo>();
             //UnitPendingAirliftInvocation = "";
             GarrisonFriendlyTeam = new Dictionary<string, bool>();
             CancelChanceForPlayerStrafe = 0f;

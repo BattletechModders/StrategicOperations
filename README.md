@@ -480,7 +480,44 @@ settings in the mod.json:
 	"crewOrCockpitCustomID": [
 				"CrewCompartment",
 				"Cockpit"
-			]
+			],
+	"BAMountPairColors": [
+			{
+				"r": 255,
+				"g": 0,
+				"b": 0
+			},
+			{
+				"r": 255,
+				"g": 0,
+				"b": 255
+			},
+			{
+				"r": 0,
+				"g": 0,
+				"b": 255
+			},
+			{
+				"r": 0,
+				"g": 255,
+				"b": 255
+			},
+			{
+				"r": 0,
+				"g": 255,
+				"b": 0
+			},
+			{
+				"r": 255,
+				"g": 255,
+				"b": 0
+			},
+			{
+				"r": 255,
+				"g": 255,
+				"b": 255
+			}
+		]
 ```
 
 `enableLogging` - bool, enable logging
@@ -732,6 +769,8 @@ Using the following settings, ClanGhostBear and ClanWolf have baseline 30% chanc
 `DisableAISwarmTag` - string, AI units with unit def tag are unable to swarm regardless of equipment
 
 `crewOrCockpitCustomID` - List <string> - define cockpit/crew compartment Custom Category IDs. used to ensure AI strafe/spawn abilities are associated with correct component. use same values as similar setting in TisButAScratch; defaults are `"CrewCompartment"` and `"Cockpit"`, but the setting is provided in case more IDs are needed or desired. AI strafe/spawn ability will be added to the first component that has a matching category ID.
+
+`BAMountPairColors` - list of color configs (same format as `MountIndicatorColor` setting) that defines possible overlay colors for pre-mission squad and carrier assignments.
 	
 ## Spawns
 	
@@ -1110,7 +1149,11 @@ If the mech chassis location where BA is mounted is destroyed, any BA mounted to
 
 Once BA is swarming an enemy, they cannot do any other actions on their activation. The only options are to either activate the mount/swarm ability again (and thus stop swarming the enemy), or to end their activation ("Done" button). If you choose "Done", the BA will fire all active weapons at the unit they are swarming automatically.
 
-The AI will also attempt to use Swarm against you. If an AI unit has BA (dictated by `AI_BattleArmorSpawnChance`, `BattleArmorFactionAssociations` and the unit has either HasBattleArmorMounts or InternalBattleArmorSquadCap > 0), some very ugly AI behavior patches should <i>try</i> to get the AI to move closer to your units. Once within a certain range, the AI BA will dismount from its carrier and attempt to swarm you if you're within range. If not, it'll just attack like a normal unit. Units with mechdef tag defined in `DisableAISwarmTag` will not swarm, regardless of equipment
+The AI will also attempt to use Swarm against you. If an AI unit has BA (dictated by `AI_BattleArmorSpawnChance`, `BattleArmorFactionAssociations` and the unit has either HasBattleArmorMounts or InternalBattleArmorSquadCap > 0), some very ugly AI behavior patches should <i>try</i> to get the AI to move closer to your units. Once within a certain range, the AI BA will dismount from its carrier and attempt to swarm you if you're within range. If not, it'll just attack like a normal unit. Units with mechdef tag defined in `DisableAISwarmTag` will not swarm, regardless of equipment.
+
+#### Pre-mission squad mounting
+
+As of v3.1.2.0 you can now pre-assign battle armor squads to specific carriers before a mission starts. All units should be present in drop slots and have pilots assigned before attempting to match squads to carriers. In order to assign squads to carriers, shift click a squad of squads. Both it and all potential carriers will show a dark gray overlay. Next, shift-click the desired carriers. Both the squads and carriers will both change their overlay color to one of the colors defined in the `BAMountPairColors` setting. If a carriers can carry multiple squads, all squads assigned to that carriers will share the same overlay color. To "reset" an assignment, simply remove the squad and carrier from their dropslots, and then add them back to their drop slots if desired. Backing out of the contract screen will likewise reset all pairings. I really shouldn't need to say this, but if you are reloading a pre-mission autosave, you will need to reassign all squads to their carriers.
 
 #### Firing Ports
 

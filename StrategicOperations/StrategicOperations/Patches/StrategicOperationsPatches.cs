@@ -7,6 +7,7 @@ using BattleTech;
 using BattleTech.Data;
 using BattleTech.Rendering;
 using BattleTech.UI;
+using CustAmmoCategories;
 using CustomActivatableEquipment;
 using CustomComponents;
 using CustomUnits;
@@ -18,6 +19,7 @@ using StrategicOperations.Framework;
 using UnityEngine;
 using static Localize.Text;
 using static MonoMod.Cil.RuntimeILReferenceBag.FastDelegateInvokers;
+using static StrategicOperations.Framework.BattleArmorUtils;
 using static StrategicOperations.Framework.Classes;
 
 namespace StrategicOperations.Patches
@@ -1884,7 +1886,6 @@ namespace StrategicOperations.Patches
             }
         }
 
-
         [HarmonyPatch(typeof(AbstractActor), "OnPhaseBegin")]
         public static class AbstractActor_OnPhaseBegin
         {
@@ -1936,7 +1937,6 @@ namespace StrategicOperations.Patches
         {
             public static void Postfix(TurnDirector __instance)
             {
-
                 if (ModState.DeferredInvokeBattleArmor.Count > 0)
                 {
                     for (var index = 0; index < ModState.DeferredInvokeBattleArmor.Count; index++)
@@ -1978,6 +1978,33 @@ namespace StrategicOperations.Patches
                 }
                 __instance.Combat.UpdateResupplyTeams();
                 __instance.Combat.UpdateResupplyAbilitiesGetAllLivingActors();
+
+                // now try to auto-mount??????
+                
+                foreach (var unit in playerTeam.units)
+                {
+                    if (ModState.PairingInfos.TryGetValue(unit.GetPilot().pilotDef.Description.Id, out var info))
+                    {
+                        foreach (var squadPilot in info.PairedBattleArmor)
+                        {
+                            foreach (var unit2 in playerTeam.units)
+                            {
+                                if (unit2 is TrooperSquad squad &&
+                                    unit2.GetPilot().pilotDef.Description.Id == squadPilot)
+                                {
+                                    unit.MountBattleArmorToChassis(squad, true, true);
+
+                                    if (unit is CustomMech custMech && custMech.FlyingHeight() > 1.5f)
+                                    {
+                                        var pos = custMech.CurrentPosition +
+                                                  Vector3.up * custMech.custGameRep.HeightController.CurrentHeight;
+                                        squad.TeleportActorVisual(pos);
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
             }
         }
 

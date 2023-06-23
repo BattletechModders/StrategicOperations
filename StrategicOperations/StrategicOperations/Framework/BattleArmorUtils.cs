@@ -8,12 +8,15 @@ using BattleTech.UI;
 using CustAmmoCategories;
 using CustomActivatableEquipment;
 using CustomComponents;
+using CustomComponents.Patches;
 using CustomUnits;
 using HBS.Math;
-using Localize;
+using InControl;
 using UnityEngine;
+using UnityEngine.UI;
 using static MonoMod.Cil.RuntimeILReferenceBag.FastDelegateInvokers;
 using Random = UnityEngine.Random;
+using Text = Localize.Text;
 
 namespace StrategicOperations.Framework
 {
@@ -224,6 +227,172 @@ namespace StrategicOperations.Framework
             return ability.CurrentCooldown < 1 && (ability.Def.NumberOfUses < 1 || ability.NumUsesLeft > 0) && flag;
         }// need to redo Ability.Activate from start, completely override for BA? Or just put ability on hidden componenet and ignore this shit.
 
+        public static void SetPairingOverlay(this LanceConfiguratorPanel lanceConfiguratorPanel, LanceLoadoutSlot baLanceLoadoutSlot, bool showOverlay,
+            LanceLoadoutSlot carrierLanceLoadoutSlot = null)
+        {
+            if (ModState.DefaultOverlay == new Color())
+            {
+                var overlayChildren = baLanceLoadoutSlot.SelectedMech.UnavailableOverlay.gameObject.GetComponentsInChildren<Image>();
+                foreach (var overlayChild in overlayChildren)
+                {
+                    if (overlayChild.name == "stripes")
+                    {
+                        var overlayChildImage = overlayChild.GetComponentInChildren<Image>();
+                        ModState.DefaultOverlay = new Color(overlayChildImage.color.r, overlayChildImage.color.g, overlayChildImage.color.b, overlayChildImage.color.a);
+                        ModInit.modLog?.Trace?.Write(
+                            $"[SetPairingOverlay] - set default overlay color to {ModState.DefaultOverlay} {ModState.DefaultOverlay.r} {ModState.DefaultOverlay.b} {ModState.DefaultOverlay.g} {ModState.DefaultOverlay.a}");
+                    }
+                }
+            }
+            if (!showOverlay)
+            {
+                baLanceLoadoutSlot.SelectedMech.UnavailableOverlay.SetActive(false);
+                return;
+            }
+            
+            var baOverlayChildren = baLanceLoadoutSlot.SelectedMech.UnavailableOverlay.gameObject.GetComponentsInChildren<Image>();
+
+            Image BAOverlayChildImage = null;
+            foreach (var baOverlayChild in baOverlayChildren)
+            {
+                if (baOverlayChild.name == "stripes")
+                {
+                    BAOverlayChildImage = baOverlayChild.GetComponent<Image>();
+                }
+            }
+            
+            if (carrierLanceLoadoutSlot == null)
+            {
+                baLanceLoadoutSlot.SelectedMech.UnavailableOverlay.SetActive(true);
+                if (BAOverlayChildImage != null)
+                    BAOverlayChildImage.color = ModState.PendingSelectionColor;//new Color(0, 0, 0, ModState.DefaultOverlay.a);
+                lanceConfiguratorPanel.ToggleOverlayPotentialCarriers(baLanceLoadoutSlot, true);
+                return;
+            }
+            baLanceLoadoutSlot.SelectedMech.UnavailableOverlay.SetActive(true);
+            carrierLanceLoadoutSlot.SelectedMech.UnavailableOverlay.SetActive(true);
+            carrierLanceLoadoutSlot.SelectedMech.UnavailableOverlay.SetActive(false);
+            var carrierOverlayChildren = carrierLanceLoadoutSlot.SelectedMech.UnavailableOverlay.gameObject.GetComponentsInChildren<Image>();
+            var carrierPilotID = carrierLanceLoadoutSlot.SelectedPilot.Pilot.pilotDef.Description.Id;
+            foreach (var carrierOverlayChild in carrierOverlayChildren)
+            {
+                if (carrierOverlayChild.name == "stripes")
+                {
+                    var carrierOverlayChildImage = carrierOverlayChild.GetComponent<Image>();
+                    if (!ModState.UsedOverlayColorsByCarrier.ContainsKey(carrierPilotID))
+                    {
+                        //initialize new overlay color
+                        var foundUnused = false;
+
+                        foreach (var potentialColor in ModState.ProcessedOverlayColors)
+                        {
+                            if (!ModState.UsedOverlayColors.Contains(potentialColor))
+                            {
+                                ModState.UsedOverlayColors.Add(potentialColor);
+                                ModState.UsedOverlayColorsByCarrier.Add(carrierPilotID, potentialColor);
+                                lanceConfiguratorPanel.ToggleOverlayPotentialCarriers(baLanceLoadoutSlot, false, carrierLanceLoadoutSlot);
+                                carrierLanceLoadoutSlot.SelectedMech.UnavailableOverlay.SetActive(true);
+                                carrierOverlayChildImage.color = potentialColor;
+                                ModInit.modLog?.Trace?.Write($"[SetPairingOverlay] - carrier overlay color set to {carrierOverlayChildImage.color.r} {carrierOverlayChildImage.color.g} {carrierOverlayChildImage.color.b}");
+                                if (BAOverlayChildImage != null)
+                                {
+                                    BAOverlayChildImage.color = potentialColor;
+                                    ModInit.modLog?.Trace?.Write($"[SetPairingOverlay] - BA overlay color set to {BAOverlayChildImage.color.r} {BAOverlayChildImage.color.g} {BAOverlayChildImage.color.b}");
+                                }
+                                foundUnused = true;
+                                break;
+                            }
+                        }
+
+                        if (!foundUnused)
+                        {
+                            var chosenColor = ModState.UsedOverlayColors.GetRandomElement();
+                            ModState.UsedOverlayColorsByCarrier.Add(carrierPilotID, chosenColor);
+                            lanceConfiguratorPanel.ToggleOverlayPotentialCarriers(baLanceLoadoutSlot, false, carrierLanceLoadoutSlot);
+                            carrierLanceLoadoutSlot.SelectedMech.UnavailableOverlay.SetActive(true);
+                            carrierOverlayChildImage.color = chosenColor;
+                            ModInit.modLog?.Trace?.Write($"[SetPairingOverlay] - no unused colors, chose one at random to duplicate. carrier overlay color set to {carrierOverlayChildImage.color.r} {carrierOverlayChildImage.color.g} {carrierOverlayChildImage.color.b}");
+                            if (BAOverlayChildImage != null)
+                            {
+                                BAOverlayChildImage.color = chosenColor;
+                                ModInit.modLog?.Trace?.Write($"[SetPairingOverlay] - no unused colors, chose one at random to duplicate. BA overlay color set to {BAOverlayChildImage.color.r} {BAOverlayChildImage.color.g} {BAOverlayChildImage.color.b}");
+                            }
+                        }
+                    }
+                    else
+                    {
+                        if (BAOverlayChildImage != null)
+                        {
+                            lanceConfiguratorPanel.ToggleOverlayPotentialCarriers(baLanceLoadoutSlot, false, carrierLanceLoadoutSlot);
+                            carrierOverlayChildImage.color = ModState.UsedOverlayColorsByCarrier[carrierPilotID];
+                            carrierLanceLoadoutSlot.SelectedMech.UnavailableOverlay.SetActive(true);
+                            BAOverlayChildImage.color = ModState.UsedOverlayColorsByCarrier[carrierPilotID];
+                            ModInit.modLog?.Trace?.Write(
+                                $"[SetPairingOverlay] - Carrier already has non-default color. Setting BA color to match: {BAOverlayChildImage.color.r}, {BAOverlayChildImage.color.g}, {BAOverlayChildImage.color.b}");
+                        }
+                    }
+                }
+            }
+        }
+
+        public static void ToggleOverlayPotentialCarriers(this LanceConfiguratorPanel lanceConfiguratorPanel, LanceLoadoutSlot baLanceLoadoutSlot, bool toggleOn = true, LanceLoadoutSlot carrierLanceLoadoutSlot = null)
+        {
+            if (baLanceLoadoutSlot?.SelectedMech == null) return;
+            foreach (var loadOutSlot in lanceConfiguratorPanel.loadoutSlots)
+            {
+                if (loadOutSlot.SelectedMech != null && loadOutSlot.SelectedPilot != null)
+                {
+                    if (loadOutSlot.SelectedMech != baLanceLoadoutSlot.SelectedMech)
+                    {
+                        var hasSpace = false;
+                        var hasPx = false;
+                        var pilotID = loadOutSlot.SelectedPilot.Pilot.Description.Id;
+                        
+                        if (!ModState.PairingInfos.ContainsKey(pilotID))
+                        {
+                            if (loadOutSlot.SelectedMech.mechDef.GetTotalBASpaceMechDef() > 0) hasSpace = true;
+                        }
+                        else
+                        {
+                            var pairInfo = ModState.PairingInfos[pilotID];
+                            if (pairInfo.PairedBattleArmor.Count < pairInfo.CapacityInitial)
+                            {
+                                hasSpace = true;
+                                if (pairInfo.PairedBattleArmor.Count > 0) hasPx = true;
+                            }
+                        }
+
+                        if (hasSpace)// && !hasPx)
+                        {
+                            var carrierOverlayChildren = loadOutSlot.SelectedMech.UnavailableOverlay.gameObject
+                                .GetComponentsInChildren<Image>();
+                            foreach (var carrierOverlayChild in carrierOverlayChildren)
+                            {
+                                if (carrierOverlayChild.name == "stripes")
+                                {
+                                    var carrierOverlayChildImage = carrierOverlayChild.GetComponent<Image>();
+                                    
+                                    if (toggleOn)
+                                    {
+                                        carrierOverlayChildImage.color = ModState.PendingSelectionColor;//new Color(0, 0, 0, ModState.DefaultOverlay.a);
+                                        loadOutSlot.SelectedMech.UnavailableOverlay.SetActive(true);
+                                    }
+                                    else if (carrierLanceLoadoutSlot?.SelectedMech != null &&
+                                             loadOutSlot?.SelectedMech != carrierLanceLoadoutSlot.SelectedMech)
+                                    {
+                                        if (ModState.UsedOverlayColorsByCarrier.TryGetValue(pilotID, out var color))
+                                        {
+                                            carrierOverlayChildImage.color = color;//new Color(0, 0, 0, ModState.DefaultOverlay.a);
+                                        }
+                                        loadOutSlot.SelectedMech.UnavailableOverlay.SetActive(false);
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
         internal class DetachFromCarrierDelegate
         {
             public TrooperSquad squad { get; set; }
@@ -604,6 +773,38 @@ namespace StrategicOperations.Framework
         public static int GetAvailableInternalBASpace(this AbstractActor actor)
         {
             return actor.StatCollection.GetValue<int>("InternalBattleArmorSquadCap") - actor.StatCollection.GetValue<int>("InternalBattleArmorSquads");
+        }
+        public const string BA_Simlink = "BA_Simlink_";
+        public static string GetBASimLink(this MechDef mechDef)
+        {
+            foreach (var tag in mechDef.MechTags)
+            {
+                if (tag.StartsWith(BA_Simlink)) return tag;
+            }
+            return null;
+        }
+        public static int GetTotalBASpaceMechDef(this MechDef mechDef)
+        {
+            var capacity = 0;
+            var parsedExt = false;
+            foreach (var item in mechDef.Inventory)
+            {
+                foreach (var effectData in item.Def.statusEffects)
+                {
+                    if (effectData?.statisticData?.statName == "InternalBattleArmorSquadCap")
+                    {
+                        if (int.TryParse(effectData?.statisticData?.modValue, out var space)) capacity += space;
+                    }
+
+                    if (effectData?.statisticData?.statName == "HasBattleArmorMounts")
+                    {
+                        if (parsedExt) continue;
+                        capacity += 1;
+                        parsedExt = true;
+                    }
+                }
+            }
+            return capacity;
         }
 
         public static bool GetHasBattleArmorMounts(this AbstractActor actor)

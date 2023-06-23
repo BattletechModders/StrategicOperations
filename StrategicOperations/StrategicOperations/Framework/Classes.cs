@@ -4,6 +4,7 @@ using System.Linq;
 using Abilifier.Patches;
 using BattleTech;
 using BattleTech.Data;
+using BattleTech.UI;
 using CustomComponents;
 using CustomUnits;
 using HBS.Collections;
@@ -982,7 +983,7 @@ namespace StrategicOperations.Framework
 //        }
 
 
-public class AI_BeaconProxyInfo
+        public class AI_BeaconProxyInfo
         {
             public string UnitDefID = "";
             public int Weight = 0;
@@ -1105,6 +1106,8 @@ public class AI_BeaconProxyInfo
             public float Rf => r / 255f;
             public float Gf => g / 255f;
             public float Bf => b / 255f;
+
+            public Color ProcessedColor => new Color(Rf, Gf, Bf);
             //public float Af => a / 255f;
         }
         public class CmdUseStat
@@ -1332,6 +1335,29 @@ public class AI_BeaconProxyInfo
                 this.SupportHeraldryDef = supportHeraldryDef;
                 this.DM = dm;
                 this.FootPrintRects = Utils.MakeRectangle(positionA, positionB, radius);
+            }
+        }
+
+        public class BAPairingInfo
+        {
+            public int CapacityInitial;
+            public List<string> PairedBattleArmor = new List<string>();
+            public BAPairingInfo(int capacityInitial, string pairedBattleArmor = null)
+            {
+                this.CapacityInitial = capacityInitial;
+                if (pairedBattleArmor != null) this.PairedBattleArmor.Add(pairedBattleArmor);
+            }
+        }
+
+        public class PendingBAPairingInfo
+        {
+            public string BAPilotID;
+            public LanceLoadoutMechItem MechItem;
+
+            public PendingBAPairingInfo(string baPilotId, LanceLoadoutMechItem lanceLoadoutMechItem)
+            {
+                this.BAPilotID = baPilotId;
+                this.MechItem = lanceLoadoutMechItem;
             }
         }
     }

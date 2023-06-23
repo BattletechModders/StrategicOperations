@@ -173,5 +173,7 @@ namespace StrategicOperations
         };
         //BD wants controllable gated on item: companystat and use ROI?
         //RT wants specific ability or reinforcement thingy controllable: component tag on the beacon item. per abilitry will suck bc abilities suck.
+
+        public List<ColorSetting> BAMountPairColors = new List<ColorSetting>();
     }
 }

@@ -8,11 +8,15 @@ using CustomActivatableEquipment;
 using CustomComponents;
 using CustomUnits;
 using HBS.Math;
+using InControl;
 using IRTweaks.Modules.Combat;
 using Localize;
 using StrategicOperations.Framework;
 using SVGImporter;
 using UnityEngine;
+using UnityEngine.EventSystems;
+using UnityEngine.UI;
+using LanceLoadoutMechItem = BattleTech.UI.LanceLoadoutMechItem;
 using MechStructureRules = BattleTech.MechStructureRules;
 using ModState = StrategicOperations.Framework.ModState;
 using TrooperSquad = CustomUnits.TrooperSquad;
@@ -280,6 +284,200 @@ namespace StrategicOperations.Patches
 
     public class BattleArmorPatches
     {
+        [HarmonyPatch(typeof(LanceConfiguratorPanel), "OnButtonClicked",
+            new Type[] {typeof(IMechLabDraggableItem)})]
+        public static class LanceConfiguratorPanel_OnButtonClicked
+        {
+            private static bool Prepare() => true;
+            public static void Postfix(LanceConfiguratorPanel __instance, IMechLabDraggableItem item)
+            {
+                var proc = Input.GetKey(KeyCode.LeftShift) || Input.GetKey(KeyCode.RightShift);
+
+                if (proc)
+                {
+                    if (item.ItemType == MechLabDraggableItemType.Mech &&
+                        item.DropParent.dropTargetType == MechLabDropTargetType.LanceSlot)
+                    {
+                        if (item is not LanceLoadoutMechItem lanceLoadoutMechItem) return;
+                        var mechDef = lanceLoadoutMechItem.MechDef;
+                        if (mechDef == null) return;
+
+                        foreach (var slot in __instance.loadoutSlots)
+                        {
+                            if (slot.SelectedMech == lanceLoadoutMechItem)
+                            {
+                                if (slot.SelectedPilot == null)
+                                    return; // need to have pilot assigned before we can assign BA-Mech Pairings.
+                                var pilotID = slot.SelectedPilot.Pilot.pilotDef.Description.Id;
+                                ModInit.modLog?.Trace?.Write($"[LanceConfiguratorPanel_OnButtonClicked] current pilotID {pilotID}");
+                                var unitCustomInfo = lanceLoadoutMechItem.MechDef.GetCustomInfo();
+                                if (unitCustomInfo is {SquadInfo.Troopers: > 1})
+                                {
+                                    if (ModState.PendingPairBAUnit == slot)
+                                    {
+                                        ModState.PendingPairBAUnit = null;
+                                        __instance.SetPairingOverlay(slot, false);
+                                        //lanceLoadoutMechItem.UnavailableOverlay.SetActive(false);
+                                        return;
+                                    }
+
+                                    if (ModState.PendingPairBAUnit == null)
+                                    {
+                                        ModState.PendingPairBAUnit = slot;
+                                        __instance.SetPairingOverlay(slot, true); // maybe tweak unavailable overlay GO ccolors?
+                                        return;
+                                    }
+                                }
+                                
+                                if (ModState.PendingPairBAUnit != null && ModState.PendingPairBAUnit != slot)
+                                {
+                                    ModInit.modLog?.Trace?.Write(
+                                        $"[LanceConfiguratorPanel_OnButtonClicked] found pending BA {ModState.PendingPairBAUnit.SelectedMech.MechDef.Description.Id} and pilot {pilotID}with no pairing");
+                                    var pendingBAPilot = ModState.PendingPairBAUnit.SelectedPilot.Pilot.pilotDef
+                                        .Description.Id;
+                                    if (!ModState.PairingInfos.ContainsKey(pilotID))
+                                    {
+                                        var totalBASpace = mechDef.GetTotalBASpaceMechDef();
+                                        if (totalBASpace > 0)
+                                        {
+                                            ModState.PairingInfos.Add(pilotID,
+                                                new Classes.BAPairingInfo(totalBASpace, pendingBAPilot));
+                                            __instance.SetPairingOverlay(ModState.PendingPairBAUnit, true, slot);
+                                            //ModState.PendingPairBAUnit.SelectedMech.UnavailableOverlay.SetActive(false); // maybe tweak unavailable overlay GO ccolors?
+                                            ModState.PendingPairBAUnit = null;
+                                            ModInit.modLog?.Trace?.Write(
+                                                $"[LanceConfiguratorPanel_OnButtonClicked] Added new BA Pairing info. {mechDef.Description.Id} and {pilotID} paired with {string.Join(", ", ModState.PairingInfos[pilotID].PairedBattleArmor)}");
+                                            //make a notification that pairing happened? bloop?
+                                        }
+                                    }
+                                    else
+                                    {
+                                        var pairInfo = ModState.PairingInfos[pilotID];
+                                        if (pairInfo.PairedBattleArmor.Count < pairInfo.CapacityInitial)
+                                        {
+                                            pairInfo.PairedBattleArmor.Add(pendingBAPilot);
+                                            __instance.SetPairingOverlay(ModState.PendingPairBAUnit, true, slot);
+                                            //ModState.PendingPairBAUnit.SelectedMech.UnavailableOverlay.SetActive(false); // maybe tweak unavailable overlay GO ccolors?
+                                            ModState.PendingPairBAUnit = null;
+                                            ModInit.modLog?.Trace?.Write(
+                                                $"[LanceConfiguratorPanel_OnButtonClicked] Added BA Pairing to existing info for {pilotID}. {mechDef.Description.Id} and {pilotID} paired with {string.Join(", ", ModState.PairingInfos[pilotID].PairedBattleArmor)}");
+                                            //make a notification that pairing happened? bloop?
+                                        }
+                                    }
+                                    return;
+                                }
+                                return;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        [HarmonyPatch(typeof(LanceConfiguratorPanel), "OnCancelClicked",
+            new Type[] {})]
+        public static class LanceConfiguratorPanel_OnCancelClicked
+        {
+            private static bool Prepare() => true;
+
+            public static void Postfix(LanceConfiguratorPanel __instance)
+            {
+                if (__instance.IsSimGame)
+                {
+                    ModState.PairingInfos = new Dictionary<string, Classes.BAPairingInfo>();
+                    ModState.UsedOverlayColors = new List<Color>();
+                    ModState.UsedOverlayColorsByCarrier = new Dictionary<string, Color>();
+                }
+            }
+        }
+
+        [HarmonyPatch(typeof(LanceLoadoutSlot), "OnRemoveItem",
+            new Type[] {typeof(IMechLabDraggableItem), typeof(bool) })]
+        public static class LanceLoadoutSlot_OnRemoveItem
+        {
+            private static bool Prepare() => true;
+            public static void Prefix(ref bool __runOriginal, LanceLoadoutSlot __instance, IMechLabDraggableItem item, bool validate)
+            {
+                if (!__runOriginal) return;
+                ModState.PendingPairBAUnit = null;
+                if (__instance.SelectedPilot != null)
+                {
+                    var pilotID = __instance.SelectedPilot.Pilot.pilotDef.Description.Id;
+                    var toRemoveKeys = new List<string>();
+                    if (ModState.PairingInfos.ContainsKey(pilotID))
+                    {
+                        var toRemove = new List<string>();
+                        foreach (var pairedBA in ModState.PairingInfos[pilotID].PairedBattleArmor)
+                        {
+                            toRemove.Add(pairedBA);
+                        }
+                        ModState.PairingInfos.Remove(pilotID);
+                        foreach (var slot in __instance.LC.loadoutSlots)
+                        {
+                            if (toRemove.Contains(slot?.SelectedPilot?.Pilot.pilotDef.Description.Id))
+                            {
+                                var overlayChildren = slot?.SelectedMech?.UnavailableOverlay.gameObject.GetComponentsInChildren<Image>();
+                                if (overlayChildren == null) continue;
+                                foreach (var overlayChild in overlayChildren)
+                                {
+                                    if (overlayChild.name != "stripes") continue;
+                                    var overlayChildImage = overlayChild.GetComponent<Image>();
+                                    if (overlayChildImage.color != ModState.DefaultOverlay &&
+                                        slot.SelectedMech.UnavailableOverlay.activeSelf)
+                                    {
+                                        overlayChildImage.color = ModState.PendingSelectionColor;//new Color(0, 0, 0, ModState.DefaultOverlay.a);
+                                        slot.SelectedMech.UnavailableOverlay.SetActive(false);
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    else
+                    {
+                        foreach (var pairedKvP in ModState.PairingInfos)
+                        {
+                            if (pairedKvP.Value.PairedBattleArmor.Contains(pilotID))
+                            {
+                                var carrierID = pairedKvP.Key;
+                                pairedKvP.Value.PairedBattleArmor.Remove(pilotID);
+                                if (pairedKvP.Value.PairedBattleArmor.Count == 0)
+                                {
+                                    toRemoveKeys.Add(carrierID);
+                                }
+                                foreach (var slot in __instance.LC.loadoutSlots)
+                                {
+                                    if (pilotID == slot?.SelectedPilot?.Pilot.pilotDef.Description.Id || toRemoveKeys.Contains(slot?.SelectedPilot?.Pilot.pilotDef.Description.Id))
+                                    {
+                                        var overlayChildren = slot?.SelectedMech?.UnavailableOverlay.gameObject.GetComponentsInChildren<Image>();
+                                        if (overlayChildren == null) continue;
+                                        foreach (var overlayChild in overlayChildren)
+                                        {
+                                            if (overlayChild.name != "stripes") continue;
+                                            var overlayChildImage = overlayChild.GetComponentInChildren<Image>();
+                                            if (overlayChildImage.color != ModState.DefaultOverlay &&
+                                                slot.SelectedMech.UnavailableOverlay.activeSelf)
+                                            {
+                                                overlayChildImage.color = ModState.PendingSelectionColor;//new Color(0, 0, 0, ModState.DefaultOverlay.a);
+                                                slot.SelectedMech.UnavailableOverlay.SetActive(false);
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+
+                        foreach (var toRemoveKey in toRemoveKeys)
+                        {
+                            ModState.PairingInfos.Remove(toRemoveKey);
+                        }
+                    }
+                    ModInit.modLog?.Trace?.Write($"[LanceLoadoutSlot_OnRemoveItem] Removed {pilotID}. Should have removed {string.Join(", ",toRemoveKeys)} from PairingInfo keys. Pairing info keys: {string.Join(", ", ModState.PairingInfos.Keys)}");
+                }
+                __instance.SelectedMech?.UnavailableOverlay.SetActive(false);
+            }
+        }
+
         [HarmonyPatch(typeof(ActivatableComponent), "activateComponent",
             new Type[] {typeof(MechComponent), typeof(bool), typeof(bool)})]
         public static class ActivatableComponent_activateComponent
