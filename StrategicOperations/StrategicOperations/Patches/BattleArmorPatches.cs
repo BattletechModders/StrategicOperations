@@ -2,19 +2,21 @@
 using System.Collections.Generic;
 using System.Linq;
 using BattleTech;
+using BattleTech.Data;
 using BattleTech.Save;
 using BattleTech.UI;
+using BattleTech.UI.TMProWrapper;
 using CustomActivatableEquipment;
 using CustomComponents;
 using CustomUnits;
+using HBS.Extensions;
 using HBS.Math;
-using InControl;
 using IRTweaks.Modules.Combat;
 using Localize;
 using StrategicOperations.Framework;
 using SVGImporter;
+using TMPro;
 using UnityEngine;
-using UnityEngine.EventSystems;
 using UnityEngine.UI;
 using LanceLoadoutMechItem = BattleTech.UI.LanceLoadoutMechItem;
 using MechStructureRules = BattleTech.MechStructureRules;
@@ -475,6 +477,41 @@ namespace StrategicOperations.Patches
                     ModInit.modLog?.Trace?.Write($"[LanceLoadoutSlot_OnRemoveItem] Removed {pilotID}. Should have removed {string.Join(", ",toRemoveKeys)} from PairingInfo keys. Pairing info keys: {string.Join(", ", ModState.PairingInfos.Keys)}");
                 }
                 __instance.SelectedMech?.UnavailableOverlay.SetActive(false);
+            }
+        }
+
+        [HarmonyPatch(typeof(MechBayMechInfoWidget), "SetData",
+            new Type[] {typeof(SimGameState), typeof(MechBayPanel), typeof(DataManager), typeof(MechBayMechUnitElement), typeof(bool), typeof(bool)})]
+        public static class MechBayMechInfoWidget_SetData
+        {
+            private static bool Prepare() => false;
+            public static void Postfix(MechBayMechInfoWidget __instance, SimGameState sim, MechBayPanel mechBay,
+                DataManager dataManager, MechBayMechUnitElement mechElement, bool useNoMechOverlay,
+                bool useRepairButton)
+            {
+                var decoGO = __instance.gameObject.FindFirstChildNamed("Deco");
+                var svgComponentDeco = decoGO.GetComponent<SVGImage>();
+                var decoParent = decoGO?.transform?.parent;
+                UnityEngine.Object.DestroyImmediate(svgComponentDeco);
+                var newlocTxtGO = decoParent?.gameObject.FindFirstChildNamed("StratOps_SquadCarrierTip");
+                if (newlocTxtGO == null)
+                {
+                    ModInit.modLog?.Trace?.Write($"[MechBayMechInfoWidget_SetData] couldnt find game object `StratOps_SquadCarrierTip`, instantiating a new one");
+                    newlocTxtGO = UnityEngine.Object.Instantiate<GameObject>(decoGO, decoParent);
+                    newlocTxtGO.name = "StratOps_SquadCarrierTip";
+                }
+                else
+                {
+                    ModInit.modLog?.Trace?.Write($"[MechBayMechInfoWidget_SetData] Found game object `StratOps_SquadCarrierTip` and using it.");
+                }
+                var localizableTextComponent = newlocTxtGO.GetOrAddComponent<LocalizableText>();
+                localizableTextComponent.SetText(ModInit.modSettings.BAMountReminderText);
+                localizableTextComponent.alignment = TextAlignmentOptions.BottomLeft;
+                localizableTextComponent.enableAutoSizing = true;
+                localizableTextComponent.enableWordWrapping = false;
+                if (mechBay == null) newlocTxtGO.SetActive(__instance?.selectedMech?.GetCustomInfo()?.SquadInfo?.Troopers > 0);
+                //decoGO.SetActive(true);
+                
             }
         }
 

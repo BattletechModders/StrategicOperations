@@ -14,12 +14,8 @@ using CustomUnits;
 using HBS;
 using IRTweaks.Modules.Combat;
 using Localize;
-using Steamworks;
 using StrategicOperations.Framework;
 using UnityEngine;
-using static Localize.Text;
-using static MonoMod.Cil.RuntimeILReferenceBag.FastDelegateInvokers;
-using static StrategicOperations.Framework.BattleArmorUtils;
 using static StrategicOperations.Framework.Classes;
 
 namespace StrategicOperations.Patches

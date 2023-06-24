@@ -1,20 +1,16 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Threading;
 using BattleTech;
 using BattleTech.Data;
 using BattleTech.UI;
 using CustAmmoCategories;
 using CustomActivatableEquipment;
 using CustomComponents;
-using CustomComponents.Patches;
 using CustomUnits;
 using HBS.Math;
-using InControl;
 using UnityEngine;
 using UnityEngine.UI;
-using static MonoMod.Cil.RuntimeILReferenceBag.FastDelegateInvokers;
 using Random = UnityEngine.Random;
 using Text = Localize.Text;
 

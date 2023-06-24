@@ -517,7 +517,8 @@ settings in the mod.json:
 				"g": 255,
 				"b": 255
 			}
-		]
+		],
+		"BAMountReminderText": "Shift-click unit in drop slot to set carrier"
 ```
 
 `enableLogging` - bool, enable logging
@@ -771,6 +772,8 @@ Using the following settings, ClanGhostBear and ClanWolf have baseline 30% chanc
 `crewOrCockpitCustomID` - List <string> - define cockpit/crew compartment Custom Category IDs. used to ensure AI strafe/spawn abilities are associated with correct component. use same values as similar setting in TisButAScratch; defaults are `"CrewCompartment"` and `"Cockpit"`, but the setting is provided in case more IDs are needed or desired. AI strafe/spawn ability will be added to the first component that has a matching category ID.
 
 `BAMountPairColors` - list of color configs (same format as `MountIndicatorColor` setting) that defines possible overlay colors for pre-mission squad and carrier assignments.
+
+`BAMountReminderText` - controls reminder text for shift-click to assign squads to carriers, which is displayed below the mech widget in the lance config screen
 	
 ## Spawns
 	
@@ -1156,6 +1159,8 @@ The AI will also attempt to use Swarm against you. If an AI unit has BA (dictate
 As of v3.1.2.0 you can now pre-assign battle armor squads to be mounted to specific carriers before a mission starts (well, technically right when the first round starts but shut up). All units should be present in drop slots and have pilots assigned before attempting to match squads to carriers. In order to assign squads to carriers, **shift**-click a squad. Both it and all potential carriers will show a dark gray overlay. Next, shift-click the desired carriers. Both the squads and carriers will both change their overlay color to one of the colors defined in the `BAMountPairColors` setting. If a carriers can carry multiple squads, all squads assigned to that carriers will share the same overlay color. To "reset" an assignment, simply remove the squad and carrier from their dropslots, and then add them back to their drop slots if desired. Backing out of the contract screen will likewise reset all pairings. I really shouldn't need to say this, but if you are reloading a pre-mission autosave, you will need to reassign all squads to their carriers.
 
 If you are using CustomUnits' manual drops feature, it doeesn't matter where you assign the squads to deploy, they will magically teleport to their assigned carriers.
+
+When a squad is selected in the lance config screen, a reminder text for shift-click to assign is displayed below the mech widget. The specific text can be set using the `BAMountReminderText` setting.
 
 #### Firing Ports
 

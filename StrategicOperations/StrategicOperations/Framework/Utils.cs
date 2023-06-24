@@ -5,13 +5,11 @@ using Abilifier.Patches;
 using BattleTech;
 using BattleTech.Data;
 using BattleTech.Framework;
-using BattleTech.Save.SaveGameStructure;
 using BattleTech.UI;
 using CustAmmoCategories;
 using CustomAmmoCategoriesPatches;
 using HBS.Collections;
 using UnityEngine;
-using static RootMotion.FinalIK.InteractionTrigger;
 using static StrategicOperations.Framework.Classes;
 using Log = CustomAmmoCategoriesLog.Log;
 
