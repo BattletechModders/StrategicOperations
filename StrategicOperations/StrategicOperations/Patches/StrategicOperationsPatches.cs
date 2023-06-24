@@ -1980,7 +1980,8 @@ namespace StrategicOperations.Patches
                 __instance.Combat.UpdateResupplyAbilitiesGetAllLivingActors();
 
                 // now try to auto-mount??????
-                
+                if (ModState.PairingInfos.Count == 0) return;
+                if (DeployManualHelper.IsInManualSpawnSequence) return;
                 foreach (var unit in playerTeam.units)
                 {
                     if (ModState.PairingInfos.TryGetValue(unit.GetPilot().pilotDef.Description.Id, out var info))
@@ -1994,6 +1995,38 @@ namespace StrategicOperations.Patches
                                 {
                                     unit.MountBattleArmorToChassis(squad, true, true);
 
+                                    if (unit is CustomMech custMech && custMech.FlyingHeight() > 1.5f)
+                                    {
+                                        var pos = custMech.CurrentPosition +
+                                                  Vector3.up * custMech.custGameRep.HeightController.CurrentHeight;
+                                        squad.TeleportActorVisual(pos);
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        [HarmonyPatch(typeof(DeployManualHelper), "TeleportToPositions")]
+        public static class DeployManualHelper_TeleportToPositions
+        {
+            public static void Postfix(CombatHUD HUD, List<DeployPosition> positions)
+            {
+                if (ModState.PairingInfos.Count == 0) return;
+                foreach (var unit in HUD.Combat.LocalPlayerTeam.units)
+                {
+                    if (ModState.PairingInfos.TryGetValue(unit.GetPilot().pilotDef.Description.Id, out var info))
+                    {
+                        foreach (var squadPilot in info.PairedBattleArmor)
+                        {
+                            foreach (var unit2 in HUD.Combat.LocalPlayerTeam.units)
+                            {
+                                if (unit2 is TrooperSquad squad &&
+                                    unit2.GetPilot().pilotDef.Description.Id == squadPilot)
+                                {
+                                    unit.MountBattleArmorToChassis(squad, true, true);
                                     if (unit is CustomMech custMech && custMech.FlyingHeight() > 1.5f)
                                     {
                                         var pos = custMech.CurrentPosition +
