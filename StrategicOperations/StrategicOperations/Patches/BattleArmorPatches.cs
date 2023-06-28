@@ -484,7 +484,6 @@ namespace StrategicOperations.Patches
             new Type[] {typeof(SimGameState), typeof(MechBayPanel), typeof(DataManager), typeof(MechBayMechUnitElement), typeof(bool), typeof(bool)})]
         public static class MechBayMechInfoWidget_SetData
         {
-            private static bool Prepare() => false;
             public static void Postfix(MechBayMechInfoWidget __instance, SimGameState sim, MechBayPanel mechBay,
                 DataManager dataManager, MechBayMechUnitElement mechElement, bool useNoMechOverlay,
                 bool useRepairButton)
