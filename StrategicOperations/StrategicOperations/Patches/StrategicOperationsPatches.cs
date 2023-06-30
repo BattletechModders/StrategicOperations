@@ -1,6 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection;
+using System.Runtime.InteropServices;
 using Abilifier.Framework;
 using Abilifier.Patches;
 using BattleTech;
@@ -2222,14 +2224,18 @@ namespace StrategicOperations.Patches
             public static void Postfix(SelectionStateCommand __instance)
             {
                 if (UnityGameInstance.BattleTechGame.Combat.ActiveContract.ContractTypeValue.IsSkirmish) return;
-                var HUD = __instance.HUD;//IRBTModUtils.SharedState.CombatHUD;//Traverse.Create(__instance).Property("HUD").GetValue<CombatHUD>();
-                var theActor = HUD.SelectedActor;
-                if (theActor == null) return;
-                CombatTargetingReticle.Instance.HideReticle();
-                var maxRange = Mathf.RoundToInt(__instance.FromButton.Ability.Def.IntParam2);
-                CombatTargetingReticle.Instance.ShowRangeIndicators(theActor.CurrentPosition, 0f, maxRange, false, true);
-                CombatTargetingReticle.Instance.UpdateRangeIndicator(theActor.CurrentPosition, false, true);
-                CombatTargetingReticle.Instance.ShowReticle();
+                if (DeployManualHelper.IsInManualSpawnSequence) return;
+                if (__instance is SelectionStateCommandSpawnTarget || __instance is SelectionStateCommandTargetTwoPoints)
+                {
+                    var HUD = __instance.HUD;//IRBTModUtils.SharedState.CombatHUD;//Traverse.Create(__instance).Property("HUD").GetValue<CombatHUD>();
+                    var theActor = HUD.SelectedActor;
+                    if (theActor == null) return;
+                    CombatTargetingReticle.Instance.HideReticle();
+                    var maxRange = Mathf.RoundToInt(__instance.FromButton.Ability.Def.IntParam2);
+                    CombatTargetingReticle.Instance.ShowRangeIndicators(theActor.CurrentPosition, 0f, maxRange, false, true);
+                    CombatTargetingReticle.Instance.UpdateRangeIndicator(theActor.CurrentPosition, false, true);
+                    CombatTargetingReticle.Instance.ShowReticle();
+                }
             }
         }
 
