@@ -12,6 +12,24 @@ namespace StrategicOperations.Framework
 {
     public static class ResupplyUtils
     {
+        public static void ModifyAmmoCount(this Weapon weapon, int value)
+        {
+            weapon.StatCollection.ModifyStat("resupplyAMMO", -1, "InternalAmmo", StatCollection.StatOperation.Int_Add, value);
+        }
+        public static void ModifyAmmoCount(this AmmunitionBox box, int value)
+        {
+            box.StatCollection.ModifyStat("resupplyAMMO", -1, "CurrentAmmo", StatCollection.StatOperation.Int_Add, value);
+            box.tCurrentAmmo(box.CurrentAmmo);
+        }
+        public static void ZeroAmmoCount(this AmmunitionBox box)
+        {
+            box.StatCollection.ModifyStat("resupplyAMMO", -1, "CurrentAmmo", StatCollection.StatOperation.Set, 0);
+        }
+        public static void ModifyMechArmorValue(this Mech mech, ArmorLocation loc, float value)
+        {
+            mech.StatCollection.ModifyStat("resupplyARMOR", -1, mech.GetStringForArmorLocation(loc), StatCollection.StatOperation.Float_Add, value);
+        }
+
         public static bool AreAnyWeaponsOutOfAmmo(this AbstractActor actor)
         {
             foreach (var weapon in actor.Weapons)
@@ -19,6 +37,23 @@ namespace StrategicOperations.Framework
                 if (!weapon.HasAmmo) return false;
             }
             return true;
+        }
+        
+        public static float GetDistanceToClosestDetectedResupply(this AbstractActor actor, Vector3 position)
+        {
+            var friendlyUnits = actor.team.VisibilityCache.GetAllFriendlies(actor).Where(x => !x.IsDead && !x.IsFlaggedForDeath);
+            var num = -1f;
+            var magnitude = -9999f;
+            foreach (var friendly in friendlyUnits)
+            {
+                if (!friendly.GetStaticUnitTags().Contains(ModInit.modSettings.ResupplyConfig.ResupplyUnitTag)) continue;
+                magnitude = (position - friendly.CurrentPosition).magnitude;
+                if (num < 0f || magnitude < num)
+                {
+                    num = magnitude;
+                }
+            }
+            return magnitude;
         }
 
         public static AbstractActor GetClosestDetectedResupply(this AbstractActor actor)
@@ -40,23 +75,6 @@ namespace StrategicOperations.Framework
             return resupplyActor;
         }
 
-        public static float GetDistanceToClosestDetectedResupply(this AbstractActor actor, Vector3 position)
-        {
-            var friendlyUnits = actor.team.VisibilityCache.GetAllFriendlies(actor).Where(x => !x.IsDead && !x.IsFlaggedForDeath);
-            var num = -1f;
-            var magnitude = -9999f;
-            foreach (var friendly in friendlyUnits)
-            {
-                if (!friendly.GetStaticUnitTags().Contains(ModInit.modSettings.ResupplyConfig.ResupplyUnitTag)) continue;
-                magnitude = (position - friendly.CurrentPosition).magnitude;
-                if (num < 0f || magnitude < num)
-                {
-                    num = magnitude;
-                }
-            }
-            return magnitude;
-        }
-
         public static void InitiateShutdownForPhases(this AbstractActor actor, int phases)
         {
             if (actor.IsShutDown)
@@ -74,22 +92,6 @@ namespace StrategicOperations.Framework
             {
                 ModState.ResupplyShutdownPhases.Add(actor.GUID, phases);
             }
-        }
-
-        public static void ModifyAmmoCount(this Weapon weapon, int value)
-        {
-            weapon.StatCollection.ModifyStat("resupplyAMMO", -1, "InternalAmmo", StatCollection.StatOperation.Int_Add, value);
-        }
-
-        public static void ModifyAmmoCount(this AmmunitionBox box, int value)
-        {
-            box.StatCollection.ModifyStat("resupplyAMMO", -1, "CurrentAmmo", StatCollection.StatOperation.Int_Add, value);
-            box.tCurrentAmmo(box.CurrentAmmo);
-        }
-
-        public static void ModifyMechArmorValue(this Mech mech, ArmorLocation loc, float value)
-        {
-            mech.StatCollection.ModifyStat("resupplyARMOR", -1, mech.GetStringForArmorLocation(loc), StatCollection.StatOperation.Float_Add, value);
         }
 
         public static int ProcessResupplyUnit(this AbstractActor actor, AbstractActor resupplyActor)
@@ -314,6 +316,22 @@ namespace StrategicOperations.Framework
             ModInit.modLog?.Trace?.Write($"[ProcessResupplyUnit] - Calculated resupply should take {finalPhases} phases: {ModInit.modSettings.ResupplyConfig.BasePhasesToResupply} from baseline, {phasesFromAmmo} from ammo, {phasesFromArmor} from armor, x {multiFromTags} total from tags.");
             return finalPhases;
         }
+        
+        public static void UpdateResupplyTeams(this CombatGameState combat)
+        {
+            foreach (var actor in combat.GetAllLivingActors())
+            {
+                if (actor.GetStaticUnitTags().Contains(ModInit.modSettings.ResupplyConfig.ResupplyUnitTag))
+                {
+                    foreach (var team in combat.Teams)
+                    {
+                        if (ModState.TeamsWithResupply.Contains(team.GUID)) continue;
+                        if (team.IsFriendly(actor.team)) ModState.TeamsWithResupply.Add(team.GUID);
+                    }
+                    if (!ModState.TeamsWithResupply.Contains(actor.team.GUID)) ModState.TeamsWithResupply.Add(actor.team.GUID);
+                }
+            }
+        }
 
         public static void UpdateResupplyAbilitiesGetAllLivingActors(this CombatGameState combat)
         {
@@ -337,27 +355,6 @@ namespace StrategicOperations.Framework
                     unit.GetPilot().ActiveAbilities.Add(ability);
                 }
             }
-        }
-
-        public static void UpdateResupplyTeams(this CombatGameState combat)
-        {
-            foreach (var actor in combat.GetAllLivingActors())
-            {
-                if (actor.GetStaticUnitTags().Contains(ModInit.modSettings.ResupplyConfig.ResupplyUnitTag))
-                {
-                    foreach (var team in combat.Teams)
-                    {
-                        if (ModState.TeamsWithResupply.Contains(team.GUID)) continue;
-                        if (team.IsFriendly(actor.team)) ModState.TeamsWithResupply.Add(team.GUID);
-                    }
-                    if (!ModState.TeamsWithResupply.Contains(actor.team.GUID)) ModState.TeamsWithResupply.Add(actor.team.GUID);
-                }
-            }
-        }
-
-        public static void ZeroAmmoCount(this AmmunitionBox box)
-        {
-            box.StatCollection.ModifyStat("resupplyAMMO", -1, "CurrentAmmo", StatCollection.StatOperation.Set, 0);
         }
     }
 }

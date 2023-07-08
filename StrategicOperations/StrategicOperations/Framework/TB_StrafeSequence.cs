@@ -13,37 +13,12 @@ namespace StrategicOperations.Framework
 {
     public class TB_StrafeSequence : MultiSequence
     {
-        public enum SequenceState
-        {
-            None,
-            Incoming,
-            Strafing,
-            Finished
-        }
-
-        private const float HorizMultiplier = 4f;
-        private const float TimeBetweenAttacks = 0.35f;
-
-        private const float TimeIncoming = 6f;
-
-//        private float speed = 150f;
-        private TB_StrafeSequence.SequenceState _state;
-        private float _timeInCurrentState;
-        private float _timeSinceLastAttack;
-        private Vector3 _zeroEndPos;
-        private Vector3 _zeroStartPos;
-        public int AOECount;
-        public List<Vector3> AOEPositions = new List<Vector3>();
-        public List<int> attackSequences = new List<int>();
-        public CombatHUD HUD;
-        public bool IsStrafeAOE;
         public string ParentSequenceID;
-        private Team StrafingTeam;
         public string TurnEventID;
-
+        private Team StrafingTeam;
+        private List<ICombatant> CurrentTargets { get; set; }
         private List<string> AllTargetGUIDs { get; set; }
         private AbstractActor Attacker { get; set; }
-        private List<ICombatant> CurrentTargets { get; set; }
         private Vector3 EndPos { get; set; }
         private float HeightOffset { get; set; }
         public override bool IsCancelable => false;
@@ -53,11 +28,31 @@ namespace StrategicOperations.Framework
         private float MaxWeaponRange { get; set; }
         private float Radius { get; set; }
         private Vector3 StartPos { get; set; }
-
         private float StrafeLength { get; set; }
-
 //        private List<Weapon> StrafeWeapons { get; set; }
         private Vector3 Velocity { get; set; }
+        private const float HorizMultiplier = 4f;
+//        private float speed = 150f;
+        private TB_StrafeSequence.SequenceState _state;
+        private const float TimeBetweenAttacks = 0.35f;
+        private const float TimeIncoming = 6f;
+        private float _timeInCurrentState;
+        private float _timeSinceLastAttack;
+        private Vector3 _zeroEndPos;
+        private Vector3 _zeroStartPos;
+        public List<int> attackSequences = new List<int>();
+        public bool IsStrafeAOE;
+        public int AOECount;
+        public List<Vector3> AOEPositions = new List<Vector3>();
+        public CombatHUD HUD;
+
+        public enum SequenceState
+        {
+            None,
+            Incoming,
+            Strafing,
+            Finished
+        }
 
         public TB_StrafeSequence(string parentSequenceID, string turnEventID, AbstractActor attacker, Vector3 positionA, Vector3 positionB,
             float radius, Team team, bool isStrafeAOE, int strafeAOECount = 0) : base(attacker.Combat)
@@ -208,7 +203,6 @@ namespace StrategicOperations.Framework
             }
 //            ModInit.modLog?.Info?.Write($"timeSinceAttack was {this.timeSinceLastAttack} (needs to be > {timeBetweenAttacks}) and IsAnyAttackSequenceActive?: {base.Combat.AttackDirector.IsAnyAttackSequenceActive} should be false");
         }
-
         private Vector3 CalcStartPos()
         {
             this.MaxWeaponRange = 400;
@@ -329,7 +323,6 @@ namespace StrategicOperations.Framework
             Vector3 preStartPos = this.EndPos - this.StartPos * 2f;
             this.CurrentTargets.Sort((ICombatant x, ICombatant y) => Vector3.Distance(x.CurrentPosition, preStartPos).CompareTo(Vector3.Distance(y.CurrentPosition, preStartPos)));
         }
-
         private void GetWeaponsForStrafe()
         {
             //this.StrafeWeapons = this.Attacker.Weapons; //new List<Weapon>(this.Attacker.Weapons);
@@ -357,15 +350,12 @@ namespace StrategicOperations.Framework
             ModInit.modLog?.Debug?.Write($"Target {combatant.DisplayName} not within strafe radius range. Distance: {dist}, Range: {this.Radius}");
             return false;
         }
-
         public override void Load(SerializationStream stream)
         {
         }
-
         public override void LoadComplete()
         {
         }
-
         public override void OnAdded()
         {
             base.OnAdded();
@@ -409,18 +399,15 @@ namespace StrategicOperations.Framework
             base.OnUpdate();
             this.Update();
         }
-
         public override void Save(SerializationStream stream)
         {
         }
-
         private void SetPosition(Vector3 position, Quaternion rotation)
         {
             this.Attacker.GameRep.thisTransform.position = position;
             this.Attacker.GameRep.thisTransform.rotation = rotation;
             this.Attacker.OnPositionUpdate(position, rotation, base.SequenceGUID, false, null, true);
         }
-
         private void SetState(TB_StrafeSequence.SequenceState newState)
         {
             if (this._state == newState)
@@ -476,17 +463,14 @@ namespace StrategicOperations.Framework
                     return;
             }
         }
-
         public override bool ShouldSave()
         {
             return false;
         }
-
         public override int Size()
         {
             return 0;
         }
-
         private void Update()
         {
             this._timeInCurrentState += Time.deltaTime;

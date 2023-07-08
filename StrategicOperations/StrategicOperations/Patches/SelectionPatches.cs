@@ -14,6 +14,182 @@ namespace StrategicOperations.Patches
 {
     public class StrategicSelection
     {
+        public static class StrategicTargetIndicatorsManager
+        {
+            public static List<GameObject> ReticleGOs = new List<GameObject>();
+            public static CombatHUD HUD = null;
+            public static GameObject BaseReticleObject = null;
+
+            public static void Clear()
+            {
+                StrategicTargetIndicatorsManager.ReticleGOs.Clear();
+                UnityEngine.Object.Destroy(StrategicTargetIndicatorsManager.BaseReticleObject);
+                StrategicTargetIndicatorsManager.BaseReticleObject = null;
+                StrategicTargetIndicatorsManager.HUD = null;
+            }
+            public static void HideReticles()
+            {
+                foreach (var reticle in StrategicTargetIndicatorsManager.ReticleGOs)
+                {
+                    reticle.gameObject.SetActive(false);
+                }
+            }
+            public static void InitReticles(CombatHUD hud, int count)
+            {
+                if (StrategicTargetIndicatorsManager.BaseReticleObject == null)
+                {
+                    StrategicTargetIndicatorsManager.BaseReticleObject = new GameObject("StrategicTargetingReticles"); //was TargetingCircles
+                }
+                StrategicTargetIndicatorsManager.HUD = hud;
+
+                while (ReticleGOs.Count < count)
+                {
+                    ModInit.modLog?.Trace?.Write($"[InitReticle] Need to init new reticles; have {ReticleGOs.Count}");
+                    GameObject reticleGO = new GameObject("StrategicReticle"); //was Circle
+                    StrategicTargetReticle reticle = reticleGO.AddComponent<StrategicTargetReticle>();
+                    //reticle.transform.SetParent(reticleGO.transform);
+                    reticle.Init(StrategicTargetIndicatorsManager.HUD);
+                    StrategicTargetIndicatorsManager.ReticleGOs.Add(reticleGO);
+                }
+            }
+            public static void ShowRoot()
+            {
+                StrategicTargetIndicatorsManager.BaseReticleObject.SetActive(true);
+            }
+        }
+
+        public class StrategicTargetReticle : MonoBehaviour
+        {
+            public CombatHUD HUD;
+            public GameObject ReticleObject;
+
+
+            public void Init(CombatHUD hud)
+            {
+                this.HUD = hud;
+                ReticleObject = UnityEngine.Object.Instantiate<GameObject>(CombatTargetingReticle.Instance.Circles[0]);
+                ReticleObject.transform.SetParent(base.transform);
+                Vector3 localScale = ReticleObject.transform.localScale;
+                localScale.x = 2f;
+                localScale.z = 2f;
+                ReticleObject.transform.localScale = localScale;
+                ReticleObject.transform.localPosition = Vector3.zero;
+            }
+
+            public void SetScaleAndLocation(Vector3 loc, float radius)
+            {
+                Vector3 localScale = ReticleObject.transform.localScale;
+                localScale.x = radius * 2f;
+                localScale.z = radius * 2f;
+                ReticleObject.transform.localScale = localScale;
+                base.transform.position = loc;
+                ReticleObject.SetActive(true);
+                ReticleObject.gameObject.SetActive(true);
+                ModInit.modLog?.Trace?.Write($"[SetScaleAndLocation] Set location to {loc}");
+            }
+
+            public void UpdateColorAndStyle(bool IsFriendly, bool IsResupply, bool IsResupplyInRange)
+            {
+                var dm = UnityGameInstance.BattleTechGame.DataManager;
+
+                Transform[] childComponents;
+
+                childComponents = ReticleObject.GetComponentsInChildren<Transform>(true);
+
+                for (int i = 0; i < childComponents.Length; i++)
+                {
+                    if (childComponents[i].name == "Thumper1")
+                    {
+                        childComponents[i].gameObject.SetActive(false);
+                        continue;
+                    }
+
+                    if (childComponents[i].name == "Mortar1")
+                    {
+                        childComponents[i].gameObject.SetActive(true);
+                        var decalsFromCircle = childComponents[i].GetComponentsInChildren<BTUIDecal>();
+                        for (int j = 0; j < decalsFromCircle.Length; j++)
+                        {
+                            if (decalsFromCircle[j].name == "ReticleDecalCircle")
+                            {
+                                if (IsFriendly && !IsResupply)
+                                {
+                                    if (!string.IsNullOrEmpty(ModInit.modSettings.MountIndicatorAsset))
+                                    {
+                                        var newTexture = dm.GetObjectOfType<Texture2D>(ModInit.modSettings.MountIndicatorAsset,
+                                            BattleTechResourceType.Texture2D);
+                                        if (newTexture != null) decalsFromCircle[j].DecalPropertyBlock.SetTexture("_MainTex", newTexture);
+                                    }
+
+                                    if (ModInit.modSettings.MountIndicatorColor != null)
+                                    {
+                                        var customColor = new Color(ModInit.modSettings.MountIndicatorColor.Rf,
+                                            ModInit.modSettings.MountIndicatorColor.Gf,
+                                            ModInit.modSettings.MountIndicatorColor.Bf);
+                                        decalsFromCircle[j].DecalPropertyBlock.SetColor("_Color", customColor);
+                                    }
+                                    else
+                                    {
+                                        decalsFromCircle[j].DecalPropertyBlock.SetColor("_Color", Color.blue);
+                                    }
+                                }
+
+                                if (IsResupply && !IsResupplyInRange)
+                                {
+                                    if (!string.IsNullOrEmpty(ModInit.modSettings.ResupplyConfig.ResupplyIndicatorAsset))
+                                    {
+                                        var newTexture = dm.GetObjectOfType<Texture2D>(ModInit.modSettings.ResupplyConfig.ResupplyIndicatorAsset,
+                                            BattleTechResourceType.Texture2D);
+                                        if (newTexture != null) decalsFromCircle[j].DecalPropertyBlock.SetTexture("_MainTex", newTexture);
+                                    }
+
+                                    if (ModInit.modSettings.MountIndicatorColor != null)
+                                    {
+                                        var customColor = new Color(ModInit.modSettings.ResupplyConfig.ResupplyIndicatorColor.Rf,
+                                            ModInit.modSettings.ResupplyConfig.ResupplyIndicatorColor.Gf,
+                                            ModInit.modSettings.ResupplyConfig.ResupplyIndicatorColor.Bf);
+                                        decalsFromCircle[j].DecalPropertyBlock.SetColor("_Color", customColor);
+
+                                    }
+                                    else
+                                    {
+                                        decalsFromCircle[j].DecalPropertyBlock.SetColor("_Color", Color.blue);
+                                    }
+                                }
+                                else if (IsResupply)
+                                {
+                                    if (!string.IsNullOrEmpty(ModInit.modSettings.ResupplyConfig.ResupplyIndicatorInRangeAsset))
+                                    {
+                                        var newTexture = dm.GetObjectOfType<Texture2D>(ModInit.modSettings.ResupplyConfig.ResupplyIndicatorInRangeAsset,
+                                            BattleTechResourceType.Texture2D);
+                                        if (newTexture != null) decalsFromCircle[j].DecalPropertyBlock.SetTexture("_MainTex", newTexture);
+                                    }
+
+                                    if (ModInit.modSettings.MountIndicatorColor != null)
+                                    {
+                                        var customColor = new Color(ModInit.modSettings.ResupplyConfig.ResupplyIndicatorInRangeColor.Rf,
+                                            ModInit.modSettings.ResupplyConfig.ResupplyIndicatorInRangeColor.Gf,
+                                            ModInit.modSettings.ResupplyConfig.ResupplyIndicatorInRangeColor.Bf);
+                                        decalsFromCircle[j].DecalPropertyBlock.SetColor("_Color", customColor);
+
+                                    }
+                                    else
+                                    {
+                                        decalsFromCircle[j].DecalPropertyBlock.SetColor("_Color", Color.blue);
+                                    }
+                                }
+                                decalsFromCircle[j].gameObject.SetActive(true);
+                            }
+                            else
+                            {
+                                decalsFromCircle[j].gameObject.SetActive(false);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
         public class SelectionStateMWTargetSingle_Stratops : AbilityExtensions.SelectionStateMWTargetSingle
         {
             public SelectionStateMWTargetSingle_Stratops(CombatGameState Combat, CombatHUD HUD,
@@ -21,6 +197,141 @@ namespace StrategicOperations.Patches
             {
             }
 
+            public void HighlightPotentialTargets()
+            {
+                var jumpdist = 0f;
+                if (SelectedActor is Mech mech)
+                {
+                    jumpdist = mech.JumpDistance;
+                    if (float.IsNaN(jumpdist)) jumpdist = 0f;
+                }
+
+                var ranges = new List<float>()
+                {
+                    SelectedActor.MaxWalkDistance,
+                    SelectedActor.MaxSprintDistance,
+                    jumpdist,
+                    this.FromButton.Ability.Def.IntParam2
+                };
+                var maxRange = ranges.Max();
+
+                if (this.FromButton.Ability.Def.Id == ModInit.modSettings.BattleArmorMountAndSwarmID)
+                {
+                    if (!SelectedActor.IsMountedUnit() && !SelectedActor.IsSwarmingUnit() &&
+                        !SelectedActor.IsGarrisoned())
+                    {
+                        var mountTargets = SelectedActor.GetAllFriendliesWithinRange(maxRange);
+                        var swarmTargets = SelectedActor.GetAllEnemiesWithinRange(maxRange);
+
+                        mountTargets.RemoveAll(x => !this.CanTargetCombatant(x));
+                        swarmTargets.RemoveAll(x => !this.CanTargetCombatant(x));
+
+                        HUD.InWorldMgr.HideMeleeTargets();
+                        HUD.InWorldMgr.ShowBATargetsMeleeIndicator(swarmTargets, SelectedActor);
+
+                        StrategicTargetIndicatorsManager.InitReticles(HUD, mountTargets.Count);
+                        for (var index = 0; index < mountTargets.Count; index++)
+                        {
+                            StrategicTargetIndicatorsManager.ReticleGOs[index].SetActive(true);
+                            var reticle = StrategicTargetIndicatorsManager.ReticleGOs[index]
+                                .GetComponent<StrategicTargetReticle>();
+                            var isFriendly = mountTargets[index].team.IsFriendly(SelectedActor.team);
+                            reticle.SetScaleAndLocation(mountTargets[index].CurrentPosition, 10f);
+                            reticle.UpdateColorAndStyle(isFriendly, false, false);
+                            ModInit.modLog?.Trace?.Write(
+                                $"[HighlightPotentialTargets - BattleArmorMountAndSwarmID] Updating reticle at index {index}, isFriendly {isFriendly}.");
+                        }
+
+                        StrategicTargetIndicatorsManager.ShowRoot();
+                    }
+                }
+                else if (this.FromButton.Ability.Def.Id == ModInit.modSettings.ResupplyConfig.ResupplyAbilityID)
+                {
+                    if (!SelectedActor.IsMountedUnit() && !SelectedActor.IsSwarmingUnit() &&
+                        !SelectedActor.IsGarrisoned())
+                    {
+                        var resupplyTargets = SelectedActor.GetAllFriendliesWithinRange(1000f);
+
+                        resupplyTargets.RemoveAll(x => !this.CanTargetCombatant(x));
+
+                        HUD.InWorldMgr.HideMeleeTargets();
+                        StrategicTargetIndicatorsManager.InitReticles(HUD, resupplyTargets.Count);
+                        for (var index = 0; index < resupplyTargets.Count; index++)
+                        {
+                            if (Vector3.Distance(SelectedActor.CurrentPosition,
+                                    resupplyTargets[index].CurrentPosition) <= this.FromButton.Ability.Def.IntParam2)
+                            {
+                                StrategicTargetIndicatorsManager.ReticleGOs[index].SetActive(true);
+                                var reticle = StrategicTargetIndicatorsManager.ReticleGOs[index]
+                                    .GetComponent<StrategicTargetReticle>();
+                                var isFriendly = resupplyTargets[index].team.IsFriendly(SelectedActor.team);
+                                reticle.SetScaleAndLocation(resupplyTargets[index].CurrentPosition, 10f);
+                                reticle.UpdateColorAndStyle(isFriendly, true, true);
+                                ModInit.modLog?.Trace?.Write(
+                                    $"[HighlightPotentialTargets - ResupplyAbility INRANGE] Updating reticle at index {index}, isFriendly {isFriendly}.");
+                            }
+                            else
+                            {
+                                StrategicTargetIndicatorsManager.ReticleGOs[index].SetActive(true);
+                                var reticle = StrategicTargetIndicatorsManager.ReticleGOs[index]
+                                    .GetComponent<StrategicTargetReticle>();
+                                var isFriendly = resupplyTargets[index].team.IsFriendly(SelectedActor.team);
+                                reticle.SetScaleAndLocation(resupplyTargets[index].CurrentPosition, 10f);
+                                reticle.UpdateColorAndStyle(isFriendly, true, false);
+                                ModInit.modLog?.Trace?.Write(
+                                    $"[HighlightPotentialTargets - ResupplyAbility ANY] Updating reticle at index {index}, isFriendly {isFriendly}.");
+                            }
+                        }
+                        
+                        StrategicTargetIndicatorsManager.ShowRoot();
+                    }
+                }
+            }
+
+            public override void OnAddToStack()
+            {
+                base.OnAddToStack();
+                this.showTargetingText(this.abilitySelectionText);
+                var jumpdist = 0f;
+                if (SelectedActor is Mech mech)
+                {
+                    jumpdist = mech.JumpDistance;
+                    if (float.IsNaN(jumpdist)) jumpdist = 0f;
+                }
+
+                var ranges = new List<float>()
+                {
+                    SelectedActor.MaxWalkDistance,
+                    SelectedActor.MaxSprintDistance,
+                    jumpdist,
+                    this.FromButton.Ability.Def.IntParam2
+                };
+                var maxRange = ranges.Max();
+                //CombatTargetingReticle.Instance.UpdateReticle(SelectedActor.CurrentPosition, maxRange, false);
+                CombatTargetingReticle.Instance.ShowRangeIndicators(SelectedActor.CurrentPosition, 0f, maxRange, false, true);
+                CombatTargetingReticle.Instance.UpdateRangeIndicator(SelectedActor.CurrentPosition, false, true);
+                CombatTargetingReticle.Instance.ShowReticle();
+
+                if (SelectedActor.IsMountedUnit())
+                {
+                    var carrier = Combat.FindCombatantByGUID(ModState.PositionLockMount[SelectedActor.GUID]);
+                    this.ProcessClickedCombatant(carrier);
+                }
+                else if (SelectedActor.IsSwarmingUnit())
+                {
+                    var carrier = Combat.FindCombatantByGUID(ModState.PositionLockSwarm[SelectedActor.GUID]);
+                    this.ProcessClickedCombatant(carrier);
+                }
+                else if (SelectedActor.IsGarrisoned())
+                {
+                    var carrier = Combat.FindCombatantByGUID(ModState.PositionLockGarrison[SelectedActor.GUID].BuildingGUID);
+                    this.ProcessClickedCombatant(carrier);
+                }
+                else
+                {
+                    this.HighlightPotentialTargets();
+                }
+            }
             public override bool CanTargetCombatant(ICombatant potentialTarget)
             {
                 if (SelectedActor.VisibilityToTargetUnit(potentialTarget) == VisibilityLevel.None)
@@ -201,150 +512,6 @@ namespace StrategicOperations.Patches
                     }
                 }
                 return true;
-            }
-
-            public void HighlightPotentialTargets()
-            {
-                var jumpdist = 0f;
-                if (SelectedActor is Mech mech)
-                {
-                    jumpdist = mech.JumpDistance;
-                    if (float.IsNaN(jumpdist)) jumpdist = 0f;
-                }
-
-                var ranges = new List<float>()
-                {
-                    SelectedActor.MaxWalkDistance,
-                    SelectedActor.MaxSprintDistance,
-                    jumpdist,
-                    this.FromButton.Ability.Def.IntParam2
-                };
-                var maxRange = ranges.Max();
-
-                if (this.FromButton.Ability.Def.Id == ModInit.modSettings.BattleArmorMountAndSwarmID)
-                {
-                    if (!SelectedActor.IsMountedUnit() && !SelectedActor.IsSwarmingUnit() &&
-                        !SelectedActor.IsGarrisoned())
-                    {
-                        var mountTargets = SelectedActor.GetAllFriendliesWithinRange(maxRange);
-                        var swarmTargets = SelectedActor.GetAllEnemiesWithinRange(maxRange);
-
-                        mountTargets.RemoveAll(x => !this.CanTargetCombatant(x));
-                        swarmTargets.RemoveAll(x => !this.CanTargetCombatant(x));
-
-                        HUD.InWorldMgr.HideMeleeTargets();
-                        HUD.InWorldMgr.ShowBATargetsMeleeIndicator(swarmTargets, SelectedActor);
-
-                        StrategicTargetIndicatorsManager.InitReticles(HUD, mountTargets.Count);
-                        for (var index = 0; index < mountTargets.Count; index++)
-                        {
-                            StrategicTargetIndicatorsManager.ReticleGOs[index].SetActive(true);
-                            var reticle = StrategicTargetIndicatorsManager.ReticleGOs[index]
-                                .GetComponent<StrategicTargetReticle>();
-                            var isFriendly = mountTargets[index].team.IsFriendly(SelectedActor.team);
-                            reticle.SetScaleAndLocation(mountTargets[index].CurrentPosition, 10f);
-                            reticle.UpdateColorAndStyle(isFriendly, false, false);
-                            ModInit.modLog?.Trace?.Write(
-                                $"[HighlightPotentialTargets - BattleArmorMountAndSwarmID] Updating reticle at index {index}, isFriendly {isFriendly}.");
-                        }
-
-                        StrategicTargetIndicatorsManager.ShowRoot();
-                    }
-                }
-                else if (this.FromButton.Ability.Def.Id == ModInit.modSettings.ResupplyConfig.ResupplyAbilityID)
-                {
-                    if (!SelectedActor.IsMountedUnit() && !SelectedActor.IsSwarmingUnit() &&
-                        !SelectedActor.IsGarrisoned())
-                    {
-                        var resupplyTargets = SelectedActor.GetAllFriendliesWithinRange(1000f);
-
-                        resupplyTargets.RemoveAll(x => !this.CanTargetCombatant(x));
-
-                        HUD.InWorldMgr.HideMeleeTargets();
-                        StrategicTargetIndicatorsManager.InitReticles(HUD, resupplyTargets.Count);
-                        for (var index = 0; index < resupplyTargets.Count; index++)
-                        {
-                            if (Vector3.Distance(SelectedActor.CurrentPosition,
-                                    resupplyTargets[index].CurrentPosition) <= this.FromButton.Ability.Def.IntParam2)
-                            {
-                                StrategicTargetIndicatorsManager.ReticleGOs[index].SetActive(true);
-                                var reticle = StrategicTargetIndicatorsManager.ReticleGOs[index]
-                                    .GetComponent<StrategicTargetReticle>();
-                                var isFriendly = resupplyTargets[index].team.IsFriendly(SelectedActor.team);
-                                reticle.SetScaleAndLocation(resupplyTargets[index].CurrentPosition, 10f);
-                                reticle.UpdateColorAndStyle(isFriendly, true, true);
-                                ModInit.modLog?.Trace?.Write(
-                                    $"[HighlightPotentialTargets - ResupplyAbility INRANGE] Updating reticle at index {index}, isFriendly {isFriendly}.");
-                            }
-                            else
-                            {
-                                StrategicTargetIndicatorsManager.ReticleGOs[index].SetActive(true);
-                                var reticle = StrategicTargetIndicatorsManager.ReticleGOs[index]
-                                    .GetComponent<StrategicTargetReticle>();
-                                var isFriendly = resupplyTargets[index].team.IsFriendly(SelectedActor.team);
-                                reticle.SetScaleAndLocation(resupplyTargets[index].CurrentPosition, 10f);
-                                reticle.UpdateColorAndStyle(isFriendly, true, false);
-                                ModInit.modLog?.Trace?.Write(
-                                    $"[HighlightPotentialTargets - ResupplyAbility ANY] Updating reticle at index {index}, isFriendly {isFriendly}.");
-                            }
-                        }
-                        
-                        StrategicTargetIndicatorsManager.ShowRoot();
-                    }
-                }
-            }
-
-            public override void OnAddToStack()
-            {
-                base.OnAddToStack();
-                this.showTargetingText(this.abilitySelectionText);
-                var jumpdist = 0f;
-                if (SelectedActor is Mech mech)
-                {
-                    jumpdist = mech.JumpDistance;
-                    if (float.IsNaN(jumpdist)) jumpdist = 0f;
-                }
-
-                var ranges = new List<float>()
-                {
-                    SelectedActor.MaxWalkDistance,
-                    SelectedActor.MaxSprintDistance,
-                    jumpdist,
-                    this.FromButton.Ability.Def.IntParam2
-                };
-                var maxRange = ranges.Max();
-                //CombatTargetingReticle.Instance.UpdateReticle(SelectedActor.CurrentPosition, maxRange, false);
-                CombatTargetingReticle.Instance.ShowRangeIndicators(SelectedActor.CurrentPosition, 0f, maxRange, false, true);
-                CombatTargetingReticle.Instance.UpdateRangeIndicator(SelectedActor.CurrentPosition, false, true);
-                CombatTargetingReticle.Instance.ShowReticle();
-
-                if (SelectedActor.IsMountedUnit())
-                {
-                    var carrier = Combat.FindCombatantByGUID(ModState.PositionLockMount[SelectedActor.GUID]);
-                    this.ProcessClickedCombatant(carrier);
-                }
-                else if (SelectedActor.IsSwarmingUnit())
-                {
-                    var carrier = Combat.FindCombatantByGUID(ModState.PositionLockSwarm[SelectedActor.GUID]);
-                    this.ProcessClickedCombatant(carrier);
-                }
-                else if (SelectedActor.IsGarrisoned())
-                {
-                    var carrier = Combat.FindCombatantByGUID(ModState.PositionLockGarrison[SelectedActor.GUID].BuildingGUID);
-                    this.ProcessClickedCombatant(carrier);
-                }
-                else
-                {
-                    this.HighlightPotentialTargets();
-                }
-            }
-
-            public override void OnInactivate()
-            {
-                base.OnInactivate();
-                CombatTargetingReticle.Instance.HideReticle();
-                StrategicTargetIndicatorsManager.HideReticles();
-                HUD.InWorldMgr.HideMeleeTargets();
             }
 
             public override bool ProcessClickedCombatant(ICombatant combatant)
@@ -551,6 +718,14 @@ namespace StrategicOperations.Patches
                 //return false;  // should i be returning true here?
             }
 
+            public override void OnInactivate()
+            {
+                base.OnInactivate();
+                CombatTargetingReticle.Instance.HideReticle();
+                StrategicTargetIndicatorsManager.HideReticles();
+                HUD.InWorldMgr.HideMeleeTargets();
+            }
+
             [HarmonyPatch(typeof(SelectionState), "GetNewSelectionStateByType",
                 new Type[]
                 {
@@ -569,185 +744,6 @@ namespace StrategicOperations.Patches
                         {
                             __result = new SelectionStateMWTargetSingle_Stratops(Combat, HUD, FromButton);
                             return;
-                        }
-                    }
-                }
-            }
-        }
-
-        public static class StrategicTargetIndicatorsManager
-        {
-            public static GameObject BaseReticleObject = null;
-            public static CombatHUD HUD = null;
-            public static List<GameObject> ReticleGOs = new List<GameObject>();
-
-            public static void Clear()
-            {
-                StrategicTargetIndicatorsManager.ReticleGOs.Clear();
-                UnityEngine.Object.Destroy(StrategicTargetIndicatorsManager.BaseReticleObject);
-                StrategicTargetIndicatorsManager.BaseReticleObject = null;
-                StrategicTargetIndicatorsManager.HUD = null;
-            }
-
-            public static void HideReticles()
-            {
-                foreach (var reticle in StrategicTargetIndicatorsManager.ReticleGOs)
-                {
-                    reticle.gameObject.SetActive(false);
-                }
-            }
-
-            public static void InitReticles(CombatHUD hud, int count)
-            {
-                if (StrategicTargetIndicatorsManager.BaseReticleObject == null)
-                {
-                    StrategicTargetIndicatorsManager.BaseReticleObject = new GameObject("StrategicTargetingReticles"); //was TargetingCircles
-                }
-                StrategicTargetIndicatorsManager.HUD = hud;
-
-                while (ReticleGOs.Count < count)
-                {
-                    ModInit.modLog?.Trace?.Write($"[InitReticle] Need to init new reticles; have {ReticleGOs.Count}");
-                    GameObject reticleGO = new GameObject("StrategicReticle"); //was Circle
-                    StrategicTargetReticle reticle = reticleGO.AddComponent<StrategicTargetReticle>();
-                    //reticle.transform.SetParent(reticleGO.transform);
-                    reticle.Init(StrategicTargetIndicatorsManager.HUD);
-                    StrategicTargetIndicatorsManager.ReticleGOs.Add(reticleGO);
-                }
-            }
-
-            public static void ShowRoot()
-            {
-                StrategicTargetIndicatorsManager.BaseReticleObject.SetActive(true);
-            }
-        }
-
-        public class StrategicTargetReticle : MonoBehaviour
-        {
-            public CombatHUD HUD;
-            public GameObject ReticleObject;
-
-
-            public void Init(CombatHUD hud)
-            {
-                this.HUD = hud;
-                ReticleObject = UnityEngine.Object.Instantiate<GameObject>(CombatTargetingReticle.Instance.Circles[0]);
-                ReticleObject.transform.SetParent(base.transform);
-                Vector3 localScale = ReticleObject.transform.localScale;
-                localScale.x = 2f;
-                localScale.z = 2f;
-                ReticleObject.transform.localScale = localScale;
-                ReticleObject.transform.localPosition = Vector3.zero;
-            }
-
-            public void SetScaleAndLocation(Vector3 loc, float radius)
-            {
-                Vector3 localScale = ReticleObject.transform.localScale;
-                localScale.x = radius * 2f;
-                localScale.z = radius * 2f;
-                ReticleObject.transform.localScale = localScale;
-                base.transform.position = loc;
-                ReticleObject.SetActive(true);
-                ReticleObject.gameObject.SetActive(true);
-                ModInit.modLog?.Trace?.Write($"[SetScaleAndLocation] Set location to {loc}");
-            }
-
-            public void UpdateColorAndStyle(bool IsFriendly, bool IsResupply, bool IsResupplyInRange)
-            {
-                var dm = UnityGameInstance.BattleTechGame.DataManager;
-
-                Transform[] childComponents;
-
-                childComponents = ReticleObject.GetComponentsInChildren<Transform>(true);
-
-                for (int i = 0; i < childComponents.Length; i++)
-                {
-                    if (childComponents[i].name == "Thumper1")
-                    {
-                        childComponents[i].gameObject.SetActive(false);
-                        continue;
-                    }
-
-                    if (childComponents[i].name == "Mortar1")
-                    {
-                        childComponents[i].gameObject.SetActive(true);
-                        var decalsFromCircle = childComponents[i].GetComponentsInChildren<BTUIDecal>();
-                        for (int j = 0; j < decalsFromCircle.Length; j++)
-                        {
-                            if (decalsFromCircle[j].name == "ReticleDecalCircle")
-                            {
-                                if (IsFriendly && !IsResupply)
-                                {
-                                    if (!string.IsNullOrEmpty(ModInit.modSettings.MountIndicatorAsset))
-                                    {
-                                        var newTexture = dm.GetObjectOfType<Texture2D>(ModInit.modSettings.MountIndicatorAsset,
-                                            BattleTechResourceType.Texture2D);
-                                        if (newTexture != null) decalsFromCircle[j].DecalPropertyBlock.SetTexture("_MainTex", newTexture);
-                                    }
-
-                                    if (ModInit.modSettings.MountIndicatorColor != null)
-                                    {
-                                        var customColor = new Color(ModInit.modSettings.MountIndicatorColor.Rf,
-                                            ModInit.modSettings.MountIndicatorColor.Gf,
-                                            ModInit.modSettings.MountIndicatorColor.Bf);
-                                        decalsFromCircle[j].DecalPropertyBlock.SetColor("_Color", customColor);
-                                    }
-                                    else
-                                    {
-                                        decalsFromCircle[j].DecalPropertyBlock.SetColor("_Color", Color.blue);
-                                    }
-                                }
-
-                                if (IsResupply && !IsResupplyInRange)
-                                {
-                                    if (!string.IsNullOrEmpty(ModInit.modSettings.ResupplyConfig.ResupplyIndicatorAsset))
-                                    {
-                                        var newTexture = dm.GetObjectOfType<Texture2D>(ModInit.modSettings.ResupplyConfig.ResupplyIndicatorAsset,
-                                            BattleTechResourceType.Texture2D);
-                                        if (newTexture != null) decalsFromCircle[j].DecalPropertyBlock.SetTexture("_MainTex", newTexture);
-                                    }
-
-                                    if (ModInit.modSettings.MountIndicatorColor != null)
-                                    {
-                                        var customColor = new Color(ModInit.modSettings.ResupplyConfig.ResupplyIndicatorColor.Rf,
-                                            ModInit.modSettings.ResupplyConfig.ResupplyIndicatorColor.Gf,
-                                            ModInit.modSettings.ResupplyConfig.ResupplyIndicatorColor.Bf);
-                                        decalsFromCircle[j].DecalPropertyBlock.SetColor("_Color", customColor);
-
-                                    }
-                                    else
-                                    {
-                                        decalsFromCircle[j].DecalPropertyBlock.SetColor("_Color", Color.blue);
-                                    }
-                                }
-                                else if (IsResupply)
-                                {
-                                    if (!string.IsNullOrEmpty(ModInit.modSettings.ResupplyConfig.ResupplyIndicatorInRangeAsset))
-                                    {
-                                        var newTexture = dm.GetObjectOfType<Texture2D>(ModInit.modSettings.ResupplyConfig.ResupplyIndicatorInRangeAsset,
-                                            BattleTechResourceType.Texture2D);
-                                        if (newTexture != null) decalsFromCircle[j].DecalPropertyBlock.SetTexture("_MainTex", newTexture);
-                                    }
-
-                                    if (ModInit.modSettings.MountIndicatorColor != null)
-                                    {
-                                        var customColor = new Color(ModInit.modSettings.ResupplyConfig.ResupplyIndicatorInRangeColor.Rf,
-                                            ModInit.modSettings.ResupplyConfig.ResupplyIndicatorInRangeColor.Gf,
-                                            ModInit.modSettings.ResupplyConfig.ResupplyIndicatorInRangeColor.Bf);
-                                        decalsFromCircle[j].DecalPropertyBlock.SetColor("_Color", customColor);
-
-                                    }
-                                    else
-                                    {
-                                        decalsFromCircle[j].DecalPropertyBlock.SetColor("_Color", Color.blue);
-                                    }
-                                }
-                                decalsFromCircle[j].gameObject.SetActive(true);
-                            }
-                            else
-                            {
-                                decalsFromCircle[j].gameObject.SetActive(false);
-                            }
                         }
                     }
                 }

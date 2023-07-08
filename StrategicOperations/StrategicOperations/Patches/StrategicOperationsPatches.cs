@@ -24,6 +24,965 @@ namespace StrategicOperations.Patches
 {
     public class StrategicOperationsPatches
     {
+        [HarmonyPatch(typeof(MechStartupInvocation), "Invoke")]
+        [HarmonyPriority(Priority.First)]
+        public static class MechStartupInvocation_Invoke
+        {
+            public static void Prefix(ref bool __runOriginal, MechStartupInvocation __instance, CombatGameState combatGameState)
+            {
+                if (!__runOriginal) return;
+                Mech mech = combatGameState.FindActorByGUID(__instance.MechGUID) as Mech;
+                if (mech == null)
+                {
+                    //InvocationMessage.logger.LogError("MechStartupInvocation.Invoke failed! Unable to Mech!");
+                    __runOriginal = false;
+                    return;
+                }
+
+                if (ModState.ResupplyShutdownPhases.ContainsKey(mech.GUID))
+                {
+                    var txt = new Text("RESUPPLY IN PROGRESS: ABORTING RESTART AND SINKING HEAT");
+                    mech.Combat.MessageCenter.PublishMessage(new AddSequenceToStackMessage(
+                        new ShowActorInfoSequence(mech, txt, FloatieMessage.MessageNature.Buff,
+                            false)));
+
+                    DoneWithActorSequence doneWithActorSequence = (DoneWithActorSequence)mech.GetDoneWithActorOrders();
+                    MechHeatSequence mechHeatSequence = new MechHeatSequence(OwningMech: mech,
+                        performHeatSinkStep: true, applyStartupHeatSinks: false, instigatorID: "STARTUP");
+                    doneWithActorSequence.AddChildSequence(mechHeatSequence, mechHeatSequence.MessageIndex);
+
+                    InvocationStackSequenceCreated message =
+                        new InvocationStackSequenceCreated(doneWithActorSequence, __instance);
+                    combatGameState.MessageCenter.PublishMessage(message);
+                    AddSequenceToStackMessage.Publish(combatGameState.MessageCenter, doneWithActorSequence);
+                    __runOriginal = false;
+                    return;
+                }
+                __runOriginal = true;
+                return;
+            }
+        }
+
+
+        [HarmonyPatch(typeof(Team), "AddUnit", new Type[] { typeof(AbstractActor) })]
+        public static class Team_AddUnit_Patch
+        {
+            public static void Postfix(Team __instance, AbstractActor unit)
+            {
+                if (__instance.Combat.TurnDirector.CurrentRound > 1)
+                {
+                    __instance.Combat.UpdateResupplyTeams();
+                    __instance.Combat.UpdateResupplyAbilitiesGetAllLivingActors();
+                }
+
+                if (__instance.IsLocalPlayer)
+                {
+                    if (unit is Mech && !(unit is TrooperSquad) && !unit.IsCustomUnitVehicle())
+                    {
+                        if (!string.IsNullOrEmpty(ModInit.modSettings.BattleArmorDeSwarmSwat))
+                        {
+                            if (unit.GetPilot().Abilities
+                                    .All(x => x.Def.Id != ModInit.modSettings.BattleArmorDeSwarmSwat) &&
+                                unit.ComponentAbilities.All(y =>
+                                    y.Def.Id != ModInit.modSettings.BattleArmorDeSwarmSwat))
+                            {
+                                unit.Combat.DataManager.AbilityDefs.TryGet(ModInit.modSettings.BattleArmorDeSwarmSwat,
+                                    out var def);
+                                var ability = new Ability(def);
+                                ModInit.modLog?.Trace?.Write(
+                                    $"[Team.AddUnit] Adding {ability.Def?.Description?.Id} to {unit.Description?.Name}.");
+                                ability.Init(unit.Combat);
+                                unit.GetPilot().Abilities.Add(ability);
+                                unit.GetPilot().ActiveAbilities.Add(ability);
+                            }
+                        }
+
+                        if (!string.IsNullOrEmpty(ModInit.modSettings.BattleArmorDeSwarmRoll))
+                        {
+                            if (unit.GetPilot().Abilities
+                                    .All(x => x.Def.Id != ModInit.modSettings.BattleArmorDeSwarmRoll) &&
+                                unit.ComponentAbilities.All(y =>
+                                    y.Def.Id != ModInit.modSettings.BattleArmorDeSwarmRoll))
+                            {
+                                unit.Combat.DataManager.AbilityDefs.TryGet(ModInit.modSettings.BattleArmorDeSwarmRoll,
+                                    out var def);
+                                var ability = new Ability(def);
+                                ModInit.modLog?.Trace?.Write(
+                                    $"[Team.AddUnit] Adding {ability.Def?.Description?.Id} to {unit.Description?.Name}.");
+                                ability.Init(unit.Combat);
+                                unit.GetPilot().Abilities.Add(ability);
+                                unit.GetPilot().ActiveAbilities.Add(ability);
+                            }
+                        }
+
+                    }
+
+                    if (!string.IsNullOrEmpty(ModInit.modSettings.DeswarmMovementConfig.AbilityDefID))
+                    {
+                        if (unit.GetPilot().Abilities
+                                .All(x => x.Def.Id != ModInit.modSettings.DeswarmMovementConfig.AbilityDefID) &&
+                            unit.ComponentAbilities.All(y =>
+                                y.Def.Id != ModInit.modSettings.DeswarmMovementConfig.AbilityDefID))
+                        {
+                            unit.Combat.DataManager.AbilityDefs.TryGet(ModInit.modSettings.DeswarmMovementConfig.AbilityDefID,
+                                out var def);
+                            var ability = new Ability(def);
+                            ModInit.modLog?.Trace?.Write(
+                                $"[Team.AddUnit] Adding {ability.Def?.Description?.Id} to {unit.Description?.Name}.");
+                            ability.Init(unit.Combat);
+                            unit.GetPilot().Abilities.Add(ability);
+                            unit.GetPilot().ActiveAbilities.Add(ability);
+                        }
+                    }
+
+                    //add a parent component to strafe/spawn pilot abilities. even though it wont be used.
+
+                    //need to disentangle from abilifier though.
+                    if (false)
+                    {
+                        var list = unit.GetPilot().Abilities;
+                        for (var index = list.Count - 1; index >= 0; index--)
+                        {
+                            var pilotAbility = list[index];
+                            if (pilotAbility.Def.specialRules == AbilityDef.SpecialRules.Strafe ||
+                                pilotAbility.Def.specialRules == AbilityDef.SpecialRules.SpawnTurret)
+                            {
+                                var ability = new Ability(pilotAbility.Def);
+                                ModInit.modLog?.Trace?.Write(
+                                    $"[Team.AddUnit] moving {pilotAbility.Def?.Description?.Id} to {unit.Description?.Name} component abilities.");
+
+                                var abilityComponent = unit.allComponents.FirstOrDefault(z =>
+                                    ModInit.modSettings.crewOrCockpitCustomID.Any((string x) =>
+                                        z.componentDef.GetComponents<Category>()
+                                            .Any((Category c) => c.CategoryID == x)));
+                                if (abilityComponent == null)
+                                {
+                                    ModInit.modLog?.Info?.Write($"component was null; no CriticalComponents?");
+                                }
+
+                                if (abilityComponent?.parent == null)
+                                {
+                                    ModInit.modLog?.Info?.Write($"component parent was null; no parent actor???");
+                                }
+
+                                ability.Init(unit.Combat, abilityComponent);
+                                unit.GetPilot().Abilities.Remove(pilotAbility);
+                                unit.GetPilot().ActiveAbilities.Remove(pilotAbility);
+                                unit.GetPilot().Abilities.Add(ability);
+                                unit.GetPilot().ActiveAbilities.Add(ability);
+                            }
+                        }
+                    }
+
+                    return;
+                }
+
+                if (unit is Mech mech)
+                {
+                    if (mech.EncounterTags.Contains("SpawnedFromAbility")) return;
+                }
+
+                AI_Utils.GenerateAIStrategicAbilities(unit);
+            }
+        }
+
+        [HarmonyPatch(typeof(AbstractActor), "InitEffectStats",
+            new Type[] { })]
+        public static class AbstractActor_InitEffectStats
+        {
+            public static void Postfix(AbstractActor __instance)
+            {
+                __instance.StatCollection.AddStatistic<bool>("CanSwarm", false);
+                __instance.StatCollection.AddStatistic<bool>("CanAirliftHostiles", false);
+                __instance.StatCollection.AddStatistic<bool>("BattleArmorInternalMountsOnly", false);
+                __instance.StatCollection.AddStatistic<int>("InternalBattleArmorSquadCap", 0);
+                __instance.StatCollection.AddStatistic<int>("InternalBattleArmorSquads", 0);
+                __instance.StatCollection.AddStatistic<bool>("HasBattleArmorMounts", false);
+                __instance.StatCollection.AddStatistic<bool>("HasExternalMountedBattleArmor", false);
+                __instance.StatCollection.AddStatistic<bool>("IsBattleArmorHandsy", false);
+                __instance.StatCollection.AddStatistic<bool>("IsUnmountableBattleArmor", false);
+                __instance.StatCollection.AddStatistic<bool>("IsUnswarmableBattleArmor", false);
+                __instance.StatCollection.AddStatistic<bool>("HasFiringPorts", false);
+                //__instance.StatCollection.AddStatistic<bool>("BattleArmorMount", false);
+                //__instance.StatCollection.AddStatistic<float>("BattleArmorDeSwarmerSwat", 0.3f);
+                //__instance.StatCollection.AddStatistic<int>("BattleArmorDeSwarmerRollInitPenalty", 0);
+                //__instance.StatCollection.AddStatistic<int>("BattleArmorDeSwarmerSwatInitPenalty", 0);
+                //__instance.StatCollection.AddStatistic<float>("BattleArmorDeSwarmerSwatDamage", 0f);
+                //__instance.StatCollection.AddStatistic<float>("BattleArmorDeSwarmerRoll", 0.5f);
+                //__instance.StatCollection.AddStatistic<float>("MovementDeSwarmMinChance", 0.0f);
+                //__instance.StatCollection.AddStatistic<float>("MovementDeSwarmMaxChance", 1.0f);
+                //__instance.StatCollection.AddStatistic<float>("MovementDeSwarmEvasivePipsFactor", 0f);
+                //__instance.StatCollection.AddStatistic<float>("MovementDeSwarmEvasiveJumpMovementMultiplier", 1.0f);
+                //__instance.StatCollection.AddStatistic<bool>("Airlifting", false);
+                __instance.StatCollection.AddStatistic<int>("InternalLiftCapacity", 0);
+                __instance.StatCollection.AddStatistic<int>("InternalLiftCapacityUsed", 0);
+                __instance.StatCollection.AddStatistic<int>("ExternalLiftCapacity", 0);
+                __instance.StatCollection.AddStatistic<int>("ExternalLiftCapacityUsed", 0);
+                __instance.StatCollection.AddStatistic<bool>("OverrideGlobalCapacity", false);
+                __instance.StatCollection.AddStatistic<float>("AAAFactor", 0f);
+                __instance.StatCollection.AddStatistic<bool>("UseAAAFactor", false);
+            }
+        }
+
+        [HarmonyPatch(typeof(AbstractActor), "FlagForDeath",
+            new Type[] {typeof(string), typeof(DeathMethod), typeof(DamageType), typeof(int), typeof(int), typeof(string), typeof(bool) })]
+        public static class AbstractActor_FlagForDeath
+        {
+            public static void Postfix(AbstractActor __instance, string reason, DeathMethod deathMethod, DamageType damageType, int location, int stackItemID, string attackerID, bool isSilent)
+            {
+                if (__instance.IsAirlifted())
+                {
+                    var carrier = __instance.Combat.FindActorByGUID(ModState.AirliftTrackers[__instance.GUID].CarrierGUID);
+                    __instance.DetachFromAirliftCarrier(carrier, false); // try to drop destroyed units from airlifter
+                }
+            }
+        }
+
+        [HarmonyPatch(typeof(SimGameState), "RequestDataManagerResources")]
+        public static class SimGameState_RequestDataManagerResources_Patch
+        {
+            public static void Postfix(SimGameState __instance)
+            {
+                LoadRequest loadRequest = __instance.DataManager.CreateLoadRequest();
+                loadRequest.AddAllOfTypeBlindLoadRequest(BattleTechResourceType.TurretDef,
+                    new bool?(true)); //but TurretDefs
+                loadRequest.ProcessRequests(10U);
+            }
+        }
+
+        [HarmonyPatch(typeof(EncounterLayerData), "BuildItemRegistry", new Type[]{typeof(CombatGameState)})]
+        public static class EncounterLayerData_BuildItemRegistry
+        {
+            public static void Postfix(EncounterLayerData __instance, CombatGameState combat)
+            {
+                foreach (var team in combat.Teams)
+                {
+                    if (!team.IsLocalPlayer && TeamDefinition.FullTeamDefinitionGuidNames.ContainsKey(team.GUID))
+                    {
+                        Utils.FetchAISupportTeam(team);
+                    }
+                }
+            }
+        }
+
+        [HarmonyPatch(typeof(TurnDirector), "OnInitializeContractComplete")]
+        public static class TurnDirector_OnInitializeContractComplete
+        {
+            public static void Postfix(TurnDirector __instance, MessageCenterMessage message)
+            {
+                if (__instance.Combat.ActiveContract.ContractTypeValue.IsSkirmish) return;
+                var dm = __instance.Combat.DataManager;
+                LoadRequest loadRequest = dm.CreateLoadRequest();
+
+                loadRequest.AddBlindLoadRequest(BattleTechResourceType.PilotDef, "pilot_sim_starter_dekker");
+                ModInit.modLog?.Info?.Write($"Added loadrequest for PilotDef: pilot_sim_starter_dekker (hardcoded)");
+                if (!string.IsNullOrEmpty(ModInit.modSettings.customSpawnReticleAsset))
+                {
+                    loadRequest.AddBlindLoadRequest(BattleTechResourceType.Texture2D, ModInit.modSettings.customSpawnReticleAsset);
+                    ModInit.modLog?.Info?.Write($"Added loadrequest for Texture2D: {ModInit.modSettings.customSpawnReticleAsset}");
+                }
+                if (!string.IsNullOrEmpty(ModInit.modSettings.MountIndicatorAsset))
+                {
+                    loadRequest.AddBlindLoadRequest(BattleTechResourceType.Texture2D, ModInit.modSettings.MountIndicatorAsset);
+                    ModInit.modLog?.Info?.Write($"Added loadrequest for Texture2D: {ModInit.modSettings.MountIndicatorAsset}");
+                }
+
+                foreach (var abilityDef in dm.AbilityDefs.Where(x => x.Key.StartsWith("AbilityDefCMD_")))
+                {
+                    var ability = new Ability(abilityDef.Value);
+                    if (string.IsNullOrEmpty(ability.Def?.ActorResource)) continue;
+                    if (!string.IsNullOrEmpty(ability.Def.getAbilityDefExtension().CMDPilotOverride))
+                    {
+                        var pilotID = ability.Def.getAbilityDefExtension().CMDPilotOverride;
+                        ModInit.modLog?.Info?.Write($"Added loadrequest for PilotDef: {pilotID}");
+                        loadRequest.AddBlindLoadRequest(BattleTechResourceType.PilotDef, pilotID);
+                    }
+
+                    if (ability.Def.ActorResource.StartsWith("mechdef_"))
+                    {
+                        ModInit.modLog?.Info?.Write($"Added loadrequest for MechDef: {ability.Def.ActorResource}");
+                        loadRequest.AddBlindLoadRequest(BattleTechResourceType.MechDef, ability.Def.ActorResource);
+                    }
+
+                    if (ability.Def.ActorResource.StartsWith("vehicledef_"))
+                    {
+                        ModInit.modLog?.Info?.Write($"Added loadrequest for VehicleDef: {ability.Def.ActorResource}");
+                        loadRequest.AddBlindLoadRequest(BattleTechResourceType.VehicleDef, ability.Def.ActorResource);
+                    }
+
+                    if (ability.Def.ActorResource.StartsWith("turretdef_"))
+                    {
+                        ModInit.modLog?.Info?.Write($"Added loadrequest for TurretDef: {ability.Def.ActorResource}");
+                        loadRequest.AddBlindLoadRequest(BattleTechResourceType.TurretDef, ability.Def.ActorResource);
+                    }
+                }
+
+                foreach (var beacon in Utils.GetOwnedDeploymentBeacons())
+                {
+                    var pilotID = beacon.Def.ComponentTags.FirstOrDefault(x =>
+                            x.StartsWith("StratOpsPilot_"))
+                        ?.Remove(0, 14);
+                    if (!string.IsNullOrEmpty(pilotID))
+                    {
+                        ModInit.modLog?.Info?.Write($"Added loadrequest for PilotDef: {pilotID}");
+                        loadRequest.AddBlindLoadRequest(BattleTechResourceType.PilotDef, pilotID);
+                    }
+
+                    var id = beacon.Def.ComponentTags.FirstOrDefault(x =>
+                        x.StartsWith("mechdef_") || x.StartsWith("vehicledef_") ||
+                        x.StartsWith("turretdef_"));
+                    if (string.IsNullOrEmpty(id)) continue;
+
+                    if (id.StartsWith("mechdef_"))
+                    {
+                        ModInit.modLog?.Info?.Write($"Added loadrequest for MechDef: {id}");
+                        loadRequest.AddBlindLoadRequest(BattleTechResourceType.MechDef, id);
+                    }
+                    else if (id.StartsWith("vehicledef_"))
+                    {
+                        ModInit.modLog?.Info?.Write($"Added loadrequest for VehicleDef: {id}");
+                        loadRequest.AddBlindLoadRequest(BattleTechResourceType.VehicleDef, id);
+                    }
+                    else if (id.StartsWith("turretdef_"))
+                    {
+                        ModInit.modLog?.Info?.Write($"Added loadrequest for TurretDef: {id}");
+                        loadRequest.AddBlindLoadRequest(BattleTechResourceType.TurretDef, id);
+                    }
+
+                }
+                loadRequest.ProcessRequests(1000U);
+            }
+        }
+
+        //the following two patched on gamerep.update are solely to suppress the "safety teleport" for strafing units since they spawn offmap and move on their own
+        [HarmonyPatch(typeof(CustomMechRepresentation), "GameRepresentation_Update")]
+        public static class CustomMechRepresentation_GameRepresentation_Update
+        {
+            public static void Prefix(ref bool __runOriginal, CustomMechRepresentation __instance)
+            {
+                if (!__runOriginal) return;
+                if (__instance.__parentActor == null)
+                {
+                    __runOriginal = true;
+                    return;
+                }
+                var combat = UnityGameInstance.BattleTechGame.Combat;
+                if (combat == null)
+                {
+                    __runOriginal = true;
+                    return;
+                }
+                if (combat.ActiveContract.ContractTypeValue.IsSkirmish)
+                {
+                    __runOriginal = true;
+                    return;
+                }
+                var registry = combat.ItemRegistry;
+
+                if (__instance.__parentActor?.spawnerGUID == null)
+                {
+                    //ModInit.modLog?.Info?.Write($"Couldn't find UnitSpawnPointGameLogic for {____parentActor?.DisplayName}. Should be CMD Ability actor; skipping safety teleport!");
+                    __runOriginal = false;
+                    return;
+                }
+
+                if (registry.GetItemByGUID<UnitSpawnPointGameLogic>(__instance.__parentActor?.spawnerGUID) != null)
+                {
+                    __runOriginal = true;
+                    return;
+                }
+                __runOriginal = false;
+                return;
+                //ModInit.modLog?.Info?.Write($"Couldn't find UnitSpawnPointGameLogic for {____parentActor?.DisplayName}. Should be CMD Ability actor; skipping safety teleport!");
+            }
+
+
+            public static void Postfix(CustomMechRepresentation __instance)
+            {
+                if (__instance.HeightController.isInChangeHeight)
+                {
+                    var combat = __instance.parentActor.Combat;
+                    if (__instance.parentActor.HasAirliftedUnits())
+                    {
+                        var airliftedUnits = ModState.AirliftTrackers.Where(x =>
+                            x.Value.CarrierGUID == __instance.parentActor.GUID);
+                        foreach (var trackerInfo in airliftedUnits)
+                        {
+                            var targetActor = combat.FindActorByGUID(trackerInfo.Key);
+                            if (targetActor == null) continue;
+                            var pos = Vector3.zero;
+                            if (__instance.parentActor is CustomMech mech)
+                            {
+                                pos = __instance.parentActor.CurrentPosition + Vector3.down * trackerInfo.Value.Offset +
+                                      Vector3.up * mech.custGameRep.HeightController.CurrentHeight;
+                                targetActor.TeleportActorVisual(pos);
+                                if (targetActor is CustomMech customMech)
+                                {
+                                    customMech.custGameRep.j_Root.localRotation = Quaternion.identity;
+                                }
+
+                                targetActor.GameRep.transform.rotation =
+                                    __instance.parentActor.GameRep.transform.rotation;
+                                targetActor.CurrentRotation = __instance.parentActor.CurrentRotation;
+                            }
+                            else
+                            {
+                                pos = __instance.parentActor.CurrentPosition + Vector3.down * trackerInfo.Value.Offset;
+                                targetActor.TeleportActorVisual(pos);
+                                if (targetActor is CustomMech customMech)
+                                {
+                                    customMech.custGameRep.j_Root.localRotation = Quaternion.identity;
+                                }
+
+                                targetActor.GameRep.transform.rotation =
+                                    __instance.parentActor.GameRep.transform.rotation;
+                                targetActor.CurrentRotation = __instance.parentActor.CurrentRotation;
+                            }
+
+                            targetActor.MountedEvasion(__instance.parentActor);
+                            ModInit.modLog?.Debug?.Write(
+                                $"[CustomMechRepresentation_GameRepresentation_Update] PositionLockMount- Setting airlifted unit {targetActor.DisplayName} position to same as carrier unit {__instance.parentActor.DisplayName}");
+
+                            ModState.CachedUnitCoordinates[__instance.parentActor.GUID] = __instance.parentActor.CurrentPosition;
+                        }
+                    }
+
+                    if (__instance.parentActor.HasMountedUnits())
+                    {
+                        var targetActorGUIDs =
+                            ModState.PositionLockMount.Where(x => x.Value == __instance.parentActor.GUID);
+                        foreach (var targetActorGUID in targetActorGUIDs)
+                        {
+                            var targetActor = combat.FindActorByGUID(targetActorGUID.Key);
+                            if (targetActor == null) continue;
+                            var pos = Vector3.zero;
+                            if (__instance.parentActor is CustomMech mech)
+                            {
+                                pos = __instance.parentActor.CurrentPosition +
+                                      Vector3.up * mech.custGameRep.HeightController.CurrentHeight;
+                                targetActor.TeleportActorVisual(pos);
+                            }
+                            else
+                            {
+                                targetActor.TeleportActorVisual(__instance.parentActor.CurrentPosition);
+                            }
+
+                            targetActor.MountedEvasion(__instance.parentActor);
+                            ModInit.modLog?.Debug?.Write(
+                                $"[CustomMechRepresentation_GameRepresentation_Update] PositionLockMount- Setting riding unit {targetActor.DisplayName} position to same as carrier unit {__instance.parentActor.DisplayName}");
+
+                            ModState.CachedUnitCoordinates[__instance.parentActor.GUID] = __instance.parentActor.CurrentPosition;
+                        }
+                    }
+
+                    // removed return/else so swarming units are locked to carrier even if carrier has mounted units. derp.
+                    if (__instance.parentActor.HasSwarmingUnits())
+                    {
+                        var targetActorGUIDs =
+                            ModState.PositionLockSwarm.Where(x => x.Value == __instance.parentActor.GUID);
+                        foreach (var targetActorGUID in targetActorGUIDs)
+                        {
+                            var targetActor = combat.FindActorByGUID(targetActorGUID.Key);
+                            if (targetActor == null) continue;
+                            targetActor.TeleportActorVisual(__instance.parentActor.CurrentPosition);
+                            targetActor.MountedEvasion(__instance.parentActor);
+                            ModInit.modLog?.Debug?.Write(
+                                $"[CustomMechRepresentation_GameRepresentation_Update] PositionLockMount- Setting riding unit {targetActor.DisplayName} position to same as carrier unit {__instance.parentActor.DisplayName}");
+
+                            ModState.CachedUnitCoordinates[__instance.parentActor.GUID] = __instance.parentActor.CurrentPosition;
+                        }
+                    }
+                }
+            }
+        }
+
+        [HarmonyPatch(typeof(GameRepresentation), "Update")]
+        public static class GameRepresentation_Update
+        {
+            public static void Prefix(ref bool __runOriginal, GameRepresentation __instance)
+            {
+                if (!__runOriginal) return;
+                if (__instance._parentActor == null)
+                {
+                    __runOriginal = true;
+                    return;
+                }
+
+                var combat = UnityGameInstance.BattleTechGame.Combat;
+                if (combat == null)
+                {
+                    __runOriginal = true;
+                    return;
+                }
+
+                if (combat.ActiveContract.ContractTypeValue.IsSkirmish)
+                {
+                    __runOriginal = true;
+                    return;
+                }
+
+                var registry = combat.ItemRegistry;
+
+                if (__instance._parentActor?.spawnerGUID == null)
+                {
+                    //ModInit.modLog?.Info?.Write($"Couldn't find UnitSpawnPointGameLogic for {____parentActor?.DisplayName}. Should be CMD Ability actor; skipping safety teleport!");
+                    __runOriginal = false;
+                    return;
+                }
+
+                if (registry.GetItemByGUID<UnitSpawnPointGameLogic>(__instance._parentActor?.spawnerGUID) != null)
+                {
+                    __runOriginal = true;
+                    return;
+                }
+
+                __runOriginal = false;
+                return;
+                //return registry.GetItemByGUID<UnitSpawnPointGameLogic>(__instance._parentActor?.spawnerGUID) != null;
+                //ModInit.modLog?.Info?.Write($"Couldn't find UnitSpawnPointGameLogic for {____parentActor?.DisplayName}. Should be CMD Ability actor; skipping safety teleport!");
+            }
+        }
+
+        [HarmonyPatch(typeof(OrderSequence), "OnUpdate")]
+        public static class OrderSequence_OnUpdate
+        {
+            public static void Postfix(OrderSequence __instance)
+            {
+                if (__instance.owningActor == null) return;
+                if (__instance is not ActorMovementSequence && __instance is not MechJumpSequence &&
+                    __instance is not MechMeleeSequence && __instance is not MechDFASequence) return;
+                if (ModState.CachedUnitCoordinates.ContainsKey(__instance.owningActor.GUID))
+                {
+                    if (__instance.owningActor is CustomMech mech)
+                    {
+                        if (ModState.CachedUnitCoordinates[__instance.owningActor.GUID] ==
+                            __instance.owningActor.CurrentPosition &&
+                            !mech.custGameRep.HeightController.isInChangeHeight) return;
+                    }
+                    else if (ModState.CachedUnitCoordinates[__instance.owningActor.GUID] ==
+                             __instance.owningActor.CurrentPosition)
+                    {
+                        return;
+                    }
+                }
+
+                var combat = __instance.owningActor.Combat;
+                if (__instance.owningActor.HasAirliftedUnits())
+                {
+                    var airliftedUnits = ModState.AirliftTrackers.Where(x =>
+                        x.Value.CarrierGUID == __instance.owningActor.GUID);
+                    foreach (var trackerInfo in airliftedUnits)
+                    {
+                        var targetActor = combat.FindActorByGUID(trackerInfo.Key);
+                        if (targetActor == null) continue;
+                        var pos = Vector3.zero;
+                        if (__instance.owningActor is CustomMech mech)
+                        {
+                            pos = __instance.owningActor.CurrentPosition + Vector3.down * trackerInfo.Value.Offset +
+                                  Vector3.up * mech.custGameRep.HeightController.CurrentHeight;
+                            targetActor.TeleportActorVisual(pos);
+                            if (targetActor is CustomMech customMech)
+                            {
+                                customMech.custGameRep.j_Root.localRotation = Quaternion.identity;
+                            }
+
+                            targetActor.GameRep.transform.rotation =
+                                __instance.owningActor.GameRep.transform.rotation;
+                            targetActor.CurrentRotation = __instance.owningActor.CurrentRotation;
+                        }
+                        else
+                        {
+                            pos = __instance.owningActor.CurrentPosition + Vector3.down * trackerInfo.Value.Offset;
+                            targetActor.TeleportActorVisual(pos);
+                            if (targetActor is CustomMech customMech)
+                            {
+                                customMech.custGameRep.j_Root.localRotation = Quaternion.identity;
+                            }
+
+                            targetActor.GameRep.transform.rotation =
+                                __instance.owningActor.GameRep.transform.rotation;
+                            targetActor.CurrentRotation = __instance.owningActor.CurrentRotation;
+                        }
+
+                        targetActor.MountedEvasion(__instance.owningActor);
+                        ModInit.modLog?.Debug?.Write(
+                            $"[OrderSequence_OnUpdate] PositionLockMount- Setting airlifted unit {targetActor.DisplayName} position to same as carrier unit {__instance.owningActor.DisplayName}");
+
+                        ModState.CachedUnitCoordinates[__instance.owningActor.GUID] = __instance.owningActor.CurrentPosition;
+                    }
+                }
+
+                if (__instance.owningActor.HasMountedUnits())
+                {
+                    var targetActorGUIDs =
+                        ModState.PositionLockMount.Where(x => x.Value == __instance.owningActor.GUID);
+                    foreach (var targetActorGUID in targetActorGUIDs)
+                    {
+                        var targetActor = combat.FindActorByGUID(targetActorGUID.Key);
+                        if (targetActor == null) continue;
+                        var pos = Vector3.zero;
+                        if (__instance.owningActor is CustomMech mech)
+                        {
+                            pos = __instance.owningActor.CurrentPosition +
+                                  Vector3.up * mech.custGameRep.HeightController.CurrentHeight;
+                            targetActor.TeleportActorVisual(pos);
+                        }
+                        else
+                        {
+                            targetActor.TeleportActorVisual(__instance.owningActor.CurrentPosition);
+                        }
+
+                        targetActor.MountedEvasion(__instance.owningActor);
+                        ModInit.modLog?.Debug?.Write(
+                            $"[OrderSequence_OnUpdate] PositionLockMount- Setting riding unit {targetActor.DisplayName} position to same as carrier unit {__instance.owningActor.DisplayName}");
+
+                        ModState.CachedUnitCoordinates[__instance.owningActor.GUID] = __instance.owningActor.CurrentPosition;
+                    }
+                }
+
+                // removed return/else so swarming units are locked to carrier even if carrier has mounted units. derp.
+                if (__instance.owningActor.HasSwarmingUnits())
+                {
+                    var targetActorGUIDs =
+                        ModState.PositionLockSwarm.Where(x => x.Value == __instance.owningActor.GUID);
+                    foreach (var targetActorGUID in targetActorGUIDs)
+                    {
+                        var targetActor = combat.FindActorByGUID(targetActorGUID.Key);
+                        if (targetActor == null) continue;
+                        targetActor.TeleportActorVisual(__instance.owningActor.CurrentPosition);
+                        targetActor.MountedEvasion(__instance.owningActor);
+                        ModInit.modLog?.Debug?.Write(
+                            $"[OrderSequence_OnUpdate] PositionLockMount- Setting riding unit {targetActor.DisplayName} position to same as carrier unit {__instance.owningActor.DisplayName}");
+
+                        ModState.CachedUnitCoordinates[__instance.owningActor.GUID] = __instance.owningActor.CurrentPosition;
+                    }
+                }
+            }
+        }
+
+        [HarmonyPatch(typeof(MechDisplacementSequence), "Update")]
+        public static class MechDisplacementSequence_Update
+        {
+            public static void Postfix(MechDisplacementSequence __instance)
+            {
+                if (__instance.OwningMech == null) return;
+                if (ModState.CachedUnitCoordinates.ContainsKey(__instance.OwningMech.GUID))
+                {
+                    if (__instance.OwningMech is CustomMech mech)
+                    {
+                        if (ModState.CachedUnitCoordinates[__instance.OwningMech.GUID] ==
+                            __instance.OwningMech.CurrentPosition &&
+                            !mech.custGameRep.HeightController.isInChangeHeight) return;
+                    }
+                    else if (ModState.CachedUnitCoordinates[__instance.OwningMech.GUID] ==
+                             __instance.OwningMech.CurrentPosition)
+                    {
+                        return;
+                    }
+                }
+
+                var combat = __instance.OwningMech.Combat;
+                if (__instance.OwningMech.HasAirliftedUnits())
+                {
+                    var airliftedUnits = ModState.AirliftTrackers.Where(x =>
+                        x.Value.CarrierGUID == __instance.OwningMech.GUID);
+                    foreach (var trackerInfo in airliftedUnits)
+                    {
+                        var targetActor = combat.FindActorByGUID(trackerInfo.Key);
+                        if (targetActor == null) continue;
+                        var pos = Vector3.zero;
+                        if (__instance.OwningMech is CustomMech mech)
+                        {
+                            pos = __instance.OwningMech.CurrentPosition + Vector3.down * trackerInfo.Value.Offset +
+                                  Vector3.up * mech.custGameRep.HeightController.CurrentHeight;
+                            targetActor.TeleportActorVisual(pos);
+                            if (targetActor is CustomMech customMech)
+                            {
+                                customMech.custGameRep.j_Root.localRotation = Quaternion.identity;
+                            }
+
+                            targetActor.GameRep.transform.rotation =
+                                __instance.OwningMech.GameRep.transform.rotation;
+                            targetActor.CurrentRotation = __instance.OwningMech.CurrentRotation;
+                        }
+                        else
+                        {
+                            pos = __instance.OwningMech.CurrentPosition + Vector3.down * trackerInfo.Value.Offset;
+                            targetActor.TeleportActorVisual(pos);
+                            if (targetActor is CustomMech customMech)
+                            {
+                                customMech.custGameRep.j_Root.localRotation = Quaternion.identity;
+                            }
+
+                            targetActor.GameRep.transform.rotation =
+                                __instance.OwningMech.GameRep.transform.rotation;
+                            targetActor.CurrentRotation = __instance.OwningMech.CurrentRotation;
+                        }
+
+                        targetActor.MountedEvasion(__instance.OwningMech);
+                        ModInit.modLog?.Debug?.Write(
+                            $"[MechDisplacementSequence_OnComplete] PositionLockMount- Setting airlifted unit {targetActor.DisplayName} position to same as carrier unit {__instance.OwningMech.DisplayName}");
+
+                        ModState.CachedUnitCoordinates[__instance.OwningMech.GUID] = __instance.OwningMech.CurrentPosition;
+                    }
+                }
+
+                if (__instance.OwningMech.HasMountedUnits())
+                {
+                    var targetActorGUIDs =
+                        ModState.PositionLockMount.Where(x => x.Value == __instance.OwningMech.GUID);
+                    foreach (var targetActorGUID in targetActorGUIDs)
+                    {
+                        var targetActor = combat.FindActorByGUID(targetActorGUID.Key);
+                        if (targetActor == null) continue;
+                        var pos = Vector3.zero;
+                        if (__instance.OwningMech is CustomMech mech)
+                        {
+                            pos = __instance.OwningMech.CurrentPosition +
+                                  Vector3.up * mech.custGameRep.HeightController.CurrentHeight;
+                            targetActor.TeleportActorVisual(pos);
+                        }
+                        else
+                        {
+                            targetActor.TeleportActorVisual(__instance.OwningMech.CurrentPosition);
+                        }
+
+                        targetActor.MountedEvasion(__instance.OwningMech);
+                        ModInit.modLog?.Debug?.Write(
+                            $"[MechDisplacementSequence_OnComplete] PositionLockMount- Setting riding unit {targetActor.DisplayName} position to same as carrier unit {__instance.OwningMech.DisplayName}");
+
+                        ModState.CachedUnitCoordinates[__instance.OwningMech.GUID] = __instance.OwningMech.CurrentPosition;
+                    }
+                }
+
+                // removed return/else so swarming units are locked to carrier even if carrier has mounted units. derp.
+                if (__instance.OwningMech.HasSwarmingUnits())
+                {
+                    var targetActorGUIDs =
+                        ModState.PositionLockSwarm.Where(x => x.Value == __instance.OwningMech.GUID);
+                    foreach (var targetActorGUID in targetActorGUIDs)
+                    {
+                        var targetActor = combat.FindActorByGUID(targetActorGUID.Key);
+                        if (targetActor == null) continue;
+                        targetActor.TeleportActorVisual(__instance.OwningMech.CurrentPosition);
+                        targetActor.MountedEvasion(__instance.OwningMech);
+                        ModInit.modLog?.Debug?.Write(
+                            $"[MechDisplacementSequence_OnComplete] PositionLockMount- Setting riding unit {targetActor.DisplayName} position to same as carrier unit {__instance.OwningMech.DisplayName}");
+
+                        ModState.CachedUnitCoordinates[__instance.OwningMech.GUID] = __instance.OwningMech.CurrentPosition;
+                    }
+                }
+            }
+        }
+
+        [HarmonyPatch(typeof(Team), "ActivateAbility")]
+        public static class Team_ActivateAbility
+        {
+            public static void Prefix(ref bool __runOriginal, Team __instance, AbilityMessage msg)
+            {
+                if (!__runOriginal) return;
+                if (__instance.Combat.ActiveContract.ContractTypeValue.IsSkirmish)
+                {
+                    __runOriginal = true;
+                    return;
+                }
+                Ability ability = ModState.CommandAbilities.Find((Ability x) => x.Def.Id == msg.abilityID);
+                if (ability == null)
+                {
+                    ModInit.modLog?.Info?.Write(
+                        $"Tried to use a CommandAbility the team doesnt have?");
+                    __runOriginal = false;
+                    return;
+                }
+
+                switch (ability.Def.Targeting)
+                {
+                    case AbilityDef.TargetingType.CommandInstant:
+                        ability.Activate(__instance, null);
+                        goto publishAbilityConfirmed;
+                    case AbilityDef.TargetingType.CommandTargetSingleEnemy:
+                        {
+                            ICombatant combatant = __instance.Combat.FindCombatantByGUID(msg.affectedObjectGuid, false);
+                            if (combatant == null)
+                            {
+                                ModInit.modLog?.Info?.Write(
+                                    $"Team.ActivateAbility couldn't find target with guid {msg.affectedObjectGuid}");
+                                __runOriginal = false;
+                                return;
+                            }
+
+                            ability.Activate(__instance, combatant);
+                            goto publishAbilityConfirmed;
+                        }
+                    case AbilityDef.TargetingType.CommandTargetSinglePoint:
+                        ability.Activate(__instance, msg.positionA);
+                        goto publishAbilityConfirmed;
+                    case AbilityDef.TargetingType.CommandTargetTwoPoints:
+                    case AbilityDef.TargetingType.CommandSpawnPosition:
+                        ability.Activate(__instance, msg.positionA, msg.positionB);
+                        goto publishAbilityConfirmed;
+                    case AbilityDef.TargetingType.NotSet:
+                        break;
+                    case AbilityDef.TargetingType.ActorSelf:
+                        break;
+                    case AbilityDef.TargetingType.ActorTarget:
+                        break;
+                    case AbilityDef.TargetingType.SensorLock:
+                        break;
+                    case AbilityDef.TargetingType.CommandTargetSingleAlly:
+                        break;
+                    case AbilityDef.TargetingType.ShadowMove:
+                        break;
+                    case AbilityDef.TargetingType.MultiFire:
+                        break;
+                    case AbilityDef.TargetingType.ConfirmCoolantVent:
+                        break;
+                    case AbilityDef.TargetingType.ActiveProbe:
+                        break;
+                    default:
+                        throw new ArgumentOutOfRangeException();
+                }
+
+                ModInit.modLog?.Info?.Write(
+                    $"Team.ActivateAbility needs to add handling for targetingtype {ability.Def.Targeting}");
+                __runOriginal = false;
+                return;
+            publishAbilityConfirmed:
+                __instance.Combat.MessageCenter.PublishMessage(new AbilityConfirmedMessage(msg.actingObjectGuid,
+                    msg.affectedObjectGuid, msg.abilityID, msg.positionA, msg.positionB));
+                __runOriginal = false;
+                return;
+            }
+        }
+
+        [HarmonyPatch(typeof(AbstractActor), "OnAbilityInvoked",
+            new Type[] { typeof(MessageCenterMessage) })]
+        public static class AbstractActor_OnAbilityInvoked
+        {
+            public static void Prefix(ref bool __runOriginal, AbstractActor __instance, MessageCenterMessage message)
+            {
+                if (!__runOriginal) return;
+                AbilityMessage msg = message as AbilityMessage;
+                if (msg.actingObjectGuid == __instance.GUID && msg.positionA != Vector3.zero && msg.positionB != Vector3.zero)
+                {
+                    if (__instance.GetPilot().ActiveAbilities.Find((Ability x) => x.Def.Id == msg.abilityID) != null)
+                    {
+                        __instance.ActivateAbility(__instance, msg.abilityID, msg.affectedObjectGuid, msg.positionA, msg.positionB);
+                        __runOriginal = false;
+                        return;
+                    }
+                }
+                __runOriginal = true;
+                return;
+            }
+        }
+
+        [HarmonyPatch(typeof(AbstractActor), "ActivateAbility",
+            new Type[] { typeof(AbstractActor), typeof(string), typeof(string), typeof(Vector3), typeof(Vector3) })]
+        public static class AbstractActor_ActivateAbility
+        {
+            public static void Prefix(ref bool __runOriginal, AbstractActor __instance, AbstractActor pilotedActor, string abilityName,
+                string targetGUID, Vector3 posA, Vector3 posB)
+            {
+                if (!__runOriginal) return;
+                if (__instance.Combat.ActiveContract.ContractTypeValue.IsSkirmish)
+                {
+                    __runOriginal = true;
+                    return;
+                }
+                Ability ability = __instance.ComponentAbilities.Find((Ability x) => x.Def.Id == abilityName);
+                if (ability == null)
+                {
+                    ModInit.modLog?.Trace?.Write($"[AbstractActor_ActivateAbility] - could not find ability {abilityName} in ComponentAbilities.");
+                    ability = __instance.GetPilot().ActiveAbilities.Find((Ability x) => x.Def.Id == abilityName);
+                };
+                if (ability == null)
+                {
+                    ModInit.modLog?.Trace?.Write($"[AbstractActor_ActivateAbility] - could not find ability {abilityName} in ActiveAbilities.");
+                    __runOriginal = true;
+                    return;
+                }
+                if (ability.Def.Targeting == AbilityDef.TargetingType.CommandSpawnPosition)
+                {
+                    ModInit.modLog?.Trace?.Write($"[AbstractActor_ActivateAbility] - activating turret spawny.");
+                    ability.Activate(__instance, posA, posB); // added to try and unfuck strafe as regular ability
+                    __runOriginal = false;
+                    return;
+                }
+                if (ability.Def.Targeting == AbilityDef.TargetingType.CommandTargetTwoPoints)
+                {
+                    ModInit.modLog?.Trace?.Write($"[AbstractActor_ActivateAbility] - activating strafe.");
+                    ability.Activate(__instance, posA, posB);
+                    __runOriginal = false;
+                    return;
+                }
+                __runOriginal = true;
+                return;
+            }
+        }
+
+        [HarmonyPatch(typeof(AbstractActor), "OnActorDestroyed", new Type[] {typeof(MessageCenterMessage)})]
+        public static class AbstractActor_OnActorDestroyed
+        {
+            public static void Prefix(ref bool __runOriginal, AbstractActor __instance)
+            {
+                if (!__runOriginal) return;
+                if (!__instance.IsAirlifted())
+                {
+                    __runOriginal = true;
+                    return;
+                }
+                __runOriginal = false;
+                return;
+                //return !__instance.IsAirlifted(); // maybe prevent airlifted units from teleporting if over a building
+            }
+        }
+
+        [HarmonyPatch(typeof(Ability), "IsAvailable", MethodType.Getter)]
+        public static class Ability_IsAvailable_Getter
+        {
+            public static void Postfix(Ability __instance, ref bool __result)
+            {
+                if (UnityGameInstance.BattleTechGame.Combat.ActiveContract.ContractTypeValue.IsSkirmish) return;
+                if (!__result) return;
+                if (!__instance.TryFetchParentFromAbility(out var parent)) return;
+                if (ModInit.modSettings.BeaconExclusionConfig.TryGetValue(__instance.Combat.ActiveContract.ContractTypeValue.Name, out var configType))
+                {
+                    if (parent.team.IsLocalPlayer)
+                    {
+                        if (__instance.Def.specialRules == AbilityDef.SpecialRules.Strafe)
+                            __result = !configType.ExcludedPlayerStrafe;
+                        else if (__instance.Def.specialRules == AbilityDef.SpecialRules.SpawnTurret)
+                            __result = !configType.ExcludedPlayerSpawn;
+                    }
+                    else
+                    {
+                        if (__instance.Def.specialRules == AbilityDef.SpecialRules.Strafe)
+                            __result = !configType.ExcludedAIStrafe;
+                        else if (__instance.Def.specialRules == AbilityDef.SpecialRules.SpawnTurret)
+                            __result = !configType.ExcludedAISpawn;
+                    }
+                }
+                else if (ModInit.modSettings.BeaconExclusionConfig.TryGetValue(__instance.Combat.ActiveContract.Override.ID, out var configID))
+                {
+                    if (parent.team.IsLocalPlayer)
+                    {
+                        if (__instance.Def.specialRules == AbilityDef.SpecialRules.Strafe)
+                            __result = !configID.ExcludedPlayerStrafe;
+                        else if (__instance.Def.specialRules == AbilityDef.SpecialRules.SpawnTurret)
+                            __result = !configID.ExcludedPlayerSpawn;
+                    }
+                    else
+                    {
+                        if (__instance.Def.specialRules == AbilityDef.SpecialRules.Strafe)
+                            __result = !configID.ExcludedAIStrafe;
+                        else if (__instance.Def.specialRules == AbilityDef.SpecialRules.SpawnTurret)
+                            __result = !configID.ExcludedAISpawn;
+                    }
+                }
+            }
+        }
+
         [HarmonyPatch(typeof(Ability), "Activate",
             new Type[] { typeof(AbstractActor), typeof(ICombatant) })]
         public static class Ability_Activate_ICombatant
@@ -270,6 +1229,144 @@ namespace StrategicOperations.Patches
                     return;
                 }
                 __runOriginal = true;
+                return;
+            }
+        }
+
+
+        // ActivateStrafe for AOE? use CAC TerrainAttackDeligate and "walk" it across the field?
+        //should it be a totally separate ability? probably. maybe. unsure.
+        [HarmonyPatch(typeof(Ability), "ActivateStrafe")]
+        public static class Ability_ActivateStrafe
+        {
+            public static void Prefix(ref bool __runOriginal, Ability __instance, Team team, Vector3 positionA, Vector3 positionB, float radius)
+            {
+                if (!__runOriginal) return;
+                if (__instance.Combat.ActiveContract.ContractTypeValue.IsSkirmish)
+                {
+                    __runOriginal = true;
+                    return;
+                }
+                ModInit.modLog?.Info?.Write($"Running Ability.ActivateStrafe");
+                var dm = __instance.Combat.DataManager;
+                var sim = UnityGameInstance.BattleTechGame.Simulation;
+                var pilotID = "pilot_sim_starter_dekker";
+                //var actorGUID = __instance.parentComponent.GUID.Substring("Abilifier_ActorLink-".Length);
+                var quid = "";
+                if (__instance?.parentComponent?.parent?.GUID != null)
+                {
+                    ModInit.modLog?.Info?.Write($"[Ability_ActivateStrafe] using {__instance.parentComponent.parent.GUID} from component parent");
+                    quid = __instance.Generate2PtCMDQuasiGUID(__instance.parentComponent.parent.GUID, positionA, positionB);
+                    
+                }
+                else if (__instance?.parentComponent?.GUID != null)
+                {
+                    var quidFromAbilifier = __instance.parentComponent.GUID.Substring(20);
+                    ModInit.modLog?.Info?.Write($"[Ability_ActivateStrafe] using {__instance.parentComponent.GUID} from abilifier component guid; processed down to {quidFromAbilifier}");
+                    quid = __instance.Generate2PtCMDQuasiGUID(quidFromAbilifier, positionA, positionB);
+                }
+                ModInit.modLog?.Info?.Write($"[Ability_ActivateStrafe] Trying to find params with key {quid}");
+                if (!ModState.StoredCmdParams.ContainsKey(quid))
+                {
+                    ModInit.modLog?.Info?.Write($"[Ability_ActivateStrafe] No strafe params stored, wtf");
+                    __runOriginal = true;
+                    return;
+                }
+
+                var strafeParams = ModState.StoredCmdParams[quid];
+                var supportHeraldryDef = Utils.SwapHeraldryColors(team.HeraldryDef, dm);
+
+                if (!string.IsNullOrEmpty(strafeParams.PilotOverride))
+                {
+                    //pilotID = ModState.PilotOverride;
+                    pilotID = strafeParams.PilotOverride;
+                }
+
+                else if (!string.IsNullOrEmpty(__instance.Def.getAbilityDefExtension().CMDPilotOverride))
+                {
+                    pilotID = __instance.Def.getAbilityDefExtension().CMDPilotOverride;
+                }
+
+                //if (__instance.Combat.Teams.All(x => x.GUID != "61612bb3-abf9-4586-952a-0559fa9dcd75"))
+                //{
+                //Utils.CreateOrUpdateNeutralTeam();
+                Team supportTeam;
+                if (team.IsLocalPlayer)
+                {
+                    supportTeam = team.SupportTeam;
+                }
+                else
+                {
+                    supportTeam = Utils.FetchAISupportTeam(team); //need to add to Phase Thingies or some shit, cos it breaks
+                }
+
+                //}
+
+                //var supportTeam = __instance.Combat.Teams.FirstOrDefault(x => x.GUID == "61612bb3-abf9-4586-952a-0559fa9dcd75");
+
+                ModInit.modLog?.Info?.Write($"Team neutralTeam = {supportTeam?.DisplayName}");
+                var cmdLance = Utils.CreateOrFetchCMDLance(supportTeam);
+                var actorResource = __instance.Def.ActorResource;
+                var strafeWaves = ModInit.modSettings.strafeWaves;
+                if (strafeParams.StrafeWaves > 0)
+                {
+                    //strafeWaves = ModState.StrafeWaves;
+                    strafeWaves = strafeParams.StrafeWaves;
+                }
+                if (!string.IsNullOrEmpty(__instance.Def?.ActorResource))
+                {
+                    if (!string.IsNullOrEmpty(strafeParams.ActorResource))
+                    {
+                        actorResource = strafeParams.ActorResource;
+                        //ModState.PopupActorResource = "";
+                    }
+
+                    ModInit.modLog?.Info?.Write($"Pilot should be {pilotID}");
+                    if (ModState.DeploymentAssetsStats.Any(x => x.ID == actorResource) && team.IsLocalPlayer)
+                    {
+                        var assetStatInfo = ModState.DeploymentAssetsStats.FirstOrDefault(x => x.ID == actorResource);
+                        if (assetStatInfo != null)
+                        {
+                            assetStatInfo.contractUses -= 1;
+                            if (assetStatInfo.consumeOnUse)
+                            {
+                                sim?.CompanyStats.ModifyStat("StratOps", -1, assetStatInfo.stat,
+                                    StatCollection.StatOperation.Int_Subtract, 1);
+                            }
+                        }
+
+                        ModInit.modLog?.Info?.Write($"Decrementing count of {actorResource} in deploymentAssetsDict");
+                    }
+
+                    var parentSequenceID = Guid.NewGuid().ToString();
+
+                    LoadRequest loadRequest = dm.CreateLoadRequest();
+                    loadRequest.AddBlindLoadRequest(BattleTechResourceType.MechDef, actorResource);
+                    ModInit.modLog?.Info?.Write($"Added loadrequest for MechDef: {actorResource}");
+                    loadRequest.AddBlindLoadRequest(BattleTechResourceType.PilotDef, pilotID);
+                    ModInit.modLog?.Info?.Write($"Added loadrequest for PilotDef: {pilotID}");
+                    loadRequest.ProcessRequests(1000U);
+                    dm.PilotDefs.TryGet(pilotID, out var supportPilotDef);
+                    if (supportPilotDef == null)
+                    {
+                        ModInit.modLog?.Info?.Write($"[ERROR] Unable to fetch pilotdef from DataManager. Shits gon broke.");
+                    }
+
+                    var newWave = new PendingStrafeWave(strafeWaves - 1, __instance, team, positionA,
+                        positionB, radius, actorResource, supportTeam, cmdLance, supportPilotDef, supportHeraldryDef,
+                        dm);
+                    ModState.PendingStrafeWaves.Add(parentSequenceID, newWave);
+                    Utils.InitiateStrafe(parentSequenceID, newWave);
+                    ModInit.modLog?.Info?.Write($"First time initializing strafe with GUID {parentSequenceID}");
+                    if (__instance.Def.IntParam1 > 0)
+                    {
+                        Utils.SpawnFlares(__instance, positionA, positionB, ModInit.modSettings.flareResourceID,
+                            __instance.Def.IntParam1, Math.Max(__instance.Def.ActivationETA * strafeWaves, strafeWaves), team.IsLocalPlayer); // make smoke last for all strafe waves because babies
+                    }
+
+                    ModState.StoredCmdParams.Remove(quid);
+                }
+                __runOriginal = false;
                 return;
             }
         }
@@ -711,192 +1808,10 @@ namespace StrategicOperations.Patches
             }
         }
 
-
-        // ActivateStrafe for AOE? use CAC TerrainAttackDeligate and "walk" it across the field?
-        //should it be a totally separate ability? probably. maybe. unsure.
-        [HarmonyPatch(typeof(Ability), "ActivateStrafe")]
-        public static class Ability_ActivateStrafe
-        {
-            public static void Prefix(ref bool __runOriginal, Ability __instance, Team team, Vector3 positionA, Vector3 positionB, float radius)
-            {
-                if (!__runOriginal) return;
-                if (__instance.Combat.ActiveContract.ContractTypeValue.IsSkirmish)
-                {
-                    __runOriginal = true;
-                    return;
-                }
-                ModInit.modLog?.Info?.Write($"Running Ability.ActivateStrafe");
-                var dm = __instance.Combat.DataManager;
-                var sim = UnityGameInstance.BattleTechGame.Simulation;
-                var pilotID = "pilot_sim_starter_dekker";
-                //var actorGUID = __instance.parentComponent.GUID.Substring("Abilifier_ActorLink-".Length);
-                var quid = "";
-                if (__instance?.parentComponent?.parent?.GUID != null)
-                {
-                    ModInit.modLog?.Info?.Write($"[Ability_ActivateStrafe] using {__instance.parentComponent.parent.GUID} from component parent");
-                    quid = __instance.Generate2PtCMDQuasiGUID(__instance.parentComponent.parent.GUID, positionA, positionB);
-                    
-                }
-                else if (__instance?.parentComponent?.GUID != null)
-                {
-                    var quidFromAbilifier = __instance.parentComponent.GUID.Substring(20);
-                    ModInit.modLog?.Info?.Write($"[Ability_ActivateStrafe] using {__instance.parentComponent.GUID} from abilifier component guid; processed down to {quidFromAbilifier}");
-                    quid = __instance.Generate2PtCMDQuasiGUID(quidFromAbilifier, positionA, positionB);
-                }
-                ModInit.modLog?.Info?.Write($"[Ability_ActivateStrafe] Trying to find params with key {quid}");
-                if (!ModState.StoredCmdParams.ContainsKey(quid))
-                {
-                    ModInit.modLog?.Info?.Write($"[Ability_ActivateStrafe] No strafe params stored, wtf");
-                    __runOriginal = true;
-                    return;
-                }
-
-                var strafeParams = ModState.StoredCmdParams[quid];
-                var supportHeraldryDef = Utils.SwapHeraldryColors(team.HeraldryDef, dm);
-
-                if (!string.IsNullOrEmpty(strafeParams.PilotOverride))
-                {
-                    //pilotID = ModState.PilotOverride;
-                    pilotID = strafeParams.PilotOverride;
-                }
-
-                else if (!string.IsNullOrEmpty(__instance.Def.getAbilityDefExtension().CMDPilotOverride))
-                {
-                    pilotID = __instance.Def.getAbilityDefExtension().CMDPilotOverride;
-                }
-
-                //if (__instance.Combat.Teams.All(x => x.GUID != "61612bb3-abf9-4586-952a-0559fa9dcd75"))
-                //{
-                //Utils.CreateOrUpdateNeutralTeam();
-                Team supportTeam;
-                if (team.IsLocalPlayer)
-                {
-                    supportTeam = team.SupportTeam;
-                }
-                else
-                {
-                    supportTeam = Utils.FetchAISupportTeam(team); //need to add to Phase Thingies or some shit, cos it breaks
-                }
-
-                //}
-
-                //var supportTeam = __instance.Combat.Teams.FirstOrDefault(x => x.GUID == "61612bb3-abf9-4586-952a-0559fa9dcd75");
-
-                ModInit.modLog?.Info?.Write($"Team neutralTeam = {supportTeam?.DisplayName}");
-                var cmdLance = Utils.CreateOrFetchCMDLance(supportTeam);
-                var actorResource = __instance.Def.ActorResource;
-                var strafeWaves = ModInit.modSettings.strafeWaves;
-                if (strafeParams.StrafeWaves > 0)
-                {
-                    //strafeWaves = ModState.StrafeWaves;
-                    strafeWaves = strafeParams.StrafeWaves;
-                }
-                if (!string.IsNullOrEmpty(__instance.Def?.ActorResource))
-                {
-                    if (!string.IsNullOrEmpty(strafeParams.ActorResource))
-                    {
-                        actorResource = strafeParams.ActorResource;
-                        //ModState.PopupActorResource = "";
-                    }
-
-                    ModInit.modLog?.Info?.Write($"Pilot should be {pilotID}");
-                    if (ModState.DeploymentAssetsStats.Any(x => x.ID == actorResource) && team.IsLocalPlayer)
-                    {
-                        var assetStatInfo = ModState.DeploymentAssetsStats.FirstOrDefault(x => x.ID == actorResource);
-                        if (assetStatInfo != null)
-                        {
-                            assetStatInfo.contractUses -= 1;
-                            if (assetStatInfo.consumeOnUse)
-                            {
-                                sim?.CompanyStats.ModifyStat("StratOps", -1, assetStatInfo.stat,
-                                    StatCollection.StatOperation.Int_Subtract, 1);
-                            }
-                        }
-
-                        ModInit.modLog?.Info?.Write($"Decrementing count of {actorResource} in deploymentAssetsDict");
-                    }
-
-                    var parentSequenceID = Guid.NewGuid().ToString();
-
-                    LoadRequest loadRequest = dm.CreateLoadRequest();
-                    loadRequest.AddBlindLoadRequest(BattleTechResourceType.MechDef, actorResource);
-                    ModInit.modLog?.Info?.Write($"Added loadrequest for MechDef: {actorResource}");
-                    loadRequest.AddBlindLoadRequest(BattleTechResourceType.PilotDef, pilotID);
-                    ModInit.modLog?.Info?.Write($"Added loadrequest for PilotDef: {pilotID}");
-                    loadRequest.ProcessRequests(1000U);
-                    dm.PilotDefs.TryGet(pilotID, out var supportPilotDef);
-                    if (supportPilotDef == null)
-                    {
-                        ModInit.modLog?.Info?.Write($"[ERROR] Unable to fetch pilotdef from DataManager. Shits gon broke.");
-                    }
-
-                    var newWave = new PendingStrafeWave(strafeWaves - 1, __instance, team, positionA,
-                        positionB, radius, actorResource, supportTeam, cmdLance, supportPilotDef, supportHeraldryDef,
-                        dm);
-                    ModState.PendingStrafeWaves.Add(parentSequenceID, newWave);
-                    Utils.InitiateStrafe(parentSequenceID, newWave);
-                    ModInit.modLog?.Info?.Write($"First time initializing strafe with GUID {parentSequenceID}");
-                    if (__instance.Def.IntParam1 > 0)
-                    {
-                        Utils.SpawnFlares(__instance, positionA, positionB, ModInit.modSettings.flareResourceID,
-                            __instance.Def.IntParam1, Math.Max(__instance.Def.ActivationETA * strafeWaves, strafeWaves), team.IsLocalPlayer); // make smoke last for all strafe waves because babies
-                    }
-
-                    ModState.StoredCmdParams.Remove(quid);
-                }
-                __runOriginal = false;
-                return;
-            }
-        }
-
-        [HarmonyPatch(typeof(Ability), "IsAvailable", MethodType.Getter)]
-        public static class Ability_IsAvailable_Getter
-        {
-            public static void Postfix(Ability __instance, ref bool __result)
-            {
-                if (UnityGameInstance.BattleTechGame.Combat.ActiveContract.ContractTypeValue.IsSkirmish) return;
-                if (!__result) return;
-                if (!__instance.TryFetchParentFromAbility(out var parent)) return;
-                if (ModInit.modSettings.BeaconExclusionConfig.TryGetValue(__instance.Combat.ActiveContract.ContractTypeValue.Name, out var configType))
-                {
-                    if (parent.team.IsLocalPlayer)
-                    {
-                        if (__instance.Def.specialRules == AbilityDef.SpecialRules.Strafe)
-                            __result = !configType.ExcludedPlayerStrafe;
-                        else if (__instance.Def.specialRules == AbilityDef.SpecialRules.SpawnTurret)
-                            __result = !configType.ExcludedPlayerSpawn;
-                    }
-                    else
-                    {
-                        if (__instance.Def.specialRules == AbilityDef.SpecialRules.Strafe)
-                            __result = !configType.ExcludedAIStrafe;
-                        else if (__instance.Def.specialRules == AbilityDef.SpecialRules.SpawnTurret)
-                            __result = !configType.ExcludedAISpawn;
-                    }
-                }
-                else if (ModInit.modSettings.BeaconExclusionConfig.TryGetValue(__instance.Combat.ActiveContract.Override.ID, out var configID))
-                {
-                    if (parent.team.IsLocalPlayer)
-                    {
-                        if (__instance.Def.specialRules == AbilityDef.SpecialRules.Strafe)
-                            __result = !configID.ExcludedPlayerStrafe;
-                        else if (__instance.Def.specialRules == AbilityDef.SpecialRules.SpawnTurret)
-                            __result = !configID.ExcludedPlayerSpawn;
-                    }
-                    else
-                    {
-                        if (__instance.Def.specialRules == AbilityDef.SpecialRules.Strafe)
-                            __result = !configID.ExcludedAIStrafe;
-                        else if (__instance.Def.specialRules == AbilityDef.SpecialRules.SpawnTurret)
-                            __result = !configID.ExcludedAISpawn;
-                    }
-                }
-            }
-        }
-
         [HarmonyPatch(typeof(Ability), "SpawnFlares")]
         public static class Ability_SpawnFlares
         {
+            static bool Prepare() => false; //disabled
             private static void Prefix(ref bool __runOriginal, Ability __instance, Vector3 positionA, Vector3 positionB, string prefabName,
                 int numFlares, int numPhases)
             {
@@ -956,142 +1871,16 @@ namespace StrategicOperations.Patches
                 __runOriginal = false;
                 return;
             }
-
-            static bool Prepare() => false; //disabled
         }
 
-        [HarmonyPatch(typeof(AbstractActor), "ActivateAbility",
-            new Type[] { typeof(AbstractActor), typeof(string), typeof(string), typeof(Vector3), typeof(Vector3) })]
-        public static class AbstractActor_ActivateAbility
-        {
-            public static void Prefix(ref bool __runOriginal, AbstractActor __instance, AbstractActor pilotedActor, string abilityName,
-                string targetGUID, Vector3 posA, Vector3 posB)
-            {
-                if (!__runOriginal) return;
-                if (__instance.Combat.ActiveContract.ContractTypeValue.IsSkirmish)
-                {
-                    __runOriginal = true;
-                    return;
-                }
-                Ability ability = __instance.ComponentAbilities.Find((Ability x) => x.Def.Id == abilityName);
-                if (ability == null)
-                {
-                    ModInit.modLog?.Trace?.Write($"[AbstractActor_ActivateAbility] - could not find ability {abilityName} in ComponentAbilities.");
-                    ability = __instance.GetPilot().ActiveAbilities.Find((Ability x) => x.Def.Id == abilityName);
-                };
-                if (ability == null)
-                {
-                    ModInit.modLog?.Trace?.Write($"[AbstractActor_ActivateAbility] - could not find ability {abilityName} in ActiveAbilities.");
-                    __runOriginal = true;
-                    return;
-                }
-                if (ability.Def.Targeting == AbilityDef.TargetingType.CommandSpawnPosition)
-                {
-                    ModInit.modLog?.Trace?.Write($"[AbstractActor_ActivateAbility] - activating turret spawny.");
-                    ability.Activate(__instance, posA, posB); // added to try and unfuck strafe as regular ability
-                    __runOriginal = false;
-                    return;
-                }
-                if (ability.Def.Targeting == AbilityDef.TargetingType.CommandTargetTwoPoints)
-                {
-                    ModInit.modLog?.Trace?.Write($"[AbstractActor_ActivateAbility] - activating strafe.");
-                    ability.Activate(__instance, posA, posB);
-                    __runOriginal = false;
-                    return;
-                }
-                __runOriginal = true;
-                return;
-            }
-        }
 
-        [HarmonyPatch(typeof(AbstractActor), "FlagForDeath",
-            new Type[] {typeof(string), typeof(DeathMethod), typeof(DamageType), typeof(int), typeof(int), typeof(string), typeof(bool) })]
-        public static class AbstractActor_FlagForDeath
+        [HarmonyPatch(typeof(CombatGameState), "OnCombatGameDestroyed")]
+        public static class CombatGameState_OnCombatGameDestroyed
         {
-            public static void Postfix(AbstractActor __instance, string reason, DeathMethod deathMethod, DamageType damageType, int location, int stackItemID, string attackerID, bool isSilent)
+            private static void Postfix(CombatGameState __instance)
             {
-                if (__instance.IsAirlifted())
-                {
-                    var carrier = __instance.Combat.FindActorByGUID(ModState.AirliftTrackers[__instance.GUID].CarrierGUID);
-                    __instance.DetachFromAirliftCarrier(carrier, false); // try to drop destroyed units from airlifter
-                }
-            }
-        }
-
-        [HarmonyPatch(typeof(AbstractActor), "InitEffectStats",
-            new Type[] { })]
-        public static class AbstractActor_InitEffectStats
-        {
-            public static void Postfix(AbstractActor __instance)
-            {
-                __instance.StatCollection.AddStatistic<bool>("CanSwarm", false);
-                __instance.StatCollection.AddStatistic<bool>("CanAirliftHostiles", false);
-                __instance.StatCollection.AddStatistic<bool>("BattleArmorInternalMountsOnly", false);
-                __instance.StatCollection.AddStatistic<int>("InternalBattleArmorSquadCap", 0);
-                __instance.StatCollection.AddStatistic<int>("InternalBattleArmorSquads", 0);
-                __instance.StatCollection.AddStatistic<bool>("HasBattleArmorMounts", false);
-                __instance.StatCollection.AddStatistic<bool>("HasExternalMountedBattleArmor", false);
-                __instance.StatCollection.AddStatistic<bool>("IsBattleArmorHandsy", false);
-                __instance.StatCollection.AddStatistic<bool>("IsUnmountableBattleArmor", false);
-                __instance.StatCollection.AddStatistic<bool>("IsUnswarmableBattleArmor", false);
-                __instance.StatCollection.AddStatistic<bool>("HasFiringPorts", false);
-                //__instance.StatCollection.AddStatistic<bool>("BattleArmorMount", false);
-                //__instance.StatCollection.AddStatistic<float>("BattleArmorDeSwarmerSwat", 0.3f);
-                //__instance.StatCollection.AddStatistic<int>("BattleArmorDeSwarmerRollInitPenalty", 0);
-                //__instance.StatCollection.AddStatistic<int>("BattleArmorDeSwarmerSwatInitPenalty", 0);
-                //__instance.StatCollection.AddStatistic<float>("BattleArmorDeSwarmerSwatDamage", 0f);
-                //__instance.StatCollection.AddStatistic<float>("BattleArmorDeSwarmerRoll", 0.5f);
-                //__instance.StatCollection.AddStatistic<float>("MovementDeSwarmMinChance", 0.0f);
-                //__instance.StatCollection.AddStatistic<float>("MovementDeSwarmMaxChance", 1.0f);
-                //__instance.StatCollection.AddStatistic<float>("MovementDeSwarmEvasivePipsFactor", 0f);
-                //__instance.StatCollection.AddStatistic<float>("MovementDeSwarmEvasiveJumpMovementMultiplier", 1.0f);
-                //__instance.StatCollection.AddStatistic<bool>("Airlifting", false);
-                __instance.StatCollection.AddStatistic<int>("InternalLiftCapacity", 0);
-                __instance.StatCollection.AddStatistic<int>("InternalLiftCapacityUsed", 0);
-                __instance.StatCollection.AddStatistic<int>("ExternalLiftCapacity", 0);
-                __instance.StatCollection.AddStatistic<int>("ExternalLiftCapacityUsed", 0);
-                __instance.StatCollection.AddStatistic<bool>("OverrideGlobalCapacity", false);
-                __instance.StatCollection.AddStatistic<float>("AAAFactor", 0f);
-                __instance.StatCollection.AddStatistic<bool>("UseAAAFactor", false);
-            }
-        }
-
-        [HarmonyPatch(typeof(AbstractActor), "OnAbilityInvoked",
-            new Type[] { typeof(MessageCenterMessage) })]
-        public static class AbstractActor_OnAbilityInvoked
-        {
-            public static void Prefix(ref bool __runOriginal, AbstractActor __instance, MessageCenterMessage message)
-            {
-                if (!__runOriginal) return;
-                AbilityMessage msg = message as AbilityMessage;
-                if (msg.actingObjectGuid == __instance.GUID && msg.positionA != Vector3.zero && msg.positionB != Vector3.zero)
-                {
-                    if (__instance.GetPilot().ActiveAbilities.Find((Ability x) => x.Def.Id == msg.abilityID) != null)
-                    {
-                        __instance.ActivateAbility(__instance, msg.abilityID, msg.affectedObjectGuid, msg.positionA, msg.positionB);
-                        __runOriginal = false;
-                        return;
-                    }
-                }
-                __runOriginal = true;
-                return;
-            }
-        }
-
-        [HarmonyPatch(typeof(AbstractActor), "OnActorDestroyed", new Type[] {typeof(MessageCenterMessage)})]
-        public static class AbstractActor_OnActorDestroyed
-        {
-            public static void Prefix(ref bool __runOriginal, AbstractActor __instance)
-            {
-                if (!__runOriginal) return;
-                if (!__instance.IsAirlifted())
-                {
-                    __runOriginal = true;
-                    return;
-                }
-                __runOriginal = false;
-                return;
-                //return !__instance.IsAirlifted(); // maybe prevent airlifted units from teleporting if over a building
+                ModState.ResetAll();
+                StrategicSelection.StrategicTargetIndicatorsManager.Clear();
             }
         }
 
@@ -1109,67 +1898,169 @@ namespace StrategicOperations.Patches
             }
         }
 
-        [HarmonyPatch(typeof(CameraControl), "ShowActorCam")]
-        public static class CameraControl_ShowActorCam
+        [HarmonyPatch(typeof(Team), "OnRoundBegin")]
+        public static class TurnActor_OnRoundBegin
         {
-            public static void Prefix(ref bool __runOriginal, CameraControl __instance, AbstractActor actor, Quaternion rotation,
-                float duration, ref AttachToActorCameraSequence __result)
+            public static void Postfix(Team __instance)
             {
-                if (!__runOriginal) return;
-                var combat = UnityGameInstance.BattleTechGame.Combat;
-                if (combat.ActiveContract.ContractTypeValue.IsSkirmish)
+                if (__instance.Combat.ActiveContract.ContractTypeValue.IsSkirmish) return;
+                foreach (var ability in ModState.CommandAbilities)
                 {
-                    __runOriginal = true;
-                    return;
+                    ability.OnNewRound();
                 }
-                Vector3 offset = new Vector3(0f, 50f, 50f);
-                __result = new AttachToActorCameraSequence(combat, actor.GameRep.transform, offset, rotation, duration,
-                    true, false);
-                __runOriginal = false;
-                return;
-            }
 
-            static bool Prepare() => false; //disabled. im not fucking with the follow cam anymore, and apparently it causes problems with harmonyx for some goddamn reason?
+                foreach (var despawn in ModState.DeferredDespawnersFromStrafe)
+                {
+                    var msg = new DespawnActorMessage(EncounterLayerData.MapLogicGuid, despawn.Key, (DeathMethod)DespawnFloatieMessage.Escaped);
+                    //Utils._despawnActorMethod.Invoke(despawn.Value, new object[] { msg });
+                    despawn.Value.DespawnActor(msg);
+                }
+
+                //var team = __instance as Team;
+
+                if (__instance?.units != null)
+                    foreach (var unit in __instance?.units)
+                    {
+                        var rep = unit.GameRep as PilotableActorRepresentation;
+                        rep?.ClearForcedPlayerVisibilityLevel(__instance.Combat.GetAllLivingCombatants());
+                    }
+                //                team?.ResetUnitVisibilityLevels();
+                __instance?.RebuildVisibilityCacheAllUnits(__instance.Combat.GetAllLivingCombatants());
+
+            }
         }
 
-        [HarmonyPatch(typeof(CombatAuraReticle), "RefreshActiveProbeRange")]
-        public static class CombatAuraReticle_RefreshActiveProbeRange
+        [HarmonyPatch(typeof(TurnDirector), "StartFirstRound")]
+        public static class TurnDirector_StartFirstRound
         {
-            public static void Postfix(CombatAuraReticle __instance, bool showActiveProbe)
+            public static void Postfix(TurnDirector __instance)
             {
-                if (!showActiveProbe || __instance.AuraBubble() != null) return;
-
-                float num = 0f;
-                if (__instance.owner.ComponentAbilities.Count > 0)
+                if (ModState.DeferredInvokeBattleArmor.Count > 0)
                 {
-                    for (int i = 0; i < __instance.owner.ComponentAbilities.Count; i++)
+                    for (var index = 0; index < ModState.DeferredInvokeBattleArmor.Count; index++)
                     {
-                        if (__instance.owner.ComponentAbilities[i].Def.Targeting == AbilityDef.TargetingType.ActiveProbe)
+                        var spawn = ModState.DeferredInvokeBattleArmor[index].Value;
+                        ModInit.modLog?.Info?.Write(
+                            $"[TurnDirector.StartFirstRound] Found deferred spawner at index {index} of {ModState.DeferredInvokeBattleArmor.Count - 1}, invoking and trying to spawn a battle armor of some kind.");
+                        ModState.DeferredBattleArmorSpawnerFromDelegate = true;
+                        spawn();
+
+                    }
+                    ModState.ResetDeferredBASpawners();
+                }
+
+                if (__instance.Combat.ActiveContract.ContractTypeValue.IsSkirmish) return;
+
+                var playerTeam = __instance.Combat.Teams.First(x => x.IsLocalPlayer);
+                var dm = playerTeam.Combat.DataManager;
+
+                foreach (var abilityDefKVP in dm.AbilityDefs.Where(x =>
+                    x.Value.specialRules == AbilityDef.SpecialRules.SpawnTurret ||
+                    x.Value.specialRules == AbilityDef.SpecialRules.Strafe))
+                {
+
+                    if (playerTeam.units.Any(x => x.GetPilot().Abilities.Any(y => y.Def == abilityDefKVP.Value)) ||
+                        playerTeam.units.Any(x => x.ComponentAbilities.Any(z => z.Def == abilityDefKVP.Value)))
+                    {
+                        //only do things for abilities that pilots have? move things here. also move AbstractActor initialization to ability start to minimize neutralTeam think time, etc. and then despawn? - done
+                        var ability = new Ability(abilityDefKVP.Value);
+                        ability.Init(playerTeam.Combat);
+                        if (ModState.CommandAbilities.All(x => x != ability))
                         {
-                            num = __instance.owner.ComponentAbilities[i].Def.FloatParam1;
-                            break;
+                            ModState.CommandAbilities.Add(ability);
+                        }
+
+                        ModInit.modLog?.Info?.Write($"[TurnDirector.StartFirstRound] Added {ability?.Def?.Id} to CommandAbilities");
+
+                    }
+                }
+                __instance.Combat.UpdateResupplyTeams();
+                __instance.Combat.UpdateResupplyAbilitiesGetAllLivingActors();
+
+                // now try to auto-mount??????
+                if (ModState.PairingInfos.Count == 0) return;
+                if (DeployManualHelper.IsInManualSpawnSequence) return;
+                foreach (var unit in playerTeam.units)
+                {
+                    if (ModState.PairingInfos.TryGetValue(unit.GetPilot().pilotDef.Description.Id, out var info))
+                    {
+                        foreach (var squadPilot in info.PairedBattleArmor)
+                        {
+                            foreach (var unit2 in playerTeam.units)
+                            {
+                                if (unit2 is TrooperSquad squad &&
+                                    unit2.GetPilot().pilotDef.Description.Id == squadPilot)
+                                {
+                                    unit.MountBattleArmorToChassis(squad, true, true);
+
+                                    if (unit is CustomMech custMech && custMech.FlyingHeight() > 1.5f)
+                                    {
+                                        var pos = custMech.CurrentPosition +
+                                                  Vector3.up * custMech.custGameRep.HeightController.CurrentHeight;
+                                        squad.TeleportActorVisual(pos);
+                                    }
+                                }
+                            }
                         }
                     }
                 }
-                if (!Mathf.Approximately(num, __instance.currentAPRange))
-                {
-                    var apObject = __instance.activeProbeRangeScaledObject;//Traverse.Create(__instance).Property("activeProbeRangeScaledObject").GetValue<GameObject>();
-                    apObject.transform.localScale = new Vector3(num * 2f, 1f, num * 2f);
-                }
-                __instance.currentAPRange = num;
             }
-
-            static bool Prepare() => false; //disabled
         }
 
-
-        [HarmonyPatch(typeof(CombatGameState), "OnCombatGameDestroyed")]
-        public static class CombatGameState_OnCombatGameDestroyed
+        [HarmonyPatch(typeof(DeployManualHelper), "TeleportToPositions")]
+        public static class DeployManualHelper_TeleportToPositions
         {
-            private static void Postfix(CombatGameState __instance)
+            public static void Postfix(CombatHUD HUD, List<DeployPosition> positions)
             {
-                ModState.ResetAll();
-                StrategicSelection.StrategicTargetIndicatorsManager.Clear();
+                if (ModState.PairingInfos.Count == 0) return;
+                foreach (var unit in HUD.Combat.LocalPlayerTeam.units)
+                {
+                    if (ModState.PairingInfos.TryGetValue(unit.GetPilot().pilotDef.Description.Id, out var info))
+                    {
+                        foreach (var squadPilot in info.PairedBattleArmor)
+                        {
+                            foreach (var unit2 in HUD.Combat.LocalPlayerTeam.units)
+                            {
+                                if (unit2 is TrooperSquad squad &&
+                                    unit2.GetPilot().pilotDef.Description.Id == squadPilot)
+                                {
+                                    unit.MountBattleArmorToChassis(squad, true, true);
+                                    if (unit is CustomMech custMech && custMech.FlyingHeight() > 1.5f)
+                                    {
+                                        var pos = custMech.CurrentPosition +
+                                                  Vector3.up * custMech.custGameRep.HeightController.CurrentHeight;
+                                        squad.TeleportActorVisual(pos);
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        [HarmonyPatch(typeof(TurnDirector), "IncrementActiveTurnActor")]
+        public static class TurnDirector_IncrementActiveTurnActor
+        {
+            public static void Prefix(TurnDirector __instance)
+            {
+                if (__instance.Combat.ActiveContract.ContractTypeValue.IsSkirmish) return;
+                if (ModState.DeferredInvokeSpawns.Count > 0 && __instance.ActiveTurnActor is Team activeTeam &&
+                    activeTeam.IsLocalPlayer)
+                {
+                    for (var index = 0; index < ModState.DeferredInvokeSpawns.Count; index++)
+                    {
+                        var spawn = ModState.DeferredInvokeSpawns[index].Value;
+                        var resource = ModState.DeferredInvokeSpawns[index].Key.Split('@');
+                        ModState.DeferredActorResource = resource[1];
+                        ModInit.modLog?.Info?.Write(
+                            $"Found deferred spawner at index {index} of {ModState.DeferredInvokeSpawns.Count - 1}, invoking and trying to spawn {ModState.DeferredActorResource}.");
+                        ModState.DeferredSpawnerFromDelegate = true;
+                        spawn();
+                        ModState.ResetDelegateInfos();
+                    }
+                    ModState.ResetDeferredSpawners();
+                }
             }
         }
 
@@ -1177,42 +2068,6 @@ namespace StrategicOperations.Patches
             new Type[] { typeof(string), typeof(Vector3), typeof(Vector3) })]
         public static class CombatHUDActionButton_ActivateCommandAbility
         {
-            public static void Postfix(CombatHUDActionButton __instance, string teamGUID, Vector3 positionA,
-                Vector3 positionB)
-            {
-                if (UnityGameInstance.BattleTechGame.Combat.ActiveContract.ContractTypeValue.IsSkirmish) return;
-                var def = __instance.Ability.Def;
-                var HUD = __instance.HUD;//IRBTModUtils.SharedState.CombatHUD; //Traverse.Create(__instance).Property("HUD").GetValue<CombatHUD>();
-                var theActor = HUD.SelectedActor;
-                if (theActor == null) return;
-                if (def.specialRules == AbilityDef.SpecialRules.Strafe &&
-                    ModInit.modSettings.strafeEndsActivation)
-                {
-                    if (theActor is Mech mech)
-                    {
-                        mech.GenerateAndPublishHeatSequence(-1, true, false, theActor.GUID);
-                    }
-
-                    var sequence = theActor.DoneWithActor();
-                    theActor.Combat.MessageCenter.PublishMessage(new AddSequenceToStackMessage(sequence));
-                    //theActor.OnActivationEnd(theActor.GUID, __instance.GetInstanceID());
-                    return;
-                }
-
-                if (def.specialRules == AbilityDef.SpecialRules.SpawnTurret &&
-                    ModInit.modSettings.spawnTurretEndsActivation)
-                {
-                    if (theActor is Mech mech)
-                    {
-                        mech.GenerateAndPublishHeatSequence(-1, true, false, theActor.GUID);
-                    }
-                    var sequence = theActor.DoneWithActor();
-                    theActor.Combat.MessageCenter.PublishMessage(new AddSequenceToStackMessage(sequence));
-                    //theActor.OnActivationEnd(theActor.GUID, __instance.GetInstanceID());
-                }
-                //need to make sure proccing from equipment button also ends turn?
-            }
-
             public static void Prefix(ref bool __runOriginal, CombatHUDActionButton __instance, string teamGUID,
                 Vector3 positionA, //prefix to try and make command abilities behave like normal ones
                 Vector3 positionB)
@@ -1249,18 +2104,13 @@ namespace StrategicOperations.Patches
                 __runOriginal = false;
                 return;
             }
-        }
 
-        [HarmonyPatch(typeof(CombatHUDEquipmentSlot), "ActivateCommandAbility",
-            new Type[] { typeof(string), typeof(Vector3), typeof(Vector3) })]
-        public static class CombatHUDEquipmentSlot_ActivateCommandAbility
-        {
-            public static void Postfix(CombatHUDEquipmentSlot __instance, string teamGUID, Vector3 positionA,
+            public static void Postfix(CombatHUDActionButton __instance, string teamGUID, Vector3 positionA,
                 Vector3 positionB)
             {
-                if (__instance.Ability.Combat.ActiveContract.ContractTypeValue.IsSkirmish) return;
+                if (UnityGameInstance.BattleTechGame.Combat.ActiveContract.ContractTypeValue.IsSkirmish) return;
                 var def = __instance.Ability.Def;
-                var HUD = __instance.HUD;//IRBTModUtils.SharedState.CombatHUD;//Traverse.Create(__instance).Property("HUD").GetValue<CombatHUD>();
+                var HUD = __instance.HUD;//IRBTModUtils.SharedState.CombatHUD; //Traverse.Create(__instance).Property("HUD").GetValue<CombatHUD>();
                 var theActor = HUD.SelectedActor;
                 if (theActor == null) return;
                 if (def.specialRules == AbilityDef.SpecialRules.Strafe &&
@@ -1288,8 +2138,14 @@ namespace StrategicOperations.Patches
                     theActor.Combat.MessageCenter.PublishMessage(new AddSequenceToStackMessage(sequence));
                     //theActor.OnActivationEnd(theActor.GUID, __instance.GetInstanceID());
                 }
+                //need to make sure proccing from equipment button also ends turn?
             }
+        }
 
+        [HarmonyPatch(typeof(CombatHUDEquipmentSlot), "ActivateCommandAbility",
+            new Type[] { typeof(string), typeof(Vector3), typeof(Vector3) })]
+        public static class CombatHUDEquipmentSlot_ActivateCommandAbility
+        {
             public static void Prefix(ref bool __runOriginal, CombatHUDEquipmentSlot __instance, string teamGUID, Vector3 positionA,
                 Vector3 positionB)
             {
@@ -1325,903 +2181,39 @@ namespace StrategicOperations.Patches
                 __runOriginal = false;
                 return;
             }
-        }
 
-        [HarmonyPatch(typeof(CombatHUDEquipmentSlotEx), "ResetAbilityButton",
-            new Type[] { typeof(AbstractActor), typeof(CombatHUDActionButton), typeof(Ability), typeof(bool) })]
-        public static class CombatHUDEquipmentSlotEx_ResetAbilityButton
-        {
-            public static void Postfix(CombatHUDEquipmentSlotEx __instance, AbstractActor actor,
-                CombatHUDActionButton button, Ability ability, bool forceInactive)
+            public static void Postfix(CombatHUDEquipmentSlot __instance, string teamGUID, Vector3 positionA,
+                Vector3 positionB)
             {
-                if (UnityGameInstance.BattleTechGame.Combat.ActiveContract.ContractTypeValue.IsSkirmish) return;
-                if (actor == null || ability == null) return;
-                //                if (button == __instance.FireButton)
-                //                {
-                //                   ModInit.modLog?.Trace?.Write(
-                //                       $"Leaving Fire Button Enabled");
-                //                   return;
-                //                }
-
-                if (actor.HasActivatedThisRound || !actor.IsAvailableThisPhase ||
-                    (actor.Combat.StackManager.IsAnyOrderActive && actor.Combat.TurnDirector.IsInterleaved))
+                if (__instance.Ability.Combat.ActiveContract.ContractTypeValue.IsSkirmish) return;
+                var def = __instance.Ability.Def;
+                var HUD = __instance.HUD;//IRBTModUtils.SharedState.CombatHUD;//Traverse.Create(__instance).Property("HUD").GetValue<CombatHUD>();
+                var theActor = HUD.SelectedActor;
+                if (theActor == null) return;
+                if (def.specialRules == AbilityDef.SpecialRules.Strafe &&
+                    ModInit.modSettings.strafeEndsActivation)
                 {
+                    if (theActor is Mech mech)
+                    {
+                        mech.GenerateAndPublishHeatSequence(-1, true, false, theActor.GUID);
+                    }
+
+                    var sequence = theActor.DoneWithActor();
+                    theActor.Combat.MessageCenter.PublishMessage(new AddSequenceToStackMessage(sequence));
+                    //theActor.OnActivationEnd(theActor.GUID, __instance.GetInstanceID());
                     return;
                 }
 
-                if (ability.Def.Id != ModInit.modSettings.BattleArmorMountAndSwarmID)
+                if (def.specialRules == AbilityDef.SpecialRules.SpawnTurret &&
+                    ModInit.modSettings.spawnTurretEndsActivation)
                 {
-                    if (actor.IsMountedUnit())
+                    if (theActor is Mech mech)
                     {
-                        if (!actor.IsMountedInternal())
-                        {
-                            button.DisableButton();
-                        }
-                        else
-                        {
-                            var carrier = actor.Combat.FindActorByGUID(ModState.PositionLockMount[actor.GUID]);
-                            if (!carrier.HasFiringPorts())
-                            {
-                                button.DisableButton();
-                            }
-                        }
+                        mech.GenerateAndPublishHeatSequence(-1, true, false, theActor.GUID);
                     }
-                    else if (actor.IsSwarmingUnit())
-                    {
-                        button.DisableButton();
-                    }
-                }
-
-                if (ability.Def.Id == ModInit.modSettings.BattleArmorDeSwarmRoll ||
-                    ability.Def.Id == ModInit.modSettings.BattleArmorDeSwarmSwat)
-                {
-                    if (actor is Vehicle vehicle || actor.IsCustomUnitVehicle())
-                    {
-                        button.DisableButton();
-                    }
-
-                    if (!actor.HasSwarmingUnits())
-                    {
-                        button.DisableButton();
-                    }
-                }
-
-                if (ability.Def.Id == ModInit.modSettings.AirliftAbilityID && ModInit.modSettings.CanDropOffAfterMoving)// && actor.MovingToPosition == null) // maybe need to check IsAnyOrderActive (but that might screw me)
-                {
-                    if (actor.HasAirliftedUnits())
-                    {
-                        //button.DisableButton();
-                        //if (!button.gameObject.activeSelf)
-                        //{
-                        //    button.gameObject.SetActive(true);
-                        //}
-
-                        //button.InitButton(CombatHUDMechwarriorTray.GetSelectionTypeFromTargeting(ability.Def.Targeting, false), ability, ability.Def.AbilityIcon, ability.Def.Description.Id, ability.Def.Description.Name, actor);
-                        button.ResetButtonIfNotActive(actor);
-                    }
-                }
-
-                var specialRules = ability.Def.specialRules;
-
-
-
-                if (ModInit.modSettings.BeaconExclusionConfig.TryGetValue(actor.Combat.ActiveContract.ContractTypeValue.Name, out var configType))
-                {
-                    if (actor.team.IsLocalPlayer)
-                    {
-                        if (specialRules == AbilityDef.SpecialRules.Strafe && configType.ExcludedPlayerStrafe)
-                            button.DisableButton();
-                        else if (specialRules == AbilityDef.SpecialRules.SpawnTurret && configType.ExcludedPlayerSpawn)
-                            button.DisableButton();
-                    }
-                }
-
-                else if (ModInit.modSettings.BeaconExclusionConfig.TryGetValue(actor.Combat.ActiveContract.Override.ID, out var configID))
-                {
-                    if (actor.team.IsLocalPlayer)
-                    {
-                        if (specialRules == AbilityDef.SpecialRules.Strafe && configID.ExcludedPlayerStrafe)
-                            button.DisableButton();
-                        else if (specialRules == AbilityDef.SpecialRules.SpawnTurret && configID.ExcludedPlayerSpawn)
-                            button.DisableButton();
-                    }
-                }
-
-                //if ((specialRules == AbilityDef.SpecialRules.Strafe || specialRules == AbilityDef.SpecialRules.SpawnTurret) &&
-                //    (ModInit.modSettings.BeaconExcludedContractIDs.Contains(ability.Combat.ActiveContract.Override.ID) || ModInit.modSettings.BeaconExcludedContractTypes.Contains(ability.Combat.ActiveContract
-                //         .ContractTypeValue.Name)))
-               // {
-               //     button.DisableButton();
-               // }
-
-                if (actor.GetAbilityUsedFiring())
-                {
-                    if (ability.Def.ActivationTime == AbilityDef.ActivationTiming.ConsumedByFiring) button.DisableButton();
-                }
-            }
-        }
-
-        [HarmonyPatch(typeof(CombatHUDMechwarriorTray), "ResetAbilityButton",
-            new Type[] { typeof(AbstractActor), typeof(CombatHUDActionButton), typeof(Ability), typeof(bool) })]
-        public static class CombatHUDMechwarriorTray_ResetAbilityButton_Patch
-        {
-            public static void Postfix(CombatHUDMechwarriorTray __instance, AbstractActor actor, CombatHUDActionButton button, Ability ability, bool forceInactive)
-            {
-                if (UnityGameInstance.BattleTechGame.Combat.ActiveContract.ContractTypeValue.IsSkirmish) return;
-                if (actor == null || ability == null) return;
-                //                if (button == __instance.FireButton)
-                //                {
-                //                   ModInit.modLog?.Trace?.Write(
-                //                       $"Leaving Fire Button Enabled");
-                //                   return;
-                //                }
-                if (actor.HasActivatedThisRound || !actor.IsAvailableThisPhase ||
-                    (actor.Combat.StackManager.IsAnyOrderActive && actor.Combat.TurnDirector.IsInterleaved))
-                {
-                    return;
-                }
-
-                if (ability.Def.Id != ModInit.modSettings.BattleArmorMountAndSwarmID)
-                {
-                    if (actor.IsMountedUnit())
-                    {
-                        if (!actor.IsMountedInternal())
-                        {
-                            button.DisableButton();
-                        }
-                        else
-                        {
-                            var carrier = actor.Combat.FindActorByGUID(ModState.PositionLockMount[actor.GUID]);
-                            if (!carrier.HasFiringPorts())
-                            {
-                                button.DisableButton();
-                            }
-                        }
-                    }
-                    else if (actor.IsSwarmingUnit())
-                    {
-                        button.DisableButton();
-                    }
-                }
-
-                if (ability.Def.Id == ModInit.modSettings.BattleArmorDeSwarmRoll ||
-                    ability.Def.Id == ModInit.modSettings.BattleArmorDeSwarmSwat)
-                {
-                    if (actor is Vehicle vehicle || actor.IsCustomUnitVehicle())
-                    {
-                        button.DisableButton();
-                    }
-
-                    if (!actor.HasSwarmingUnits())
-                    {
-                        button.DisableButton();
-                    }
-                }
-
-                if (ability.Def.Id == ModInit.modSettings.AirliftAbilityID && ModInit.modSettings.CanDropOffAfterMoving)// && actor.MovingToPosition == null) // maybe need to check IsAnyOrderActive (but that might screw me)
-                {
-                    if (actor.HasAirliftedUnits())
-                    {
-                        //button.DisableButton();
-                        //if (!button.gameObject.activeSelf)
-                        //{
-                        //    button.gameObject.SetActive(true);
-                        //}
-
-                        //button.InitButton(CombatHUDMechwarriorTray.GetSelectionTypeFromTargeting(ability.Def.Targeting, false), ability, ability.Def.AbilityIcon, ability.Def.Description.Id, ability.Def.Description.Name, actor);
-                        button.ResetButtonIfNotActive(actor);
-                    }
-                }
-            }
-        }
-
-        [HarmonyPatch(typeof(CombatHUDWeaponPanel), "ResetAbilityButton",
-            new Type[] { typeof(AbstractActor), typeof(CombatHUDActionButton), typeof(Ability), typeof(bool) })]
-        public static class CombatHUDWeaponPanel_ResetAbilityButton_Patch
-        {
-            public static void Postfix(CombatHUDWeaponPanel __instance, AbstractActor actor, CombatHUDActionButton button, Ability ability, bool forceInactive)
-            {
-                if (UnityGameInstance.BattleTechGame.Combat.ActiveContract.ContractTypeValue.IsSkirmish) return;
-                if (actor == null || ability == null) return;
-                //                if (button == __instance.FireButton)
-                //                {
-                //                   ModInit.modLog?.Trace?.Write(
-                //                       $"Leaving Fire Button Enabled");
-                //                   return;
-                //                }
-
-                if (actor.HasActivatedThisRound || !actor.IsAvailableThisPhase ||
-                    (actor.Combat.StackManager.IsAnyOrderActive && actor.Combat.TurnDirector.IsInterleaved))
-                {
-                    return;
-                }
-
-                if (ability.Def.Id != ModInit.modSettings.BattleArmorMountAndSwarmID)
-                {
-                    if (actor.IsMountedUnit())
-                    {
-                        if (!actor.IsMountedInternal())
-                        {
-                            button.DisableButton();
-                        }
-                        else
-                        {
-                            var carrier = actor.Combat.FindActorByGUID(ModState.PositionLockMount[actor.GUID]);
-                            if (!carrier.HasFiringPorts())
-                            {
-                                button.DisableButton();
-                            }
-                        }
-                    }
-                    else if (actor.IsSwarmingUnit())
-                    {
-                        button.DisableButton();
-                    }
-                }
-
-                if (ability.Def.Id == ModInit.modSettings.BattleArmorDeSwarmRoll ||
-                    ability.Def.Id == ModInit.modSettings.BattleArmorDeSwarmSwat)
-                {
-                    if (actor is Vehicle vehicle || actor.IsCustomUnitVehicle())
-                    {
-                        button.DisableButton();
-                    }
-
-                    if (!actor.HasSwarmingUnits())
-                    {
-                        button.DisableButton();
-                    }
-                }
-
-                if (ability.Def.Id == ModInit.modSettings.AirliftAbilityID && ModInit.modSettings.CanDropOffAfterMoving)// && actor.MovingToPosition == null) // maybe need to check IsAnyOrderActive (but that might screw me)
-                {
-                    if (actor.HasAirliftedUnits())
-                    {
-                        //button.DisableButton();
-                        //if (!button.gameObject.activeSelf)
-                        //{
-                        //    button.gameObject.SetActive(true);
-                        //}
-
-                        //button.InitButton(CombatHUDMechwarriorTray.GetSelectionTypeFromTargeting(ability.Def.Targeting, false), ability, ability.Def.AbilityIcon, ability.Def.Description.Id, ability.Def.Description.Name, actor);
-                        button.ResetButtonIfNotActive(actor);
-                    }
-                }
-            }
-        }
-
-        [HarmonyPatch(typeof(CombatSelectionHandler), "ProcessInput")]
-        public static class CombatSelectionHandler_ProcessInput
-        {
-            public static void Prefix(ref bool __runOriginal, CombatSelectionHandler __instance)
-            {
-                if (!__runOriginal) return;
-                if (__instance.SelectedActor != null && __instance.SelectedActor.team != null && __instance.SelectedActor.team.IsLocalPlayer)
-                {
-                    var combat = UnityGameInstance.BattleTechGame.Combat;
-                    if (!LazySingletonBehavior<UIManager>.Instance.ToggleUINode ||
-                        combat.StackManager.TopSequence is ArtilleryObjectiveSequence)
-                    {
-                        __runOriginal = false;
-                        return;
-                    }
-
-                    if (__instance.CombatInputBlocked)
-                    {
-                        __runOriginal = false;
-                        return;
-                    }
-
-                    if (!combat.TurnDirector.GameHasBegun)
-                    {
-                        if (CameraControl.Instance != null && CameraControl.Instance.IsInTutorialMode)
-                        {
-                            __runOriginal = true;
-                            return;
-                        }
-                    }
-
-                    if (Input.anyKeyDown)
-                    {
- //                       if (Input.GetKey(KeyCode.LeftShift) || Input.GetKey(KeyCode.RightShift))
-                        
-                        if (Input.GetKey(ModInit.modSettings.EquipmentButtonsHotkey))
-                        {
-                            var hud = __instance.HUD;//IRBTModUtils.SharedState.CombatHUD;
-                            if (hud.SelectedActor == __instance.SelectedActor)
-                            {
-                                //var slots = Traverse.Create(CombatHUDEquipmentPanel.Instance).Property("operatinalSlots").GetValue<List<CombatHUDEquipmentSlotEx>>();
-                                var slots = CombatHUDEquipmentPanel.Instance.operatinalSlots;
-                                var lastActive = new Tuple<int, int>(-1,-1);
-                                var buttonList = new List<CombatHUDActionButton>();
-                                for (var slotIndex = 0; slotIndex < slots.Count; slotIndex++)
-                                {
-                                    if (slots[slotIndex].buttons.Count > 0)
-                                    {
-                                        for (var buttonIndex = 0;
-                                             buttonIndex < slots[slotIndex].buttons.Count;
-                                             buttonIndex++)
-                                        {
-                                            if (slots[slotIndex].buttons[buttonIndex].isActiveAndEnabled && slots[slotIndex].buttons[buttonIndex].gameObject.activeSelf)
-                                                buttonList.Add(slots[slotIndex].buttons[buttonIndex]);
-                                        }
-                                    }
-                                }
-
-                                if (buttonList.Count <= 0)
-                                {
-                                    __runOriginal = false;
-                                    return;
-                                }
-                                for (var index = 0; index < buttonList.Count; index++)
-                                {
-                                    if (buttonList[index].IsActive)
-                                    {
-                                        buttonList[index].OnClick();
-                                        if (buttonList.Count > index)
-                                        {
-                                            buttonList[index + 1].OnClick();
-                                            __runOriginal = false;
-                                            return;
-                                        }
-                                    }
-                                }
-                                buttonList[0].OnClick();
-                            }
-                            __runOriginal = false;
-                            return;
-                        }
-                    }
-                }
-                __runOriginal = true;
-                return;
-            }
-        }
-
-        [HarmonyPatch(typeof(CombatSpawningReticle), "ShowReticle")]
-        public static class CombatSpawningReticle_ShowReticle
-        {
-            public static void Postfix(CombatSpawningReticle __instance)
-            {
-                if (!string.IsNullOrEmpty(ModInit.modSettings.customSpawnReticleAsset))
-                {
-                    var childComponents = __instance.gameObject.GetComponentsInChildren<Transform>(true);
-
-                    for (int i = 0; i < childComponents.Length; i++)
-                    {
-                        if (childComponents[i].name == "ReticleDecalCircle")
-                        {
-                            var decalFromCirle = childComponents[i].GetComponent<BTUIDecal>();
-                            var dm = UnityGameInstance.BattleTechGame.DataManager;
-                            var newTexture = dm.GetObjectOfType<Texture2D>(ModInit.modSettings.customSpawnReticleAsset,
-                                BattleTechResourceType.Texture2D);
-                            decalFromCirle.DecalMaterial.mainTexture = newTexture;
-                        }
-                    }
-                    //var circle1 = GameObject.Find("ReticleDecalCircle");
-                }
-
-                var decals = __instance.gameObject.GetComponentsInChildren<BTUIDecal>();
-
-                foreach (var decal in decals)
-                {
-                    if (ModInit.modSettings.customSpawnReticleColor != null)
-                    {
-                        var customColor = new Color(ModInit.modSettings.customSpawnReticleColor.Rf,
-                            ModInit.modSettings.customSpawnReticleColor.Gf,
-                            ModInit.modSettings.customSpawnReticleColor.Bf);
-                        decal.DecalMaterial.color = customColor;
-                    }
-                    else
-                    {
-                        decal.DecalMaterial.color = Color.green;
-                    }
-                }
-            }
-        }
-
-        //the following two patched on gamerep.update are solely to suppress the "safety teleport" for strafing units since they spawn offmap and move on their own
-        [HarmonyPatch(typeof(CustomMechRepresentation), "GameRepresentation_Update")]
-        public static class CustomMechRepresentation_GameRepresentation_Update
-        {
-            public static void Postfix(CustomMechRepresentation __instance)
-            {
-                if (__instance.HeightController.isInChangeHeight)
-                {
-                    var combat = __instance.parentActor.Combat;
-                    if (__instance.parentActor.HasAirliftedUnits())
-                    {
-                        var airliftedUnits = ModState.AirliftTrackers.Where(x =>
-                            x.Value.CarrierGUID == __instance.parentActor.GUID);
-                        foreach (var trackerInfo in airliftedUnits)
-                        {
-                            var targetActor = combat.FindActorByGUID(trackerInfo.Key);
-                            if (targetActor == null) continue;
-                            var pos = Vector3.zero;
-                            if (__instance.parentActor is CustomMech mech)
-                            {
-                                pos = __instance.parentActor.CurrentPosition + Vector3.down * trackerInfo.Value.Offset +
-                                      Vector3.up * mech.custGameRep.HeightController.CurrentHeight;
-                                targetActor.TeleportActorVisual(pos);
-                                if (targetActor is CustomMech customMech)
-                                {
-                                    customMech.custGameRep.j_Root.localRotation = Quaternion.identity;
-                                }
-
-                                targetActor.GameRep.transform.rotation =
-                                    __instance.parentActor.GameRep.transform.rotation;
-                                targetActor.CurrentRotation = __instance.parentActor.CurrentRotation;
-                            }
-                            else
-                            {
-                                pos = __instance.parentActor.CurrentPosition + Vector3.down * trackerInfo.Value.Offset;
-                                targetActor.TeleportActorVisual(pos);
-                                if (targetActor is CustomMech customMech)
-                                {
-                                    customMech.custGameRep.j_Root.localRotation = Quaternion.identity;
-                                }
-
-                                targetActor.GameRep.transform.rotation =
-                                    __instance.parentActor.GameRep.transform.rotation;
-                                targetActor.CurrentRotation = __instance.parentActor.CurrentRotation;
-                            }
-
-                            targetActor.MountedEvasion(__instance.parentActor);
-                            ModInit.modLog?.Debug?.Write(
-                                $"[CustomMechRepresentation_GameRepresentation_Update] PositionLockMount- Setting airlifted unit {targetActor.DisplayName} position to same as carrier unit {__instance.parentActor.DisplayName}");
-
-                            ModState.CachedUnitCoordinates[__instance.parentActor.GUID] = __instance.parentActor.CurrentPosition;
-                        }
-                    }
-
-                    if (__instance.parentActor.HasMountedUnits())
-                    {
-                        var targetActorGUIDs =
-                            ModState.PositionLockMount.Where(x => x.Value == __instance.parentActor.GUID);
-                        foreach (var targetActorGUID in targetActorGUIDs)
-                        {
-                            var targetActor = combat.FindActorByGUID(targetActorGUID.Key);
-                            if (targetActor == null) continue;
-                            var pos = Vector3.zero;
-                            if (__instance.parentActor is CustomMech mech)
-                            {
-                                pos = __instance.parentActor.CurrentPosition +
-                                      Vector3.up * mech.custGameRep.HeightController.CurrentHeight;
-                                targetActor.TeleportActorVisual(pos);
-                            }
-                            else
-                            {
-                                targetActor.TeleportActorVisual(__instance.parentActor.CurrentPosition);
-                            }
-
-                            targetActor.MountedEvasion(__instance.parentActor);
-                            ModInit.modLog?.Debug?.Write(
-                                $"[CustomMechRepresentation_GameRepresentation_Update] PositionLockMount- Setting riding unit {targetActor.DisplayName} position to same as carrier unit {__instance.parentActor.DisplayName}");
-
-                            ModState.CachedUnitCoordinates[__instance.parentActor.GUID] = __instance.parentActor.CurrentPosition;
-                        }
-                    }
-
-                    // removed return/else so swarming units are locked to carrier even if carrier has mounted units. derp.
-                    if (__instance.parentActor.HasSwarmingUnits())
-                    {
-                        var targetActorGUIDs =
-                            ModState.PositionLockSwarm.Where(x => x.Value == __instance.parentActor.GUID);
-                        foreach (var targetActorGUID in targetActorGUIDs)
-                        {
-                            var targetActor = combat.FindActorByGUID(targetActorGUID.Key);
-                            if (targetActor == null) continue;
-                            targetActor.TeleportActorVisual(__instance.parentActor.CurrentPosition);
-                            targetActor.MountedEvasion(__instance.parentActor);
-                            ModInit.modLog?.Debug?.Write(
-                                $"[CustomMechRepresentation_GameRepresentation_Update] PositionLockMount- Setting riding unit {targetActor.DisplayName} position to same as carrier unit {__instance.parentActor.DisplayName}");
-
-                            ModState.CachedUnitCoordinates[__instance.parentActor.GUID] = __instance.parentActor.CurrentPosition;
-                        }
-                    }
-                }
-            }
-
-            public static void Prefix(ref bool __runOriginal, CustomMechRepresentation __instance)
-            {
-                if (!__runOriginal) return;
-                if (__instance.__parentActor == null)
-                {
-                    __runOriginal = true;
-                    return;
-                }
-                var combat = UnityGameInstance.BattleTechGame.Combat;
-                if (combat == null)
-                {
-                    __runOriginal = true;
-                    return;
-                }
-                if (combat.ActiveContract.ContractTypeValue.IsSkirmish)
-                {
-                    __runOriginal = true;
-                    return;
-                }
-                var registry = combat.ItemRegistry;
-
-                if (__instance.__parentActor?.spawnerGUID == null)
-                {
-                    //ModInit.modLog?.Info?.Write($"Couldn't find UnitSpawnPointGameLogic for {____parentActor?.DisplayName}. Should be CMD Ability actor; skipping safety teleport!");
-                    __runOriginal = false;
-                    return;
-                }
-
-                if (registry.GetItemByGUID<UnitSpawnPointGameLogic>(__instance.__parentActor?.spawnerGUID) != null)
-                {
-                    __runOriginal = true;
-                    return;
-                }
-                __runOriginal = false;
-                return;
-                //ModInit.modLog?.Info?.Write($"Couldn't find UnitSpawnPointGameLogic for {____parentActor?.DisplayName}. Should be CMD Ability actor; skipping safety teleport!");
-            }
-        }
-
-        [HarmonyPatch(typeof(DeployManualHelper), "TeleportToPositions")]
-        public static class DeployManualHelper_TeleportToPositions
-        {
-            public static void Postfix(CombatHUD HUD, List<DeployPosition> positions)
-            {
-                if (ModState.PairingInfos.Count == 0) return;
-                foreach (var unit in HUD.Combat.LocalPlayerTeam.units)
-                {
-                    if (ModState.PairingInfos.TryGetValue(unit.GetPilot().pilotDef.Description.Id, out var info))
-                    {
-                        foreach (var squadPilot in info.PairedBattleArmor)
-                        {
-                            foreach (var unit2 in HUD.Combat.LocalPlayerTeam.units)
-                            {
-                                if (unit2 is TrooperSquad squad &&
-                                    unit2.GetPilot().pilotDef.Description.Id == squadPilot)
-                                {
-                                    unit.MountBattleArmorToChassis(squad, true, true);
-                                    if (unit is CustomMech custMech && custMech.FlyingHeight() > 1.5f)
-                                    {
-                                        var pos = custMech.CurrentPosition +
-                                                  Vector3.up * custMech.custGameRep.HeightController.CurrentHeight;
-                                        squad.TeleportActorVisual(pos);
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
-
-        [HarmonyPatch(typeof(EncounterLayerData), "BuildItemRegistry", new Type[]{typeof(CombatGameState)})]
-        public static class EncounterLayerData_BuildItemRegistry
-        {
-            public static void Postfix(EncounterLayerData __instance, CombatGameState combat)
-            {
-                foreach (var team in combat.Teams)
-                {
-                    if (!team.IsLocalPlayer && TeamDefinition.FullTeamDefinitionGuidNames.ContainsKey(team.GUID))
-                    {
-                        Utils.FetchAISupportTeam(team);
-                    }
-                }
-            }
-        }
-
-        [HarmonyPatch(typeof(GameRepresentation), "Update")]
-        public static class GameRepresentation_Update
-        {
-            public static void Prefix(ref bool __runOriginal, GameRepresentation __instance)
-            {
-                if (!__runOriginal) return;
-                if (__instance._parentActor == null)
-                {
-                    __runOriginal = true;
-                    return;
-                }
-
-                var combat = UnityGameInstance.BattleTechGame.Combat;
-                if (combat == null)
-                {
-                    __runOriginal = true;
-                    return;
-                }
-
-                if (combat.ActiveContract.ContractTypeValue.IsSkirmish)
-                {
-                    __runOriginal = true;
-                    return;
-                }
-
-                var registry = combat.ItemRegistry;
-
-                if (__instance._parentActor?.spawnerGUID == null)
-                {
-                    //ModInit.modLog?.Info?.Write($"Couldn't find UnitSpawnPointGameLogic for {____parentActor?.DisplayName}. Should be CMD Ability actor; skipping safety teleport!");
-                    __runOriginal = false;
-                    return;
-                }
-
-                if (registry.GetItemByGUID<UnitSpawnPointGameLogic>(__instance._parentActor?.spawnerGUID) != null)
-                {
-                    __runOriginal = true;
-                    return;
-                }
-
-                __runOriginal = false;
-                return;
-                //return registry.GetItemByGUID<UnitSpawnPointGameLogic>(__instance._parentActor?.spawnerGUID) != null;
-                //ModInit.modLog?.Info?.Write($"Couldn't find UnitSpawnPointGameLogic for {____parentActor?.DisplayName}. Should be CMD Ability actor; skipping safety teleport!");
-            }
-        }
-
-        [HarmonyPatch(typeof(MechDisplacementSequence), "Update")]
-        public static class MechDisplacementSequence_Update
-        {
-            public static void Postfix(MechDisplacementSequence __instance)
-            {
-                if (__instance.OwningMech == null) return;
-                if (ModState.CachedUnitCoordinates.ContainsKey(__instance.OwningMech.GUID))
-                {
-                    if (__instance.OwningMech is CustomMech mech)
-                    {
-                        if (ModState.CachedUnitCoordinates[__instance.OwningMech.GUID] ==
-                            __instance.OwningMech.CurrentPosition &&
-                            !mech.custGameRep.HeightController.isInChangeHeight) return;
-                    }
-                    else if (ModState.CachedUnitCoordinates[__instance.OwningMech.GUID] ==
-                             __instance.OwningMech.CurrentPosition)
-                    {
-                        return;
-                    }
-                }
-
-                var combat = __instance.OwningMech.Combat;
-                if (__instance.OwningMech.HasAirliftedUnits())
-                {
-                    var airliftedUnits = ModState.AirliftTrackers.Where(x =>
-                        x.Value.CarrierGUID == __instance.OwningMech.GUID);
-                    foreach (var trackerInfo in airliftedUnits)
-                    {
-                        var targetActor = combat.FindActorByGUID(trackerInfo.Key);
-                        if (targetActor == null) continue;
-                        var pos = Vector3.zero;
-                        if (__instance.OwningMech is CustomMech mech)
-                        {
-                            pos = __instance.OwningMech.CurrentPosition + Vector3.down * trackerInfo.Value.Offset +
-                                  Vector3.up * mech.custGameRep.HeightController.CurrentHeight;
-                            targetActor.TeleportActorVisual(pos);
-                            if (targetActor is CustomMech customMech)
-                            {
-                                customMech.custGameRep.j_Root.localRotation = Quaternion.identity;
-                            }
-
-                            targetActor.GameRep.transform.rotation =
-                                __instance.OwningMech.GameRep.transform.rotation;
-                            targetActor.CurrentRotation = __instance.OwningMech.CurrentRotation;
-                        }
-                        else
-                        {
-                            pos = __instance.OwningMech.CurrentPosition + Vector3.down * trackerInfo.Value.Offset;
-                            targetActor.TeleportActorVisual(pos);
-                            if (targetActor is CustomMech customMech)
-                            {
-                                customMech.custGameRep.j_Root.localRotation = Quaternion.identity;
-                            }
-
-                            targetActor.GameRep.transform.rotation =
-                                __instance.OwningMech.GameRep.transform.rotation;
-                            targetActor.CurrentRotation = __instance.OwningMech.CurrentRotation;
-                        }
-
-                        targetActor.MountedEvasion(__instance.OwningMech);
-                        ModInit.modLog?.Debug?.Write(
-                            $"[MechDisplacementSequence_OnComplete] PositionLockMount- Setting airlifted unit {targetActor.DisplayName} position to same as carrier unit {__instance.OwningMech.DisplayName}");
-
-                        ModState.CachedUnitCoordinates[__instance.OwningMech.GUID] = __instance.OwningMech.CurrentPosition;
-                    }
-                }
-
-                if (__instance.OwningMech.HasMountedUnits())
-                {
-                    var targetActorGUIDs =
-                        ModState.PositionLockMount.Where(x => x.Value == __instance.OwningMech.GUID);
-                    foreach (var targetActorGUID in targetActorGUIDs)
-                    {
-                        var targetActor = combat.FindActorByGUID(targetActorGUID.Key);
-                        if (targetActor == null) continue;
-                        var pos = Vector3.zero;
-                        if (__instance.OwningMech is CustomMech mech)
-                        {
-                            pos = __instance.OwningMech.CurrentPosition +
-                                  Vector3.up * mech.custGameRep.HeightController.CurrentHeight;
-                            targetActor.TeleportActorVisual(pos);
-                        }
-                        else
-                        {
-                            targetActor.TeleportActorVisual(__instance.OwningMech.CurrentPosition);
-                        }
-
-                        targetActor.MountedEvasion(__instance.OwningMech);
-                        ModInit.modLog?.Debug?.Write(
-                            $"[MechDisplacementSequence_OnComplete] PositionLockMount- Setting riding unit {targetActor.DisplayName} position to same as carrier unit {__instance.OwningMech.DisplayName}");
-
-                        ModState.CachedUnitCoordinates[__instance.OwningMech.GUID] = __instance.OwningMech.CurrentPosition;
-                    }
-                }
-
-                // removed return/else so swarming units are locked to carrier even if carrier has mounted units. derp.
-                if (__instance.OwningMech.HasSwarmingUnits())
-                {
-                    var targetActorGUIDs =
-                        ModState.PositionLockSwarm.Where(x => x.Value == __instance.OwningMech.GUID);
-                    foreach (var targetActorGUID in targetActorGUIDs)
-                    {
-                        var targetActor = combat.FindActorByGUID(targetActorGUID.Key);
-                        if (targetActor == null) continue;
-                        targetActor.TeleportActorVisual(__instance.OwningMech.CurrentPosition);
-                        targetActor.MountedEvasion(__instance.OwningMech);
-                        ModInit.modLog?.Debug?.Write(
-                            $"[MechDisplacementSequence_OnComplete] PositionLockMount- Setting riding unit {targetActor.DisplayName} position to same as carrier unit {__instance.OwningMech.DisplayName}");
-
-                        ModState.CachedUnitCoordinates[__instance.OwningMech.GUID] = __instance.OwningMech.CurrentPosition;
-                    }
-                }
-            }
-        }
-
-        [HarmonyPatch(typeof(MechStartupInvocation), "Invoke")]
-        [HarmonyPriority(Priority.First)]
-        public static class MechStartupInvocation_Invoke
-        {
-            public static void Prefix(ref bool __runOriginal, MechStartupInvocation __instance, CombatGameState combatGameState)
-            {
-                if (!__runOriginal) return;
-                Mech mech = combatGameState.FindActorByGUID(__instance.MechGUID) as Mech;
-                if (mech == null)
-                {
-                    //InvocationMessage.logger.LogError("MechStartupInvocation.Invoke failed! Unable to Mech!");
-                    __runOriginal = false;
-                    return;
-                }
-
-                if (ModState.ResupplyShutdownPhases.ContainsKey(mech.GUID))
-                {
-                    var txt = new Text("RESUPPLY IN PROGRESS: ABORTING RESTART AND SINKING HEAT");
-                    mech.Combat.MessageCenter.PublishMessage(new AddSequenceToStackMessage(
-                        new ShowActorInfoSequence(mech, txt, FloatieMessage.MessageNature.Buff,
-                            false)));
-
-                    DoneWithActorSequence doneWithActorSequence = (DoneWithActorSequence)mech.GetDoneWithActorOrders();
-                    MechHeatSequence mechHeatSequence = new MechHeatSequence(OwningMech: mech,
-                        performHeatSinkStep: true, applyStartupHeatSinks: false, instigatorID: "STARTUP");
-                    doneWithActorSequence.AddChildSequence(mechHeatSequence, mechHeatSequence.MessageIndex);
-
-                    InvocationStackSequenceCreated message =
-                        new InvocationStackSequenceCreated(doneWithActorSequence, __instance);
-                    combatGameState.MessageCenter.PublishMessage(message);
-                    AddSequenceToStackMessage.Publish(combatGameState.MessageCenter, doneWithActorSequence);
-                    __runOriginal = false;
-                    return;
-                }
-                __runOriginal = true;
-                return;
-            }
-        }
-
-        [HarmonyPatch(typeof(OrderSequence), "OnUpdate")]
-        public static class OrderSequence_OnUpdate
-        {
-            public static void Postfix(OrderSequence __instance)
-            {
-                if (__instance.owningActor == null) return;
-                if (__instance is not ActorMovementSequence && __instance is not MechJumpSequence &&
-                    __instance is not MechMeleeSequence && __instance is not MechDFASequence) return;
-                if (ModState.CachedUnitCoordinates.ContainsKey(__instance.owningActor.GUID))
-                {
-                    if (__instance.owningActor is CustomMech mech)
-                    {
-                        if (ModState.CachedUnitCoordinates[__instance.owningActor.GUID] ==
-                            __instance.owningActor.CurrentPosition &&
-                            !mech.custGameRep.HeightController.isInChangeHeight) return;
-                    }
-                    else if (ModState.CachedUnitCoordinates[__instance.owningActor.GUID] ==
-                             __instance.owningActor.CurrentPosition)
-                    {
-                        return;
-                    }
-                }
-
-                var combat = __instance.owningActor.Combat;
-                if (__instance.owningActor.HasAirliftedUnits())
-                {
-                    var airliftedUnits = ModState.AirliftTrackers.Where(x =>
-                        x.Value.CarrierGUID == __instance.owningActor.GUID);
-                    foreach (var trackerInfo in airliftedUnits)
-                    {
-                        var targetActor = combat.FindActorByGUID(trackerInfo.Key);
-                        if (targetActor == null) continue;
-                        var pos = Vector3.zero;
-                        if (__instance.owningActor is CustomMech mech)
-                        {
-                            pos = __instance.owningActor.CurrentPosition + Vector3.down * trackerInfo.Value.Offset +
-                                  Vector3.up * mech.custGameRep.HeightController.CurrentHeight;
-                            targetActor.TeleportActorVisual(pos);
-                            if (targetActor is CustomMech customMech)
-                            {
-                                customMech.custGameRep.j_Root.localRotation = Quaternion.identity;
-                            }
-
-                            targetActor.GameRep.transform.rotation =
-                                __instance.owningActor.GameRep.transform.rotation;
-                            targetActor.CurrentRotation = __instance.owningActor.CurrentRotation;
-                        }
-                        else
-                        {
-                            pos = __instance.owningActor.CurrentPosition + Vector3.down * trackerInfo.Value.Offset;
-                            targetActor.TeleportActorVisual(pos);
-                            if (targetActor is CustomMech customMech)
-                            {
-                                customMech.custGameRep.j_Root.localRotation = Quaternion.identity;
-                            }
-
-                            targetActor.GameRep.transform.rotation =
-                                __instance.owningActor.GameRep.transform.rotation;
-                            targetActor.CurrentRotation = __instance.owningActor.CurrentRotation;
-                        }
-
-                        targetActor.MountedEvasion(__instance.owningActor);
-                        ModInit.modLog?.Debug?.Write(
-                            $"[OrderSequence_OnUpdate] PositionLockMount- Setting airlifted unit {targetActor.DisplayName} position to same as carrier unit {__instance.owningActor.DisplayName}");
-
-                        ModState.CachedUnitCoordinates[__instance.owningActor.GUID] = __instance.owningActor.CurrentPosition;
-                    }
-                }
-
-                if (__instance.owningActor.HasMountedUnits())
-                {
-                    var targetActorGUIDs =
-                        ModState.PositionLockMount.Where(x => x.Value == __instance.owningActor.GUID);
-                    foreach (var targetActorGUID in targetActorGUIDs)
-                    {
-                        var targetActor = combat.FindActorByGUID(targetActorGUID.Key);
-                        if (targetActor == null) continue;
-                        var pos = Vector3.zero;
-                        if (__instance.owningActor is CustomMech mech)
-                        {
-                            pos = __instance.owningActor.CurrentPosition +
-                                  Vector3.up * mech.custGameRep.HeightController.CurrentHeight;
-                            targetActor.TeleportActorVisual(pos);
-                        }
-                        else
-                        {
-                            targetActor.TeleportActorVisual(__instance.owningActor.CurrentPosition);
-                        }
-
-                        targetActor.MountedEvasion(__instance.owningActor);
-                        ModInit.modLog?.Debug?.Write(
-                            $"[OrderSequence_OnUpdate] PositionLockMount- Setting riding unit {targetActor.DisplayName} position to same as carrier unit {__instance.owningActor.DisplayName}");
-
-                        ModState.CachedUnitCoordinates[__instance.owningActor.GUID] = __instance.owningActor.CurrentPosition;
-                    }
-                }
-
-                // removed return/else so swarming units are locked to carrier even if carrier has mounted units. derp.
-                if (__instance.owningActor.HasSwarmingUnits())
-                {
-                    var targetActorGUIDs =
-                        ModState.PositionLockSwarm.Where(x => x.Value == __instance.owningActor.GUID);
-                    foreach (var targetActorGUID in targetActorGUIDs)
-                    {
-                        var targetActor = combat.FindActorByGUID(targetActorGUID.Key);
-                        if (targetActor == null) continue;
-                        targetActor.TeleportActorVisual(__instance.owningActor.CurrentPosition);
-                        targetActor.MountedEvasion(__instance.owningActor);
-                        ModInit.modLog?.Debug?.Write(
-                            $"[OrderSequence_OnUpdate] PositionLockMount- Setting riding unit {targetActor.DisplayName} position to same as carrier unit {__instance.owningActor.DisplayName}");
-
-                        ModState.CachedUnitCoordinates[__instance.owningActor.GUID] = __instance.owningActor.CurrentPosition;
-                    }
+                    var sequence = theActor.DoneWithActor();
+                    theActor.Combat.MessageCenter.PublishMessage(new AddSequenceToStackMessage(sequence));
+                    //theActor.OnActivationEnd(theActor.GUID, __instance.GetInstanceID());
                 }
             }
         }
@@ -2244,15 +2236,6 @@ namespace StrategicOperations.Patches
                     CombatTargetingReticle.Instance.UpdateRangeIndicator(theActor.CurrentPosition, false, true);
                     CombatTargetingReticle.Instance.ShowReticle();
                 }
-            }
-        }
-
-        [HarmonyPatch(typeof(SelectionStateCommandSpawnTarget), "OnInactivate")]
-        public static class SelectionStateCommandSpawnTarget_OnInactivate
-        {
-            public static void Postfix(SelectionStateCommandSpawnTarget __instance)
-            {
-                CombatTargetingReticle.Instance.HideReticle();
             }
         }
 
@@ -2296,31 +2279,66 @@ namespace StrategicOperations.Patches
             }
         }
 
+        [HarmonyPatch(typeof(SelectionStateCommandSpawnTarget), "OnInactivate")]
+        public static class SelectionStateCommandSpawnTarget_OnInactivate
+        {
+            public static void Postfix(SelectionStateCommandSpawnTarget __instance)
+            {
+                CombatTargetingReticle.Instance.HideReticle();
+            }
+        }
+
+        [HarmonyPatch(typeof(SelectionStateCommandTargetTwoPoints), "ProcessMousePos")]
+        public static class SelectionStateCommandTargetTwoPoints_ProcessMousePos
+        {
+            public static void Prefix(ref bool __runOriginal, SelectionStateCommandTargetTwoPoints __instance, Vector3 worldPos)
+            {
+                if (!__runOriginal) return;
+                if (UnityGameInstance.BattleTechGame.Combat.ActiveContract.ContractTypeValue.IsSkirmish)
+                {
+                    __runOriginal = true;
+                    return;
+                }
+
+                var HUD = __instance.HUD;//IRBTModUtils.SharedState.CombatHUD;//Traverse.Create(__instance).Property("HUD").GetValue<CombatHUD>();
+                var positionA = __instance.positionA;//Traverse.Create(__instance).Property("positionA").GetValue<Vector3>();
+                var positionB = __instance.positionB;//Traverse.Create(__instance).Property("positionB").GetValue<Vector3>();
+
+                var theActor = HUD.SelectedActor;
+                if (theActor == null)
+                {
+                    __runOriginal = true;
+                    return;
+                }
+                var distance = Mathf.RoundToInt(Vector3.Distance(theActor.CurrentPosition, worldPos));
+                var distanceToA = Mathf.RoundToInt(Vector3.Distance(theActor.CurrentPosition, positionA));
+                var distanceToB = Mathf.RoundToInt(Vector3.Distance(theActor.CurrentPosition, positionB));
+
+                var maxRange = Mathf.RoundToInt(__instance.FromButton.Ability.Def.IntParam2);
+                var radius = __instance.FromButton.Ability.Def.FloatParam1;
+                CombatTargetingReticle.Instance.UpdateReticle(positionA, positionB, radius, false);
+                //CombatTargetingReticle.Instance.ShowRangeIndicators(theActor.CurrentPosition, 0f, maxRange, true, true);
+                CombatTargetingReticle.Instance.ShowReticle();
+                if (__instance.FromButton.Ability.Def.specialRules == AbilityDef.SpecialRules.Strafe &&
+                    (distance > maxRange && __instance.numPositionsLocked == 0) ||
+                    (distanceToA > maxRange && __instance.numPositionsLocked == 1))
+                {
+                    ModState.OutOfRange = true;
+                    CombatTargetingReticle.Instance.HideReticle();
+                    //                    ModInit.modLog?.Info?.Write($"Cannot strafe with coordinates farther than __instance.Ability.Def.IntParam2: {__instance.FromButton.Ability.Def.IntParam2}");
+                    __runOriginal = false;
+                    return;
+                }
+
+                ModState.OutOfRange = false;
+                __runOriginal = true;
+                return;
+            }
+        }
+
         [HarmonyPatch(typeof(SelectionStateCommandTargetTwoPoints), "ProcessLeftClick")]
         public static class SelectionStateCommandTargetTwoPoints_ProcessLeftClick
         {
-            public static void Postfix(SelectionStateCommandTargetTwoPoints __instance, Vector3 worldPos,
-                bool __state)
-            {
-                if (__state) return;
-                if (__instance.numPositionsLocked == 2)
-                {
-                    var cHUD = __instance.HUD;//IRBTModUtils.SharedState.CombatHUD;//Traverse.Create(__instance).Property("HUD").GetValue<CombatHUD>();
-                    var creator = cHUD.SelectedActor;
-                    ModState.CancelChanceForPlayerStrafe = 0f;
-
-                    var opforUnit = creator.FindMeAnOpforUnit();
-                    if (opforUnit != null)
-                    {
-                        ModState.CancelChanceForPlayerStrafe = opforUnit.GetAvoidStrafeChanceForTeam();
-                    }
-                    var chanceDisplay = (float)Math.Round(1 - ModState.CancelChanceForPlayerStrafe, 2) * 100;
-                    cHUD.AttackModeSelector.FireButton.FireText.SetText($"{chanceDisplay}% - Confirm", Array.Empty<object>());
-
-                    ModInit.modLog?.Trace?.Write($"[SelectionStateCommandTargetTwoPoints.ProcessLeftClick] Creator {creator.DisplayName} initializing strafe vs target {opforUnit.team.DisplayName}. Calculated cancelChance {ModState.CancelChanceForPlayerStrafe}, display success chance: {chanceDisplay}.");
-                }
-            }
-
             public static void Prefix(ref bool __runOriginal, SelectionStateCommandTargetTwoPoints __instance, Vector3 worldPos, ref bool __result, ref bool __state)
             {
                 if (!__runOriginal) return;
@@ -2673,53 +2691,27 @@ namespace StrategicOperations.Patches
                 __runOriginal = true;
                 return;
             }
-        }
 
-        [HarmonyPatch(typeof(SelectionStateCommandTargetTwoPoints), "ProcessMousePos")]
-        public static class SelectionStateCommandTargetTwoPoints_ProcessMousePos
-        {
-            public static void Prefix(ref bool __runOriginal, SelectionStateCommandTargetTwoPoints __instance, Vector3 worldPos)
+            public static void Postfix(SelectionStateCommandTargetTwoPoints __instance, Vector3 worldPos,
+                bool __state)
             {
-                if (!__runOriginal) return;
-                if (UnityGameInstance.BattleTechGame.Combat.ActiveContract.ContractTypeValue.IsSkirmish)
+                if (__state) return;
+                if (__instance.numPositionsLocked == 2)
                 {
-                    __runOriginal = true;
-                    return;
+                    var cHUD = __instance.HUD;//IRBTModUtils.SharedState.CombatHUD;//Traverse.Create(__instance).Property("HUD").GetValue<CombatHUD>();
+                    var creator = cHUD.SelectedActor;
+                    ModState.CancelChanceForPlayerStrafe = 0f;
+
+                    var opforUnit = creator.FindMeAnOpforUnit();
+                    if (opforUnit != null)
+                    {
+                        ModState.CancelChanceForPlayerStrafe = opforUnit.GetAvoidStrafeChanceForTeam();
+                    }
+                    var chanceDisplay = (float)Math.Round(1 - ModState.CancelChanceForPlayerStrafe, 2) * 100;
+                    cHUD.AttackModeSelector.FireButton.FireText.SetText($"{chanceDisplay}% - Confirm", Array.Empty<object>());
+
+                    ModInit.modLog?.Trace?.Write($"[SelectionStateCommandTargetTwoPoints.ProcessLeftClick] Creator {creator.DisplayName} initializing strafe vs target {opforUnit.team.DisplayName}. Calculated cancelChance {ModState.CancelChanceForPlayerStrafe}, display success chance: {chanceDisplay}.");
                 }
-
-                var HUD = __instance.HUD;//IRBTModUtils.SharedState.CombatHUD;//Traverse.Create(__instance).Property("HUD").GetValue<CombatHUD>();
-                var positionA = __instance.positionA;//Traverse.Create(__instance).Property("positionA").GetValue<Vector3>();
-                var positionB = __instance.positionB;//Traverse.Create(__instance).Property("positionB").GetValue<Vector3>();
-
-                var theActor = HUD.SelectedActor;
-                if (theActor == null)
-                {
-                    __runOriginal = true;
-                    return;
-                }
-                var distance = Mathf.RoundToInt(Vector3.Distance(theActor.CurrentPosition, worldPos));
-                var distanceToA = Mathf.RoundToInt(Vector3.Distance(theActor.CurrentPosition, positionA));
-                var distanceToB = Mathf.RoundToInt(Vector3.Distance(theActor.CurrentPosition, positionB));
-
-                var maxRange = Mathf.RoundToInt(__instance.FromButton.Ability.Def.IntParam2);
-                var radius = __instance.FromButton.Ability.Def.FloatParam1;
-                CombatTargetingReticle.Instance.UpdateReticle(positionA, positionB, radius, false);
-                //CombatTargetingReticle.Instance.ShowRangeIndicators(theActor.CurrentPosition, 0f, maxRange, true, true);
-                CombatTargetingReticle.Instance.ShowReticle();
-                if (__instance.FromButton.Ability.Def.specialRules == AbilityDef.SpecialRules.Strafe &&
-                    (distance > maxRange && __instance.numPositionsLocked == 0) ||
-                    (distanceToA > maxRange && __instance.numPositionsLocked == 1))
-                {
-                    ModState.OutOfRange = true;
-                    CombatTargetingReticle.Instance.HideReticle();
-                    //                    ModInit.modLog?.Info?.Write($"Cannot strafe with coordinates farther than __instance.Ability.Def.IntParam2: {__instance.FromButton.Ability.Def.IntParam2}");
-                    __runOriginal = false;
-                    return;
-                }
-
-                ModState.OutOfRange = false;
-                __runOriginal = true;
-                return;
             }
         }
 
@@ -2756,441 +2748,447 @@ namespace StrategicOperations.Patches
             }
         }
 
-        [HarmonyPatch(typeof(SimGameState), "RequestDataManagerResources")]
-        public static class SimGameState_RequestDataManagerResources_Patch
+        [HarmonyPatch(typeof(CombatHUDMechwarriorTray), "ResetAbilityButton",
+            new Type[] { typeof(AbstractActor), typeof(CombatHUDActionButton), typeof(Ability), typeof(bool) })]
+        public static class CombatHUDMechwarriorTray_ResetAbilityButton_Patch
         {
-            public static void Postfix(SimGameState __instance)
+            public static void Postfix(CombatHUDMechwarriorTray __instance, AbstractActor actor, CombatHUDActionButton button, Ability ability, bool forceInactive)
             {
-                LoadRequest loadRequest = __instance.DataManager.CreateLoadRequest();
-                loadRequest.AddAllOfTypeBlindLoadRequest(BattleTechResourceType.TurretDef,
-                    new bool?(true)); //but TurretDefs
-                loadRequest.ProcessRequests(10U);
+                if (UnityGameInstance.BattleTechGame.Combat.ActiveContract.ContractTypeValue.IsSkirmish) return;
+                if (actor == null || ability == null) return;
+                //                if (button == __instance.FireButton)
+                //                {
+                //                   ModInit.modLog?.Trace?.Write(
+                //                       $"Leaving Fire Button Enabled");
+                //                   return;
+                //                }
+                if (actor.HasActivatedThisRound || !actor.IsAvailableThisPhase ||
+                    (actor.Combat.StackManager.IsAnyOrderActive && actor.Combat.TurnDirector.IsInterleaved))
+                {
+                    return;
+                }
+
+                if (ability.Def.Id != ModInit.modSettings.BattleArmorMountAndSwarmID)
+                {
+                    if (actor.IsMountedUnit())
+                    {
+                        if (!actor.IsMountedInternal())
+                        {
+                            button.DisableButton();
+                        }
+                        else
+                        {
+                            var carrier = actor.Combat.FindActorByGUID(ModState.PositionLockMount[actor.GUID]);
+                            if (!carrier.HasFiringPorts())
+                            {
+                                button.DisableButton();
+                            }
+                        }
+                    }
+                    else if (actor.IsSwarmingUnit())
+                    {
+                        button.DisableButton();
+                    }
+                }
+
+                if (ability.Def.Id == ModInit.modSettings.BattleArmorDeSwarmRoll ||
+                    ability.Def.Id == ModInit.modSettings.BattleArmorDeSwarmSwat)
+                {
+                    if (actor is Vehicle vehicle || actor.IsCustomUnitVehicle())
+                    {
+                        button.DisableButton();
+                    }
+
+                    if (!actor.HasSwarmingUnits())
+                    {
+                        button.DisableButton();
+                    }
+                }
+
+                if (ability.Def.Id == ModInit.modSettings.AirliftAbilityID && ModInit.modSettings.CanDropOffAfterMoving)// && actor.MovingToPosition == null) // maybe need to check IsAnyOrderActive (but that might screw me)
+                {
+                    if (actor.HasAirliftedUnits())
+                    {
+                        //button.DisableButton();
+                        //if (!button.gameObject.activeSelf)
+                        //{
+                        //    button.gameObject.SetActive(true);
+                        //}
+
+                        //button.InitButton(CombatHUDMechwarriorTray.GetSelectionTypeFromTargeting(ability.Def.Targeting, false), ability, ability.Def.AbilityIcon, ability.Def.Description.Id, ability.Def.Description.Name, actor);
+                        button.ResetButtonIfNotActive(actor);
+                    }
+                }
             }
         }
 
-        [HarmonyPatch(typeof(Team), "ActivateAbility")]
-        public static class Team_ActivateAbility
+        [HarmonyPatch(typeof(CombatHUDWeaponPanel), "ResetAbilityButton",
+            new Type[] { typeof(AbstractActor), typeof(CombatHUDActionButton), typeof(Ability), typeof(bool) })]
+        public static class CombatHUDWeaponPanel_ResetAbilityButton_Patch
         {
-            public static void Prefix(ref bool __runOriginal, Team __instance, AbilityMessage msg)
+            public static void Postfix(CombatHUDWeaponPanel __instance, AbstractActor actor, CombatHUDActionButton button, Ability ability, bool forceInactive)
+            {
+                if (UnityGameInstance.BattleTechGame.Combat.ActiveContract.ContractTypeValue.IsSkirmish) return;
+                if (actor == null || ability == null) return;
+                //                if (button == __instance.FireButton)
+                //                {
+                //                   ModInit.modLog?.Trace?.Write(
+                //                       $"Leaving Fire Button Enabled");
+                //                   return;
+                //                }
+
+                if (actor.HasActivatedThisRound || !actor.IsAvailableThisPhase ||
+                    (actor.Combat.StackManager.IsAnyOrderActive && actor.Combat.TurnDirector.IsInterleaved))
+                {
+                    return;
+                }
+
+                if (ability.Def.Id != ModInit.modSettings.BattleArmorMountAndSwarmID)
+                {
+                    if (actor.IsMountedUnit())
+                    {
+                        if (!actor.IsMountedInternal())
+                        {
+                            button.DisableButton();
+                        }
+                        else
+                        {
+                            var carrier = actor.Combat.FindActorByGUID(ModState.PositionLockMount[actor.GUID]);
+                            if (!carrier.HasFiringPorts())
+                            {
+                                button.DisableButton();
+                            }
+                        }
+                    }
+                    else if (actor.IsSwarmingUnit())
+                    {
+                        button.DisableButton();
+                    }
+                }
+
+                if (ability.Def.Id == ModInit.modSettings.BattleArmorDeSwarmRoll ||
+                    ability.Def.Id == ModInit.modSettings.BattleArmorDeSwarmSwat)
+                {
+                    if (actor is Vehicle vehicle || actor.IsCustomUnitVehicle())
+                    {
+                        button.DisableButton();
+                    }
+
+                    if (!actor.HasSwarmingUnits())
+                    {
+                        button.DisableButton();
+                    }
+                }
+
+                if (ability.Def.Id == ModInit.modSettings.AirliftAbilityID && ModInit.modSettings.CanDropOffAfterMoving)// && actor.MovingToPosition == null) // maybe need to check IsAnyOrderActive (but that might screw me)
+                {
+                    if (actor.HasAirliftedUnits())
+                    {
+                        //button.DisableButton();
+                        //if (!button.gameObject.activeSelf)
+                        //{
+                        //    button.gameObject.SetActive(true);
+                        //}
+
+                        //button.InitButton(CombatHUDMechwarriorTray.GetSelectionTypeFromTargeting(ability.Def.Targeting, false), ability, ability.Def.AbilityIcon, ability.Def.Description.Id, ability.Def.Description.Name, actor);
+                        button.ResetButtonIfNotActive(actor);
+                    }
+                }
+            }
+        }
+
+        [HarmonyPatch(typeof(CombatHUDEquipmentSlotEx), "ResetAbilityButton",
+            new Type[] { typeof(AbstractActor), typeof(CombatHUDActionButton), typeof(Ability), typeof(bool) })]
+        public static class CombatHUDEquipmentSlotEx_ResetAbilityButton
+        {
+            public static void Postfix(CombatHUDEquipmentSlotEx __instance, AbstractActor actor,
+                CombatHUDActionButton button, Ability ability, bool forceInactive)
+            {
+                if (UnityGameInstance.BattleTechGame.Combat.ActiveContract.ContractTypeValue.IsSkirmish) return;
+                if (actor == null || ability == null) return;
+                //                if (button == __instance.FireButton)
+                //                {
+                //                   ModInit.modLog?.Trace?.Write(
+                //                       $"Leaving Fire Button Enabled");
+                //                   return;
+                //                }
+
+                if (actor.HasActivatedThisRound || !actor.IsAvailableThisPhase ||
+                    (actor.Combat.StackManager.IsAnyOrderActive && actor.Combat.TurnDirector.IsInterleaved))
+                {
+                    return;
+                }
+
+                if (ability.Def.Id != ModInit.modSettings.BattleArmorMountAndSwarmID)
+                {
+                    if (actor.IsMountedUnit())
+                    {
+                        if (!actor.IsMountedInternal())
+                        {
+                            button.DisableButton();
+                        }
+                        else
+                        {
+                            var carrier = actor.Combat.FindActorByGUID(ModState.PositionLockMount[actor.GUID]);
+                            if (!carrier.HasFiringPorts())
+                            {
+                                button.DisableButton();
+                            }
+                        }
+                    }
+                    else if (actor.IsSwarmingUnit())
+                    {
+                        button.DisableButton();
+                    }
+                }
+
+                if (ability.Def.Id == ModInit.modSettings.BattleArmorDeSwarmRoll ||
+                    ability.Def.Id == ModInit.modSettings.BattleArmorDeSwarmSwat)
+                {
+                    if (actor is Vehicle vehicle || actor.IsCustomUnitVehicle())
+                    {
+                        button.DisableButton();
+                    }
+
+                    if (!actor.HasSwarmingUnits())
+                    {
+                        button.DisableButton();
+                    }
+                }
+
+                if (ability.Def.Id == ModInit.modSettings.AirliftAbilityID && ModInit.modSettings.CanDropOffAfterMoving)// && actor.MovingToPosition == null) // maybe need to check IsAnyOrderActive (but that might screw me)
+                {
+                    if (actor.HasAirliftedUnits())
+                    {
+                        //button.DisableButton();
+                        //if (!button.gameObject.activeSelf)
+                        //{
+                        //    button.gameObject.SetActive(true);
+                        //}
+
+                        //button.InitButton(CombatHUDMechwarriorTray.GetSelectionTypeFromTargeting(ability.Def.Targeting, false), ability, ability.Def.AbilityIcon, ability.Def.Description.Id, ability.Def.Description.Name, actor);
+                        button.ResetButtonIfNotActive(actor);
+                    }
+                }
+
+                var specialRules = ability.Def.specialRules;
+
+
+
+                if (ModInit.modSettings.BeaconExclusionConfig.TryGetValue(actor.Combat.ActiveContract.ContractTypeValue.Name, out var configType))
+                {
+                    if (actor.team.IsLocalPlayer)
+                    {
+                        if (specialRules == AbilityDef.SpecialRules.Strafe && configType.ExcludedPlayerStrafe)
+                            button.DisableButton();
+                        else if (specialRules == AbilityDef.SpecialRules.SpawnTurret && configType.ExcludedPlayerSpawn)
+                            button.DisableButton();
+                    }
+                }
+
+                else if (ModInit.modSettings.BeaconExclusionConfig.TryGetValue(actor.Combat.ActiveContract.Override.ID, out var configID))
+                {
+                    if (actor.team.IsLocalPlayer)
+                    {
+                        if (specialRules == AbilityDef.SpecialRules.Strafe && configID.ExcludedPlayerStrafe)
+                            button.DisableButton();
+                        else if (specialRules == AbilityDef.SpecialRules.SpawnTurret && configID.ExcludedPlayerSpawn)
+                            button.DisableButton();
+                    }
+                }
+
+                //if ((specialRules == AbilityDef.SpecialRules.Strafe || specialRules == AbilityDef.SpecialRules.SpawnTurret) &&
+                //    (ModInit.modSettings.BeaconExcludedContractIDs.Contains(ability.Combat.ActiveContract.Override.ID) || ModInit.modSettings.BeaconExcludedContractTypes.Contains(ability.Combat.ActiveContract
+                //         .ContractTypeValue.Name)))
+               // {
+               //     button.DisableButton();
+               // }
+
+                if (actor.GetAbilityUsedFiring())
+                {
+                    if (ability.Def.ActivationTime == AbilityDef.ActivationTiming.ConsumedByFiring) button.DisableButton();
+                }
+            }
+        }
+
+        [HarmonyPatch(typeof(CameraControl), "ShowActorCam")]
+        public static class CameraControl_ShowActorCam
+        {
+            static bool Prepare() => false; //disabled. im not fucking with the follow cam anymore, and apparently it causes problems with harmonyx for some goddamn reason?
+            public static void Prefix(ref bool __runOriginal, CameraControl __instance, AbstractActor actor, Quaternion rotation,
+                float duration, ref AttachToActorCameraSequence __result)
             {
                 if (!__runOriginal) return;
-                if (__instance.Combat.ActiveContract.ContractTypeValue.IsSkirmish)
+                var combat = UnityGameInstance.BattleTechGame.Combat;
+                if (combat.ActiveContract.ContractTypeValue.IsSkirmish)
                 {
                     __runOriginal = true;
                     return;
                 }
-                Ability ability = ModState.CommandAbilities.Find((Ability x) => x.Def.Id == msg.abilityID);
-                if (ability == null)
-                {
-                    ModInit.modLog?.Info?.Write(
-                        $"Tried to use a CommandAbility the team doesnt have?");
-                    __runOriginal = false;
-                    return;
-                }
-
-                switch (ability.Def.Targeting)
-                {
-                    case AbilityDef.TargetingType.CommandInstant:
-                        ability.Activate(__instance, null);
-                        goto publishAbilityConfirmed;
-                    case AbilityDef.TargetingType.CommandTargetSingleEnemy:
-                        {
-                            ICombatant combatant = __instance.Combat.FindCombatantByGUID(msg.affectedObjectGuid, false);
-                            if (combatant == null)
-                            {
-                                ModInit.modLog?.Info?.Write(
-                                    $"Team.ActivateAbility couldn't find target with guid {msg.affectedObjectGuid}");
-                                __runOriginal = false;
-                                return;
-                            }
-
-                            ability.Activate(__instance, combatant);
-                            goto publishAbilityConfirmed;
-                        }
-                    case AbilityDef.TargetingType.CommandTargetSinglePoint:
-                        ability.Activate(__instance, msg.positionA);
-                        goto publishAbilityConfirmed;
-                    case AbilityDef.TargetingType.CommandTargetTwoPoints:
-                    case AbilityDef.TargetingType.CommandSpawnPosition:
-                        ability.Activate(__instance, msg.positionA, msg.positionB);
-                        goto publishAbilityConfirmed;
-                    case AbilityDef.TargetingType.NotSet:
-                        break;
-                    case AbilityDef.TargetingType.ActorSelf:
-                        break;
-                    case AbilityDef.TargetingType.ActorTarget:
-                        break;
-                    case AbilityDef.TargetingType.SensorLock:
-                        break;
-                    case AbilityDef.TargetingType.CommandTargetSingleAlly:
-                        break;
-                    case AbilityDef.TargetingType.ShadowMove:
-                        break;
-                    case AbilityDef.TargetingType.MultiFire:
-                        break;
-                    case AbilityDef.TargetingType.ConfirmCoolantVent:
-                        break;
-                    case AbilityDef.TargetingType.ActiveProbe:
-                        break;
-                    default:
-                        throw new ArgumentOutOfRangeException();
-                }
-
-                ModInit.modLog?.Info?.Write(
-                    $"Team.ActivateAbility needs to add handling for targetingtype {ability.Def.Targeting}");
-                __runOriginal = false;
-                return;
-            publishAbilityConfirmed:
-                __instance.Combat.MessageCenter.PublishMessage(new AbilityConfirmedMessage(msg.actingObjectGuid,
-                    msg.affectedObjectGuid, msg.abilityID, msg.positionA, msg.positionB));
+                Vector3 offset = new Vector3(0f, 50f, 50f);
+                __result = new AttachToActorCameraSequence(combat, actor.GameRep.transform, offset, rotation, duration,
+                    true, false);
                 __runOriginal = false;
                 return;
             }
         }
 
-
-        [HarmonyPatch(typeof(Team), "AddUnit", new Type[] { typeof(AbstractActor) })]
-        public static class Team_AddUnit_Patch
+        [HarmonyPatch(typeof(CombatSpawningReticle), "ShowReticle")]
+        public static class CombatSpawningReticle_ShowReticle
         {
-            public static void Postfix(Team __instance, AbstractActor unit)
+            public static void Postfix(CombatSpawningReticle __instance)
             {
-                if (__instance.Combat.TurnDirector.CurrentRound > 1)
-                {
-                    __instance.Combat.UpdateResupplyTeams();
-                    __instance.Combat.UpdateResupplyAbilitiesGetAllLivingActors();
-                }
-
-                if (__instance.IsLocalPlayer)
-                {
-                    if (unit is Mech && !(unit is TrooperSquad) && !unit.IsCustomUnitVehicle())
-                    {
-                        if (!string.IsNullOrEmpty(ModInit.modSettings.BattleArmorDeSwarmSwat))
-                        {
-                            if (unit.GetPilot().Abilities
-                                    .All(x => x.Def.Id != ModInit.modSettings.BattleArmorDeSwarmSwat) &&
-                                unit.ComponentAbilities.All(y =>
-                                    y.Def.Id != ModInit.modSettings.BattleArmorDeSwarmSwat))
-                            {
-                                unit.Combat.DataManager.AbilityDefs.TryGet(ModInit.modSettings.BattleArmorDeSwarmSwat,
-                                    out var def);
-                                var ability = new Ability(def);
-                                ModInit.modLog?.Trace?.Write(
-                                    $"[Team.AddUnit] Adding {ability.Def?.Description?.Id} to {unit.Description?.Name}.");
-                                ability.Init(unit.Combat);
-                                unit.GetPilot().Abilities.Add(ability);
-                                unit.GetPilot().ActiveAbilities.Add(ability);
-                            }
-                        }
-
-                        if (!string.IsNullOrEmpty(ModInit.modSettings.BattleArmorDeSwarmRoll))
-                        {
-                            if (unit.GetPilot().Abilities
-                                    .All(x => x.Def.Id != ModInit.modSettings.BattleArmorDeSwarmRoll) &&
-                                unit.ComponentAbilities.All(y =>
-                                    y.Def.Id != ModInit.modSettings.BattleArmorDeSwarmRoll))
-                            {
-                                unit.Combat.DataManager.AbilityDefs.TryGet(ModInit.modSettings.BattleArmorDeSwarmRoll,
-                                    out var def);
-                                var ability = new Ability(def);
-                                ModInit.modLog?.Trace?.Write(
-                                    $"[Team.AddUnit] Adding {ability.Def?.Description?.Id} to {unit.Description?.Name}.");
-                                ability.Init(unit.Combat);
-                                unit.GetPilot().Abilities.Add(ability);
-                                unit.GetPilot().ActiveAbilities.Add(ability);
-                            }
-                        }
-
-                    }
-
-                    if (!string.IsNullOrEmpty(ModInit.modSettings.DeswarmMovementConfig.AbilityDefID))
-                    {
-                        if (unit.GetPilot().Abilities
-                                .All(x => x.Def.Id != ModInit.modSettings.DeswarmMovementConfig.AbilityDefID) &&
-                            unit.ComponentAbilities.All(y =>
-                                y.Def.Id != ModInit.modSettings.DeswarmMovementConfig.AbilityDefID))
-                        {
-                            unit.Combat.DataManager.AbilityDefs.TryGet(ModInit.modSettings.DeswarmMovementConfig.AbilityDefID,
-                                out var def);
-                            var ability = new Ability(def);
-                            ModInit.modLog?.Trace?.Write(
-                                $"[Team.AddUnit] Adding {ability.Def?.Description?.Id} to {unit.Description?.Name}.");
-                            ability.Init(unit.Combat);
-                            unit.GetPilot().Abilities.Add(ability);
-                            unit.GetPilot().ActiveAbilities.Add(ability);
-                        }
-                    }
-
-                    //add a parent component to strafe/spawn pilot abilities. even though it wont be used.
-
-                    //need to disentangle from abilifier though.
-                    if (false)
-                    {
-                        var list = unit.GetPilot().Abilities;
-                        for (var index = list.Count - 1; index >= 0; index--)
-                        {
-                            var pilotAbility = list[index];
-                            if (pilotAbility.Def.specialRules == AbilityDef.SpecialRules.Strafe ||
-                                pilotAbility.Def.specialRules == AbilityDef.SpecialRules.SpawnTurret)
-                            {
-                                var ability = new Ability(pilotAbility.Def);
-                                ModInit.modLog?.Trace?.Write(
-                                    $"[Team.AddUnit] moving {pilotAbility.Def?.Description?.Id} to {unit.Description?.Name} component abilities.");
-
-                                var abilityComponent = unit.allComponents.FirstOrDefault(z =>
-                                    ModInit.modSettings.crewOrCockpitCustomID.Any((string x) =>
-                                        z.componentDef.GetComponents<Category>()
-                                            .Any((Category c) => c.CategoryID == x)));
-                                if (abilityComponent == null)
-                                {
-                                    ModInit.modLog?.Info?.Write($"component was null; no CriticalComponents?");
-                                }
-
-                                if (abilityComponent?.parent == null)
-                                {
-                                    ModInit.modLog?.Info?.Write($"component parent was null; no parent actor???");
-                                }
-
-                                ability.Init(unit.Combat, abilityComponent);
-                                unit.GetPilot().Abilities.Remove(pilotAbility);
-                                unit.GetPilot().ActiveAbilities.Remove(pilotAbility);
-                                unit.GetPilot().Abilities.Add(ability);
-                                unit.GetPilot().ActiveAbilities.Add(ability);
-                            }
-                        }
-                    }
-
-                    return;
-                }
-
-                if (unit is Mech mech)
-                {
-                    if (mech.EncounterTags.Contains("SpawnedFromAbility")) return;
-                }
-
-                AI_Utils.GenerateAIStrategicAbilities(unit);
-            }
-        }
-
-        [HarmonyPatch(typeof(Team), "OnRoundBegin")]
-        public static class TurnActor_OnRoundBegin
-        {
-            public static void Postfix(Team __instance)
-            {
-                if (__instance.Combat.ActiveContract.ContractTypeValue.IsSkirmish) return;
-                foreach (var ability in ModState.CommandAbilities)
-                {
-                    ability.OnNewRound();
-                }
-
-                foreach (var despawn in ModState.DeferredDespawnersFromStrafe)
-                {
-                    var msg = new DespawnActorMessage(EncounterLayerData.MapLogicGuid, despawn.Key, (DeathMethod)DespawnFloatieMessage.Escaped);
-                    //Utils._despawnActorMethod.Invoke(despawn.Value, new object[] { msg });
-                    despawn.Value.DespawnActor(msg);
-                }
-
-                //var team = __instance as Team;
-
-                if (__instance?.units != null)
-                    foreach (var unit in __instance?.units)
-                    {
-                        var rep = unit.GameRep as PilotableActorRepresentation;
-                        rep?.ClearForcedPlayerVisibilityLevel(__instance.Combat.GetAllLivingCombatants());
-                    }
-                //                team?.ResetUnitVisibilityLevels();
-                __instance?.RebuildVisibilityCacheAllUnits(__instance.Combat.GetAllLivingCombatants());
-
-            }
-        }
-
-        [HarmonyPatch(typeof(TurnDirector), "IncrementActiveTurnActor")]
-        public static class TurnDirector_IncrementActiveTurnActor
-        {
-            public static void Prefix(TurnDirector __instance)
-            {
-                if (__instance.Combat.ActiveContract.ContractTypeValue.IsSkirmish) return;
-                if (ModState.DeferredInvokeSpawns.Count > 0 && __instance.ActiveTurnActor is Team activeTeam &&
-                    activeTeam.IsLocalPlayer)
-                {
-                    for (var index = 0; index < ModState.DeferredInvokeSpawns.Count; index++)
-                    {
-                        var spawn = ModState.DeferredInvokeSpawns[index].Value;
-                        var resource = ModState.DeferredInvokeSpawns[index].Key.Split('@');
-                        ModState.DeferredActorResource = resource[1];
-                        ModInit.modLog?.Info?.Write(
-                            $"Found deferred spawner at index {index} of {ModState.DeferredInvokeSpawns.Count - 1}, invoking and trying to spawn {ModState.DeferredActorResource}.");
-                        ModState.DeferredSpawnerFromDelegate = true;
-                        spawn();
-                        ModState.ResetDelegateInfos();
-                    }
-                    ModState.ResetDeferredSpawners();
-                }
-            }
-        }
-
-        [HarmonyPatch(typeof(TurnDirector), "OnInitializeContractComplete")]
-        public static class TurnDirector_OnInitializeContractComplete
-        {
-            public static void Postfix(TurnDirector __instance, MessageCenterMessage message)
-            {
-                if (__instance.Combat.ActiveContract.ContractTypeValue.IsSkirmish) return;
-                var dm = __instance.Combat.DataManager;
-                LoadRequest loadRequest = dm.CreateLoadRequest();
-
-                loadRequest.AddBlindLoadRequest(BattleTechResourceType.PilotDef, "pilot_sim_starter_dekker");
-                ModInit.modLog?.Info?.Write($"Added loadrequest for PilotDef: pilot_sim_starter_dekker (hardcoded)");
                 if (!string.IsNullOrEmpty(ModInit.modSettings.customSpawnReticleAsset))
                 {
-                    loadRequest.AddBlindLoadRequest(BattleTechResourceType.Texture2D, ModInit.modSettings.customSpawnReticleAsset);
-                    ModInit.modLog?.Info?.Write($"Added loadrequest for Texture2D: {ModInit.modSettings.customSpawnReticleAsset}");
+                    var childComponents = __instance.gameObject.GetComponentsInChildren<Transform>(true);
+
+                    for (int i = 0; i < childComponents.Length; i++)
+                    {
+                        if (childComponents[i].name == "ReticleDecalCircle")
+                        {
+                            var decalFromCirle = childComponents[i].GetComponent<BTUIDecal>();
+                            var dm = UnityGameInstance.BattleTechGame.DataManager;
+                            var newTexture = dm.GetObjectOfType<Texture2D>(ModInit.modSettings.customSpawnReticleAsset,
+                                BattleTechResourceType.Texture2D);
+                            decalFromCirle.DecalMaterial.mainTexture = newTexture;
+                        }
+                    }
+                    //var circle1 = GameObject.Find("ReticleDecalCircle");
                 }
-                if (!string.IsNullOrEmpty(ModInit.modSettings.MountIndicatorAsset))
+
+                var decals = __instance.gameObject.GetComponentsInChildren<BTUIDecal>();
+
+                foreach (var decal in decals)
                 {
-                    loadRequest.AddBlindLoadRequest(BattleTechResourceType.Texture2D, ModInit.modSettings.MountIndicatorAsset);
-                    ModInit.modLog?.Info?.Write($"Added loadrequest for Texture2D: {ModInit.modSettings.MountIndicatorAsset}");
-                }
-
-                foreach (var abilityDef in dm.AbilityDefs.Where(x => x.Key.StartsWith("AbilityDefCMD_")))
-                {
-                    var ability = new Ability(abilityDef.Value);
-                    if (string.IsNullOrEmpty(ability.Def?.ActorResource)) continue;
-                    if (!string.IsNullOrEmpty(ability.Def.getAbilityDefExtension().CMDPilotOverride))
+                    if (ModInit.modSettings.customSpawnReticleColor != null)
                     {
-                        var pilotID = ability.Def.getAbilityDefExtension().CMDPilotOverride;
-                        ModInit.modLog?.Info?.Write($"Added loadrequest for PilotDef: {pilotID}");
-                        loadRequest.AddBlindLoadRequest(BattleTechResourceType.PilotDef, pilotID);
+                        var customColor = new Color(ModInit.modSettings.customSpawnReticleColor.Rf,
+                            ModInit.modSettings.customSpawnReticleColor.Gf,
+                            ModInit.modSettings.customSpawnReticleColor.Bf);
+                        decal.DecalMaterial.color = customColor;
                     }
-
-                    if (ability.Def.ActorResource.StartsWith("mechdef_"))
+                    else
                     {
-                        ModInit.modLog?.Info?.Write($"Added loadrequest for MechDef: {ability.Def.ActorResource}");
-                        loadRequest.AddBlindLoadRequest(BattleTechResourceType.MechDef, ability.Def.ActorResource);
-                    }
-
-                    if (ability.Def.ActorResource.StartsWith("vehicledef_"))
-                    {
-                        ModInit.modLog?.Info?.Write($"Added loadrequest for VehicleDef: {ability.Def.ActorResource}");
-                        loadRequest.AddBlindLoadRequest(BattleTechResourceType.VehicleDef, ability.Def.ActorResource);
-                    }
-
-                    if (ability.Def.ActorResource.StartsWith("turretdef_"))
-                    {
-                        ModInit.modLog?.Info?.Write($"Added loadrequest for TurretDef: {ability.Def.ActorResource}");
-                        loadRequest.AddBlindLoadRequest(BattleTechResourceType.TurretDef, ability.Def.ActorResource);
+                        decal.DecalMaterial.color = Color.green;
                     }
                 }
-
-                foreach (var beacon in Utils.GetOwnedDeploymentBeacons())
-                {
-                    var pilotID = beacon.Def.ComponentTags.FirstOrDefault(x =>
-                            x.StartsWith("StratOpsPilot_"))
-                        ?.Remove(0, 14);
-                    if (!string.IsNullOrEmpty(pilotID))
-                    {
-                        ModInit.modLog?.Info?.Write($"Added loadrequest for PilotDef: {pilotID}");
-                        loadRequest.AddBlindLoadRequest(BattleTechResourceType.PilotDef, pilotID);
-                    }
-
-                    var id = beacon.Def.ComponentTags.FirstOrDefault(x =>
-                        x.StartsWith("mechdef_") || x.StartsWith("vehicledef_") ||
-                        x.StartsWith("turretdef_"));
-                    if (string.IsNullOrEmpty(id)) continue;
-
-                    if (id.StartsWith("mechdef_"))
-                    {
-                        ModInit.modLog?.Info?.Write($"Added loadrequest for MechDef: {id}");
-                        loadRequest.AddBlindLoadRequest(BattleTechResourceType.MechDef, id);
-                    }
-                    else if (id.StartsWith("vehicledef_"))
-                    {
-                        ModInit.modLog?.Info?.Write($"Added loadrequest for VehicleDef: {id}");
-                        loadRequest.AddBlindLoadRequest(BattleTechResourceType.VehicleDef, id);
-                    }
-                    else if (id.StartsWith("turretdef_"))
-                    {
-                        ModInit.modLog?.Info?.Write($"Added loadrequest for TurretDef: {id}");
-                        loadRequest.AddBlindLoadRequest(BattleTechResourceType.TurretDef, id);
-                    }
-
-                }
-                loadRequest.ProcessRequests(1000U);
             }
         }
 
-        [HarmonyPatch(typeof(TurnDirector), "StartFirstRound")]
-        public static class TurnDirector_StartFirstRound
+        [HarmonyPatch(typeof(CombatAuraReticle), "RefreshActiveProbeRange")]
+        public static class CombatAuraReticle_RefreshActiveProbeRange
         {
-            public static void Postfix(TurnDirector __instance)
+            static bool Prepare() => false; //disabled
+            public static void Postfix(CombatAuraReticle __instance, bool showActiveProbe)
             {
-                if (ModState.DeferredInvokeBattleArmor.Count > 0)
+                if (!showActiveProbe || __instance.AuraBubble() != null) return;
+
+                float num = 0f;
+                if (__instance.owner.ComponentAbilities.Count > 0)
                 {
-                    for (var index = 0; index < ModState.DeferredInvokeBattleArmor.Count; index++)
+                    for (int i = 0; i < __instance.owner.ComponentAbilities.Count; i++)
                     {
-                        var spawn = ModState.DeferredInvokeBattleArmor[index].Value;
-                        ModInit.modLog?.Info?.Write(
-                            $"[TurnDirector.StartFirstRound] Found deferred spawner at index {index} of {ModState.DeferredInvokeBattleArmor.Count - 1}, invoking and trying to spawn a battle armor of some kind.");
-                        ModState.DeferredBattleArmorSpawnerFromDelegate = true;
-                        spawn();
-
-                    }
-                    ModState.ResetDeferredBASpawners();
-                }
-
-                if (__instance.Combat.ActiveContract.ContractTypeValue.IsSkirmish) return;
-
-                var playerTeam = __instance.Combat.Teams.First(x => x.IsLocalPlayer);
-                var dm = playerTeam.Combat.DataManager;
-
-                foreach (var abilityDefKVP in dm.AbilityDefs.Where(x =>
-                    x.Value.specialRules == AbilityDef.SpecialRules.SpawnTurret ||
-                    x.Value.specialRules == AbilityDef.SpecialRules.Strafe))
-                {
-
-                    if (playerTeam.units.Any(x => x.GetPilot().Abilities.Any(y => y.Def == abilityDefKVP.Value)) ||
-                        playerTeam.units.Any(x => x.ComponentAbilities.Any(z => z.Def == abilityDefKVP.Value)))
-                    {
-                        //only do things for abilities that pilots have? move things here. also move AbstractActor initialization to ability start to minimize neutralTeam think time, etc. and then despawn? - done
-                        var ability = new Ability(abilityDefKVP.Value);
-                        ability.Init(playerTeam.Combat);
-                        if (ModState.CommandAbilities.All(x => x != ability))
+                        if (__instance.owner.ComponentAbilities[i].Def.Targeting == AbilityDef.TargetingType.ActiveProbe)
                         {
-                            ModState.CommandAbilities.Add(ability);
+                            num = __instance.owner.ComponentAbilities[i].Def.FloatParam1;
+                            break;
                         }
-
-                        ModInit.modLog?.Info?.Write($"[TurnDirector.StartFirstRound] Added {ability?.Def?.Id} to CommandAbilities");
-
                     }
                 }
-                __instance.Combat.UpdateResupplyTeams();
-                __instance.Combat.UpdateResupplyAbilitiesGetAllLivingActors();
-
-                // now try to auto-mount??????
-                if (ModState.PairingInfos.Count == 0) return;
-                if (DeployManualHelper.IsInManualSpawnSequence) return;
-                foreach (var unit in playerTeam.units)
+                if (!Mathf.Approximately(num, __instance.currentAPRange))
                 {
-                    if (ModState.PairingInfos.TryGetValue(unit.GetPilot().pilotDef.Description.Id, out var info))
-                    {
-                        foreach (var squadPilot in info.PairedBattleArmor)
-                        {
-                            foreach (var unit2 in playerTeam.units)
-                            {
-                                if (unit2 is TrooperSquad squad &&
-                                    unit2.GetPilot().pilotDef.Description.Id == squadPilot)
-                                {
-                                    unit.MountBattleArmorToChassis(squad, true, true);
+                    var apObject = __instance.activeProbeRangeScaledObject;//Traverse.Create(__instance).Property("activeProbeRangeScaledObject").GetValue<GameObject>();
+                    apObject.transform.localScale = new Vector3(num * 2f, 1f, num * 2f);
+                }
+                __instance.currentAPRange = num;
+            }
+        }
 
-                                    if (unit is CustomMech custMech && custMech.FlyingHeight() > 1.5f)
+        [HarmonyPatch(typeof(CombatSelectionHandler), "ProcessInput")]
+        public static class CombatSelectionHandler_ProcessInput
+        {
+            public static void Prefix(ref bool __runOriginal, CombatSelectionHandler __instance)
+            {
+                if (!__runOriginal) return;
+                if (__instance.SelectedActor != null && __instance.SelectedActor.team != null && __instance.SelectedActor.team.IsLocalPlayer)
+                {
+                    var combat = UnityGameInstance.BattleTechGame.Combat;
+                    if (!LazySingletonBehavior<UIManager>.Instance.ToggleUINode ||
+                        combat.StackManager.TopSequence is ArtilleryObjectiveSequence)
+                    {
+                        __runOriginal = false;
+                        return;
+                    }
+
+                    if (__instance.CombatInputBlocked)
+                    {
+                        __runOriginal = false;
+                        return;
+                    }
+
+                    if (!combat.TurnDirector.GameHasBegun)
+                    {
+                        if (CameraControl.Instance != null && CameraControl.Instance.IsInTutorialMode)
+                        {
+                            __runOriginal = true;
+                            return;
+                        }
+                    }
+
+                    if (Input.anyKeyDown)
+                    {
+ //                       if (Input.GetKey(KeyCode.LeftShift) || Input.GetKey(KeyCode.RightShift))
+                        
+                        if (Input.GetKey(ModInit.modSettings.EquipmentButtonsHotkey))
+                        {
+                            var hud = __instance.HUD;//IRBTModUtils.SharedState.CombatHUD;
+                            if (hud.SelectedActor == __instance.SelectedActor)
+                            {
+                                //var slots = Traverse.Create(CombatHUDEquipmentPanel.Instance).Property("operatinalSlots").GetValue<List<CombatHUDEquipmentSlotEx>>();
+                                var slots = CombatHUDEquipmentPanel.Instance.operatinalSlots;
+                                var lastActive = new Tuple<int, int>(-1,-1);
+                                var buttonList = new List<CombatHUDActionButton>();
+                                for (var slotIndex = 0; slotIndex < slots.Count; slotIndex++)
+                                {
+                                    if (slots[slotIndex].buttons.Count > 0)
                                     {
-                                        var pos = custMech.CurrentPosition +
-                                                  Vector3.up * custMech.custGameRep.HeightController.CurrentHeight;
-                                        squad.TeleportActorVisual(pos);
+                                        for (var buttonIndex = 0;
+                                             buttonIndex < slots[slotIndex].buttons.Count;
+                                             buttonIndex++)
+                                        {
+                                            if (slots[slotIndex].buttons[buttonIndex].isActiveAndEnabled && slots[slotIndex].buttons[buttonIndex].gameObject.activeSelf)
+                                                buttonList.Add(slots[slotIndex].buttons[buttonIndex]);
+                                        }
                                     }
                                 }
+
+                                if (buttonList.Count <= 0)
+                                {
+                                    __runOriginal = false;
+                                    return;
+                                }
+                                for (var index = 0; index < buttonList.Count; index++)
+                                {
+                                    if (buttonList[index].IsActive)
+                                    {
+                                        buttonList[index].OnClick();
+                                        if (buttonList.Count > index)
+                                        {
+                                            buttonList[index + 1].OnClick();
+                                            __runOriginal = false;
+                                            return;
+                                        }
+                                    }
+                                }
+                                buttonList[0].OnClick();
                             }
+                            __runOriginal = false;
+                            return;
                         }
                     }
                 }
+                __runOriginal = true;
+                return;
             }
         }
     }

@@ -26,12 +26,14 @@ namespace StrategicOperations.Framework
 
         public class DropPodSpawner: MonoBehaviour
         {
-            //public string SpawnGUID { get; set; }
-            //public Action OnDropComplete { get; set; }
-            public CombatGameState Combat;
-
-            public Vector3 DropPodPosition;
-            public Quaternion DropPodRotation;
+            public AbstractActor Unit { get; set; } = null;
+            public bool DropProcessing { get; set; } = false;
+            public EncounterLayerParent Parent { get; set; } = null;
+            public ParticleSystem DropPodVfxPrefab
+            {
+                get;
+                set;
+            }
 
             public GameObject DropPodLandedPrefab
             {
@@ -39,39 +41,12 @@ namespace StrategicOperations.Framework
                 set;
             }
 
-            public ParticleSystem DropPodVfxPrefab
-            {
-                get;
-                set;
-            }
-
-            public bool DropProcessing { get; set; } = false;
+            public Vector3 DropPodPosition;
+            public Quaternion DropPodRotation;
             public Vector3 OffscreenDropPodPosition { get; set; } = Vector3.zero;
-            public EncounterLayerParent Parent { get; set; } = null;
-            public AbstractActor Unit { get; set; } = null;
-
-            public IEnumerator DestroyFlimsyObjects(Vector3 position)
-            {
-                Collider[] hits = Physics.OverlapSphere(position, 36f, -5, QueryTriggerInteraction.Ignore);
-                float impactMagnitude = 3f * Combat.Constants.ResolutionConstants.FlimsyDestructionForceMultiplier;
-                for (int i = 0; i < hits.Length; ++i)
-                {
-                    Collider collider = hits[i];
-                    Vector3 normalized = (collider.transform.position - position).normalized;
-                    DestructibleObject component1 = collider.gameObject.GetComponent<DestructibleObject>();
-                    DestructibleUrbanFlimsy component2 = collider.gameObject.GetComponent<DestructibleUrbanFlimsy>();
-                    if (component1 != null && component1.isFlimsy)
-                    {
-                        component1.TakeDamage(position, normalized, impactMagnitude);
-                        component1.Collapse(normalized, impactMagnitude);
-                    }
-                    if ((UnityEngine.Object)component2 != (UnityEngine.Object)null)
-                        component2.PlayDestruction(normalized, impactMagnitude);
-                    if (i % 10 == 0)
-                        yield return (object)null;
-                }
-                yield return (object)null;
-            }
+            //public string SpawnGUID { get; set; }
+            //public Action OnDropComplete { get; set; }
+            public CombatGameState Combat;
 
             public void LoadDropPodPrefabs(ParticleSystem dropPodVfxPrefab, GameObject dropPodLandedPrefab)
             {
@@ -137,6 +112,29 @@ namespace StrategicOperations.Framework
                 ModInit.modLog?.Trace?.Write($"teleported actor to {DropPodPosition}");
                 this.Unit.GameRep.FadeIn(1f);
                 this.Unit.OnPlayerVisibilityChanged(VisibilityLevel.LOSFull);
+            }
+
+            public IEnumerator DestroyFlimsyObjects(Vector3 position)
+            {
+                Collider[] hits = Physics.OverlapSphere(position, 36f, -5, QueryTriggerInteraction.Ignore);
+                float impactMagnitude = 3f * Combat.Constants.ResolutionConstants.FlimsyDestructionForceMultiplier;
+                for (int i = 0; i < hits.Length; ++i)
+                {
+                    Collider collider = hits[i];
+                    Vector3 normalized = (collider.transform.position - position).normalized;
+                    DestructibleObject component1 = collider.gameObject.GetComponent<DestructibleObject>();
+                    DestructibleUrbanFlimsy component2 = collider.gameObject.GetComponent<DestructibleUrbanFlimsy>();
+                    if (component1 != null && component1.isFlimsy)
+                    {
+                        component1.TakeDamage(position, normalized, impactMagnitude);
+                        component1.Collapse(normalized, impactMagnitude);
+                    }
+                    if ((UnityEngine.Object)component2 != (UnityEngine.Object)null)
+                        component2.PlayDestruction(normalized, impactMagnitude);
+                    if (i % 10 == 0)
+                        yield return (object)null;
+                }
+                yield return (object)null;
             }
         }
     }

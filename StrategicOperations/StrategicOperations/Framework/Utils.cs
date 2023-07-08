@@ -17,6 +17,16 @@ namespace StrategicOperations.Framework
 {
     public static class Utils
     {
+        public static void TeleportActorVisual(this AbstractActor actor, Vector3 newPosition)
+        {
+            actor.CurrentPosition = newPosition;
+            actor.GameRep.transform.position = newPosition;
+            actor.OnPositionUpdate(newPosition, actor.CurrentRotation, -1, true, null, false);
+            actor.previousPosition = newPosition;
+            //actor.ResetPathing(false);
+            //actor.RebuildPathingForNoMovement();
+            actor.IsTeleportedOffScreen = false;
+        }
         public static void ActivateSpawnTurretFromActor(this Ability __instance, AbstractActor creator, Team team, Vector3 positionA, Vector3 positionB)
         {
             if (__instance.Combat.ActiveContract.ContractTypeValue.IsSkirmish) return;
@@ -450,6 +460,7 @@ namespace StrategicOperations.Framework
         }
 
 
+
         public static void ActivateStrafeFromActor(this Ability __instance, AbstractActor creator, Team team, Vector3 positionA, Vector3 positionB, float radius)
         {
             if (__instance.Combat.ActiveContract.ContractTypeValue.IsSkirmish) return;
@@ -581,58 +592,45 @@ namespace StrategicOperations.Framework
             return;
         }
 
-        public static void ApplyCreatorEffects(this Ability ability, AbstractActor creator)
+
+
+
+
+        public static bool IsComponentPlayerControllable(this TagSet tagset, out bool forced)
         {
-            for (int i = 0; i < ability.Def.EffectData.Count; i++)
+            if (tagset.Any(x => x == "StratOps_player_control_enable"))
             {
-                if (ability.Def.EffectData[i].targetingData.effectTriggerType == EffectTriggerType.OnActivation && ability.Def.EffectData[i].targetingData.effectTargetType == EffectTargetType.Creator)
-                {
-                    if (ability.Def.EffectData[i].effectType == EffectType.VFXEffect)
-                    {
-                        if (false)
-                        {
-                            List<ObjectSpawnData> list = new List<ObjectSpawnData>();
-                            var pos = creator.CurrentPosition + Vector3.up;
-                            ObjectSpawnData item = new ObjectSpawnData(ability.Def.EffectData[i].vfxData.vfxName, pos,
-                                Quaternion.identity, true, false);
-                            list.Add(item);
-
-                            var duration = ability.Def.EffectData[i].durationData.duration;
-
-                            SpawnObjectSequence spawnObjectSequence = new SpawnObjectSequence(creator.Combat, list);
-                            creator.Combat.MessageCenter.PublishMessage(
-                                new AddSequenceToStackMessage(spawnObjectSequence));
-                            List<ObjectSpawnData> spawnedObjects = spawnObjectSequence.spawnedObjects;
-                            CleanupObjectSequence cleanupSequence =
-                                new CleanupObjectSequence(creator.Combat, spawnedObjects);
-                            TurnEvent tEvent = new TurnEvent(Guid.NewGuid().ToString(), creator.Combat, duration, null,
-                                cleanupSequence, ability.Def, false);
-                            creator.Combat.TurnDirector.AddTurnEvent(tEvent);
-                        }
-
-                        var hitInfo = default(WeaponHitInfo);
-                        hitInfo.numberOfShots = 1;
-                        hitInfo.hitLocations = new int[1];
-                        hitInfo.hitLocations[0] = 8;
-                        hitInfo.hitPositions = new Vector3[1];
-
-                        var attackPos = creator.GameRep.transform.position + Vector3.up * 100f;
-                        var impactPos = creator.getImpactPositionSimple(attackPos, 8) + Vector3.up * 10f;
-
-                        hitInfo.hitPositions[0] = impactPos;
-                        hitInfo.attackerId = creator.GUID;
-                        hitInfo.targetId = creator.GUID;
-                        creator.Combat.EffectManager.CreateEffect(ability.Def.EffectData[i], ability.Def.EffectData[i].Description.Id, 0, creator, creator, hitInfo, 0, false);
-                    }
-                    else
-                    {
-                        //creator.Combat.EffectManager.CreateEffect(ability.Def.EffectData[i], ability.Def.EffectData[i].Description.Id, 0, creator, creator, default(WeaponHitInfo), 0, false);
-                        creator.CreateEffect(ability.Def.EffectData[i], ability,
-                            ability.Def.EffectData[i].Description.Id,
-                            -1, creator);
-                    }
-                }
+                forced = true;
+                return true;
             }
+            if (tagset.Any(x => x == "StratOps_player_control_disable"))
+            {
+                forced = true;
+                return false;
+            }
+
+            forced = false;
+            return true;
+        }
+        public static bool ShouldPlayerControlSpawn(Team team, Ability ability, string quid)
+        {
+            var sim = UnityGameInstance.BattleTechGame.Simulation;
+            if (sim == null) return false;
+            if (!team.IsLocalPlayer) return false;
+            if (ModInit.modSettings.PlayerControlSpawns) return true;
+
+            if (ModState.StoredCmdParams.ContainsKey(quid))
+            {
+                if (ModState.StoredCmdParams[quid].PlayerControl &&
+                    ModState.StoredCmdParams[quid].PlayerControlOverridden) return true;
+                if (!ModState.StoredCmdParams[quid].PlayerControl &&
+                    ModState.StoredCmdParams[quid].PlayerControlOverridden) return false;
+            }
+
+            if (ModInit.modSettings.PlayerControlSpawnAbilities.Contains(ability.Def.Id)) return true;
+            if (ModInit.modSettings.PlayerControlSpawnAbilitiesBlacklist.Contains(ability.Def.Id)) return false;
+
+            return sim.CompanyStats.GetValue<bool>("StratOps_ControlSpawns");
         }
 
         public static bool CheckOrInitSpawnControl(this SimGameState sim)
@@ -644,128 +642,122 @@ namespace StrategicOperations.Framework
             }
             return sim.CompanyStats.GetValue<bool>("StratOps_ControlSpawns");
         }
-
-        public static void CooldownAllCMDAbilities()
+        public static string Generate2PtCMDQuasiGUID(this Ability ability, string actorGUID, Vector3 positionA, Vector3 positionB)
         {
-            for (int i = 0; i < ModState.CommandAbilities.Count; i++)
+            return $"AI_CMD_ID_{actorGUID}_{ability.Def.Id}_{positionA}_{positionB}";
+        }
+
+        public static void ForceUnitToLastActualPhase(this AbstractActor actor)
+        {
+            if (actor.Combat.TurnDirector.IsInterleaved && actor.Initiative != actor.Combat.TurnDirector.LastPhase)
             {
-                ModState.CommandAbilities[i].ActivateMiniCooldown();
+                actor.Initiative = actor.Combat.TurnDirector.LastPhase;
+                actor.Combat.MessageCenter.PublishMessage(new ActorPhaseInfoChanged(actor.GUID));
+            }
+            actor.ProcessHesitationSBI();
+        }
+
+        public static void ProcessHesitationSBI(this AbstractActor actor)
+        {
+            if (actor.StatCollection.ContainsStatistic("SBI_STATE_HESITATION"))
+            {
+                var currentHesitation = actor.StatCollection.GetValue<int>("SBI_STATE_HESITATION");
+                var actorHesitationPhaseMod = actor.StatCollection.GetValue<int>("SBI_MOD_HESITATION") * -1; // invert from SBI
+                var phasesMoved = Math.Abs(actor.Combat.TurnDirector.CurrentPhase - actor.Combat.TurnDirector.LastPhase);
+                var hesitationPenalty = (ModInit.modSettings.SBI_HesitationMultiplier * phasesMoved) + actorHesitationPhaseMod;
+                var roundedPenalty = Mathf.RoundToInt(hesitationPenalty);
+                var finalHesitation = currentHesitation + roundedPenalty;
+                actor.StatCollection.ModifyStat<int>(actor.GUID, -1, "SBI_STATE_HESITATION", StatCollection.StatOperation.Set, finalHesitation);
+                ModInit.modLog?.Info?.Write(
+                    $"[ProcessHesitationSBI] Used quick-reserve with SBI. Final hesitation set to {finalHesitation} from: Multiplier setting {ModInit.modSettings.SBI_HesitationMultiplier} x PhasesMoved {phasesMoved} + Actor Hesitation Mod {actorHesitationPhaseMod} + Current hesitation {currentHesitation} (rounded)");
             }
         }
 
-        public static Lance CreateOrFetchCMDLance(Team team)
+       public static AbstractActor FindMeAnOpforUnit(this AbstractActor actor)
         {
-            if (!team.lances.Any(x => x.GUID.EndsWith($"{team.GUID}_StratOps")))
+            var opforTeam = actor.Combat.Teams.FirstOrDefault(x => x.GUID == "be77cadd-e245-4240-a93e-b99cc98902a5");
+            if (opforTeam != null)
             {
-                Lance lance = new Lance(team, Array.Empty<LanceSpawnerRef>());
-                var lanceGuid = $"{LanceSpawnerGameLogic.GetLanceGuid(Guid.NewGuid().ToString())}_{team.GUID}_StratOps";
-                lance.lanceGuid = lanceGuid;
-                var combat = UnityGameInstance.BattleTechGame.Combat;
-                combat.ItemRegistry.AddItem(lance);
-                team.lances.Add(lance);
-                ModInit.modLog?.Info?.Write($"Created lance {lance.DisplayName} for Team {team.DisplayName}.");
-                return lance;
-            }
-            return team.lances.FirstOrDefault(x => x.GUID.EndsWith($"{team.GUID}_StratOps"));
-        }
-
-        public static Team CreateOrUpdateAISupportTeam(Team team)
-        {
-            AITeam aiteam = null;
-            var combat = UnityGameInstance.BattleTechGame.Combat;
-            aiteam = new AITeam("Opfor Support", Color.black, Guid.NewGuid().ToString(), true, combat);
-            aiteam.FactionValue = team.FactionValue;
-            combat.TurnDirector.AddTurnActor(aiteam);
-            combat.ItemRegistry.AddItem(aiteam);
-            team.SetSupportTeam(aiteam);
-            if (!ModState.ReinitPhaseIcons)
-            {
-                var phaseIcons = CameraControl.Instance?.HUD?.PhaseTrack?.PhaseIcons;
-                if (phaseIcons == null) return aiteam;
-                foreach (var icon in phaseIcons)
+                var opforUnit = opforTeam.units.FirstOrDefault(x => !x.IsDead);
+                if (opforUnit != null)
                 {
-                    icon.Init(combat);
+                    return opforUnit;
                 }
-                ModState.ReinitPhaseIcons = true;
             }
-            return aiteam;
+            return null;
         }
-
-        public static void CreateOrUpdateCustomTeam()
+        public static float GetAvoidStrafeChanceForTeam(this ICombatant combatant)
         {
-            AITeam aiteam = null;
-            var combat = UnityGameInstance.BattleTechGame.Combat;
-            aiteam = new AITeam("CustomTeamTest", Color.yellow, Guid.NewGuid().ToString(), true, combat);
-            combat.TurnDirector.AddTurnActor(aiteam);
-            combat.ItemRegistry.AddItem(aiteam);
-        }
-
-        public static void CreateOrUpdateNeutralTeam()
-        {
-            AITeam aiteam = null;
-            var combat = UnityGameInstance.BattleTechGame.Combat;
-            if (combat.IsLoadingFromSave)
+            var actors = combatant.Combat.GetAllLivingActors();
+            var cumAA = 0f;
+            var unitDivisor = 0;
+            foreach (var unit in actors)
             {
-                aiteam = (combat.GetLoadedTeamByGUID("61612bb3-abf9-4586-952a-0559fa9dcd75") as AITeam);
+                if (unit.team.IsFriendly(combatant.team))
+                {
+                    cumAA += unit.GetAAAFactor();
+                    unitDivisor++;
+                    ModInit.modLog?.Debug?.Write($"unit {unit.DisplayName} is friendly of {combatant.DisplayName}. Added AA factor {unit.GetAAAFactor()}; total is now {cumAA} from {unitDivisor} units");
+                }
             }
-            if (!combat.IsLoadingFromSave || aiteam == null)
-            {
-                aiteam = new AITeam("Player 1 Support", Color.yellow, "61612bb3-abf9-4586-952a-0559fa9dcd75", true, combat);
-            }
-            combat.TurnDirector.AddTurnActor(aiteam);
-            combat.ItemRegistry.AddItem(aiteam);
+
+            if (unitDivisor == 0) return 0f;
+            var finalAA = cumAA / unitDivisor;
+            ModInit.modLog?.Debug?.Write($"final AA value for {combatant.DisplayName} and team {combatant.team.DisplayName}: {finalAA}");
+            return finalAA;
         }
 
-        public static void DeployEvasion(AbstractActor actor)
+        public static float GetAAAFactor(this AbstractActor actor)
         {
-            ModInit.modLog?.Info?.Write($"Adding deploy protection to {actor.DisplayName}.");
+            return actor.StatCollection.GetValue<bool>("UseAAAFactor") ? actor.StatCollection.GetValue<float>("AAAFactor") : 0f;
+        }
+        public static void PublishInvocationExternal(this MessageCenter messageCenter, MessageCenterMessage invocation)
+        {
+            messageCenter.AddSubscriber(MessageCenterMessageType.InvocationStackSequenceCreated, new ReceiveMessageCenterMessage(HandleInvocationStackSequenceCreatedExternal));
+            messageCenter.PublishMessage(invocation);
+            messageCenter.RemoveSubscriber(MessageCenterMessageType.InvocationStackSequenceCreated, new ReceiveMessageCenterMessage(HandleInvocationStackSequenceCreatedExternal));
             
-            if (actor is Turret turret)
+            //if (this.Orders == null && this.SelectionType != SelectionType.DoneWithMech)
+            //{
+            //    Debug.LogError("No Orders assigned from invocation!");
+            //}
+        }
+
+        public static void HandleInvocationStackSequenceCreatedExternal(this MessageCenterMessage message)
+        {
+           // InvocationStackSequenceCreated invocationStackSequenceCreated = message as InvocationStackSequenceCreated;
+            //message.Orders = invocationStackSequenceCreated.StackSequence; //we dont need orders for the movement sequence. maybe.
+        }
+
+        public static void UpdateRangeIndicator(this CombatTargetingReticle reticle, Vector3 newPosition, bool minRangeShow, bool maxRangeShow)
+        {
+            if (minRangeShow)
             {
-                ModInit.modLog?.Info?.Write($"{actor.DisplayName} is a turret, skipping.");
-                return;
+                reticle.MinRangeHolder.SetActive(false);
+                reticle.MinRangeHolder.transform.position = newPosition;
+                reticle.MinRangeHolder.SetActive(true);
             }
 
-            if (ModInit.modSettings.deployProtection > 0)
+            if (maxRangeShow)
             {
-                ModInit.modLog?.Info?.Write($"Adding {ModInit.modSettings.deployProtection} evasion pips");
-                actor.EvasivePipsCurrent = ModInit.modSettings.deployProtection;
-                //Traverse.Create(actor).Property("EvasivePipsTotal").SetValue(actor.EvasivePipsCurrent);
-                actor.EvasivePipsTotal = actor.EvasivePipsCurrent;
-                actor.Combat.MessageCenter.PublishMessage(new EvasiveChangedMessage(actor.GUID, actor.EvasivePipsCurrent));
+                reticle.MaxRangeHolder.SetActive(false);
+                reticle.MaxRangeHolder.transform.position = newPosition;
+                reticle.MaxRangeHolder.SetActive(true);
             }
         }
 
-        public static float DistanceToClosestDetectedEnemy(this AbstractActor actor, Vector3 loc)
+        public static bool IsCustomUnitVehicle(this ICombatant combatant)
         {
-            var enemy = actor.GetClosestDetectedEnemy(loc);
-            if (enemy == null) return 9999f;
-            float magnitude = (enemy.CurrentPosition - loc).magnitude;
-            return magnitude;
+            if (!combatant.StatCollection.ContainsStatistic("CUFakeVehicle")) return false;
+            return combatant.StatCollection.GetValue<bool>("CUFakeVehicle");
         }
 
-        public static void DP_AnimationComplete(string encounterObjectGUID)
+        public static Vector3 GetHexFromVector(this Vector3 point)
         {
-            EncounterLayerParent.EnqueueLoadAwareMessage(new DropshipAnimationCompleteMessage(LanceSpawnerGameLogic.GetDropshipGuid(encounterObjectGUID)));
-        }
-
-        public static Team FetchAISupportTeam(Team team)
-        {
-            if (team.SupportTeam != null)
-            {
-                if (!ModState.ReinitPhaseIcons)
-                {
-                    var phaseIcons = CameraControl.Instance?.HUD?.PhaseTrack?.PhaseIcons;
-                    if (phaseIcons == null) return team.SupportTeam;
-                    foreach (var icon in phaseIcons)
-                    {
-                        icon.Init(team.combat);
-                    }
-                    ModState.ReinitPhaseIcons = true;
-                }
-                return team.SupportTeam;
-            }
-            return CreateOrUpdateAISupportTeam(team);
+            var combat = UnityGameInstance.BattleTechGame.Combat;
+            var hex = combat.HexGrid.GetClosestPointOnGrid(point);
+            hex.y = combat.MapMetaData.GetLerpedHeightAt(hex, false);
+            return hex;
         }
 
         public static object FetchUnitFromDataManager(this DataManager dm, string id)
@@ -795,137 +787,13 @@ namespace StrategicOperations.Framework
             return null;
         }
 
-        public static AbstractActor FindMeAnOpforUnit(this AbstractActor actor)
+        public static float DistanceToClosestDetectedEnemy(this AbstractActor actor, Vector3 loc)
         {
-            var opforTeam = actor.Combat.Teams.FirstOrDefault(x => x.GUID == "be77cadd-e245-4240-a93e-b99cc98902a5");
-            if (opforTeam != null)
-            {
-                var opforUnit = opforTeam.units.FirstOrDefault(x => !x.IsDead);
-                if (opforUnit != null)
-                {
-                    return opforUnit;
-                }
-            }
-            return null;
+            var enemy = actor.GetClosestDetectedEnemy(loc);
+            if (enemy == null) return 9999f;
+            float magnitude = (enemy.CurrentPosition - loc).magnitude;
+            return magnitude;
         }
-
-        public static void ForceUnitToLastActualPhase(this AbstractActor actor)
-        {
-            if (actor.Combat.TurnDirector.IsInterleaved && actor.Initiative != actor.Combat.TurnDirector.LastPhase)
-            {
-                actor.Initiative = actor.Combat.TurnDirector.LastPhase;
-                actor.Combat.MessageCenter.PublishMessage(new ActorPhaseInfoChanged(actor.GUID));
-            }
-            actor.ProcessHesitationSBI();
-        }
-
-        public static string Generate2PtCMDQuasiGUID(this Ability ability, string actorGUID, Vector3 positionA, Vector3 positionB)
-        {
-            return $"AI_CMD_ID_{actorGUID}_{ability.Def.Id}_{positionA}_{positionB}";
-        }
-
-        public static float GetAAAFactor(this AbstractActor actor)
-        {
-            return actor.StatCollection.GetValue<bool>("UseAAAFactor") ? actor.StatCollection.GetValue<float>("AAAFactor") : 0f;
-        }
-
-        public static List<AbstractActor> GetAllDetectedEnemies(this SharedVisibilityCache cache, AbstractActor actor)
-        {
-            var detectedEnemies = new List<AbstractActor>();
-            foreach (var enemy in actor.Combat.GetAllLivingActors())
-            {
-                if (cache.CachedVisibilityToTarget(enemy).VisibilityLevel > 0 && actor.team.IsEnemy(enemy.team) && !enemy.IsDead && !enemy.IsFlaggedForDeath)
-                {
-                    ModInit.modLog?.Debug?.Write($"unit {enemy.DisplayName} is enemy of {actor.DisplayName}.");
-                    detectedEnemies.Add(enemy);
-                }
-            }
-            return detectedEnemies;
-        }
-
-        public static List<AbstractActor> GetAllEnemies(this Team team)
-        {
-            var enemyActors = new List<AbstractActor>();
-            foreach (var enemy in team.Combat.GetAllLivingActors())
-            {
-                if (team.IsEnemy(enemy.team) && !enemy.IsDead && !enemy.IsFlaggedForDeath)
-                {
-                    ModInit.modLog?.Debug?.Write($"unit {enemy.DisplayName} is enemy of {team.DisplayName}.");
-                    enemyActors.Add(enemy);
-                }
-            }
-            return enemyActors;
-        }
-
-        public static List<AbstractActor> GetAllEnemiesWithinRange(this AbstractActor actor, float range)
-        {
-            var detectedEnemies = new List<AbstractActor>();
-            foreach (var enemy in actor.Combat.GetAllLivingActors())
-            {
-                if (actor.team.IsEnemy(enemy.team) && !enemy.IsDead && !enemy.IsFlaggedForDeath)
-                {
-                    if (Vector3.Distance(actor.CurrentPosition, enemy.CurrentPosition) <= range)
-                    {
-                        ModInit.modLog?.Debug?.Write($"unit {enemy.DisplayName} is enemy of {actor.DisplayName}.");
-                        detectedEnemies.Add(enemy);
-                    }
-                }
-            }
-            return detectedEnemies;
-        }
-
-        public static List<AbstractActor> GetAllFriendlies (this SharedVisibilityCache cache, AbstractActor actor)
-        {
-            var friendlyActors = new List<AbstractActor>();
-            foreach (var friendly in actor.Combat.GetAllLivingActors())
-            {
-                if (actor.team.IsFriendly(friendly.team) && !friendly.IsDead && !friendly.IsFlaggedForDeath)
-                {
-                    ModInit.modLog?.Debug?.Write($"unit {friendly.DisplayName} is friendly of {actor.DisplayName}.");
-                    friendlyActors.Add(friendly);
-                }
-            }
-            return friendlyActors;
-        }
-
-        public static List<AbstractActor> GetAllFriendliesWithinRange(this AbstractActor actor, float range)
-        {
-            var detectedFriendlies = new List<AbstractActor>();
-            foreach (var friendly in actor.team.units)
-            {
-                if ((friendly.team.IsLocalPlayer || friendly.team.IsFriendly(actor.team)) && !friendly.IsDead && !friendly.IsFlaggedForDeath)
-                {
-                    if (Vector3.Distance(actor.CurrentPosition, friendly.CurrentPosition) <= range)
-                    {
-                        ModInit.modLog?.Debug?.Write($"unit {friendly.DisplayName} is friendly of {actor.DisplayName}.");
-                        detectedFriendlies.Add(friendly);
-                    }
-                }
-            }
-            return detectedFriendlies;
-        }
-
-        public static float GetAvoidStrafeChanceForTeam(this ICombatant combatant)
-        {
-            var actors = combatant.Combat.GetAllLivingActors();
-            var cumAA = 0f;
-            var unitDivisor = 0;
-            foreach (var unit in actors)
-            {
-                if (unit.team.IsFriendly(combatant.team))
-                {
-                    cumAA += unit.GetAAAFactor();
-                    unitDivisor++;
-                    ModInit.modLog?.Debug?.Write($"unit {unit.DisplayName} is friendly of {combatant.DisplayName}. Added AA factor {unit.GetAAAFactor()}; total is now {cumAA} from {unitDivisor} units");
-                }
-            }
-
-            if (unitDivisor == 0) return 0f;
-            var finalAA = cumAA / unitDivisor;
-            ModInit.modLog?.Debug?.Write($"final AA value for {combatant.DisplayName} and team {combatant.team.DisplayName}: {finalAA}");
-            return finalAA;
-        }
-
         public static AbstractActor GetClosestDetectedEnemy(this AbstractActor actor, Vector3 loc)
         {
             var enemyUnits = new List<AbstractActor>();
@@ -939,23 +807,6 @@ namespace StrategicOperations.Framework
                 {
                     num = magnitude;
                     closestActor = enemy;
-                }
-            }
-            return closestActor;
-        }
-
-        public static AbstractActor GetClosestDetectedFriendly(Vector3 loc, AbstractActor actor)
-        {
-            var friendlyUnits = actor.team.VisibilityCache.GetAllFriendlies(actor).Where(x=> !x.IsDead && !x.IsFlaggedForDeath);
-            var num = -1f;
-            AbstractActor closestActor = null;
-            foreach (var friendly in friendlyUnits)
-            {
-                var magnitude = (loc - friendly.CurrentPosition).magnitude;
-                if (num < 0f || magnitude < num)
-                {
-                    num = magnitude;
-                    closestActor = friendly;
                 }
             }
             return closestActor;
@@ -982,12 +833,267 @@ namespace StrategicOperations.Framework
             return closestActor;
         }
 
-        public static Vector3 GetHexFromVector(this Vector3 point)
+        public static AbstractActor GetClosestDetectedFriendly(Vector3 loc, AbstractActor actor)
         {
+            var friendlyUnits = actor.team.VisibilityCache.GetAllFriendlies(actor).Where(x=> !x.IsDead && !x.IsFlaggedForDeath);
+            var num = -1f;
+            AbstractActor closestActor = null;
+            foreach (var friendly in friendlyUnits)
+            {
+                var magnitude = (loc - friendly.CurrentPosition).magnitude;
+                if (num < 0f || magnitude < num)
+                {
+                    num = magnitude;
+                    closestActor = friendly;
+                }
+            }
+            return closestActor;
+        }
+
+        public static List<AbstractActor> GetAllDetectedEnemies(this SharedVisibilityCache cache, AbstractActor actor)
+        {
+            var detectedEnemies = new List<AbstractActor>();
+            foreach (var enemy in actor.Combat.GetAllLivingActors())
+            {
+                if (cache.CachedVisibilityToTarget(enemy).VisibilityLevel > 0 && actor.team.IsEnemy(enemy.team) && !enemy.IsDead && !enemy.IsFlaggedForDeath)
+                {
+                    ModInit.modLog?.Debug?.Write($"unit {enemy.DisplayName} is enemy of {actor.DisplayName}.");
+                    detectedEnemies.Add(enemy);
+                }
+            }
+            return detectedEnemies;
+        }
+
+        public static List<AbstractActor> GetVisibleEnemyUnitsEnemiesOnly(this AbstractActor actor)
+        {
+            var detectedEnemies = actor.VisibilityCache.GetVisibleEnemyUnits();
+            for (var index = detectedEnemies.Count - 1; index >= 0; index--)
+            {
+                var enemy = detectedEnemies[index];
+                if (!actor.team.IsEnemy(enemy.team) || enemy.IsDead || enemy.IsFlaggedForDeath)
+                {
+                    detectedEnemies.Remove(enemy);
+                }
+            }
+            return detectedEnemies;
+        }
+
+        public static List<AbstractActor> GetAllEnemiesWithinRange(this AbstractActor actor, float range)
+        {
+            var detectedEnemies = new List<AbstractActor>();
+            foreach (var enemy in actor.Combat.GetAllLivingActors())
+            {
+                if (actor.team.IsEnemy(enemy.team) && !enemy.IsDead && !enemy.IsFlaggedForDeath)
+                {
+                    if (Vector3.Distance(actor.CurrentPosition, enemy.CurrentPosition) <= range)
+                    {
+                        ModInit.modLog?.Debug?.Write($"unit {enemy.DisplayName} is enemy of {actor.DisplayName}.");
+                        detectedEnemies.Add(enemy);
+                    }
+                }
+            }
+            return detectedEnemies;
+        }
+
+        public static List<AbstractActor> GetAllFriendliesWithinRange(this AbstractActor actor, float range)
+        {
+            var detectedFriendlies = new List<AbstractActor>();
+            foreach (var friendly in actor.team.units)
+            {
+                if ((friendly.team.IsLocalPlayer || friendly.team.IsFriendly(actor.team)) && !friendly.IsDead && !friendly.IsFlaggedForDeath)
+                {
+                    if (Vector3.Distance(actor.CurrentPosition, friendly.CurrentPosition) <= range)
+                    {
+                        ModInit.modLog?.Debug?.Write($"unit {friendly.DisplayName} is friendly of {actor.DisplayName}.");
+                        detectedFriendlies.Add(friendly);
+                    }
+                }
+            }
+            return detectedFriendlies;
+        }
+
+        public static List<AbstractActor> GetAllFriendlies (this SharedVisibilityCache cache, AbstractActor actor)
+        {
+            var friendlyActors = new List<AbstractActor>();
+            foreach (var friendly in actor.Combat.GetAllLivingActors())
+            {
+                if (actor.team.IsFriendly(friendly.team) && !friendly.IsDead && !friendly.IsFlaggedForDeath)
+                {
+                    ModInit.modLog?.Debug?.Write($"unit {friendly.DisplayName} is friendly of {actor.DisplayName}.");
+                    friendlyActors.Add(friendly);
+                }
+            }
+            return friendlyActors;
+        }
+
+        public static List<AbstractActor> GetAllEnemies(this Team team)
+        {
+            var enemyActors = new List<AbstractActor>();
+            foreach (var enemy in team.Combat.GetAllLivingActors())
+            {
+                if (team.IsEnemy(enemy.team) && !enemy.IsDead && !enemy.IsFlaggedForDeath)
+                {
+                    ModInit.modLog?.Debug?.Write($"unit {enemy.DisplayName} is enemy of {team.DisplayName}.");
+                    enemyActors.Add(enemy);
+                }
+            }
+            return enemyActors;
+        }
+
+        public static Vector3[] MakeCircle(Vector3 start, int numOfPoints, float radius)
+        {
+            if (ModInit.modSettings.debugFlares) Utils.SpawnDebugFlare(start, "vfxPrfPrtl_artillerySmokeSignal_loop",3);
+            var vectors = new List<Vector3>();
+            for (int i = 0; i < numOfPoints; i++)
+            {
+                var radians = 2 * Mathf.PI / numOfPoints * i;
+                var vertical = Mathf.Sin(radians);
+                var horizontal = Mathf.Cos(radians);
+                var spawnDir = new Vector3(horizontal, 0, vertical);
+
+                var newPos = start + spawnDir * radius;
+                vectors.Add(newPos);
+                if (ModInit.modSettings.debugFlares) Utils.SpawnDebugFlare(newPos, "vfxPrfPrtl_artillerySmokeSignal_loop", 3);
+                ModInit.modLog?.Debug?.Write($"Distance from possibleStart to ray endpoint is {Vector3.Distance(start, newPos)}.");
+            }
+
+            return vectors.ToArray();
+        }
+
+        public static List<Rect> MakeRectangle(Vector3 start, Vector3 end, float width)
+        {
+            
+            var rectangles = new List<Rect>();
+            Vector3 line = end - start;
+            float length = Vector3.Distance(start, end);
+            ModInit.modLog?.Debug?.Write($"Rectangle length should be {length}.");
+            Vector3 left = Vector3.Cross(line, Vector3.up).normalized;
+            Vector3 right = -left;
+            var startLeft = start + (left * width);
+            var startRight = start + (right * width);
+            var rectLeft = new Rect(startLeft.x, startLeft.y, width, length);
+            var rectRight = new Rect(startRight.x, startRight.y, width, length);
+            rectangles.Add(rectLeft);
+            rectangles.Add(rectRight);
+            return rectangles;//.ToArray();
+        }
+
+        public static Vector3 LerpByDistance(Vector3 start, Vector3 end, float x)
+        {
+            return x * Vector3.Normalize(end - start) + start;
+        }
+
+        public static HeraldryDef SwapHeraldryColors(HeraldryDef def, DataManager dataManager, Action loadCompleteCallback = null)
+        {
+            var secondaryID = def.primaryMechColorID;
+            var tertiaryID = def.secondaryMechColorID;
+            var primaryID = def.tertiaryMechColorID;
+
+            ModInit.modLog?.Trace?.Write($"Creating new heraldry for support. {primaryID} was tertiary, now primary. {secondaryID} was primary, now secondary. {tertiaryID} was secondary, now tertiary.");
+            var newHeraldry = new HeraldryDef(def.Description, def.textureLogoID, primaryID, secondaryID, tertiaryID);
+
+            newHeraldry.DataManager = dataManager;
+            LoadRequest loadRequest = dataManager.CreateLoadRequest(delegate (LoadRequest request)
+            {
+                newHeraldry.Refresh();
+                loadCompleteCallback?.Invoke();
+            }, false);
+            loadRequest.AddBlindLoadRequest(BattleTechResourceType.Texture2D, newHeraldry.textureLogoID, new bool?(false));
+            loadRequest.AddBlindLoadRequest(BattleTechResourceType.Sprite, newHeraldry.textureLogoID, new bool?(false));
+            loadRequest.AddBlindLoadRequest(BattleTechResourceType.ColorSwatch, newHeraldry.primaryMechColorID, new bool?(false));
+            loadRequest.AddBlindLoadRequest(BattleTechResourceType.ColorSwatch, newHeraldry.secondaryMechColorID, new bool?(false));
+            loadRequest.AddBlindLoadRequest(BattleTechResourceType.ColorSwatch, newHeraldry.tertiaryMechColorID, new bool?(false));
+            loadRequest.ProcessRequests(10U);
+            newHeraldry.Refresh();
+            return newHeraldry;
+        }
+        public static Lance CreateOrFetchCMDLance(Team team)
+        {
+            if (!team.lances.Any(x => x.GUID.EndsWith($"{team.GUID}_StratOps")))
+            {
+                Lance lance = new Lance(team, Array.Empty<LanceSpawnerRef>());
+                var lanceGuid = $"{LanceSpawnerGameLogic.GetLanceGuid(Guid.NewGuid().ToString())}_{team.GUID}_StratOps";
+                lance.lanceGuid = lanceGuid;
+                var combat = UnityGameInstance.BattleTechGame.Combat;
+                combat.ItemRegistry.AddItem(lance);
+                team.lances.Add(lance);
+                ModInit.modLog?.Info?.Write($"Created lance {lance.DisplayName} for Team {team.DisplayName}.");
+                return lance;
+            }
+            return team.lances.FirstOrDefault(x => x.GUID.EndsWith($"{team.GUID}_StratOps"));
+        }
+        public static void CooldownAllCMDAbilities()
+        {
+            for (int i = 0; i < ModState.CommandAbilities.Count; i++)
+            {
+                ModState.CommandAbilities[i].ActivateMiniCooldown();
+            }
+        }
+
+        public static void CreateOrUpdateNeutralTeam()
+        {
+            AITeam aiteam = null;
             var combat = UnityGameInstance.BattleTechGame.Combat;
-            var hex = combat.HexGrid.GetClosestPointOnGrid(point);
-            hex.y = combat.MapMetaData.GetLerpedHeightAt(hex, false);
-            return hex;
+            if (combat.IsLoadingFromSave)
+            {
+                aiteam = (combat.GetLoadedTeamByGUID("61612bb3-abf9-4586-952a-0559fa9dcd75") as AITeam);
+            }
+            if (!combat.IsLoadingFromSave || aiteam == null)
+            {
+                aiteam = new AITeam("Player 1 Support", Color.yellow, "61612bb3-abf9-4586-952a-0559fa9dcd75", true, combat);
+            }
+            combat.TurnDirector.AddTurnActor(aiteam);
+            combat.ItemRegistry.AddItem(aiteam);
+        }
+
+        public static void CreateOrUpdateCustomTeam()
+        {
+            AITeam aiteam = null;
+            var combat = UnityGameInstance.BattleTechGame.Combat;
+            aiteam = new AITeam("CustomTeamTest", Color.yellow, Guid.NewGuid().ToString(), true, combat);
+            combat.TurnDirector.AddTurnActor(aiteam);
+            combat.ItemRegistry.AddItem(aiteam);
+        }
+
+        public static Team CreateOrUpdateAISupportTeam(Team team)
+        {
+            AITeam aiteam = null;
+            var combat = UnityGameInstance.BattleTechGame.Combat;
+            aiteam = new AITeam("Opfor Support", Color.black, Guid.NewGuid().ToString(), true, combat);
+            aiteam.FactionValue = team.FactionValue;
+            combat.TurnDirector.AddTurnActor(aiteam);
+            combat.ItemRegistry.AddItem(aiteam);
+            team.SetSupportTeam(aiteam);
+            if (!ModState.ReinitPhaseIcons)
+            {
+                var phaseIcons = CameraControl.Instance?.HUD?.PhaseTrack?.PhaseIcons;
+                if (phaseIcons == null) return aiteam;
+                foreach (var icon in phaseIcons)
+                {
+                    icon.Init(combat);
+                }
+                ModState.ReinitPhaseIcons = true;
+            }
+            return aiteam;
+        }
+
+        public static Team FetchAISupportTeam(Team team)
+        {
+            if (team.SupportTeam != null)
+            {
+                if (!ModState.ReinitPhaseIcons)
+                {
+                    var phaseIcons = CameraControl.Instance?.HUD?.PhaseTrack?.PhaseIcons;
+                    if (phaseIcons == null) return team.SupportTeam;
+                    foreach (var icon in phaseIcons)
+                    {
+                        icon.Init(team.combat);
+                    }
+                    ModState.ReinitPhaseIcons = true;
+                }
+                return team.SupportTeam;
+            }
+            return CreateOrUpdateAISupportTeam(team);
         }
 
         public static List<MechComponentRef> GetOwnedDeploymentBeacons()
@@ -1114,26 +1220,167 @@ namespace StrategicOperations.Framework
             return beacons;
         }
 
-        public static List<AbstractActor> GetVisibleEnemyUnitsEnemiesOnly(this AbstractActor actor)
+        public static void DeployEvasion(AbstractActor actor)
         {
-            var detectedEnemies = actor.VisibilityCache.GetVisibleEnemyUnits();
-            for (var index = detectedEnemies.Count - 1; index >= 0; index--)
+            ModInit.modLog?.Info?.Write($"Adding deploy protection to {actor.DisplayName}.");
+            
+            if (actor is Turret turret)
             {
-                var enemy = detectedEnemies[index];
-                if (!actor.team.IsEnemy(enemy.team) || enemy.IsDead || enemy.IsFlaggedForDeath)
+                ModInit.modLog?.Info?.Write($"{actor.DisplayName} is a turret, skipping.");
+                return;
+            }
+
+            if (ModInit.modSettings.deployProtection > 0)
+            {
+                ModInit.modLog?.Info?.Write($"Adding {ModInit.modSettings.deployProtection} evasion pips");
+                actor.EvasivePipsCurrent = ModInit.modSettings.deployProtection;
+                //Traverse.Create(actor).Property("EvasivePipsTotal").SetValue(actor.EvasivePipsCurrent);
+                actor.EvasivePipsTotal = actor.EvasivePipsCurrent;
+                actor.Combat.MessageCenter.PublishMessage(new EvasiveChangedMessage(actor.GUID, actor.EvasivePipsCurrent));
+            }
+        }
+
+        public static void MountedEvasion(this AbstractActor actor, AbstractActor carrier)
+        {
+            ModInit.modLog?.Info?.Write($"Adding BA mounted protection to {actor.DisplayName}.");
+
+            if (actor is Turret turret)
+            {
+                ModInit.modLog?.Info?.Write($"{actor.DisplayName} is a turret, skipping.");
+                return;
+            }
+
+            var carrierEvasion = carrier.EvasivePipsCurrent;
+            ModInit.modLog?.Info?.Write($"Setting evasion to {carrierEvasion} from carrier");
+            actor.EvasivePipsCurrent = carrierEvasion;
+            actor.EvasivePipsTotal = actor.EvasivePipsCurrent;
+            //Traverse.Create(actor).Property("EvasivePipsTotal").SetValue(actor.EvasivePipsCurrent);
+        }
+
+
+        public static void SpawnDebugFlare(Vector3 position, string prefabName, int numPhases)
+        {
+            var combat = UnityGameInstance.BattleTechGame.Combat;
+            position.y = combat.MapMetaData.GetLerpedHeightAt(position, false);
+            List<ObjectSpawnData> list = new List<ObjectSpawnData>();
+            ObjectSpawnData item = new ObjectSpawnData(prefabName, position, Quaternion.identity, true, false);
+            list.Add(item);
+            SpawnObjectSequence spawnObjectSequence = new SpawnObjectSequence(combat, list);
+            combat.MessageCenter.PublishMessage(new AddSequenceToStackMessage(spawnObjectSequence));
+            List<ObjectSpawnData> spawnedObjects = spawnObjectSequence.spawnedObjects;
+            CleanupObjectSequence eventSequence = new CleanupObjectSequence(combat, spawnedObjects);
+            TurnEvent tEvent = new TurnEvent(Guid.NewGuid().ToString(), combat, numPhases, null, eventSequence, default(AbilityDef), false);
+            combat.TurnDirector.AddTurnEvent(tEvent);
+        }
+
+        public static void SpawnFlares(Ability ability, Vector3 positionA, Vector3 positionB, string prefabName,
+            int numFlares, int numPhases, bool IsLocalPlayer)
+        {
+            if (ability.Combat.ActiveContract.ContractTypeValue.IsSkirmish) return;
+
+            if (ability.Def.specialRules == AbilityDef.SpecialRules.SpawnTurret)
+            {
+                positionA.y = ability.Combat.MapMetaData.GetLerpedHeightAt(positionA, false);
+                List<ObjectSpawnData> listSpawn = new List<ObjectSpawnData>();
+                ObjectSpawnData item = new ObjectSpawnData(prefabName, positionA, Quaternion.identity, true, false);
+                listSpawn.Add(item);
+                SpawnObjectSequence spawnObjectSequenceSpawn = new SpawnObjectSequence(ability.Combat, listSpawn);
+                ability.Combat.MessageCenter.PublishMessage(new AddSequenceToStackMessage(spawnObjectSequenceSpawn));
+                List<ObjectSpawnData> spawnedObjectsSpawn = spawnObjectSequenceSpawn.spawnedObjects;
+                CleanupObjectSequence eventSequenceSpawn = new CleanupObjectSequence(ability.Combat, spawnedObjectsSpawn);
+                TurnEvent tEventSpawn = new TurnEvent(Guid.NewGuid().ToString(), ability.Combat, numPhases + 1, null, eventSequenceSpawn, default(AbilityDef), false);
+                ability.Combat.TurnDirector.AddTurnEvent(tEventSpawn);
+                return;
+            }
+
+            Vector3 b = (positionB - positionA) / Math.Max(numFlares - 1, 1);
+
+            Vector3 line = positionB - positionA;
+            Vector3 left = Vector3.Cross(line, Vector3.up).normalized;
+            Vector3 right = -left;
+
+            var startLeft = positionA + (left * ability.Def.FloatParam1);
+            var startRight = positionA + (right * ability.Def.FloatParam1);
+
+            Vector3 vector = positionA;
+
+            vector.y = ability.Combat.MapMetaData.GetLerpedHeightAt(vector, false);
+            startLeft.y = ability.Combat.MapMetaData.GetLerpedHeightAt(startLeft, false);
+            startRight.y = ability.Combat.MapMetaData.GetLerpedHeightAt(startRight, false);
+            List<ObjectSpawnData> list = new List<ObjectSpawnData>();
+
+            //add endcap radii, also for babbies
+            var start = vector - b;
+            start.y = ability.Combat.MapMetaData.GetLerpedHeightAt(vector, false);
+            ObjectSpawnData outsideStartFlare = new ObjectSpawnData(prefabName, start, Quaternion.identity, true, false);
+            list.Add(outsideStartFlare);
+
+            for (int i = 0; i < numFlares + 1; i++)
+            {
+                ObjectSpawnData item = new ObjectSpawnData(prefabName, vector, Quaternion.identity, true, false);
+                list.Add(item);
+                vector += b;
+                vector.y = ability.Combat.MapMetaData.GetLerpedHeightAt(vector, false);
+            }
+
+            for (int i = 0; i < numFlares; i++)
+            {
+                ObjectSpawnData item = new ObjectSpawnData(prefabName, startLeft, Quaternion.identity, true, false);
+                list.Add(item);
+                startLeft += b;
+                startLeft.y = ability.Combat.MapMetaData.GetLerpedHeightAt(startLeft, false);
+            }
+
+            for (int i = 0; i < numFlares; i++)
+            {
+                ObjectSpawnData item =
+                    new ObjectSpawnData(prefabName, startRight, Quaternion.identity, true, false);
+                list.Add(item);
+                startRight += b;
+                startRight.y = ability.Combat.MapMetaData.GetLerpedHeightAt(startRight, false);
+            }
+
+            SpawnObjectSequence spawnObjectSequence = new SpawnObjectSequence(ability.Combat, list);
+            ability.Combat.MessageCenter.PublishMessage(new AddSequenceToStackMessage(spawnObjectSequence));
+            List<ObjectSpawnData> spawnedObjects = spawnObjectSequence.spawnedObjects;
+            CleanupObjectSequence eventSequence = new CleanupObjectSequence(ability.Combat, spawnedObjects);
+ //           if (!IsLocalPlayer) numPhases += 1;
+            TurnEvent tEvent = new TurnEvent(Guid.NewGuid().ToString(), ability.Combat, numPhases + 1, null,
+                eventSequence, ability.Def, false);
+            ability.Combat.TurnDirector.AddTurnEvent(tEvent);
+            return;
+        }
+
+        public static void NotifyStrafeSequenceComplete(string parentID, string currentID)
+        {
+            if (ModState.PendingStrafeWaves.ContainsKey(parentID))
+            {
+                ModInit.modLog?.Info?.Write($"Strafe Sequence with parent {parentID} and ID {currentID} complete. Remaining waves: {ModState.PendingStrafeWaves[parentID].RemainingWaves}");
+                if (ModState.PendingStrafeWaves[parentID].RemainingWaves > 0)
                 {
-                    detectedEnemies.Remove(enemy);
+                    ModState.PendingStrafeWaves[parentID].RemainingWaves--;
+                    InitiateStrafe(parentID, ModState.PendingStrafeWaves[parentID]);
+                }
+                else
+                {
+                    ModInit.modLog?.Info?.Write($"Strafe Sequence with parent {parentID} and ID {currentID} complete. No remaining waves, removing from state.");
+                    ModState.PendingStrafeWaves.Remove(parentID);
                 }
             }
-            return detectedEnemies;
         }
 
-        public static void HandleInvocationStackSequenceCreatedExternal(this MessageCenterMessage message)
+        public static void DP_AnimationComplete(string encounterObjectGUID)
         {
-           // InvocationStackSequenceCreated invocationStackSequenceCreated = message as InvocationStackSequenceCreated;
-            //message.Orders = invocationStackSequenceCreated.StackSequence; //we dont need orders for the movement sequence. maybe.
+            EncounterLayerParent.EnqueueLoadAwareMessage(new DropshipAnimationCompleteMessage(LanceSpawnerGameLogic.GetDropshipGuid(encounterObjectGUID)));
         }
 
+        public static bool IsAOEStrafe(this MechComponentRef component, bool IsStrafe)
+        {
+            if (!IsStrafe) return false;
+            if (component.Def.ComponentTags.Any(x => x == "IsAOEStrafe")) return true;
+            return false;
+        }
+            
         public static void InitiateStrafe(string parentSequenceID, PendingStrafeWave wave)
         {
 
@@ -1350,116 +1597,6 @@ namespace StrategicOperations.Framework
                 }
             }
         }
-
-        public static bool IsAOEStrafe(this MechComponentRef component, bool IsStrafe)
-        {
-            if (!IsStrafe) return false;
-            if (component.Def.ComponentTags.Any(x => x == "IsAOEStrafe")) return true;
-            return false;
-        }
-
-
-        public static bool IsComponentPlayerControllable(this TagSet tagset, out bool forced)
-        {
-            if (tagset.Any(x => x == "StratOps_player_control_enable"))
-            {
-                forced = true;
-                return true;
-            }
-            if (tagset.Any(x => x == "StratOps_player_control_disable"))
-            {
-                forced = true;
-                return false;
-            }
-
-            forced = false;
-            return true;
-        }
-
-        public static bool IsCustomUnitVehicle(this ICombatant combatant)
-        {
-            if (!combatant.StatCollection.ContainsStatistic("CUFakeVehicle")) return false;
-            return combatant.StatCollection.GetValue<bool>("CUFakeVehicle");
-        }
-
-        public static Vector3 LerpByDistance(Vector3 start, Vector3 end, float x)
-        {
-            return x * Vector3.Normalize(end - start) + start;
-        }
-
-        public static Vector3[] MakeCircle(Vector3 start, int numOfPoints, float radius)
-        {
-            if (ModInit.modSettings.debugFlares) Utils.SpawnDebugFlare(start, "vfxPrfPrtl_artillerySmokeSignal_loop",3);
-            var vectors = new List<Vector3>();
-            for (int i = 0; i < numOfPoints; i++)
-            {
-                var radians = 2 * Mathf.PI / numOfPoints * i;
-                var vertical = Mathf.Sin(radians);
-                var horizontal = Mathf.Cos(radians);
-                var spawnDir = new Vector3(horizontal, 0, vertical);
-
-                var newPos = start + spawnDir * radius;
-                vectors.Add(newPos);
-                if (ModInit.modSettings.debugFlares) Utils.SpawnDebugFlare(newPos, "vfxPrfPrtl_artillerySmokeSignal_loop", 3);
-                ModInit.modLog?.Debug?.Write($"Distance from possibleStart to ray endpoint is {Vector3.Distance(start, newPos)}.");
-            }
-
-            return vectors.ToArray();
-        }
-
-        public static List<Rect> MakeRectangle(Vector3 start, Vector3 end, float width)
-        {
-            
-            var rectangles = new List<Rect>();
-            Vector3 line = end - start;
-            float length = Vector3.Distance(start, end);
-            ModInit.modLog?.Debug?.Write($"Rectangle length should be {length}.");
-            Vector3 left = Vector3.Cross(line, Vector3.up).normalized;
-            Vector3 right = -left;
-            var startLeft = start + (left * width);
-            var startRight = start + (right * width);
-            var rectLeft = new Rect(startLeft.x, startLeft.y, width, length);
-            var rectRight = new Rect(startRight.x, startRight.y, width, length);
-            rectangles.Add(rectLeft);
-            rectangles.Add(rectRight);
-            return rectangles;//.ToArray();
-        }
-
-        public static void MountedEvasion(this AbstractActor actor, AbstractActor carrier)
-        {
-            ModInit.modLog?.Info?.Write($"Adding BA mounted protection to {actor.DisplayName}.");
-
-            if (actor is Turret turret)
-            {
-                ModInit.modLog?.Info?.Write($"{actor.DisplayName} is a turret, skipping.");
-                return;
-            }
-
-            var carrierEvasion = carrier.EvasivePipsCurrent;
-            ModInit.modLog?.Info?.Write($"Setting evasion to {carrierEvasion} from carrier");
-            actor.EvasivePipsCurrent = carrierEvasion;
-            actor.EvasivePipsTotal = actor.EvasivePipsCurrent;
-            //Traverse.Create(actor).Property("EvasivePipsTotal").SetValue(actor.EvasivePipsCurrent);
-        }
-
-        public static void NotifyStrafeSequenceComplete(string parentID, string currentID)
-        {
-            if (ModState.PendingStrafeWaves.ContainsKey(parentID))
-            {
-                ModInit.modLog?.Info?.Write($"Strafe Sequence with parent {parentID} and ID {currentID} complete. Remaining waves: {ModState.PendingStrafeWaves[parentID].RemainingWaves}");
-                if (ModState.PendingStrafeWaves[parentID].RemainingWaves > 0)
-                {
-                    ModState.PendingStrafeWaves[parentID].RemainingWaves--;
-                    InitiateStrafe(parentID, ModState.PendingStrafeWaves[parentID]);
-                }
-                else
-                {
-                    ModInit.modLog?.Info?.Write($"Strafe Sequence with parent {parentID} and ID {currentID} complete. No remaining waves, removing from state.");
-                    ModState.PendingStrafeWaves.Remove(parentID);
-                }
-            }
-        }
-
         public static void PerformAttackStrafe(this TerrainAttackDeligate del, TB_StrafeSequence strafeSequence)
         {
             MechRepresentation gameRep = del.actor.GameRep as MechRepresentation;
@@ -1491,202 +1628,61 @@ namespace StrategicOperations.Framework
             attackSequence.ResetWeapons();
         }
 
-        public static void ProcessHesitationSBI(this AbstractActor actor)
+        public static void ApplyCreatorEffects(this Ability ability, AbstractActor creator)
         {
-            if (actor.StatCollection.ContainsStatistic("SBI_STATE_HESITATION"))
+            for (int i = 0; i < ability.Def.EffectData.Count; i++)
             {
-                var currentHesitation = actor.StatCollection.GetValue<int>("SBI_STATE_HESITATION");
-                var actorHesitationPhaseMod = actor.StatCollection.GetValue<int>("SBI_MOD_HESITATION") * -1; // invert from SBI
-                var phasesMoved = Math.Abs(actor.Combat.TurnDirector.CurrentPhase - actor.Combat.TurnDirector.LastPhase);
-                var hesitationPenalty = (ModInit.modSettings.SBI_HesitationMultiplier * phasesMoved) + actorHesitationPhaseMod;
-                var roundedPenalty = Mathf.RoundToInt(hesitationPenalty);
-                var finalHesitation = currentHesitation + roundedPenalty;
-                actor.StatCollection.ModifyStat<int>(actor.GUID, -1, "SBI_STATE_HESITATION", StatCollection.StatOperation.Set, finalHesitation);
-                ModInit.modLog?.Info?.Write(
-                    $"[ProcessHesitationSBI] Used quick-reserve with SBI. Final hesitation set to {finalHesitation} from: Multiplier setting {ModInit.modSettings.SBI_HesitationMultiplier} x PhasesMoved {phasesMoved} + Actor Hesitation Mod {actorHesitationPhaseMod} + Current hesitation {currentHesitation} (rounded)");
+                if (ability.Def.EffectData[i].targetingData.effectTriggerType == EffectTriggerType.OnActivation && ability.Def.EffectData[i].targetingData.effectTargetType == EffectTargetType.Creator)
+                {
+                    if (ability.Def.EffectData[i].effectType == EffectType.VFXEffect)
+                    {
+                        if (false)
+                        {
+                            List<ObjectSpawnData> list = new List<ObjectSpawnData>();
+                            var pos = creator.CurrentPosition + Vector3.up;
+                            ObjectSpawnData item = new ObjectSpawnData(ability.Def.EffectData[i].vfxData.vfxName, pos,
+                                Quaternion.identity, true, false);
+                            list.Add(item);
+
+                            var duration = ability.Def.EffectData[i].durationData.duration;
+
+                            SpawnObjectSequence spawnObjectSequence = new SpawnObjectSequence(creator.Combat, list);
+                            creator.Combat.MessageCenter.PublishMessage(
+                                new AddSequenceToStackMessage(spawnObjectSequence));
+                            List<ObjectSpawnData> spawnedObjects = spawnObjectSequence.spawnedObjects;
+                            CleanupObjectSequence cleanupSequence =
+                                new CleanupObjectSequence(creator.Combat, spawnedObjects);
+                            TurnEvent tEvent = new TurnEvent(Guid.NewGuid().ToString(), creator.Combat, duration, null,
+                                cleanupSequence, ability.Def, false);
+                            creator.Combat.TurnDirector.AddTurnEvent(tEvent);
+                        }
+
+                        var hitInfo = default(WeaponHitInfo);
+                        hitInfo.numberOfShots = 1;
+                        hitInfo.hitLocations = new int[1];
+                        hitInfo.hitLocations[0] = 8;
+                        hitInfo.hitPositions = new Vector3[1];
+
+                        var attackPos = creator.GameRep.transform.position + Vector3.up * 100f;
+                        var impactPos = creator.getImpactPositionSimple(attackPos, 8) + Vector3.up * 10f;
+
+                        hitInfo.hitPositions[0] = impactPos;
+                        hitInfo.attackerId = creator.GUID;
+                        hitInfo.targetId = creator.GUID;
+                        creator.Combat.EffectManager.CreateEffect(ability.Def.EffectData[i], ability.Def.EffectData[i].Description.Id, 0, creator, creator, hitInfo, 0, false);
+                    }
+                    else
+                    {
+                        //creator.Combat.EffectManager.CreateEffect(ability.Def.EffectData[i], ability.Def.EffectData[i].Description.Id, 0, creator, creator, default(WeaponHitInfo), 0, false);
+                        creator.CreateEffect(ability.Def.EffectData[i], ability,
+                            ability.Def.EffectData[i].Description.Id,
+                            -1, creator);
+                    }
+                }
             }
         }
 
-        public static void PublishInvocationExternal(this MessageCenter messageCenter, MessageCenterMessage invocation)
-        {
-            messageCenter.AddSubscriber(MessageCenterMessageType.InvocationStackSequenceCreated, new ReceiveMessageCenterMessage(HandleInvocationStackSequenceCreatedExternal));
-            messageCenter.PublishMessage(invocation);
-            messageCenter.RemoveSubscriber(MessageCenterMessageType.InvocationStackSequenceCreated, new ReceiveMessageCenterMessage(HandleInvocationStackSequenceCreatedExternal));
-            
-            //if (this.Orders == null && this.SelectionType != SelectionType.DoneWithMech)
-            //{
-            //    Debug.LogError("No Orders assigned from invocation!");
-            //}
-        }
-
-        public static bool ShouldPlayerControlSpawn(Team team, Ability ability, string quid)
-        {
-            var sim = UnityGameInstance.BattleTechGame.Simulation;
-            if (sim == null) return false;
-            if (!team.IsLocalPlayer) return false;
-            if (ModInit.modSettings.PlayerControlSpawns) return true;
-
-            if (ModState.StoredCmdParams.ContainsKey(quid))
-            {
-                if (ModState.StoredCmdParams[quid].PlayerControl &&
-                    ModState.StoredCmdParams[quid].PlayerControlOverridden) return true;
-                if (!ModState.StoredCmdParams[quid].PlayerControl &&
-                    ModState.StoredCmdParams[quid].PlayerControlOverridden) return false;
-            }
-
-            if (ModInit.modSettings.PlayerControlSpawnAbilities.Contains(ability.Def.Id)) return true;
-            if (ModInit.modSettings.PlayerControlSpawnAbilitiesBlacklist.Contains(ability.Def.Id)) return false;
-
-            return sim.CompanyStats.GetValue<bool>("StratOps_ControlSpawns");
-        }
-
-
-        public static void SpawnDebugFlare(Vector3 position, string prefabName, int numPhases)
-        {
-            var combat = UnityGameInstance.BattleTechGame.Combat;
-            position.y = combat.MapMetaData.GetLerpedHeightAt(position, false);
-            List<ObjectSpawnData> list = new List<ObjectSpawnData>();
-            ObjectSpawnData item = new ObjectSpawnData(prefabName, position, Quaternion.identity, true, false);
-            list.Add(item);
-            SpawnObjectSequence spawnObjectSequence = new SpawnObjectSequence(combat, list);
-            combat.MessageCenter.PublishMessage(new AddSequenceToStackMessage(spawnObjectSequence));
-            List<ObjectSpawnData> spawnedObjects = spawnObjectSequence.spawnedObjects;
-            CleanupObjectSequence eventSequence = new CleanupObjectSequence(combat, spawnedObjects);
-            TurnEvent tEvent = new TurnEvent(Guid.NewGuid().ToString(), combat, numPhases, null, eventSequence, default(AbilityDef), false);
-            combat.TurnDirector.AddTurnEvent(tEvent);
-        }
-
-        public static void SpawnFlares(Ability ability, Vector3 positionA, Vector3 positionB, string prefabName,
-            int numFlares, int numPhases, bool IsLocalPlayer)
-        {
-            if (ability.Combat.ActiveContract.ContractTypeValue.IsSkirmish) return;
-
-            if (ability.Def.specialRules == AbilityDef.SpecialRules.SpawnTurret)
-            {
-                positionA.y = ability.Combat.MapMetaData.GetLerpedHeightAt(positionA, false);
-                List<ObjectSpawnData> listSpawn = new List<ObjectSpawnData>();
-                ObjectSpawnData item = new ObjectSpawnData(prefabName, positionA, Quaternion.identity, true, false);
-                listSpawn.Add(item);
-                SpawnObjectSequence spawnObjectSequenceSpawn = new SpawnObjectSequence(ability.Combat, listSpawn);
-                ability.Combat.MessageCenter.PublishMessage(new AddSequenceToStackMessage(spawnObjectSequenceSpawn));
-                List<ObjectSpawnData> spawnedObjectsSpawn = spawnObjectSequenceSpawn.spawnedObjects;
-                CleanupObjectSequence eventSequenceSpawn = new CleanupObjectSequence(ability.Combat, spawnedObjectsSpawn);
-                TurnEvent tEventSpawn = new TurnEvent(Guid.NewGuid().ToString(), ability.Combat, numPhases + 1, null, eventSequenceSpawn, default(AbilityDef), false);
-                ability.Combat.TurnDirector.AddTurnEvent(tEventSpawn);
-                return;
-            }
-
-            Vector3 b = (positionB - positionA) / Math.Max(numFlares - 1, 1);
-
-            Vector3 line = positionB - positionA;
-            Vector3 left = Vector3.Cross(line, Vector3.up).normalized;
-            Vector3 right = -left;
-
-            var startLeft = positionA + (left * ability.Def.FloatParam1);
-            var startRight = positionA + (right * ability.Def.FloatParam1);
-
-            Vector3 vector = positionA;
-
-            vector.y = ability.Combat.MapMetaData.GetLerpedHeightAt(vector, false);
-            startLeft.y = ability.Combat.MapMetaData.GetLerpedHeightAt(startLeft, false);
-            startRight.y = ability.Combat.MapMetaData.GetLerpedHeightAt(startRight, false);
-            List<ObjectSpawnData> list = new List<ObjectSpawnData>();
-
-            //add endcap radii, also for babbies
-            var start = vector - b;
-            start.y = ability.Combat.MapMetaData.GetLerpedHeightAt(vector, false);
-            ObjectSpawnData outsideStartFlare = new ObjectSpawnData(prefabName, start, Quaternion.identity, true, false);
-            list.Add(outsideStartFlare);
-
-            for (int i = 0; i < numFlares + 1; i++)
-            {
-                ObjectSpawnData item = new ObjectSpawnData(prefabName, vector, Quaternion.identity, true, false);
-                list.Add(item);
-                vector += b;
-                vector.y = ability.Combat.MapMetaData.GetLerpedHeightAt(vector, false);
-            }
-
-            for (int i = 0; i < numFlares; i++)
-            {
-                ObjectSpawnData item = new ObjectSpawnData(prefabName, startLeft, Quaternion.identity, true, false);
-                list.Add(item);
-                startLeft += b;
-                startLeft.y = ability.Combat.MapMetaData.GetLerpedHeightAt(startLeft, false);
-            }
-
-            for (int i = 0; i < numFlares; i++)
-            {
-                ObjectSpawnData item =
-                    new ObjectSpawnData(prefabName, startRight, Quaternion.identity, true, false);
-                list.Add(item);
-                startRight += b;
-                startRight.y = ability.Combat.MapMetaData.GetLerpedHeightAt(startRight, false);
-            }
-
-            SpawnObjectSequence spawnObjectSequence = new SpawnObjectSequence(ability.Combat, list);
-            ability.Combat.MessageCenter.PublishMessage(new AddSequenceToStackMessage(spawnObjectSequence));
-            List<ObjectSpawnData> spawnedObjects = spawnObjectSequence.spawnedObjects;
-            CleanupObjectSequence eventSequence = new CleanupObjectSequence(ability.Combat, spawnedObjects);
- //           if (!IsLocalPlayer) numPhases += 1;
-            TurnEvent tEvent = new TurnEvent(Guid.NewGuid().ToString(), ability.Combat, numPhases + 1, null,
-                eventSequence, ability.Def, false);
-            ability.Combat.TurnDirector.AddTurnEvent(tEvent);
-            return;
-        }
-
-        public static HeraldryDef SwapHeraldryColors(HeraldryDef def, DataManager dataManager, Action loadCompleteCallback = null)
-        {
-            var secondaryID = def.primaryMechColorID;
-            var tertiaryID = def.secondaryMechColorID;
-            var primaryID = def.tertiaryMechColorID;
-
-            ModInit.modLog?.Trace?.Write($"Creating new heraldry for support. {primaryID} was tertiary, now primary. {secondaryID} was primary, now secondary. {tertiaryID} was secondary, now tertiary.");
-            var newHeraldry = new HeraldryDef(def.Description, def.textureLogoID, primaryID, secondaryID, tertiaryID);
-
-            newHeraldry.DataManager = dataManager;
-            LoadRequest loadRequest = dataManager.CreateLoadRequest(delegate (LoadRequest request)
-            {
-                newHeraldry.Refresh();
-                loadCompleteCallback?.Invoke();
-            }, false);
-            loadRequest.AddBlindLoadRequest(BattleTechResourceType.Texture2D, newHeraldry.textureLogoID, new bool?(false));
-            loadRequest.AddBlindLoadRequest(BattleTechResourceType.Sprite, newHeraldry.textureLogoID, new bool?(false));
-            loadRequest.AddBlindLoadRequest(BattleTechResourceType.ColorSwatch, newHeraldry.primaryMechColorID, new bool?(false));
-            loadRequest.AddBlindLoadRequest(BattleTechResourceType.ColorSwatch, newHeraldry.secondaryMechColorID, new bool?(false));
-            loadRequest.AddBlindLoadRequest(BattleTechResourceType.ColorSwatch, newHeraldry.tertiaryMechColorID, new bool?(false));
-            loadRequest.ProcessRequests(10U);
-            newHeraldry.Refresh();
-            return newHeraldry;
-        }
-
-        public static void TeleportActorVisual(this AbstractActor actor, Vector3 newPosition)
-        {
-            actor.CurrentPosition = newPosition;
-            actor.GameRep.transform.position = newPosition;
-            actor.OnPositionUpdate(newPosition, actor.CurrentRotation, -1, true, null, false);
-            actor.previousPosition = newPosition;
-            //actor.ResetPathing(false);
-            //actor.RebuildPathingForNoMovement();
-            actor.IsTeleportedOffScreen = false;
-        }
-
-        public static void UpdateRangeIndicator(this CombatTargetingReticle reticle, Vector3 newPosition, bool minRangeShow, bool maxRangeShow)
-        {
-            if (minRangeShow)
-            {
-                reticle.MinRangeHolder.SetActive(false);
-                reticle.MinRangeHolder.transform.position = newPosition;
-                reticle.MinRangeHolder.SetActive(true);
-            }
-
-            if (maxRangeShow)
-            {
-                reticle.MaxRangeHolder.SetActive(false);
-                reticle.MaxRangeHolder.transform.position = newPosition;
-                reticle.MaxRangeHolder.SetActive(true);
-            }
-        }
-
+        
 
         //public static MethodInfo _activateSpawnTurretMethod = AccessTools.Method(typeof(Ability), "ActivateSpawnTurret");
         //public static MethodInfo _activateStrafeMethod = AccessTools.Method(typeof(Ability), "ActivateStrafe");
