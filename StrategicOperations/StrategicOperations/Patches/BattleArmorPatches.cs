@@ -2085,7 +2085,8 @@ namespace StrategicOperations.Patches
         [HarmonyPatch(typeof(LineOfSight), "GetLineOfFireUncached")]
         public static class LineOfSight_GetLineOfFireUncached
         {
-            static bool Prepare() =>  !ModInit.modSettings.AllowIRBTUHandleVisibility;
+            static bool Prepare() => !ModInit.modSettings.AllowIRBTUHandleVisibility;
+
             public static void Prefix(ref bool __runOriginal, LineOfSight __instance, AbstractActor source,
                 Vector3 sourcePosition, ICombatant target, Vector3 targetPosition, Quaternion targetRotation,
                 ref Vector3 collisionWorldPos, ref LineOfFireLevel __result)
@@ -2299,111 +2300,111 @@ namespace StrategicOperations.Patches
                 __runOriginal = false;
                 return;
             }
+        }
 
-            [HarmonyPatch(typeof(LOFCache), "GetLineOfFire")]
-            public static class LOFCache_GetLineOfFire
+        [HarmonyPatch(typeof(LOFCache), "GetLineOfFire")]
+        public static class LOFCache_GetLineOfFire
+        {
+            //static bool Prepare() => false;
+            public static void Postfix(LOFCache __instance, AbstractActor source, Vector3 sourcePosition,
+                ICombatant target, Vector3 targetPosition, Quaternion targetRotation, ref Vector3 collisionWorldPos,
+                ref LineOfFireLevel __result)
             {
-                //static bool Prepare() => false;
-                public static void Postfix(LOFCache __instance, AbstractActor source, Vector3 sourcePosition,
-                    ICombatant target, Vector3 targetPosition, Quaternion targetRotation, ref Vector3 collisionWorldPos,
-                    ref LineOfFireLevel __result)
+                //collisionWorldPos = targetPosition;
+
+                if (target is AbstractActor actorTarget)
                 {
-                    //collisionWorldPos = targetPosition;
-
-                    if (target is AbstractActor actorTarget)
+                    if (actorTarget.IsSwarmingUnit() ||
+                        actorTarget.IsMountedUnit()) //|| actorTarget.isGarrisoned())
                     {
-                        if (actorTarget.IsSwarmingUnit() ||
-                            actorTarget.IsMountedUnit()) //|| actorTarget.isGarrisoned())
+                        collisionWorldPos = targetPosition;
+                        __result = LineOfFireLevel
+                            .NotSet; // added 3/27 to block all LOF to swarming/mounted units. NotSet, or should it be LOS.Blocked?
+                        return;
+                    }
+                }
+
+                if (source.IsAirlifted())
+                {
+                    if (!ModState.AirliftTrackers[source.GUID].IsCarriedInternal)
+                    {
+                        var carrier =
+                            source.Combat.FindActorByGUID(ModState.AirliftTrackers[source.GUID].CarrierGUID);
+                        var resultFromCarrier = source.Combat.LOFCache.GetLineOfFire(carrier,
+                            carrier.CurrentPosition, target,
+                            targetPosition, targetRotation, out collisionWorldPos);
+                        if (resultFromCarrier > __result)
                         {
-                            collisionWorldPos = targetPosition;
-                            __result = LineOfFireLevel
-                                .NotSet; // added 3/27 to block all LOF to swarming/mounted units. NotSet, or should it be LOS.Blocked?
-                            return;
+                            __result = resultFromCarrier;
                         }
                     }
+                }
 
-                    if (source.IsAirlifted())
+                else if (source.IsMountedUnit())
+                {
+                    var carrier = source.Combat.FindActorByGUID(ModState.PositionLockMount[source.GUID]);
+                    if (carrier.HasFiringPorts())
                     {
-                        if (!ModState.AirliftTrackers[source.GUID].IsCarriedInternal)
-                        {
-                            var carrier =
-                                source.Combat.FindActorByGUID(ModState.AirliftTrackers[source.GUID].CarrierGUID);
-                            var resultFromCarrier = source.Combat.LOFCache.GetLineOfFire(carrier,
-                                carrier.CurrentPosition, target,
-                                targetPosition, targetRotation, out collisionWorldPos);
-                            if (resultFromCarrier > __result)
-                            {
-                                __result = resultFromCarrier;
-                            }
-                        }
+                        __result = source.Combat.LOFCache.GetLineOfFire(carrier, carrier.CurrentPosition, target,
+                            targetPosition, targetRotation, out collisionWorldPos);
+                        //ModInit.modLog?.Debug?.Write($"[LOFCache.GetLineOfFire] returning LOF {__result} from carrier {carrier.DisplayName} for squad {source.DisplayName}");
                     }
+                }
 
-                    else if (source.IsMountedUnit())
-                    {
-                        var carrier = source.Combat.FindActorByGUID(ModState.PositionLockMount[source.GUID]);
-                        if (carrier.HasFiringPorts())
-                        {
-                            __result = source.Combat.LOFCache.GetLineOfFire(carrier, carrier.CurrentPosition, target,
-                                targetPosition, targetRotation, out collisionWorldPos);
-                            //ModInit.modLog?.Debug?.Write($"[LOFCache.GetLineOfFire] returning LOF {__result} from carrier {carrier.DisplayName} for squad {source.DisplayName}");
-                        }
-                    }
-
-                    //                else if (source.isGarrisoned())
-                    //                {
+                //                else if (source.isGarrisoned())
+                //                {
 
 //                    var carrier = source.Combat.FindCombatantByGUID(ModState.PositionLockGarrison[source.GUID].BuildingGUID);
 //                        __result = carrier.GetLineOfFireForGarrison(source, carrier.CurrentPosition, target,
 //                            targetPosition, targetRotation, out collisionWorldPos);
 //ModInit.modLog?.Debug?.Write($"[LOFCache.GetLineOfFire] returning LOF {__result} from carrier {carrier.DisplayName} for squad {source.DisplayName}");
 
-                    //                }
-                    //__result = LineOfFireLevel.LOFClear;
-                }
+                //                }
+                //__result = LineOfFireLevel.LOFClear;
             }
+        }
 
-            [HarmonyPatch(typeof(WeaponRangeIndicators), "DrawLine")]
-            public static class WeaponRangeIndicators_DrawLine //maybe change LOS color if friendly swarmers?
+        [HarmonyPatch(typeof(WeaponRangeIndicators), "DrawLine")]
+        public static class WeaponRangeIndicators_DrawLine //maybe change LOS color if friendly swarmers?
+        {
+            static bool Prepare() => false; //doersnt work, fuckit.
+
+            public static void Prefix(WeaponRangeIndicators __instance, Vector3 position, Quaternion rotation,
+                bool isPositionLocked,
+                AbstractActor selectedActor, ICombatant target, bool usingMultifire, bool isLocked, bool isMelee)
             {
-                static bool Prepare() => false; //doersnt work, fuckit.
-
-                public static void Prefix(WeaponRangeIndicators __instance, Vector3 position, Quaternion rotation,
-                    bool isPositionLocked,
-                    AbstractActor selectedActor, ICombatant target, bool usingMultifire, bool isLocked, bool isMelee)
+                if (target is AbstractActor targetActor && targetActor.HasSwarmingUnits())
                 {
-                    if (target is AbstractActor targetActor && targetActor.HasSwarmingUnits())
+                    if (selectedActor.team.IsEnemy(targetActor.team))
                     {
-                        if (selectedActor.team.IsEnemy(targetActor.team))
-                        {
-                            var previewInfo =
-                                __instance.HUD.SelectionHandler.ActiveState.FiringPreview.GetPreviewInfo(target);
-                            //Traverse.Create(previewInfo).Field("collisionPoint").SetValue(selectedActor.CurrentPosition);
+                        var previewInfo =
+                            __instance.HUD.SelectionHandler.ActiveState.FiringPreview.GetPreviewInfo(target);
+                        //Traverse.Create(previewInfo).Field("collisionPoint").SetValue(selectedActor.CurrentPosition);
 
-                            previewInfo.collisionPoint = selectedActor.CurrentPosition;
-                        }
+                        previewInfo.collisionPoint = selectedActor.CurrentPosition;
                     }
                 }
             }
+        }
 
-            [HarmonyPatch(typeof(MechRepresentation), "ToggleHeadlights")]
-            public static class MechRepresentation_ToggleHeadlights
+        [HarmonyPatch(typeof(MechRepresentation), "ToggleHeadlights")]
+        public static class MechRepresentation_ToggleHeadlights
+        {
+            public static void Postfix(MechRepresentation __instance, bool headlightsActive)
             {
-                public static void Postfix(MechRepresentation __instance, bool headlightsActive)
+                if (__instance.parentActor.IsSwarmingUnit() || __instance.parentActor.IsMountedUnit() ||
+                    __instance.parentActor.IsAirlifted() || __instance.parentActor.IsGarrisoned())
                 {
-                    if (__instance.parentActor.IsSwarmingUnit() || __instance.parentActor.IsMountedUnit() ||
-                        __instance.parentActor.IsAirlifted() || __instance.parentActor.IsGarrisoned())
+                    var customRep = __instance as CustomMechRepresentation;
+                    if (customRep != null)
                     {
-                        var customRep = __instance as CustomMechRepresentation;
-                        if (customRep != null)
+                        customRep._ToggleHeadlights(false);
+                    }
+                    else
+                    {
+                        for (int i = 0; i < __instance.headlightReps.Count; i++)
                         {
-                            customRep._ToggleHeadlights(false);
-                        }
-                        else
-                        {
-                            for (int i = 0; i < __instance.headlightReps.Count; i++)
-                            {
-                                __instance.headlightReps[i].SetActive(false);
-                            }
+                            __instance.headlightReps[i].SetActive(false);
                         }
                     }
                 }
