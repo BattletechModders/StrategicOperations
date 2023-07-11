@@ -12,7 +12,6 @@ namespace StrategicOperations.Patches
 {
     class DirtyDebugPatches
     {
-
         [HarmonyPatch]
         //[HarmonyPatch(typeof(HitLocation), "GetHitLocation", new Type[] {typeof(Dictionary<ArmorLocation, int>), typeof(float), typeof(ArmorLocation), typeof(float)})]
         public static class HitLocation_GetHitLocation_MechArmorLoc
@@ -23,7 +22,7 @@ namespace StrategicOperations.Patches
                     .GetDeclaredMethods(typeof(HitLocation)).FirstOrDefault(x => x.Name == "GetHitLocation" && x.GetParameters().Length == 4)?.MakeGenericMethod(typeof(ArmorLocation));
                 return method;
             }
-            
+
             public static void Postfix(Dictionary<ArmorLocation, int> hitTable, float randomRoll, ArmorLocation bonusLocation, float bonusLocationMultiplier, ref ArmorLocation __result)
             {
                 if (__result == ArmorLocation.None)
@@ -137,6 +136,7 @@ namespace StrategicOperations.Patches
         public static class ReserveActorInvocation_Invoke_ShittyBypass
         {
             static bool Prepare() => true; //enabled
+
             public static void Prefix(ReserveActorInvocation __instance, CombatGameState combatGameState)
             {
                 if (__instance.targetRound != combatGameState.TurnDirector.CurrentRound)
@@ -155,6 +155,7 @@ namespace StrategicOperations.Patches
         public static class Vehicle_ArmorForLocation_Dirty // dirty skip playimpact on despawned/dead actor?
         {
             static bool Prepare() => false;
+
             public static void Prefix(Vehicle __instance, ref int loc)
             {
                 switch (loc)

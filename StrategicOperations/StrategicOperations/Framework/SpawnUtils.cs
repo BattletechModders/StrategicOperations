@@ -60,18 +60,6 @@ namespace StrategicOperations.Framework
             return point;
         }
 
-        public static void ResetPathGridSpawn(this Pathing pathing, Vector3 origin, float beginAngle, AbstractActor actor, bool justStoodUp)
-        {
-            pathing.OwningActor = actor;
-            pathing.PathingCaps = actor.PathingCaps;
-            pathing.MovementCaps = actor.MovementCaps;
-            float num = 1f - (justStoodUp ? (0.75f - (float)pathing.OwningActor.SkillPiloting / pathing.Combat.Constants.PilotingConstants.PilotingDivisor) : 0f);
-            pathing.WalkingGrid.ResetPathGrid(origin, beginAngle, pathing.PathingCaps, actor.MaxWalkDistanceInital() * num, MoveType.Walking);
-            pathing.SprintingGrid.ResetPathGrid(origin, beginAngle, pathing.PathingCaps, actor.MaxSprintDistanceInital() * num, MoveType.Sprinting);
-            pathing.BackwardGrid.ResetPathGrid(origin, beginAngle, pathing.PathingCaps, actor.MaxBackwardDistance * num, MoveType.Backward);
-            pathing.IsLockedToDest = false;
-        }
-
         public static Vector3 FindValidSpawn(AbstractActor target, AbstractActor source, int minRange, int maxRange)
         {
             var pathing = new Pathing(target);
@@ -123,6 +111,18 @@ namespace StrategicOperations.Framework
                 }
             }
             return usableNodes[0].Loc;
+        }
+
+        public static void ResetPathGridSpawn(this Pathing pathing, Vector3 origin, float beginAngle, AbstractActor actor, bool justStoodUp)
+        {
+            pathing.OwningActor = actor;
+            pathing.PathingCaps = actor.PathingCaps;
+            pathing.MovementCaps = actor.MovementCaps;
+            float num = 1f - (justStoodUp ? (0.75f - (float)pathing.OwningActor.SkillPiloting / pathing.Combat.Constants.PilotingConstants.PilotingDivisor) : 0f);
+            pathing.WalkingGrid.ResetPathGrid(origin, beginAngle, pathing.PathingCaps, actor.MaxWalkDistanceInital() * num, MoveType.Walking);
+            pathing.SprintingGrid.ResetPathGrid(origin, beginAngle, pathing.PathingCaps, actor.MaxSprintDistanceInital() * num, MoveType.Sprinting);
+            pathing.BackwardGrid.ResetPathGrid(origin, beginAngle, pathing.PathingCaps, actor.MaxBackwardDistance * num, MoveType.Backward);
+            pathing.IsLockedToDest = false;
         }
     }
 }

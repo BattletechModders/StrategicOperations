@@ -9,99 +9,101 @@ namespace StrategicOperations.Framework
 {
     public static class ModState
     {
-        public static List<Color> ProcessedOverlayColors = new List<Color>();
-        public static Dictionary<string, Color> UsedOverlayColorsByCarrier = new Dictionary<string, Color>();
-        public static List<Color> UsedOverlayColors = new List<Color>();
-        public static Color DefaultOverlay = new Color();
-        public static Color PendingSelectionColor = new Color(0.15f, 0.15f, 0.17f, .5f);
-        //public static string UnitPendingAirliftInvocation = "";
-        //public static AbstractActor startUnitFromInvocation = null;
-        public static LanceLoadoutSlot PendingPairBAUnit = null;
+        public static Dictionary<string, AI_CmdInvocation> AiCmds = new Dictionary<string, AI_CmdInvocation>();
 
-        public static Dictionary<string, BAPairingInfo> PairingInfos = new Dictionary<string, BAPairingInfo>();
-        public static bool ReinitPhaseIcons = false;
-        public static float CancelChanceForPlayerStrafe = 0f;
-        public static List<string> TeamsWithResupply = new List<string>();
-        public static AbstractActor CurrentGarrisonSquadForLOS = null;
-        public static AbstractActor CurrentGarrisonSquadForLOF = null;
-        public static List<CustomSpawner> CurrentContractBASpawners = new List<CustomSpawner>();
-        public static Dictionary<string, bool> GarrisonFriendlyTeam = new Dictionary<string, bool>();
-        public static float SwarmSuccessChance = 0f;
-        public static float DeSwarmSuccessChance = 0f;
+        public static Dictionary<string, AI_DealWithBAInvocation> AiDealWithBattleArmorCmds = new Dictionary<string, AI_DealWithBAInvocation>();
 
-        public static Dictionary<string, Dictionary<string, List<string>>> CachedFactionAssociations = new Dictionary<string, Dictionary<string, List<string>>>();
-        public static Dictionary<string, Dictionary<string, List<AI_BeaconProxyInfo>>> CachedFactionCommandBeacons = new Dictionary<string, Dictionary<string, List<AI_BeaconProxyInfo>>>(); // key1 is abilityID, key2 is faction name
-
-        public static Dictionary<string, int> CurrentBattleArmorSquads = new Dictionary<string, int>();
-        public static Dictionary<string, Dictionary<string,int>> CurrentCommandUnits = new Dictionary<string, Dictionary<string, int>>();
-
-        public static List<ConfigOptions.AI_FactionCommandAbilitySetting> CurrentFactionSettingsList = new List<ConfigOptions.AI_FactionCommandAbilitySetting>();
-
-        public static bool IsStrafeAOE = false;
-        public static Dictionary<string, PendingStrafeWave> PendingStrafeWaves =
-            new Dictionary<string, PendingStrafeWave>();
-        public static List<ArmorLocation> MechArmorMountOrder = new List<ArmorLocation>();
-        public static List<ArmorLocation> MechArmorSwarmOrder = new List<ArmorLocation>();
-
-        public static List<VehicleChassisLocations> VehicleMountOrder = new List<VehicleChassisLocations>();
-
-        public static Dictionary<string, BA_DamageTracker> 
-            BADamageTrackers = new Dictionary<string, BA_DamageTracker>(); // key is GUID of BA squad
-
-        //public static Dictionary<string, Vector3> SavedBAScale = new Dictionary<string, Vector3>(); // should always be 1,1,1
-
-        public static Dictionary<string, Vector3> CachedUnitCoordinates = new Dictionary<string, Vector3>();
-        public static Dictionary<string, BA_GarrisonInfo> PositionLockGarrison = new Dictionary<string, BA_GarrisonInfo>(); // key is mounted unit, value is building
-        public static Dictionary<string, string> PositionLockMount = new Dictionary<string, string>(); // key is mounted unit, value is carrier
-        public static Dictionary<string, string> PositionLockSwarm = new Dictionary<string, string>(); // key is mounted unit, value is carrier
+        public static List<AirliftTargetEffect> AirliftEffects = new List<AirliftTargetEffect>();
         //public static Dictionary<string, string> PositionLockAirlift = new Dictionary<string, string>(); // key is mounted unit, value is carrier
 
         public static Dictionary<string, AirliftTracker> AirliftTrackers = new Dictionary<string, AirliftTracker>(); //Key is mounted unit, value has carrier
 
-        public static Dictionary<string, int> ResupplyShutdownPhases = new Dictionary<string, int>();
+        public static List<BA_TargetEffect> BA_MountSwarmEffects = new List<BA_TargetEffect>();
+
+        public static Dictionary<string, BA_DamageTracker> 
+            BADamageTrackers = new Dictionary<string, BA_DamageTracker>(); // key is GUID of BA squad
+
+        public static Dictionary<string, Dictionary<string, List<string>>> CachedFactionAssociations = new Dictionary<string, Dictionary<string, List<string>>>();
+        public static Dictionary<string, Dictionary<string, List<AI_BeaconProxyInfo>>> CachedFactionCommandBeacons = new Dictionary<string, Dictionary<string, List<AI_BeaconProxyInfo>>>(); // key1 is abilityID, key2 is faction name
+
+        //public static Dictionary<string, Vector3> SavedBAScale = new Dictionary<string, Vector3>(); // should always be 1,1,1
+
+        public static Dictionary<string, Vector3> CachedUnitCoordinates = new Dictionary<string, Vector3>();
+        public static float CancelChanceForPlayerStrafe = 0f;
 
         public static List<Ability> CommandAbilities = new List<Ability>();
 
-        public static List<KeyValuePair<string, Action>>
-            DeferredInvokeSpawns = new List<KeyValuePair<string, Action>>();
+        public static List<CmdUseInfo> CommandUses = new List<CmdUseInfo>();
 
-        public static List<KeyValuePair<string, Action>>
-            DeferredInvokeBattleArmor = new List<KeyValuePair<string, Action>>();
+        public static Dictionary<string, int> CurrentBattleArmorSquads = new Dictionary<string, int>();
+        public static Dictionary<string, Dictionary<string,int>> CurrentCommandUnits = new Dictionary<string, Dictionary<string, int>>();
+        public static List<CustomSpawner> CurrentContractBASpawners = new List<CustomSpawner>();
+
+        public static List<ConfigOptions.AI_FactionCommandAbilitySetting> CurrentFactionSettingsList = new List<ConfigOptions.AI_FactionCommandAbilitySetting>();
+        public static AbstractActor CurrentGarrisonSquadForLOF = null;
+        public static AbstractActor CurrentGarrisonSquadForLOS = null;
+        public static Color DefaultOverlay = new Color();
+
+        public static string DeferredActorResource = "";
+        public static bool DeferredBattleArmorSpawnerFromDelegate;
 
         public static Dictionary<string, AbstractActor> DeferredDespawnersFromStrafe =
             new Dictionary<string, AbstractActor>();
 
-        public static string DeferredActorResource = "";
+        public static List<KeyValuePair<string, Action>>
+            DeferredInvokeBattleArmor = new List<KeyValuePair<string, Action>>();
 
-        public static Dictionary<string, CmdInvocationParams> StoredCmdParams =
-            new Dictionary<string, CmdInvocationParams>();
-
-        public static CmdInvocationParams PendingPlayerCmdParams = new CmdInvocationParams();
+        public static List<KeyValuePair<string, Action>>
+            DeferredInvokeSpawns = new List<KeyValuePair<string, Action>>();
 
         //public static string PopupActorResource = "";
         //public static int StrafeWaves;
         //public static string PilotOverride = null;
         public static bool DeferredSpawnerFromDelegate;
-        public static bool DeferredBattleArmorSpawnerFromDelegate;
-        public static bool OutOfRange;
-
-        public static Dictionary<string, AI_DealWithBAInvocation> AiDealWithBattleArmorCmds = new Dictionary<string, AI_DealWithBAInvocation>();
-
-        public static Dictionary<string, AI_CmdInvocation> AiCmds = new Dictionary<string, AI_CmdInvocation>();
-
-        public static Dictionary<string, StrategicActorTargetInvocation> StrategicActorTargetInvocationCmds = new Dictionary<string, StrategicActorTargetInvocation>();
-
-        public static List<CmdUseInfo> CommandUses = new List<CmdUseInfo>();
 
         public static List<CmdUseStat> DeploymentAssetsStats = new List<CmdUseStat>();
 
-        public static List<BA_TargetEffect> BA_MountSwarmEffects = new List<BA_TargetEffect>();
-        public static List<BA_TargetEffect> OnGarrisonCollapseEffects = new List<BA_TargetEffect>();
-        public static List<AirliftTargetEffect> AirliftEffects = new List<AirliftTargetEffect>();
-
         public static BA_DeswarmMovementInfo DeSwarmMovementInfo = new BA_DeswarmMovementInfo();
+        public static float DeSwarmSuccessChance = 0f;
+        public static Dictionary<string, bool> GarrisonFriendlyTeam = new Dictionary<string, bool>();
+
+        public static bool IsStrafeAOE = false;
+        public static List<ArmorLocation> MechArmorMountOrder = new List<ArmorLocation>();
+        public static List<ArmorLocation> MechArmorSwarmOrder = new List<ArmorLocation>();
+        public static List<BA_TargetEffect> OnGarrisonCollapseEffects = new List<BA_TargetEffect>();
+        public static bool OutOfRange;
+
+        public static Dictionary<string, BAPairingInfo> PairingInfos = new Dictionary<string, BAPairingInfo>();
+
+        //public static string UnitPendingAirliftInvocation = "";
+        //public static AbstractActor startUnitFromInvocation = null;
+        public static LanceLoadoutSlot PendingPairBAUnit = null;
+
+        public static CmdInvocationParams PendingPlayerCmdParams = new CmdInvocationParams();
+        public static Color PendingSelectionColor = new Color(0.15f, 0.15f, 0.17f, .5f);
+
+        public static Dictionary<string, PendingStrafeWave> PendingStrafeWaves =
+            new Dictionary<string, PendingStrafeWave>();
 
         public static List<string> PlayerSpawnGUIDs = new List<string>();
+        public static Dictionary<string, BA_GarrisonInfo> PositionLockGarrison = new Dictionary<string, BA_GarrisonInfo>(); // key is mounted unit, value is building
+        public static Dictionary<string, string> PositionLockMount = new Dictionary<string, string>(); // key is mounted unit, value is carrier
+        public static Dictionary<string, string> PositionLockSwarm = new Dictionary<string, string>(); // key is mounted unit, value is carrier
+        public static List<Color> ProcessedOverlayColors = new List<Color>();
+        public static bool ReinitPhaseIcons = false;
+
+        public static Dictionary<string, int> ResupplyShutdownPhases = new Dictionary<string, int>();
+
+        public static Dictionary<string, CmdInvocationParams> StoredCmdParams =
+            new Dictionary<string, CmdInvocationParams>();
+
+        public static Dictionary<string, StrategicActorTargetInvocation> StrategicActorTargetInvocationCmds = new Dictionary<string, StrategicActorTargetInvocation>();
+        public static float SwarmSuccessChance = 0f;
+        public static List<string> TeamsWithResupply = new List<string>();
+        public static List<Color> UsedOverlayColors = new List<Color>();
+        public static Dictionary<string, Color> UsedOverlayColorsByCarrier = new Dictionary<string, Color>();
+
+        public static List<VehicleChassisLocations> VehicleMountOrder = new List<VehicleChassisLocations>();
 
         public static void Initialize()
         {
@@ -229,21 +231,22 @@ namespace StrategicOperations.Framework
             ReinitPhaseIcons = false;
         }
 
-        public static void ResetDelegateInfos()
+        public static void ResetDeferredBASpawners()
         {
-            DeferredSpawnerFromDelegate = false;
-            DeferredActorResource = "";
-            //PopupActorResource = "";
-            //PilotOverride = null;
+            DeferredInvokeBattleArmor = new List<KeyValuePair<string, Action>>();
         }
 
         public static void ResetDeferredSpawners()
         {
             DeferredInvokeSpawns = new List<KeyValuePair<string, Action>>();
         }
-        public static void ResetDeferredBASpawners()
+
+        public static void ResetDelegateInfos()
         {
-            DeferredInvokeBattleArmor = new List<KeyValuePair<string, Action>>();
+            DeferredSpawnerFromDelegate = false;
+            DeferredActorResource = "";
+            //PopupActorResource = "";
+            //PilotOverride = null;
         }
     }
 }

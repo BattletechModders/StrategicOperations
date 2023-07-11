@@ -27,61 +27,91 @@ namespace StrategicOperations.Patches
 {
     public class GarrisonLOSPatches
     {
-        // Copied wholesale from FrostRaptor's ConcreteJungle, because why reinvent the wheel. Plus if I made it the wheel would be square.
-        // When a trap turret's line of sight is calculated, give it 'x-ray' vision to see through the shell building.
-        [HarmonyPatch(typeof(LineOfSight), "GetVisibilityToTargetWithPositionsAndRotations")]
-        [HarmonyPatch(new Type[]
-            {typeof(AbstractActor), typeof(Vector3), typeof(ICombatant), typeof(Vector3), typeof(Quaternion)})]
-        static class LineOfSight_GetVisibilityToTargetWithPositionsAndRotations
+        // Modify the vision test to allow 'x-ray' vision through the shell building for trap turrets
+        [HarmonyPatch(typeof(LineOfSight), "bresenhamHeightTest")]
+        static class LineOfSight_bresenhamHeightTest
         {
-            static void Prefix(AbstractActor source, Vector3 sourcePosition, ICombatant target, Vector3 targetPosition,
-                Quaternion targetRotation)
+            static void Postfix(LineOfSight __instance, Point p0, float height0, Point p1, float height1,
+                string targetedBuildingGuid, ref Point collisionWorldPos,
+                ref bool __result)
             {
-                if (source.IsGarrisoned())
+                if (ModState.CurrentGarrisonSquadForLOF == null) return;
+
+                ModInit.modLog?.Debug?.Write(
+                    $"Recalculating LOF from {ModState.CurrentGarrisonSquadForLOF.DisplayName} due to collision on building shell. " +
+                    $"CollisonWorldPos=> x={collisionWorldPos.X} z={collisionWorldPos.Z}");
+
+                collisionWorldPos = p1;
+
+                // If the origin and target points are the same, there is a collision
+                if (p0.X == p1.X && p0.Z == p1.Z)
                 {
-                    ModState.CurrentGarrisonSquadForLOS = source;
+                    __result = true;
+                    return;
                 }
 
-            }
-
-            static void Postfix(AbstractActor source, Vector3 sourcePosition, ICombatant target, Vector3 targetPosition,
-                Quaternion targetRotation, VisibilityLevel __result)
-            {
-                ModState.CurrentGarrisonSquadForLOS = null;
-            }
-        }
-
-        [HarmonyPatch(typeof(LineOfSight), "FindSecondaryImpactTarget")]
-        static class LineOfSight_FindSecondaryImpactTarget
-        {
-            [HarmonyPriority(Priority.Last)]
-            static void Postfix(LineOfSight __instance, RaycastHit[] rayInfos, AbstractActor attacker, ICombatant initialTarget, Vector3 attackPosition, 
-                ref string impactTargetId, ref int impactHitLocation, ref AttackDirection attackDirection, ref Vector3 impactPoint, ref bool __result)
-            {
-                if (!__result) return;
-                if (string.IsNullOrEmpty(impactTargetId)) return;
-                var impactUnit = __instance.Combat.FindCombatantByGUID(impactTargetId);
-                if (impactUnit is BattleTech.Building impactBuilding)
+                // If the origin or target points are outsie the bounds of the map, there is no collision (because how could there be)
+                if (!__instance.Combat.MapMetaData.IsWithinBounds(p0) ||
+                    !__instance.Combat.MapMetaData.IsWithinBounds(p1))
                 {
-                    if (!attacker.IsGarrisonedInTargetBuilding(impactBuilding)) return;
-                    impactTargetId = null;
-                    impactHitLocation = 0;
-                    attackDirection = AttackDirection.FromFront;
+                    __result = false;
+                    return;
                 }
 
-                else if (impactUnit is AbstractActor impactActor)
+                MapMetaData mapMetaData = __instance.Combat.MapMetaData;
+                EncounterLayerData encounterLayerData = __instance.Combat.EncounterLayerData;
+
+                bool targetIsABuilding = !string.IsNullOrEmpty(targetedBuildingGuid);
+                string shellBuildingGUID = ModState.PositionLockGarrison[ModState.CurrentGarrisonSquadForLOF.GUID]
+                    .BuildingGUID;
+
+                List<Point> bresenhamLinePoints = BresenhamLineUtil.BresenhamLine(p0, p1);
+                float heightDeltaPerPoint = (height1 - height0) / (float) bresenhamLinePoints.Count;
+                float collisionPointHeight = height0;
+                // Walk the bresenham Line, evaluation collision at a speciifc height as we go.
+                for (int i = 0; i < bresenhamLinePoints.Count; i++)
                 {
-                    if (!attacker.IsMountedToUnit(impactActor) && !attacker.IsAirliftedByTarget(impactActor))
+                    collisionPointHeight += heightDeltaPerPoint;
+                    Point point = bresenhamLinePoints[i];
+
+                    if (encounterLayerData.mapEncounterLayerDataCells[point.Z, point.X]
+                        .HasSpecifiedBuilding(shellBuildingGUID))
+                    {
+                        ModInit.modLog?.Debug?.Write(
+                            $" Point x={point.X} z={point.Z} is inside the shell building, continuing.");
+                        continue;
+                    }
+
+                    if (targetIsABuilding && encounterLayerData.mapEncounterLayerDataCells[point.Z, point.X]
+                            .HasSpecifiedBuilding(targetedBuildingGuid))
+                    {
+                        ModInit.modLog?.Debug?.Write(
+                            $" Building {targetedBuildingGuid} conflicts with the LoS, collision at x={collisionWorldPos.X} z={collisionWorldPos.Z}");
+                        collisionWorldPos = bresenhamLinePoints[i];
+                        __result = true;
                         return;
-                    impactTargetId = null;
-                    impactHitLocation = 0;
-                    attackDirection = AttackDirection.FromFront;
+                    }
+
+                    if (mapMetaData.mapTerrainDataCells[point.Z, point.X].cachedHeight > collisionPointHeight)
+                    {
+                        ModInit.modLog?.Debug?.Write(
+                            $" Collision on terrain at position x={collisionWorldPos.X} z={collisionWorldPos.Z}");
+                        collisionWorldPos = bresenhamLinePoints[i];
+                        __result = false;
+                        return;
+                    }
                 }
+
+                ModInit.modLog?.Trace?.Write(
+                    $"No collision detected, changing LoF to true. CollisonWorldPos => x ={collisionWorldPos.X} z ={collisionWorldPos.Z}");
+
+                __result = true;
+                return;
             }
         }
 
         // Modify the vision test to allow 'x-ray' vision through the shell building for trap turrets
-                [HarmonyPatch(typeof(LineOfSight), "bresenhamVisionTest")]
+        [HarmonyPatch(typeof(LineOfSight), "bresenhamVisionTest")]
         static class LineOfSight_bresenhamVisionTest
         {
             static void Postfix(LineOfSight __instance, Point p0, float height0, Point p1, float height1,
@@ -176,11 +206,63 @@ namespace StrategicOperations.Patches
             }
         }
 
+        [HarmonyPatch(typeof(LineOfSight), "FindSecondaryImpactTarget")]
+        static class LineOfSight_FindSecondaryImpactTarget
+        {
+            [HarmonyPriority(Priority.Last)]
+            static void Postfix(LineOfSight __instance, RaycastHit[] rayInfos, AbstractActor attacker, ICombatant initialTarget, Vector3 attackPosition, 
+                ref string impactTargetId, ref int impactHitLocation, ref AttackDirection attackDirection, ref Vector3 impactPoint, ref bool __result)
+            {
+                if (!__result) return;
+                if (string.IsNullOrEmpty(impactTargetId)) return;
+                var impactUnit = __instance.Combat.FindCombatantByGUID(impactTargetId);
+                if (impactUnit is BattleTech.Building impactBuilding)
+                {
+                    if (!attacker.IsGarrisonedInTargetBuilding(impactBuilding)) return;
+                    impactTargetId = null;
+                    impactHitLocation = 0;
+                    attackDirection = AttackDirection.FromFront;
+                }
+
+                else if (impactUnit is AbstractActor impactActor)
+                {
+                    if (!attacker.IsMountedToUnit(impactActor) && !attacker.IsAirliftedByTarget(impactActor))
+                        return;
+                    impactTargetId = null;
+                    impactHitLocation = 0;
+                    attackDirection = AttackDirection.FromFront;
+                }
+            }
+        }
+
+        // Copied wholesale from FrostRaptor's ConcreteJungle, because why reinvent the wheel. Plus if I made it the wheel would be square.
+        // When a trap turret's line of sight is calculated, give it 'x-ray' vision to see through the shell building.
+        [HarmonyPatch(typeof(LineOfSight), "GetVisibilityToTargetWithPositionsAndRotations")]
+        [HarmonyPatch(new Type[]
+            {typeof(AbstractActor), typeof(Vector3), typeof(ICombatant), typeof(Vector3), typeof(Quaternion)})]
+        static class LineOfSight_GetVisibilityToTargetWithPositionsAndRotations
+        {
+            static void Prefix(AbstractActor source, Vector3 sourcePosition, ICombatant target, Vector3 targetPosition,
+                Quaternion targetRotation)
+            {
+                if (source.IsGarrisoned())
+                {
+                    ModState.CurrentGarrisonSquadForLOS = source;
+                }
+
+            }
+
+            static void Postfix(AbstractActor source, Vector3 sourcePosition, ICombatant target, Vector3 targetPosition,
+                Quaternion targetRotation, VisibilityLevel __result)
+            {
+                ModState.CurrentGarrisonSquadForLOS = null;
+            }
+        }
+
         // When a trap turret's line of fire is calculated, give it 'x-ray' vision to see through the shell building.
         [HarmonyPatch(typeof(LOFCache), "GetLineOfFire")]
         static class LOFCache_GetLineOfFire
         {
-
             static void Prefix(AbstractActor source, ICombatant target, LineOfFireLevel __result)
             {
                 if (source.IsGarrisoned())
@@ -199,1024 +281,18 @@ namespace StrategicOperations.Patches
                 }
             }
         }
-
-        // Modify the vision test to allow 'x-ray' vision through the shell building for trap turrets
-        [HarmonyPatch(typeof(LineOfSight), "bresenhamHeightTest")]
-        static class LineOfSight_bresenhamHeightTest
-        {
-            static void Postfix(LineOfSight __instance, Point p0, float height0, Point p1, float height1,
-                string targetedBuildingGuid, ref Point collisionWorldPos,
-                ref bool __result)
-            {
-                if (ModState.CurrentGarrisonSquadForLOF == null) return;
-
-                ModInit.modLog?.Debug?.Write(
-                    $"Recalculating LOF from {ModState.CurrentGarrisonSquadForLOF.DisplayName} due to collision on building shell. " +
-                    $"CollisonWorldPos=> x={collisionWorldPos.X} z={collisionWorldPos.Z}");
-
-                collisionWorldPos = p1;
-
-                // If the origin and target points are the same, there is a collision
-                if (p0.X == p1.X && p0.Z == p1.Z)
-                {
-                    __result = true;
-                    return;
-                }
-
-                // If the origin or target points are outsie the bounds of the map, there is no collision (because how could there be)
-                if (!__instance.Combat.MapMetaData.IsWithinBounds(p0) ||
-                    !__instance.Combat.MapMetaData.IsWithinBounds(p1))
-                {
-                    __result = false;
-                    return;
-                }
-
-                MapMetaData mapMetaData = __instance.Combat.MapMetaData;
-                EncounterLayerData encounterLayerData = __instance.Combat.EncounterLayerData;
-
-                bool targetIsABuilding = !string.IsNullOrEmpty(targetedBuildingGuid);
-                string shellBuildingGUID = ModState.PositionLockGarrison[ModState.CurrentGarrisonSquadForLOF.GUID]
-                    .BuildingGUID;
-
-                List<Point> bresenhamLinePoints = BresenhamLineUtil.BresenhamLine(p0, p1);
-                float heightDeltaPerPoint = (height1 - height0) / (float) bresenhamLinePoints.Count;
-                float collisionPointHeight = height0;
-                // Walk the bresenham Line, evaluation collision at a speciifc height as we go.
-                for (int i = 0; i < bresenhamLinePoints.Count; i++)
-                {
-                    collisionPointHeight += heightDeltaPerPoint;
-                    Point point = bresenhamLinePoints[i];
-
-                    if (encounterLayerData.mapEncounterLayerDataCells[point.Z, point.X]
-                        .HasSpecifiedBuilding(shellBuildingGUID))
-                    {
-                        ModInit.modLog?.Debug?.Write(
-                            $" Point x={point.X} z={point.Z} is inside the shell building, continuing.");
-                        continue;
-                    }
-
-                    if (targetIsABuilding && encounterLayerData.mapEncounterLayerDataCells[point.Z, point.X]
-                            .HasSpecifiedBuilding(targetedBuildingGuid))
-                    {
-                        ModInit.modLog?.Debug?.Write(
-                            $" Building {targetedBuildingGuid} conflicts with the LoS, collision at x={collisionWorldPos.X} z={collisionWorldPos.Z}");
-                        collisionWorldPos = bresenhamLinePoints[i];
-                        __result = true;
-                        return;
-                    }
-
-                    if (mapMetaData.mapTerrainDataCells[point.Z, point.X].cachedHeight > collisionPointHeight)
-                    {
-                        ModInit.modLog?.Debug?.Write(
-                            $" Collision on terrain at position x={collisionWorldPos.X} z={collisionWorldPos.Z}");
-                        collisionWorldPos = bresenhamLinePoints[i];
-                        __result = false;
-                        return;
-                    }
-                }
-
-                ModInit.modLog?.Trace?.Write(
-                    $"No collision detected, changing LoF to true. CollisonWorldPos => x ={collisionWorldPos.X} z ={collisionWorldPos.Z}");
-
-                __result = true;
-                return;
-            }
-        }
     }
 
     public class BattleArmorPatches
     {
-        [HarmonyPatch(typeof(LanceConfiguratorPanel), "OnButtonClicked",
-            new Type[] {typeof(IMechLabDraggableItem)})]
-        public static class LanceConfiguratorPanel_OnButtonClicked
+        [HarmonyPatch(typeof(AbstractActor), "CanMoveAfterShooting", MethodType.Getter)]
+        public static class AbstractActor_CanMoveAfterShooting
         {
-            private static bool Prepare() => true;
-            public static void Postfix(LanceConfiguratorPanel __instance, IMechLabDraggableItem item)
+            public static void Postfix(AbstractActor __instance, ref bool __result)
             {
-                var proc = Input.GetKey(KeyCode.LeftShift) || Input.GetKey(KeyCode.RightShift);
-
-                if (proc)
+                if (__instance.CanSwarm() || __instance.IsAirlifted())
                 {
-                    if (item.ItemType == MechLabDraggableItemType.Mech &&
-                        item.DropParent.dropTargetType == MechLabDropTargetType.LanceSlot)
-                    {
-                        if (item is not LanceLoadoutMechItem lanceLoadoutMechItem) return;
-                        var mechDef = lanceLoadoutMechItem.MechDef;
-                        if (mechDef == null) return;
-
-                        foreach (var slot in __instance.loadoutSlots)
-                        {
-                            if (slot.SelectedMech == lanceLoadoutMechItem)
-                            {
-                                if (slot.SelectedPilot == null)
-                                    return; // need to have pilot assigned before we can assign BA-Mech Pairings.
-                                var pilotID = slot.SelectedPilot.Pilot.pilotDef.Description.Id;
-                                ModInit.modLog?.Trace?.Write($"[LanceConfiguratorPanel_OnButtonClicked] current pilotID {pilotID}");
-                                var unitCustomInfo = lanceLoadoutMechItem.MechDef.GetCustomInfo();
-                                if (unitCustomInfo is {SquadInfo.Troopers: > 1})
-                                {
-                                    if (ModState.PendingPairBAUnit == slot)
-                                    {
-                                        ModState.PendingPairBAUnit = null;
-                                        __instance.SetPairingOverlay(slot, false);
-                                        //lanceLoadoutMechItem.UnavailableOverlay.SetActive(false);
-                                        return;
-                                    }
-
-                                    if (ModState.PendingPairBAUnit == null)
-                                    {
-                                        ModState.PendingPairBAUnit = slot;
-                                        __instance.SetPairingOverlay(slot, true); // maybe tweak unavailable overlay GO ccolors?
-                                        return;
-                                    }
-                                }
-                                
-                                if (ModState.PendingPairBAUnit != null && ModState.PendingPairBAUnit != slot)
-                                {
-                                    ModInit.modLog?.Trace?.Write(
-                                        $"[LanceConfiguratorPanel_OnButtonClicked] found pending BA {ModState.PendingPairBAUnit.SelectedMech.MechDef.Description.Id} and pilot {pilotID}with no pairing");
-                                    var pendingBAPilot = ModState.PendingPairBAUnit.SelectedPilot.Pilot.pilotDef
-                                        .Description.Id;
-                                    if (!ModState.PairingInfos.ContainsKey(pilotID))
-                                    {
-                                        var totalBASpace = mechDef.GetTotalBASpaceMechDef();
-                                        if (totalBASpace > 0)
-                                        {
-                                            ModState.PairingInfos.Add(pilotID,
-                                                new Classes.BAPairingInfo(totalBASpace, pendingBAPilot));
-                                            __instance.SetPairingOverlay(ModState.PendingPairBAUnit, true, slot);
-                                            //ModState.PendingPairBAUnit.SelectedMech.UnavailableOverlay.SetActive(false); // maybe tweak unavailable overlay GO ccolors?
-                                            ModState.PendingPairBAUnit = null;
-                                            ModInit.modLog?.Trace?.Write(
-                                                $"[LanceConfiguratorPanel_OnButtonClicked] Added new BA Pairing info. {mechDef.Description.Id} and {pilotID} paired with {string.Join(", ", ModState.PairingInfos[pilotID].PairedBattleArmor)}");
-                                            //make a notification that pairing happened? bloop?
-                                        }
-                                    }
-                                    else
-                                    {
-                                        var pairInfo = ModState.PairingInfos[pilotID];
-                                        if (pairInfo.PairedBattleArmor.Count < pairInfo.CapacityInitial)
-                                        {
-                                            pairInfo.PairedBattleArmor.Add(pendingBAPilot);
-                                            __instance.SetPairingOverlay(ModState.PendingPairBAUnit, true, slot);
-                                            //ModState.PendingPairBAUnit.SelectedMech.UnavailableOverlay.SetActive(false); // maybe tweak unavailable overlay GO ccolors?
-                                            ModState.PendingPairBAUnit = null;
-                                            ModInit.modLog?.Trace?.Write(
-                                                $"[LanceConfiguratorPanel_OnButtonClicked] Added BA Pairing to existing info for {pilotID}. {mechDef.Description.Id} and {pilotID} paired with {string.Join(", ", ModState.PairingInfos[pilotID].PairedBattleArmor)}");
-                                            //make a notification that pairing happened? bloop?
-                                        }
-                                    }
-                                    return;
-                                }
-                                return;
-                            }
-                        }
-                    }
-                }
-            }
-        }
-
-        [HarmonyPatch(typeof(LanceConfiguratorPanel), "OnCancelClicked",
-            new Type[] {})]
-        public static class LanceConfiguratorPanel_OnCancelClicked
-        {
-            private static bool Prepare() => true;
-
-            public static void Postfix(LanceConfiguratorPanel __instance)
-            {
-                if (__instance.IsSimGame)
-                {
-                    ModState.PairingInfos = new Dictionary<string, Classes.BAPairingInfo>();
-                    ModState.UsedOverlayColors = new List<Color>();
-                    ModState.UsedOverlayColorsByCarrier = new Dictionary<string, Color>();
-                }
-            }
-        }
-
-        [HarmonyPatch(typeof(LanceLoadoutSlot), "OnRemoveItem",
-            new Type[] {typeof(IMechLabDraggableItem), typeof(bool) })]
-        public static class LanceLoadoutSlot_OnRemoveItem
-        {
-            private static bool Prepare() => true;
-            public static void Prefix(ref bool __runOriginal, LanceLoadoutSlot __instance, IMechLabDraggableItem item, bool validate)
-            {
-                if (!__runOriginal) return;
-                ModState.PendingPairBAUnit = null;
-                if (__instance.SelectedPilot != null)
-                {
-                    var pilotID = __instance.SelectedPilot.Pilot.pilotDef.Description.Id;
-                    var toRemoveKeys = new List<string>();
-                    if (ModState.PairingInfos.ContainsKey(pilotID))
-                    {
-                        var toRemove = new List<string>();
-                        foreach (var pairedBA in ModState.PairingInfos[pilotID].PairedBattleArmor)
-                        {
-                            toRemove.Add(pairedBA);
-                        }
-                        ModState.PairingInfos.Remove(pilotID);
-                        foreach (var slot in __instance.LC.loadoutSlots)
-                        {
-                            if (toRemove.Contains(slot?.SelectedPilot?.Pilot.pilotDef.Description.Id))
-                            {
-                                var overlayChildren = slot?.SelectedMech?.UnavailableOverlay.gameObject.GetComponentsInChildren<Image>();
-                                if (overlayChildren == null) continue;
-                                foreach (var overlayChild in overlayChildren)
-                                {
-                                    if (overlayChild.name != "stripes") continue;
-                                    var overlayChildImage = overlayChild.GetComponent<Image>();
-                                    if (overlayChildImage.color != ModState.DefaultOverlay &&
-                                        slot.SelectedMech.UnavailableOverlay.activeSelf)
-                                    {
-                                        overlayChildImage.color = ModState.PendingSelectionColor;//new Color(0, 0, 0, ModState.DefaultOverlay.a);
-                                        slot.SelectedMech.UnavailableOverlay.SetActive(false);
-                                    }
-                                }
-                            }
-                        }
-                    }
-
-                    else
-                    {
-                        foreach (var pairedKvP in ModState.PairingInfos)
-                        {
-                            if (pairedKvP.Value.PairedBattleArmor.Contains(pilotID))
-                            {
-                                var carrierID = pairedKvP.Key;
-                                pairedKvP.Value.PairedBattleArmor.Remove(pilotID);
-                                if (pairedKvP.Value.PairedBattleArmor.Count == 0)
-                                {
-                                    toRemoveKeys.Add(carrierID);
-                                }
-                                foreach (var slot in __instance.LC.loadoutSlots)
-                                {
-                                    if (pilotID == slot?.SelectedPilot?.Pilot.pilotDef.Description.Id || toRemoveKeys.Contains(slot?.SelectedPilot?.Pilot.pilotDef.Description.Id))
-                                    {
-                                        var overlayChildren = slot?.SelectedMech?.UnavailableOverlay.gameObject.GetComponentsInChildren<Image>();
-                                        if (overlayChildren == null) continue;
-                                        foreach (var overlayChild in overlayChildren)
-                                        {
-                                            if (overlayChild.name != "stripes") continue;
-                                            var overlayChildImage = overlayChild.GetComponentInChildren<Image>();
-                                            if (overlayChildImage.color != ModState.DefaultOverlay &&
-                                                slot.SelectedMech.UnavailableOverlay.activeSelf)
-                                            {
-                                                overlayChildImage.color = ModState.PendingSelectionColor;//new Color(0, 0, 0, ModState.DefaultOverlay.a);
-                                                slot.SelectedMech.UnavailableOverlay.SetActive(false);
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                        }
-
-                        foreach (var toRemoveKey in toRemoveKeys)
-                        {
-                            ModState.PairingInfos.Remove(toRemoveKey);
-                        }
-                    }
-                    ModInit.modLog?.Trace?.Write($"[LanceLoadoutSlot_OnRemoveItem] Removed {pilotID}. Should have removed {string.Join(", ",toRemoveKeys)} from PairingInfo keys. Pairing info keys: {string.Join(", ", ModState.PairingInfos.Keys)}");
-                }
-                __instance.SelectedMech?.UnavailableOverlay.SetActive(false);
-            }
-        }
-
-        [HarmonyPatch(typeof(MechBayMechInfoWidget), "SetData",
-            new Type[] {typeof(SimGameState), typeof(MechBayPanel), typeof(DataManager), typeof(MechBayMechUnitElement), typeof(bool), typeof(bool)})]
-        public static class MechBayMechInfoWidget_SetData
-        {
-            public static void Postfix(MechBayMechInfoWidget __instance, SimGameState sim, MechBayPanel mechBay,
-                DataManager dataManager, MechBayMechUnitElement mechElement, bool useNoMechOverlay,
-                bool useRepairButton)
-            {
-                var decoGO = __instance.gameObject.FindFirstChildNamed("Deco");
-                var svgComponentDeco = decoGO.GetComponent<SVGImage>();
-                var decoParent = decoGO?.transform?.parent;
-                UnityEngine.Object.DestroyImmediate(svgComponentDeco);
-                var newlocTxtGO = decoParent?.gameObject.FindFirstChildNamed("StratOps_SquadCarrierTip");
-                if (newlocTxtGO == null)
-                {
-                    ModInit.modLog?.Trace?.Write($"[MechBayMechInfoWidget_SetData] couldnt find game object `StratOps_SquadCarrierTip`, instantiating a new one");
-                    newlocTxtGO = UnityEngine.Object.Instantiate<GameObject>(decoGO, decoParent);
-                    newlocTxtGO.name = "StratOps_SquadCarrierTip";
-                }
-                else
-                {
-                    ModInit.modLog?.Trace?.Write($"[MechBayMechInfoWidget_SetData] Found game object `StratOps_SquadCarrierTip` and using it.");
-                }
-                var localizableTextComponent = newlocTxtGO.GetOrAddComponent<LocalizableText>();
-                localizableTextComponent.SetText(ModInit.modSettings.BAMountReminderText);
-                localizableTextComponent.alignment = TextAlignmentOptions.BottomLeft;
-                localizableTextComponent.enableAutoSizing = true;
-                localizableTextComponent.enableWordWrapping = false;
-                if (mechBay == null) newlocTxtGO.SetActive(__instance?.selectedMech?.GetCustomInfo()?.SquadInfo?.Troopers > 0);
-                //decoGO.SetActive(true);
-                
-            }
-        }
-
-        [HarmonyPatch(typeof(ActivatableComponent), "activateComponent",
-            new Type[] {typeof(MechComponent), typeof(bool), typeof(bool)})]
-        public static class ActivatableComponent_activateComponent
-        {
-            public static void Postfix(ActivatableComponent __instance, MechComponent component, bool autoActivate,
-                bool isInital)
-            {
-                if (ModInit.modSettings.BPodComponentIDs.Contains(component.defId))
-                {
-                    ActivatableComponent activatableComponent =
-                        component.componentDef.GetComponent<ActivatableComponent>();
-                    var enemyActors = component.parent.GetAllEnemiesWithinRange(activatableComponent.Explosion.Range);
-                    foreach (var enemyActor in enemyActors)
-                    {
-                        if (enemyActor is TrooperSquad trooperSquad)
-                        {
-                            if (trooperSquad.IsSwarmingUnit() &&
-                                ModState.PositionLockSwarm[trooperSquad.GUID] == component.parent.GUID)
-                            {
-                                trooperSquad.DismountBA(component.parent, Vector3.zero, false, true);
-                            }
-
-                            var baLoc = trooperSquad.GetPossibleHitLocations(component.parent);
-                            var podDmg = activatableComponent.Explosion.Damage;
-                            //var podDmg = component.parent.StatCollection.GetValue<float>("SquishumToadsAsplode");
-                            //var divDmg = podDmg / baLoc.Count;
-
-                            var clusters = BattleArmorUtils.CreateBPodDmgClusters(baLoc, podDmg);
-
-                            for (int i = 0; i < clusters.Count; i++)
-                            {
-                                ModInit.modLog?.Info?.Write(
-                                    $"[ActivatableComponent - activateComponent] BA Armor Damage Location {baLoc}: {trooperSquad.GetStringForArmorLocation((ArmorLocation) baLoc[i])} for {clusters[i]}");
-                                var hitinfo = new WeaponHitInfo(-1, -1, 0, 0, component.parent.GUID, trooperSquad.GUID,
-                                    1, new float[1], new float[1], new float[1], new bool[1], new int[baLoc[i]],
-                                    new int[1], new AttackImpactQuality[1], new AttackDirection[1], new Vector3[1],
-                                    new string[1], new int[baLoc[i]]);
-                                trooperSquad.TakeWeaponDamage(hitinfo, baLoc[i], trooperSquad.MeleeWeapon, clusters[i],
-                                    0, 0, DamageType.ComponentExplosion);
-
-                                var vector = trooperSquad.GameRep.GetHitPosition(baLoc[i]);
-                                var message = new FloatieMessage(hitinfo.attackerId, trooperSquad.GUID,
-                                    $"{(int) Mathf.Max(1f, clusters[i])}",
-                                    trooperSquad.Combat.Constants.CombatUIConstants.floatieSizeMedium,
-                                    FloatieMessage.MessageNature.ArmorDamage, vector.x, vector.y, vector.z);
-                                trooperSquad.Combat.MessageCenter.PublishMessage(message);
-                            }
-                        }
-                    }
-                }
-            }
-        }
-
-        [HarmonyPatch(typeof(SelectionStateTargetSingleCombatantBase), "ProcessClickedCombatant",
-            new Type[] {typeof(ICombatant)})]
-        public static class SelectionStateTargetSingleCombatantBase_ProcessClickedCombatant
-        {
-            //private static bool Prepare() => false;
-            public static void Postfix(SelectionStateTargetSingleCombatantBase __instance, ICombatant combatant)
-            {
-
-                if (__instance.FromButton.Ability.Def.Id == ModInit.modSettings.BattleArmorMountAndSwarmID)
-                {
-                    var cHUD = __instance
-                        .HUD; //IRBTModUtils.SharedState.CombatHUD;//Traverse.Create(__instance).Property("HUD").GetValue<CombatHUD>();
-                    var creator = cHUD.SelectedActor;
-                    if (!creator.Pathing.ArePathGridsComplete)
-                    {
-                        cHUD.AttackModeSelector.FireButton.CurrentFireMode = CombatHUDFireButton.FireMode.None;
-                        cHUD.AttackModeSelector.FireButton.FireText.SetText($"Pathing Incomplete - DISABLED",
-                            Array.Empty<object>());
-                        return;
-                    }
-
-                    if (creator is Mech creatorMech && combatant != null && combatant.team.IsEnemy(creator.team))
-                    {
-                        var chance = creator.Combat.ToHit.GetToHitChance(creator, creatorMech.MeleeWeapon, combatant,
-                            creator.CurrentPosition, combatant.CurrentPosition, 1, MeleeAttackType.Charge, false);
-                        ModInit.modLog?.Trace?.Write(
-                            $"[SelectionState.ShowFireButton - Swarm Success calculated as {chance}, storing in state.");
-                        ModState.SwarmSuccessChance = chance;
-                        var chanceDisplay = (float) Math.Round(chance, 2) * 100;
-                        cHUD.AttackModeSelector.FireButton.FireText.SetText($"{chanceDisplay}% - Confirm",
-                            Array.Empty<object>());
-                    }
-                }
-                else if (__instance.FromButton.Ability.Def.Id == ModInit.modSettings.AirliftAbilityID)
-                {
-                    var cHUD = __instance
-                        .HUD; //IRBTModUtils.SharedState.CombatHUD;//Traverse.Create(__instance).Property("HUD").GetValue<CombatHUD>();
-                    var creator = cHUD.SelectedActor;
-                    if (!creator.Pathing.ArePathGridsComplete)
-                    {
-                        cHUD.AttackModeSelector.FireButton.CurrentFireMode = CombatHUDFireButton.FireMode.None;
-                        cHUD.AttackModeSelector.FireButton.FireText.SetText($"Wait For Pathing Incomplete - DISABLED",
-                            Array.Empty<object>());
-                    }
-                }
-            }
-        }
-
-        [HarmonyPatch(typeof(SelectionStateAbilityInstant), "OnAddToStack", new Type[] { })]
-        public static class SelectionStateAbilityInstant_OnAddToStack
-        {
-            public static void Postfix(SelectionStateAbilityInstant __instance)
-            {
-                var cHUD = __instance
-                    .HUD; //IRBTModUtils.SharedState.CombatHUD;//Traverse.Create(__instance).Property("HUD").GetValue<CombatHUD>();
-                var creator = cHUD.SelectedActor;
-                if (__instance.FromButton.Ability.Def.Id == ModInit.modSettings.BattleArmorDeSwarmRoll)
-                {
-                    var settings =
-                        ModInit.modSettings.DeswarmConfigs.ContainsKey(ModInit.modSettings.BattleArmorDeSwarmRoll)
-                            ? ModInit.modSettings.DeswarmConfigs[ModInit.modSettings.BattleArmorDeSwarmRoll]
-                            : new Classes.ConfigOptions.BA_DeswarmAbilityConfig();
-                    //var parsed = float.TryParse(__instance.FromButton.Ability.Def.EffectData
-                    //    .FirstOrDefault(x => x.statisticData.statName == "BattleArmorDeSwarmerRoll")
-                    //    ?.statisticData
-                    //    .modValue, out var baseChance);
-
-                    var pilotSkill = creator.GetPilot().Piloting;
-                    var finalChance = Mathf.Min(settings.BaseSuccessChance + (0.05f * pilotSkill),
-                        settings.MaxSuccessChance);
-                    ModInit.modLog?.Info?.Write(
-                        $"[SelectionStateAbilityInstant.OnAddToStack - BattleArmorDeSwarm] Deswarm chance: {finalChance} from baseChance {settings.BaseSuccessChance} + pilotSkill x 0.05 {0.05f * pilotSkill}, max {settings.MaxSuccessChance}., stored in state.");
-                    ModState.DeSwarmSuccessChance = finalChance;
-                    var chanceDisplay = (float) Math.Round(finalChance, 3) * 100;
-                    cHUD.AttackModeSelector.FireButton.FireText.SetText($"{chanceDisplay}% - Confirm",
-                        Array.Empty<object>());
-                }
-                else if (__instance.FromButton.Ability.Def.Id == ModInit.modSettings.BattleArmorDeSwarmSwat)
-                {
-                    var settings =
-                        ModInit.modSettings.DeswarmConfigs.ContainsKey(ModInit.modSettings.BattleArmorDeSwarmSwat)
-                            ? ModInit.modSettings.DeswarmConfigs[ModInit.modSettings.BattleArmorDeSwarmSwat]
-                            : new Classes.ConfigOptions.BA_DeswarmAbilityConfig();
-                    //var parsed = float.TryParse(__instance.FromButton.Ability.Def.EffectData
-                    //    .FirstOrDefault(x => x.statisticData.statName == "BattleArmorDeSwarmerSwat")
-                    //    ?.statisticData
-                    //    .modValue, out var baseChance);
-                    //if (!parsed) baseChance = 0.55f;
-
-                    var pilotSkill = creator.GetPilot().Piloting;
-                    var missingActuatorCount = -8;
-                    foreach (var armComponent in creator.allComponents.Where(x =>
-                                 x.IsFunctional && (x.Location == 2 || x.Location == 32)))
-                    {
-                        foreach (var CategoryID in ModInit.modSettings.ArmActuatorCategoryIDs)
-                        {
-                            if (armComponent.mechComponentRef.IsCategory(CategoryID))
-                            {
-                                missingActuatorCount += 1;
-                                break;
-                            }
-                        }
-                    }
-
-                    var finalChance =
-                        Mathf.Min(settings.BaseSuccessChance + (0.05f * pilotSkill) - (0.05f * missingActuatorCount),
-                            settings.MaxSuccessChance);
-
-                    ModInit.modLog?.Info?.Write(
-                        $"[SelectionStateAbilityInstant.OnAddToStack - BattleArmorDeSwarm] Deswarm chance: {finalChance} from baseChance {settings.BaseSuccessChance} + pilotSkill x 0.05 {0.05f * pilotSkill} - missingActuators x 0.05 {0.05f * missingActuatorCount}, max {settings.MaxSuccessChance} stored in state.");
-                    ModState.DeSwarmSuccessChance = finalChance;
-                    var chanceDisplay = (float) Math.Round(finalChance, 3) * 100;
-                    cHUD.AttackModeSelector.FireButton.FireText.SetText($"{chanceDisplay}% - Confirm",
-                        Array.Empty<object>());
-                }
-            }
-        }
-
-        [HarmonyPatch(typeof(AttackDirector.AttackSequence), "IsBreachingShot", MethodType.Getter)]
-        public static class AttackDirector_AttackSequence_IsBreachingShot
-        {
-            static bool Prepare() => !ModInit.modSettings.UsingMechAffinityForSwarmBreach;
-
-            public static void Postfix(AttackDirector.AttackSequence __instance, ref bool __result)
-            {
-                if (!__result)
-                {
-                    if (__instance.chosenTarget is AbstractActor targetActor)
-                    {
-                        if (__instance.attacker.IsSwarmingTargetUnit(targetActor))
-                        {
-                            __result = true;
-                        }
-                    }
-                }
-            }
-        }
-
-
-        [HarmonyPatch(typeof(ActorMovementSequence), "CompleteOrders")]
-        public static class ActorMovementSequence_CompleteOrders
-        {
-            public static void Postfix(ActorMovementSequence __instance)
-            {
-                try
-                {
-                    if (__instance.owningActor == null) return;
-
-
-                    if (ModState.DeSwarmMovementInfo?.Carrier?.GUID == __instance.owningActor.GUID)
-                    {
-                        var settings = ModInit.modSettings.DeswarmMovementConfig;
-
-                        var baseChance =
-                            settings.BaseSuccessChance; //__instance.owningActor.getMovementDeSwarmMinChance();
-                        var chanceFromPips =
-                            __instance.owningActor.EvasivePipsCurrent *
-                            settings.EvasivePipsFactor; //__instance.owningActor.getMovementDeSwarmEvasivePipsFactor();
-                        var finalChance = Mathf.Min(baseChance + chanceFromPips, settings.MaxSuccessChance);
-                        //__instance.owningActor.getMovementDeSwarmMaxChance());
-                        var roll = ModInit.Random.NextDouble();
-                        ModInit.modLog?.Info?.Write(
-                            $"[ActorMovementSequence.CompleteOrders] Found DeSwarmMovementInfo for unit {__instance.owningActor.DisplayName} {__instance.owningActor.GUID}. Rolled {roll} vs finalChance {finalChance} from baseChance {baseChance} and evasive chance {chanceFromPips}");
-                        if (roll <= finalChance)
-                        {
-                            var waypoints =
-                                __instance
-                                    .Waypoints; //Traverse.Create(__instance).Property("Waypoints").GetValue<List<WayPoint>>();
-                            foreach (var swarmingUnit in ModState.DeSwarmMovementInfo?.SwarmingUnits)
-                            {
-                                var selectedWaypoint = waypoints.GetRandomElement();
-                                ModInit.modLog?.Info?.Write(
-                                    $"[ActorMovementSequence.CompleteOrders] Roll succeeded, plonking {swarmingUnit.DisplayName} at {selectedWaypoint.Position}");
-                                swarmingUnit.DismountBA(__instance.owningActor, selectedWaypoint.Position, false, true);
-                            }
-                        }
-
-                        ModState.DeSwarmMovementInfo = new Classes.BA_DeswarmMovementInfo();
-                    }
-                }
-                catch (Exception ex)
-                {
-                    ModInit.modLog?.Error?.Write(ex.ToString());
-                }
-            }
-        }
-
-        [HarmonyPatch(typeof(MechJumpSequence), "CompleteOrders")]
-        public static class MechJumpSequence_CompleteOrders
-        {
-            public static void Postfix(MechJumpSequence __instance)
-            {
-                if (__instance.OwningMech == null) return;
-                var settings = ModInit.modSettings.DeswarmMovementConfig;
-
-                if (ModState.DeSwarmMovementInfo?.Carrier?.GUID == __instance.OwningMech.GUID)
-                {
-                    var baseChance = settings.BaseSuccessChance; //__instance.owningActor.getMovementDeSwarmMinChance();
-                    var chanceFromPips = __instance.owningActor.EvasivePipsCurrent * settings.EvasivePipsFactor;
-                    //__instance.owningActor.getMovementDeSwarmEvasivePipsFactor();
-                    var finalChance =
-                        Mathf.Min((baseChance + chanceFromPips) * settings.JumpMovementModifier,
-                            settings
-                                .MaxSuccessChance); //__instance.owningActor.getMovementDeSwarmEvasiveJumpMovementMultiplier(), __instance.owningActor.getMovementDeSwarmMaxChance());
-                    var roll = ModInit.Random.NextDouble();
-                    ModInit.modLog?.Info?.Write(
-                        $"[ActorMovementSequence.CompleteOrders] Found DeSwarmMovementInfo for unit {__instance.owningActor.DisplayName} {__instance.owningActor.GUID}. Rolled {roll} vs finalChance {finalChance} from (baseChance {baseChance} + evasive chance {chanceFromPips}) x JumpMovementMulti {settings.JumpMovementModifier}");
-                    if (roll <= finalChance)
-                    {
-                        var baseDistance = Vector3.Distance(__instance.StartPos, __instance.FinalPos);
-
-                        foreach (var swarmingUnit in ModState.DeSwarmMovementInfo.SwarmingUnits)
-                        {
-                            var finalDist = (float) (baseDistance * ModInit.Random.NextDouble());
-                            var finalDestination =
-                                Utils.LerpByDistance(__instance.StartPos, __instance.FinalPos, finalDist);
-                            finalDestination.y =
-                                swarmingUnit.Combat.MapMetaData.GetLerpedHeightAt(finalDestination,
-                                    false); //set proper height on ground.
-                            ModInit.modLog?.Info?.Write(
-                                $"[ActorMovementSequence.CompleteOrders] Roll succeeded, plonking {swarmingUnit.DisplayName} at {finalDestination}");
-                            swarmingUnit.DismountBA(__instance.owningActor, finalDestination, false, true);
-                            if (swarmingUnit is TrooperSquad swarmingUnitSquad)
-                            {
-                                var dmg = settings.UseDFADamage
-                                    ? swarmingUnitSquad.StatCollection.GetValue<float>("DFASelfDamage")
-                                    : settings.LocationDamageOverride;
-                                var reduction = settings.PilotingDamageReductionFactor *
-                                                swarmingUnitSquad.GetPilot().Piloting;
-                                var dmgReduction = dmg * reduction;
-                                dmg -= dmgReduction;
-                                if (dmg > 0f)
-                                {
-                                    var trooperLocs = swarmingUnitSquad.GetPossibleHitLocations(__instance.owningActor);
-                                    for (int i = 0; i < trooperLocs.Count; i++)
-                                    {
-                                        var hitinfo = new WeaponHitInfo(-1, -1, 0, 0, __instance.owningActor.GUID,
-                                            swarmingUnitSquad.GUID, 1, new float[1], new float[1], new float[1],
-                                            new bool[1], new int[trooperLocs[i]], new int[1],
-                                            new AttackImpactQuality[1],
-                                            new AttackDirection[1], new Vector3[1], new string[1],
-                                            new int[trooperLocs[i]]);
-
-                                        swarmingUnitSquad.TakeWeaponDamage(hitinfo, trooperLocs[i],
-                                            swarmingUnitSquad.MeleeWeapon, dmg,
-                                            0, 0, DamageType.DFASelf);
-                                    }
-                                }
-                            }
-                        }
-                    }
-
-                    ModState.DeSwarmMovementInfo = new Classes.BA_DeswarmMovementInfo();
-                }
-            }
-        }
-
-        [HarmonyPatch(typeof(CombatHUDMechwarriorTray), "ResetMechwarriorButtons",
-            new Type[] {typeof(AbstractActor)})]
-        public static class CombatHUDMechwarriorTray_ResetMechwarriorButtons
-        {
-            [HarmonyPriority(Priority.Last)]
-            public static void Postfix(CombatHUDMechwarriorTray __instance, AbstractActor actor)
-            {
-                if (UnityGameInstance.BattleTechGame.Combat.ActiveContract.ContractTypeValue.IsSkirmish) return;
-                if (actor == null) return;
-
-                var moraleButtons =
-                    __instance
-                        .MoraleButtons; //Traverse.Create(__instance).Property("MoraleButtons").GetValue<CombatHUDActionButton[]>();
-                var abilityButtons =
-                    __instance
-                        .AbilityButtons; //Traverse.Create(__instance).Property("AbilityButtons").GetValue<CombatHUDActionButton[]>();
-
-                if (actor.IsAirlifted())
-                {
-                    ModInit.modLog?.Trace?.Write(
-                        $"[CombatHUDMechwarriorTray.ResetMechwarriorButtons] Actor {actor.DisplayName} {actor.GUID} is Airlifted. Disabling movement buttons.");
-                    __instance.MoveButton.DisableButton();
-                    __instance.SprintButton.DisableButton();
-                    __instance.JumpButton.DisableButton();
-
-                    if (ModState.AirliftTrackers[actor.GUID].IsCarriedInternal)
-                    {
-                        foreach (var moraleButton in moraleButtons)
-                        {
-                            moraleButton.DisableButton();
-                        }
-
-                        __instance.FireButton.DisableButton();
-                    }
-                }
-
-                if (actor.IsGarrisoned())
-                {
-                    ModInit.modLog?.Trace?.Write(
-                        $"[CombatHUDMechwarriorTray.ResetMechwarriorButtons] Actor {actor.DisplayName} {actor.GUID} found in garrison. Disabling buttons.");
-
-                    __instance.MoveButton.DisableButton();
-                    __instance.SprintButton.DisableButton();
-                    __instance.JumpButton.DisableButton();
-                }
-
-                else if (actor.IsMountedUnit())
-                {
-                    ModInit.modLog?.Trace?.Write(
-                        $"[CombatHUDMechwarriorTray.ResetMechwarriorButtons] Actor {actor.DisplayName} {actor.GUID} found in PositionLockMount. Disabling buttons.");
-                    var carrier = actor.Combat.FindActorByGUID(ModState.PositionLockMount[actor.GUID]);
-
-                    __instance.MoveButton.DisableButton();
-                    __instance.SprintButton.DisableButton();
-                    __instance.JumpButton.DisableButton();
-
-                    if (!actor.IsMountedInternal() || !carrier.HasFiringPorts())
-                    {
-                        __instance.FireButton.DisableButton();
-                        foreach (var moraleButton in moraleButtons)
-                        {
-                            moraleButton.DisableButton();
-                        }
-
-                        foreach (var abilityButton in abilityButtons)
-                        {
-                            if (abilityButton?.Ability?.Def?.Id == ModInit.modSettings.BattleArmorMountAndSwarmID)
-                                abilityButton?.DisableButton();
-                        }
-                    }
-                }
-                else if (actor.IsSwarmingUnit())
-                {
-                    ModInit.modLog?.Trace?.Write(
-                        $"[CombatHUDMechwarriorTray.ResetMechwarriorButtons] Actor {actor.DisplayName} {actor.GUID} found in PositionLockSwarm. Disabling buttons.");
-                    __instance.FireButton.DisableButton();
-                    __instance.MoveButton.DisableButton();
-                    __instance.SprintButton.DisableButton();
-                    __instance.JumpButton.DisableButton();
-
-                    foreach (var moraleButton in moraleButtons)
-                    {
-                        moraleButton.DisableButton();
-                    }
-
-                    foreach (var abilityButton in abilityButtons)
-                    {
-                        if (abilityButton?.Ability?.Def?.Id == ModInit.modSettings.BattleArmorMountAndSwarmID)
-                            abilityButton?.DisableButton();
-                    }
-                }
-            }
-        }
-
-        //patching LOFCache.GetLineOfFire with BA to make sure its not obstructed AND that the carrier isnt obstructed. gonna be messy AF. will also probaly break LowVis.
-
-
-
-        [HarmonyPatch(typeof(AbstractActor), "HasLOFToTargetUnitAtTargetPosition",
-            new Type[]
-            {
-                typeof(ICombatant), typeof(float), typeof(Vector3), typeof(Quaternion), typeof(Vector3),
-                typeof(Quaternion), typeof(bool)
-            })]
-        public static class AbstractActor_HasLOFToTargetUnitAtTargetPosition_Patch
-        {
-            static bool Prepare() => true; //disabled for now. why?
-
-            // make sure units doing swarming or riding cannot be targeted.
-            public static void Postfix(AbstractActor __instance, ICombatant targetUnit, float maxRange,
-                Vector3 attackPosition, Quaternion attackRotation, Vector3 targetPosition, Quaternion targetRotation,
-                bool isIndirectFireCapable, ref bool __result)
-            {
-                if (targetUnit is AbstractActor targetActor)
-                {
-                    if (targetActor.IsSwarmingUnit() || targetActor.IsMountedUnit()) //|| targetActor.isGarrisoned())
-                    {
-//                        ModInit.modLog?.Trace?.Write($"[AbstractActor.HasLOFToTargetUnitAtTargetPosition] {targetActor.DisplayName} is swarming or mounted, preventing LOS.");
-                        __result = false;
-                    }
-                }
-            }
-        }
-
-        [HarmonyPatch(typeof(AbstractActor), "HasIndirectLOFToTargetUnit",
-            new Type[] {typeof(Vector3), typeof(Quaternion), typeof(ICombatant), typeof(bool)})]
-        public static class AbstractActor_HasIndirectLOFToTargetUnit_Patch
-        {
-            public static void Postfix(AbstractActor __instance, Vector3 attackPosition, Quaternion attackRotation,
-                ICombatant targetUnit, bool enabledWeaponsOnly, ref bool __result)
-            {
-                if (targetUnit is AbstractActor targetActor)
-                {
-                    if (__instance.IsSwarmingUnit())
-                    {
-                        if (ModState.PositionLockSwarm[__instance.GUID] == targetActor.GUID)
-                        {
-//                        ModInit.modLog?.Trace?.Write($"[AbstractActor.HasIndirectLOFToTargetUnit] {__instance.DisplayName} is swarming {targetActor.DisplayName}, forcing direct LOS for weapons");
-                            __result = false;
-                        }
-                    }
-
-                    if (targetActor.IsSwarmingUnit() || targetActor.IsMountedUnit()) //|| targetActor.isGarrisoned())
-                    {
-                        __result = false;
-                    }
-                }
-            }
-        }
-
-        [HarmonyPatch(typeof(Weapon), "WillFireAtTargetFromPosition",
-            new Type[] {typeof(ICombatant), typeof(Vector3), typeof(Quaternion)})]
-        public static class Weapon_WillFireAtTargetFromPosition
-        {
-            public static void Postfix(Weapon __instance, ICombatant target, Vector3 position, Quaternion rotation,
-                ref bool __result)
-            {
-                if (__instance.parent == null) return;
-                if (target is AbstractActor targetActor)
-                {
-                    if (__instance.parent.IsSwarmingUnit())
-                    {
-                        if (ModState.PositionLockSwarm[__instance.parent.GUID] == targetActor.GUID)
-                        {
-                            //                       ModInit.modLog?.Trace?.Write($"[Weapon.WillFireAtTargetFromPosition] {__instance.parent.DisplayName} is swarming {targetActor.DisplayName}, forcing LOS for weapon {__instance.Name}");
-                            __result = true;
-                            return;
-                        }
-                    }
-
-                    if (targetActor.IsSwarmingUnit() || targetActor.IsMountedUnit())
-                    {
-                        __result = false;
-                    }
-                }
-            }
-        }
-
-        [HarmonyPatch(typeof(Team), "DeferAllAvailableActors",
-            new Type[] { })]
-        public static class Team_DeferAllAvailableActors
-        {
-            static bool Prepare() => ModInit.modSettings.EnableQuickReserve;
-
-            public static void Prefix(ref bool __runOriginal, Team __instance)
-            {
-                if (!__runOriginal) return;
-                var hk = Input.GetKey(KeyCode.LeftShift) || Input.GetKey(KeyCode.RightShift);
-                if (hk)
-                {
-                    for (int i = 0; i < __instance.units.Count; i++)
-                    {
-                        if (__instance.units[i].Combat.TurnDirector.IsInterleaved && !__instance.units[i].IsDead &&
-                            !__instance.units[i].IsFlaggedForDeath && !__instance.units[i].HasActivatedThisRound &&
-                            !__instance.units[i].HasBegunActivation)
-                        {
-                            if (__instance.units[i].Initiative != __instance.units[i].Combat.TurnDirector.LastPhase)
-                            {
-                                __instance.units[i].DeferUnit();
-                                __instance.units[i].ForceUnitToLastActualPhase();
-                            }
-                        }
-                    }
-
-                    __runOriginal = false;
-                    return;
-                }
-
-                __runOriginal = true;
-                return;
-            }
-        }
-
-        [HarmonyPatch(typeof(CombatHUDButtonBase), "OnClick",
-            new Type[] { })]
-        public static class CombatHUDButtonBase_OnClick
-        {
-            //static bool Prepare() => ModInit.modSettings.EnableQuickReserve;
-            public static void Prefix(ref bool __runOriginal, CombatHUDButtonBase __instance)
-            {
-                if (!__runOriginal) return;
-                if (__instance.GUID != "BTN_DoneWithMech")
-                {
-                    __runOriginal = true;
-                    return;
-                }
-
-                var hud = __instance
-                    .HUD; //IRBTModUtils.SharedState.CombatHUD;//Traverse.Create(__instance).Property("HUD").GetValue<CombatHUD>();
-                var actor = hud.SelectedActor;
-                if (ModInit.modSettings.EnableQuickReserve)
-                {
-                    var hk = Input.GetKey(KeyCode.LeftShift) || Input.GetKey(KeyCode.RightShift);
-                    if (hk && actor.CanDeferUnit)
-                    {
-                        actor.DeferUnit();
-                        actor.ForceUnitToLastActualPhase();
-                        __runOriginal = false;
-                        return;
-                    }
-                }
-
-                if (!actor.IsSwarmingUnit())
-                {
-                    ModInit.modLog?.Debug?.Write(
-                        $"[CombatHUDButtonBase.OnClick] Actor {actor.DisplayName} is not swarming, ending turn like normal.");
-                    __runOriginal = true;
-                    return;
-                }
-
-                if (actor.GetAbilityUsedFiring())
-                {
-                    ModInit.modLog?.Info?.Write(
-                        $"[CombatHUDButtonBase.OnClick] Actor {actor.DisplayName} has used an ability that consumed firing, not generating swarm.");
-                    __runOriginal = true;
-                    return;
-                }
-
-                var target = actor.Combat.FindActorByGUID(ModState.PositionLockSwarm[actor.GUID]);
-                ModInit.modLog?.Info?.Write(
-                    $"[CombatHUDButtonBase.OnClick] Actor {actor.DisplayName} has active swarm attack on {target.DisplayName}");
-
-                var weps = actor.Weapons.Where(x => x.IsEnabled && x.HasAmmo).ToList();
-
-                //                var baselineAccuracyModifier = actor.StatCollection.GetValue<float>("AccuracyModifier");
-                //                actor.StatCollection.Set<float>("AccuracyModifier", -99999.0f);
-                //                ModInit.modLog?.Trace?.Write($"[AbstractActor.DoneWithActor] Actor {actor.DisplayName} getting baselineAccuracyModifer set to {actor.AccuracyModifier}");
-
-                var loc = ModState.BADamageTrackers[actor.GUID].BA_MountedLocations.Values.GetRandomElement();
-                var attackStackSequence = new AttackStackSequence(actor, target, actor.CurrentPosition,
-                    actor.CurrentRotation, weps, MeleeAttackType.NotSet, loc, -1);
-                actor.Combat.MessageCenter.PublishMessage(new AddSequenceToStackMessage(attackStackSequence));
-
-//                actor.StatCollection.Set<float>("AccuracyModifier", baselineAccuracyModifier);
-//                ModInit.modLog?.Trace?.Write($"[AbstractActor.DoneWithActor] Actor {actor.DisplayName} resetting baselineAccuracyModifer to {actor.AccuracyModifier}");
-                __runOriginal = true;
-                return;
-            }
-        }
-
-
-        [HarmonyPatch(typeof(SelectionStateFire), "ProcessClickedCombatant",
-            new Type[] {typeof(ICombatant)})]
-        public static class SelectionStateFire_ProcessClickedCombatant
-        {
-            static bool Prepare() => false; //disable for now, try with force-end turn.
-
-            public static void Postfix(SelectionStateFire __instance, ref ICombatant combatant)
-            {
-                if (__instance.SelectedActor.IsSwarmingUnit())
-                {
-                    var newTarget =
-                        __instance.SelectedActor.Combat.FindActorByGUID(
-                            ModState.PositionLockSwarm[__instance.SelectedActor.GUID]);
-                    combatant = newTarget;
-                }
-            }
-        }
-
-        [HarmonyPatch(typeof(Mech), "OnLocationDestroyed",
-            new Type[] {typeof(ChassisLocations), typeof(Vector3), typeof(WeaponHitInfo), typeof(DamageType)})]
-        public static class Mech_OnLocationDestroyed
-        {
-            public static void Prefix(Mech __instance, ChassisLocations location, Vector3 attackDirection,
-                WeaponHitInfo hitInfo, DamageType damageType)
-            {
-                if (!__instance.HasMountedUnits() && !__instance.HasSwarmingUnits()) return;
-
-                foreach (var squadInfo in ModState.BADamageTrackers.Where(x =>
-                             x.Value.TargetGUID == __instance.GUID && !x.Value.IsSquadInternal &&
-                             x.Value.BA_MountedLocations.ContainsValue((int) location)))
-                {
-                    var wereSwarmingUnitsResponsible = squadInfo.Key == hitInfo.attackerId;
-
-                    ModInit.modLog?.Trace?.Write(
-                        $"[Mech.OnLocationDestroyed] Evaluating {squadInfo.Key} for {squadInfo.Value.TargetGUID}");
-                    if (ModInit.Random.NextDouble() >= (double) 1 / 3 || wereSwarmingUnitsResponsible) continue;
-                    if (__instance.Combat.FindActorByGUID(squadInfo.Key) is Mech battleArmorAsMech)
-                    {
-                        var battleArmorMounts =
-                            squadInfo.Value.BA_MountedLocations.Where(x => x.Value == (int) location);
-                        var battleArmorMountsCopy = new List<KeyValuePair<int, int>>(battleArmorMounts);
-                        foreach (var mount in battleArmorMountsCopy)
-                        {
-                            var BALocArmor = (ArmorLocation) mount.Key;
-                            var BALocStruct = MechStructureRules.GetChassisLocationFromArmorLocation(BALocArmor);
-                            battleArmorAsMech.NukeStructureLocation(hitInfo, 1, BALocStruct, attackDirection,
-                                damageType);
-                        }
-                        //battleArmorAsMech.DismountBA(__instance, Vector3.zero, false, true, true);
-                        //battleArmorAsMech.FlagForDeath("Killed When Mount Died", DeathMethod.VitalComponentDestroyed, DamageType.Melee, 0, -1, __instance.GUID, false);
-                        //battleArmorAsMech.HandleDeath(__instance.GUID); //this is probably wrong but i dont care
-                    }
-                }
-            }
-        }
-
-        [HarmonyPatch(typeof(BattleTech.Building), "FlagForDeath",
-            new Type[]
-            {
-                typeof(string), typeof(DeathMethod), typeof(DamageType), typeof(int), typeof(int), typeof(string),
-                typeof(bool)
-            })]
-        public static class Building_FlagForDeath
-        {
-            public static void Prefix(BattleTech.Building __instance, string reason, DeathMethod deathMethod,
-                DamageType damageType, int location, int stackItemID, string attackerID, bool isSilent)
-            {
-                if (__instance.IsFlaggedForDeath) return;
-                ModInit.modLog?.Trace?.Write(
-                    $"[Building.FlagForDeath] Building {__instance.DisplayName} {__instance.GUID} at position {__instance.CurrentPosition} dieded.");
-                if (!__instance.HasGarrisonedUnits()) return;
-                var garrisons = new List<KeyValuePair<string, Classes.BA_GarrisonInfo>>(ModState.PositionLockGarrison
-                    .Where(x => x.Value.BuildingGUID == __instance.GUID).ToList());
-                foreach (var garrison in garrisons)
-                {
-                    ModInit.modLog?.Trace?.Write(
-                        $"[Building.FlagForDeath] Building {__instance.DisplayName} {__instance.GUID} dieded, has units mounted.");
-
-                    var actor = __instance.Combat.FindActorByGUID(garrison.Key);
-                    if (actor is TrooperSquad squad)
-                    {
-                        foreach (var garrisonEffect in ModState.OnGarrisonCollapseEffects)
-                        {
-                            if (garrisonEffect.TargetEffectType == Classes.ConfigOptions.BA_TargetEffectType.GARRISON)
-                            {
-                                foreach (var effectData in garrisonEffect.effects)
-                                {
-                                    //squad.Combat.EffectManager.CreateEffect(effectData,effectData.Description.Id,-1, actor, actor, default(WeaponHitInfo), 1);
-                                    squad.CreateEffect(effectData, null,
-                                        effectData.Description.Id,
-                                        -1, squad);
-                                }
-                            }
-                        }
-
-                        squad.DismountGarrison(__instance, Vector3.zero, true);
-
-
-                        var dmg = squad.StatCollection.GetValue<float>("DFASelfDamage");
-                        var trooperLocs = squad.GetPossibleHitLocations(squad);
-                        for (int i = 0; i < trooperLocs.Count; i++)
-                        {
-                            var hitinfo = new WeaponHitInfo(-1, -1, 0, 0, squad.GUID,
-                                squad.GUID, 1, new float[1], new float[1], new float[1],
-                                new bool[1], new int[trooperLocs[i]], new int[1], new AttackImpactQuality[1],
-                                new AttackDirection[1], new Vector3[1], new string[1], new int[trooperLocs[i]]);
-
-                            squad.TakeWeaponDamage(hitinfo, trooperLocs[i],
-                                squad.MeleeWeapon, dmg,
-                                0, 0, DamageType.DFASelf);
-                        }
-                    }
+                    __result = false;
                 }
             }
         }
@@ -1333,31 +409,338 @@ namespace StrategicOperations.Patches
             }
         }
 
-        [HarmonyPatch(typeof(CombatHUDEquipmentSlot), "InitButton",
+        [HarmonyPatch(typeof(AbstractActor), "HasIndirectFireImmunity", MethodType.Getter)]
+        public static class AbstractActor_HasIndirectFireImmunity
+        {
+            public static void Postfix(AbstractActor __instance, ref bool __result)
+            {
+                if (__instance.IsMountedUnit() || __instance.IsSwarmingUnit())
+                {
+                    __result = true;
+                }
+            }
+        }
+
+        [HarmonyPatch(typeof(AbstractActor), "HasIndirectLOFToTargetUnit",
+            new Type[] {typeof(Vector3), typeof(Quaternion), typeof(ICombatant), typeof(bool)})]
+        public static class AbstractActor_HasIndirectLOFToTargetUnit_Patch
+        {
+            public static void Postfix(AbstractActor __instance, Vector3 attackPosition, Quaternion attackRotation,
+                ICombatant targetUnit, bool enabledWeaponsOnly, ref bool __result)
+            {
+                if (targetUnit is AbstractActor targetActor)
+                {
+                    if (__instance.IsSwarmingUnit())
+                    {
+                        if (ModState.PositionLockSwarm[__instance.GUID] == targetActor.GUID)
+                        {
+//                        ModInit.modLog?.Trace?.Write($"[AbstractActor.HasIndirectLOFToTargetUnit] {__instance.DisplayName} is swarming {targetActor.DisplayName}, forcing direct LOS for weapons");
+                            __result = false;
+                        }
+                    }
+
+                    if (targetActor.IsSwarmingUnit() || targetActor.IsMountedUnit()) //|| targetActor.isGarrisoned())
+                    {
+                        __result = false;
+                    }
+                }
+            }
+        }
+
+        //patching LOFCache.GetLineOfFire with BA to make sure its not obstructed AND that the carrier isnt obstructed. gonna be messy AF. will also probaly break LowVis.
+
+
+        [HarmonyPatch(typeof(AbstractActor), "HasLOFToTargetUnitAtTargetPosition",
             new Type[]
             {
-                typeof(SelectionType), typeof(Ability), typeof(SVGAsset), typeof(string), typeof(string),
-                typeof(AbstractActor)
+                typeof(ICombatant), typeof(float), typeof(Vector3), typeof(Quaternion), typeof(Vector3),
+                typeof(Quaternion), typeof(bool)
             })]
-        public static class CombatHUDEquipmentSlot_InitButton
+        public static class AbstractActor_HasLOFToTargetUnitAtTargetPosition_Patch
         {
-            public static void Postfix(CombatHUDEquipmentSlot __instance, SelectionType SelectionType, Ability Ability,
-                SVGAsset Icon, string GUID, string Tooltip, AbstractActor actor)
+            static bool Prepare() => true; //disabled for now. why?
+
+            // make sure units doing swarming or riding cannot be targeted.
+            public static void Postfix(AbstractActor __instance, ICombatant targetUnit, float maxRange,
+                Vector3 attackPosition, Quaternion attackRotation, Vector3 targetPosition, Quaternion targetRotation,
+                bool isIndirectFireCapable, ref bool __result)
             {
-                if (actor == null) return;
-                if (Ability == null || Ability.Def?.Id != ModInit.modSettings.BattleArmorMountAndSwarmID) return;
-                if (actor.IsGarrisoned())
+                if (targetUnit is AbstractActor targetActor)
                 {
-                    __instance.Text.SetText("DISMOUNT GARRISON", Array.Empty<object>());
+                    if (targetActor.IsSwarmingUnit() || targetActor.IsMountedUnit()) //|| targetActor.isGarrisoned())
+                    {
+//                        ModInit.modLog?.Trace?.Write($"[AbstractActor.HasLOFToTargetUnitAtTargetPosition] {targetActor.DisplayName} is swarming or mounted, preventing LOS.");
+                        __result = false;
+                    }
                 }
-                else if (actor.IsMountedUnit())
+            }
+        }
+
+        [HarmonyPatch(typeof(ActivatableComponent), "activateComponent",
+            new Type[] {typeof(MechComponent), typeof(bool), typeof(bool)})]
+        public static class ActivatableComponent_activateComponent
+        {
+            public static void Postfix(ActivatableComponent __instance, MechComponent component, bool autoActivate,
+                bool isInital)
+            {
+                if (ModInit.modSettings.BPodComponentIDs.Contains(component.defId))
                 {
-                    __instance.Text.SetText("DISMOUNT BATTLEARMOR", Array.Empty<object>());
+                    ActivatableComponent activatableComponent =
+                        component.componentDef.GetComponent<ActivatableComponent>();
+                    var enemyActors = component.parent.GetAllEnemiesWithinRange(activatableComponent.Explosion.Range);
+                    foreach (var enemyActor in enemyActors)
+                    {
+                        if (enemyActor is TrooperSquad trooperSquad)
+                        {
+                            if (trooperSquad.IsSwarmingUnit() &&
+                                ModState.PositionLockSwarm[trooperSquad.GUID] == component.parent.GUID)
+                            {
+                                trooperSquad.DismountBA(component.parent, Vector3.zero, false, true);
+                            }
+
+                            var baLoc = trooperSquad.GetPossibleHitLocations(component.parent);
+                            var podDmg = activatableComponent.Explosion.Damage;
+                            //var podDmg = component.parent.StatCollection.GetValue<float>("SquishumToadsAsplode");
+                            //var divDmg = podDmg / baLoc.Count;
+
+                            var clusters = BattleArmorUtils.CreateBPodDmgClusters(baLoc, podDmg);
+
+                            for (int i = 0; i < clusters.Count; i++)
+                            {
+                                ModInit.modLog?.Info?.Write(
+                                    $"[ActivatableComponent - activateComponent] BA Armor Damage Location {baLoc}: {trooperSquad.GetStringForArmorLocation((ArmorLocation) baLoc[i])} for {clusters[i]}");
+                                var hitinfo = new WeaponHitInfo(-1, -1, 0, 0, component.parent.GUID, trooperSquad.GUID,
+                                    1, new float[1], new float[1], new float[1], new bool[1], new int[baLoc[i]],
+                                    new int[1], new AttackImpactQuality[1], new AttackDirection[1], new Vector3[1],
+                                    new string[1], new int[baLoc[i]]);
+                                trooperSquad.TakeWeaponDamage(hitinfo, baLoc[i], trooperSquad.MeleeWeapon, clusters[i],
+                                    0, 0, DamageType.ComponentExplosion);
+
+                                var vector = trooperSquad.GameRep.GetHitPosition(baLoc[i]);
+                                var message = new FloatieMessage(hitinfo.attackerId, trooperSquad.GUID,
+                                    $"{(int) Mathf.Max(1f, clusters[i])}",
+                                    trooperSquad.Combat.Constants.CombatUIConstants.floatieSizeMedium,
+                                    FloatieMessage.MessageNature.ArmorDamage, vector.x, vector.y, vector.z);
+                                trooperSquad.Combat.MessageCenter.PublishMessage(message);
+                            }
+                        }
+                    }
                 }
-                else if (actor.IsSwarmingUnit())
+            }
+        }
+
+
+        [HarmonyPatch(typeof(ActorMovementSequence), "CompleteOrders")]
+        public static class ActorMovementSequence_CompleteOrders
+        {
+            public static void Postfix(ActorMovementSequence __instance)
+            {
+                try
                 {
-                    __instance.Text.SetText("HALT SWARM ATTACK", Array.Empty<object>());
+                    if (__instance.owningActor == null) return;
+
+
+                    if (ModState.DeSwarmMovementInfo?.Carrier?.GUID == __instance.owningActor.GUID)
+                    {
+                        var settings = ModInit.modSettings.DeswarmMovementConfig;
+
+                        var baseChance =
+                            settings.BaseSuccessChance; //__instance.owningActor.getMovementDeSwarmMinChance();
+                        var chanceFromPips =
+                            __instance.owningActor.EvasivePipsCurrent *
+                            settings.EvasivePipsFactor; //__instance.owningActor.getMovementDeSwarmEvasivePipsFactor();
+                        var finalChance = Mathf.Min(baseChance + chanceFromPips, settings.MaxSuccessChance);
+                        //__instance.owningActor.getMovementDeSwarmMaxChance());
+                        var roll = ModInit.Random.NextDouble();
+                        ModInit.modLog?.Info?.Write(
+                            $"[ActorMovementSequence.CompleteOrders] Found DeSwarmMovementInfo for unit {__instance.owningActor.DisplayName} {__instance.owningActor.GUID}. Rolled {roll} vs finalChance {finalChance} from baseChance {baseChance} and evasive chance {chanceFromPips}");
+                        if (roll <= finalChance)
+                        {
+                            var waypoints =
+                                __instance
+                                    .Waypoints; //Traverse.Create(__instance).Property("Waypoints").GetValue<List<WayPoint>>();
+                            foreach (var swarmingUnit in ModState.DeSwarmMovementInfo?.SwarmingUnits)
+                            {
+                                var selectedWaypoint = waypoints.GetRandomElement();
+                                ModInit.modLog?.Info?.Write(
+                                    $"[ActorMovementSequence.CompleteOrders] Roll succeeded, plonking {swarmingUnit.DisplayName} at {selectedWaypoint.Position}");
+                                swarmingUnit.DismountBA(__instance.owningActor, selectedWaypoint.Position, false, true);
+                            }
+                        }
+
+                        ModState.DeSwarmMovementInfo = new Classes.BA_DeswarmMovementInfo();
+                    }
                 }
+                catch (Exception ex)
+                {
+                    ModInit.modLog?.Error?.Write(ex.ToString());
+                }
+            }
+        }
+
+        [HarmonyPatch(typeof(AttackDirector.AttackSequence), "IsBreachingShot", MethodType.Getter)]
+        public static class AttackDirector_AttackSequence_IsBreachingShot
+        {
+            static bool Prepare() => !ModInit.modSettings.UsingMechAffinityForSwarmBreach;
+
+            public static void Postfix(AttackDirector.AttackSequence __instance, ref bool __result)
+            {
+                if (!__result)
+                {
+                    if (__instance.chosenTarget is AbstractActor targetActor)
+                    {
+                        if (__instance.attacker.IsSwarmingTargetUnit(targetActor))
+                        {
+                            __result = true;
+                        }
+                    }
+                }
+            }
+        }
+
+        [HarmonyPatch(typeof(BattleTech.Building), "FlagForDeath",
+            new Type[]
+            {
+                typeof(string), typeof(DeathMethod), typeof(DamageType), typeof(int), typeof(int), typeof(string),
+                typeof(bool)
+            })]
+        public static class Building_FlagForDeath
+        {
+            public static void Prefix(BattleTech.Building __instance, string reason, DeathMethod deathMethod,
+                DamageType damageType, int location, int stackItemID, string attackerID, bool isSilent)
+            {
+                if (__instance.IsFlaggedForDeath) return;
+                ModInit.modLog?.Trace?.Write(
+                    $"[Building.FlagForDeath] Building {__instance.DisplayName} {__instance.GUID} at position {__instance.CurrentPosition} dieded.");
+                if (!__instance.HasGarrisonedUnits()) return;
+                var garrisons = new List<KeyValuePair<string, Classes.BA_GarrisonInfo>>(ModState.PositionLockGarrison
+                    .Where(x => x.Value.BuildingGUID == __instance.GUID).ToList());
+                foreach (var garrison in garrisons)
+                {
+                    ModInit.modLog?.Trace?.Write(
+                        $"[Building.FlagForDeath] Building {__instance.DisplayName} {__instance.GUID} dieded, has units mounted.");
+
+                    var actor = __instance.Combat.FindActorByGUID(garrison.Key);
+                    if (actor is TrooperSquad squad)
+                    {
+                        foreach (var garrisonEffect in ModState.OnGarrisonCollapseEffects)
+                        {
+                            if (garrisonEffect.TargetEffectType == Classes.ConfigOptions.BA_TargetEffectType.GARRISON)
+                            {
+                                foreach (var effectData in garrisonEffect.effects)
+                                {
+                                    //squad.Combat.EffectManager.CreateEffect(effectData,effectData.Description.Id,-1, actor, actor, default(WeaponHitInfo), 1);
+                                    squad.CreateEffect(effectData, null,
+                                        effectData.Description.Id,
+                                        -1, squad);
+                                }
+                            }
+                        }
+
+                        squad.DismountGarrison(__instance, Vector3.zero, true);
+
+
+                        var dmg = squad.StatCollection.GetValue<float>("DFASelfDamage");
+                        var trooperLocs = squad.GetPossibleHitLocations(squad);
+                        for (int i = 0; i < trooperLocs.Count; i++)
+                        {
+                            var hitinfo = new WeaponHitInfo(-1, -1, 0, 0, squad.GUID,
+                                squad.GUID, 1, new float[1], new float[1], new float[1],
+                                new bool[1], new int[trooperLocs[i]], new int[1], new AttackImpactQuality[1],
+                                new AttackDirection[1], new Vector3[1], new string[1], new int[trooperLocs[i]]);
+
+                            squad.TakeWeaponDamage(hitinfo, trooperLocs[i],
+                                squad.MeleeWeapon, dmg,
+                                0, 0, DamageType.DFASelf);
+                        }
+                    }
+                }
+            }
+        }
+
+        [HarmonyPatch(typeof(CombatGameState), "GetAllTabTargets",
+            new Type[] {typeof(AbstractActor)})]
+        public static class CombatGameState_GetAllTabTargets
+        {
+            static bool Prepare() => false;
+            public static void Postfix(CombatGameState __instance, AbstractActor actor, ref List<ICombatant> __result)
+            {
+                for (var index = __result.Count - 1; index >= 0; index--)
+                {
+                    var combatant = __result[index];
+                    if (combatant is AbstractActor targetActor && (targetActor.IsSwarmingUnit() ||
+                                                                   targetActor.IsMountedUnit()))
+                    {
+                        __result.Remove(combatant);
+                    }
+                }
+            }
+        }
+        
+        [HarmonyPatch(typeof(CombatHUDButtonBase), "OnClick",
+            new Type[] { })]
+        public static class CombatHUDButtonBase_OnClick
+        {
+            //static bool Prepare() => ModInit.modSettings.EnableQuickReserve;
+            public static void Prefix(ref bool __runOriginal, CombatHUDButtonBase __instance)
+            {
+                if (!__runOriginal) return;
+                if (__instance.GUID != "BTN_DoneWithMech")
+                {
+                    __runOriginal = true;
+                    return;
+                }
+
+                var hud = __instance
+                    .HUD; //IRBTModUtils.SharedState.CombatHUD;//Traverse.Create(__instance).Property("HUD").GetValue<CombatHUD>();
+                var actor = hud.SelectedActor;
+                if (ModInit.modSettings.EnableQuickReserve)
+                {
+                    var hk = Input.GetKey(KeyCode.LeftShift) || Input.GetKey(KeyCode.RightShift);
+                    if (hk && actor.CanDeferUnit)
+                    {
+                        actor.DeferUnit();
+                        actor.ForceUnitToLastActualPhase();
+                        __runOriginal = false;
+                        return;
+                    }
+                }
+
+                if (!actor.IsSwarmingUnit())
+                {
+                    ModInit.modLog?.Debug?.Write(
+                        $"[CombatHUDButtonBase.OnClick] Actor {actor.DisplayName} is not swarming, ending turn like normal.");
+                    __runOriginal = true;
+                    return;
+                }
+
+                if (actor.GetAbilityUsedFiring())
+                {
+                    ModInit.modLog?.Info?.Write(
+                        $"[CombatHUDButtonBase.OnClick] Actor {actor.DisplayName} has used an ability that consumed firing, not generating swarm.");
+                    __runOriginal = true;
+                    return;
+                }
+
+                var target = actor.Combat.FindActorByGUID(ModState.PositionLockSwarm[actor.GUID]);
+                ModInit.modLog?.Info?.Write(
+                    $"[CombatHUDButtonBase.OnClick] Actor {actor.DisplayName} has active swarm attack on {target.DisplayName}");
+
+                var weps = actor.Weapons.Where(x => x.IsEnabled && x.HasAmmo).ToList();
+
+                //                var baselineAccuracyModifier = actor.StatCollection.GetValue<float>("AccuracyModifier");
+                //                actor.StatCollection.Set<float>("AccuracyModifier", -99999.0f);
+                //                ModInit.modLog?.Trace?.Write($"[AbstractActor.DoneWithActor] Actor {actor.DisplayName} getting baselineAccuracyModifer set to {actor.AccuracyModifier}");
+
+                var loc = ModState.BADamageTrackers[actor.GUID].BA_MountedLocations.Values.GetRandomElement();
+                var attackStackSequence = new AttackStackSequence(actor, target, actor.CurrentPosition,
+                    actor.CurrentRotation, weps, MeleeAttackType.NotSet, loc, -1);
+                actor.Combat.MessageCenter.PublishMessage(new AddSequenceToStackMessage(attackStackSequence));
+
+//                actor.StatCollection.Set<float>("AccuracyModifier", baselineAccuracyModifier);
+//                ModInit.modLog?.Trace?.Write($"[AbstractActor.DoneWithActor] Actor {actor.DisplayName} resetting baselineAccuracyModifer to {actor.AccuracyModifier}");
+                __runOriginal = true;
+                return;
             }
         }
 
@@ -1389,6 +772,334 @@ namespace StrategicOperations.Patches
                 {
                     __instance.Text.SetText(__instance.Ability.Def?.Description.Name);
                 }
+            }
+        }
+
+        [HarmonyPatch(typeof(CombatHUDEquipmentSlot), "InitButton",
+            new Type[]
+            {
+                typeof(SelectionType), typeof(Ability), typeof(SVGAsset), typeof(string), typeof(string),
+                typeof(AbstractActor)
+            })]
+        public static class CombatHUDEquipmentSlot_InitButton
+        {
+            public static void Postfix(CombatHUDEquipmentSlot __instance, SelectionType SelectionType, Ability Ability,
+                SVGAsset Icon, string GUID, string Tooltip, AbstractActor actor)
+            {
+                if (actor == null) return;
+                if (Ability == null || Ability.Def?.Id != ModInit.modSettings.BattleArmorMountAndSwarmID) return;
+                if (actor.IsGarrisoned())
+                {
+                    __instance.Text.SetText("DISMOUNT GARRISON", Array.Empty<object>());
+                }
+                else if (actor.IsMountedUnit())
+                {
+                    __instance.Text.SetText("DISMOUNT BATTLEARMOR", Array.Empty<object>());
+                }
+                else if (actor.IsSwarmingUnit())
+                {
+                    __instance.Text.SetText("HALT SWARM ATTACK", Array.Empty<object>());
+                }
+            }
+        }
+
+        [HarmonyPatch(typeof(CombatHUDMechTrayArmorHover), "setToolTipInfo",
+            new Type[] {typeof(Mech), typeof(ArmorLocation)})]
+        public static class CombatHUDMechTrayArmorHover_setToolTipInfo
+        {
+            public static void Postfix(CombatHUDMechTrayArmorHover __instance, Mech mech, ArmorLocation location)
+            {
+                if (!mech.HasSwarmingUnits() && !mech.HasMountedUnits()) return;
+                var tooltip =
+                    __instance
+                        .ToolTip; //Traverse.Create(__instance).Property("ToolTip").GetValue<CombatHUDTooltipHoverElement>();
+                foreach (var squadInfo in ModState.BADamageTrackers.Where(x =>
+                             x.Value.TargetGUID == mech.GUID && !x.Value.IsSquadInternal &&
+                             x.Value.BA_MountedLocations.ContainsValue((int) location)))
+                {
+                    ModInit.modLog?.Trace?.Write(
+                        $"[CombatHUDMechTrayArmorHover.setToolTipInfo] Evaluating {squadInfo.Key} for {squadInfo.Value.TargetGUID} for tooltip infos");
+
+                    if (mech.Combat.FindActorByGUID(squadInfo.Key) is Mech BattleArmorAsMech)
+                    {
+                        var BattleArmorMounts =
+                            squadInfo.Value.BA_MountedLocations.Where(x => x.Value == (int) location);
+                        foreach (var mount in BattleArmorMounts)
+                        {
+
+                            var BALocArmor = (ArmorLocation) mount.Key;
+                            //var BALocArmorString = BattleArmorAsMech.GetStringForArmorLocation(BALocArmor);
+                            var BALocStruct = MechStructureRules.GetChassisLocationFromArmorLocation(BALocArmor);
+                            //var BALocStructString = BattleArmorAsMech.GetStringForStructureLocation(BALocStruct);
+
+                            var BattleArmorLocArmor = BattleArmorAsMech.ArmorForLocation((int) BALocArmor);
+                            var BattleArmorLocStruct = BattleArmorAsMech.StructureForLocation((int) BALocStruct);
+                            var newText =
+                                new Localize.Text(
+                                    $"Battle Armor: Arm. {Mathf.RoundToInt(BattleArmorLocArmor)} / Str. {Mathf.RoundToInt(BattleArmorLocStruct)}",
+                                    Array.Empty<object>());
+                            if (mech.team.IsFriendly(BattleArmorAsMech.team))
+                            {
+                                tooltip.BuffStrings.Add(newText);
+                            }
+                            else
+                            {
+                                tooltip.DebuffStrings.Add(newText);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        [HarmonyPatch(typeof(CombatHUDMechwarriorTray), "ResetMechwarriorButtons",
+            new Type[] {typeof(AbstractActor)})]
+        public static class CombatHUDMechwarriorTray_ResetMechwarriorButtons
+        {
+            [HarmonyPriority(Priority.Last)]
+            public static void Postfix(CombatHUDMechwarriorTray __instance, AbstractActor actor)
+            {
+                if (UnityGameInstance.BattleTechGame.Combat.ActiveContract.ContractTypeValue.IsSkirmish) return;
+                if (actor == null) return;
+
+                var moraleButtons =
+                    __instance
+                        .MoraleButtons; //Traverse.Create(__instance).Property("MoraleButtons").GetValue<CombatHUDActionButton[]>();
+                var abilityButtons =
+                    __instance
+                        .AbilityButtons; //Traverse.Create(__instance).Property("AbilityButtons").GetValue<CombatHUDActionButton[]>();
+
+                if (actor.IsAirlifted())
+                {
+                    ModInit.modLog?.Trace?.Write(
+                        $"[CombatHUDMechwarriorTray.ResetMechwarriorButtons] Actor {actor.DisplayName} {actor.GUID} is Airlifted. Disabling movement buttons.");
+                    __instance.MoveButton.DisableButton();
+                    __instance.SprintButton.DisableButton();
+                    __instance.JumpButton.DisableButton();
+
+                    if (ModState.AirliftTrackers[actor.GUID].IsCarriedInternal)
+                    {
+                        foreach (var moraleButton in moraleButtons)
+                        {
+                            moraleButton.DisableButton();
+                        }
+
+                        __instance.FireButton.DisableButton();
+                    }
+                }
+
+                if (actor.IsGarrisoned())
+                {
+                    ModInit.modLog?.Trace?.Write(
+                        $"[CombatHUDMechwarriorTray.ResetMechwarriorButtons] Actor {actor.DisplayName} {actor.GUID} found in garrison. Disabling buttons.");
+
+                    __instance.MoveButton.DisableButton();
+                    __instance.SprintButton.DisableButton();
+                    __instance.JumpButton.DisableButton();
+                }
+
+                else if (actor.IsMountedUnit())
+                {
+                    ModInit.modLog?.Trace?.Write(
+                        $"[CombatHUDMechwarriorTray.ResetMechwarriorButtons] Actor {actor.DisplayName} {actor.GUID} found in PositionLockMount. Disabling buttons.");
+                    var carrier = actor.Combat.FindActorByGUID(ModState.PositionLockMount[actor.GUID]);
+
+                    __instance.MoveButton.DisableButton();
+                    __instance.SprintButton.DisableButton();
+                    __instance.JumpButton.DisableButton();
+
+                    if (!actor.IsMountedInternal() || !carrier.HasFiringPorts())
+                    {
+                        __instance.FireButton.DisableButton();
+                        foreach (var moraleButton in moraleButtons)
+                        {
+                            moraleButton.DisableButton();
+                        }
+
+                        foreach (var abilityButton in abilityButtons)
+                        {
+                            if (abilityButton?.Ability?.Def?.Id == ModInit.modSettings.BattleArmorMountAndSwarmID)
+                                abilityButton?.DisableButton();
+                        }
+                    }
+                }
+                else if (actor.IsSwarmingUnit())
+                {
+                    ModInit.modLog?.Trace?.Write(
+                        $"[CombatHUDMechwarriorTray.ResetMechwarriorButtons] Actor {actor.DisplayName} {actor.GUID} found in PositionLockSwarm. Disabling buttons.");
+                    __instance.FireButton.DisableButton();
+                    __instance.MoveButton.DisableButton();
+                    __instance.SprintButton.DisableButton();
+                    __instance.JumpButton.DisableButton();
+
+                    foreach (var moraleButton in moraleButtons)
+                    {
+                        moraleButton.DisableButton();
+                    }
+
+                    foreach (var abilityButton in abilityButtons)
+                    {
+                        if (abilityButton?.Ability?.Def?.Id == ModInit.modSettings.BattleArmorMountAndSwarmID)
+                            abilityButton?.DisableButton();
+                    }
+                }
+            }
+        }
+
+        [HarmonyPatch(typeof(CombatHUDVehicleArmorHover), "setToolTipInfo",
+            new Type[] {typeof(Vehicle), typeof(VehicleChassisLocations)})]
+        public static class CombatHUDVehicleArmorHover_setToolTipInfo
+        {
+            public static void Postfix(CombatHUDVehicleArmorHover __instance, Vehicle vehicle,
+                VehicleChassisLocations location)
+            {
+                if (!vehicle.HasSwarmingUnits() && !vehicle.HasMountedUnits()) return;
+                var tooltip =
+                    __instance
+                        .ToolTip; //Traverse.Create(__instance).Property("ToolTip").GetValue<CombatHUDTooltipHoverElement>();
+                foreach (var squadInfo in ModState.BADamageTrackers.Where(x =>
+                             x.Value.TargetGUID == vehicle.GUID && !x.Value.IsSquadInternal &&
+                             x.Value.BA_MountedLocations.ContainsValue((int) location)))
+                {
+                    ModInit.modLog?.Trace?.Write(
+                        $"[CombatHUDMechTrayArmorHover.setToolTipInfo] Evaluating {squadInfo.Key} for {squadInfo.Value.TargetGUID} for tooltip infos");
+
+                    if (vehicle.Combat.FindActorByGUID(squadInfo.Key) is Mech BattleArmorAsMech)
+                    {
+                        var BattleArmorMounts =
+                            squadInfo.Value.BA_MountedLocations.Where(x => x.Value == (int) location);
+                        foreach (var mount in BattleArmorMounts)
+                        {
+
+                            var BALocArmor = (VehicleChassisLocations) mount.Key;
+                            //var BALocArmorString = BattleArmorAsMech.GetStringForArmorLocation(BALocArmor);
+                            //var BALocStructString = BattleArmorAsMech.GetStringForStructureLocation(BALocStruct);
+
+                            var BattleArmorLocArmor = BattleArmorAsMech.ArmorForLocation((int) BALocArmor);
+                            var BattleArmorLocStruct = BattleArmorAsMech.StructureForLocation((int) BALocArmor);
+                            var newText =
+                                new Localize.Text(
+                                    $"Battle Armor: Arm. {Mathf.RoundToInt(BattleArmorLocArmor)} / Str. {Mathf.RoundToInt(BattleArmorLocStruct)}",
+                                    Array.Empty<object>());
+                            if (vehicle.team.IsFriendly(BattleArmorAsMech.team))
+                            {
+                                tooltip.BuffStrings.Add(newText);
+                            }
+                            else
+                            {
+                                tooltip.DebuffStrings.Add(newText);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        [HarmonyPatch(typeof(CombatSelectionHandler), "AddFireState",
+            new Type[] { typeof(AbstractActor) })]
+        public static class CombatSelectionHandler_AddFireState
+        {
+            public static void Prefix(ref bool __runOriginal, CombatSelectionHandler __instance, AbstractActor actor)
+            {
+                if (!__runOriginal) return;
+                var mountedNoPorts = false;
+                if (actor.IsMountedUnit())
+                {
+                    var carrier = actor.Combat.FindActorByGUID(ModState.PositionLockMount[actor.GUID]);
+                    if (!carrier.HasFiringPorts()) mountedNoPorts = true;
+                }
+                if (actor.IsSwarmingUnit() || mountedNoPorts)
+                {
+                    ModInit.modLog?.Trace?.Write(
+                        $"[CombatSelectionHandler.AddFireState] Actor {actor.DisplayName}: Disabling AddFireState");
+                    var selectionStack =
+                        __instance
+                            .SelectionStack; //Traverse.Create(__instance).Property("SelectionStack").GetValue<List<SelectionState>>();
+                    if (!selectionStack.Any(x => x is SelectionStateDoneWithMech))
+                    {
+                        var HUD = __instance
+                            .HUD; //IRBTModUtils.SharedState.CombatHUD;//Traverse.Create(__instance).Property("HUD").GetValue<CombatHUD>();
+                        var doneState = new SelectionStateDoneWithMech(actor.Combat, HUD,
+                            HUD.MechWarriorTray.DoneWithMechButton, actor);
+                        //var addState = Traverse.Create(__instance).Method("addNewState", new Type[] { typeof(SelectionState) });
+                        //addState.GetValue(doneState);
+                        __instance.addNewState(doneState);
+                    }
+
+                    __runOriginal = false;
+                    return;
+                }
+
+                __runOriginal = true;
+                return;
+            }
+        }
+
+        [HarmonyPatch(typeof(CombatSelectionHandler), "AddMoveState",
+            new Type[] {typeof(AbstractActor)})]
+        public static class CombatSelectionHandler_AddMoveState
+        {
+            public static void Prefix(ref bool __runOriginal, CombatSelectionHandler __instance, AbstractActor actor)
+            {
+                if (!__runOriginal) return;
+                if (actor.IsSwarmingUnit() || actor.IsMountedUnit() || actor.IsAirlifted() || actor.IsGarrisoned())
+                {
+                    ModInit.modLog?.Trace?.Write(
+                        $"[CombatSelectionHandler.AddMoveState] Actor {actor.DisplayName}: Disabling AddMoveState");
+                    var SelectionStack =
+                        __instance
+                            .SelectionStack; //Traverse.Create(__instance).Property("SelectionStack").GetValue<List<SelectionState>>();
+                    if (!SelectionStack.Any(x => x is SelectionStateDoneWithMech))
+                    {
+                        var HUD = __instance
+                            .HUD; //IRBTModUtils.SharedState.CombatHUD;//Traverse.Create(__instance).Property("HUD").GetValue<CombatHUD>();
+                        var doneState = new SelectionStateDoneWithMech(actor.Combat, HUD,
+                            HUD.MechWarriorTray.DoneWithMechButton, actor);
+                        //var addState = Traverse.Create(__instance).Method("addNewState", new Type[] { typeof(SelectionState) });
+                        //addState.GetValue(doneState);
+                        __instance.addNewState(doneState);
+                    }
+
+                    __runOriginal = false;
+                    return;
+                }
+
+                __runOriginal = true;
+                return;
+            }
+        }
+
+        [HarmonyPatch(typeof(CombatSelectionHandler), "AddSprintState",
+            new Type[] {typeof(AbstractActor)})]
+        public static class CombatSelectionHandler_AddSprintState
+        {
+            public static void Prefix(ref bool __runOriginal, CombatSelectionHandler __instance, AbstractActor actor)
+            {
+                if (!__runOriginal) return;
+                if (actor.IsMountedUnit() || actor.IsSwarmingUnit() || actor.IsAirlifted() || actor.IsGarrisoned())
+                {
+                    ModInit.modLog?.Trace?.Write(
+                        $"[CombatSelectionHandler.AddSprintState] Actor {actor.DisplayName}: Disabling SprintState");
+                    var SelectionStack =
+                        __instance
+                            .SelectionStack; //Traverse.Create(__instance).Property("SelectionStack").GetValue<List<SelectionState>>();
+                    if (!SelectionStack.Any(x => x is SelectionStateDoneWithMech))
+                    {
+                        var HUD = __instance
+                            .HUD; //IRBTModUtils.SharedState.CombatHUD;//Traverse.Create(__instance).Property("HUD").GetValue<CombatHUD>();
+                        var doneState = new SelectionStateDoneWithMech(actor.Combat, HUD,
+                            HUD.MechWarriorTray.DoneWithMechButton, actor);
+                        //var addState = Traverse.Create(__instance).Method("addNewState", new Type[] {typeof(SelectionState)});
+                        //addState.GetValue(doneState);
+                        __instance.addNewState(doneState);
+                    }
+
+                    __runOriginal = false;
+                    return;
+                }
+
+                __runOriginal = true;
+                return;
             }
         }
 
@@ -1504,581 +1215,199 @@ namespace StrategicOperations.Patches
             }
         }
 
-        [HarmonyPatch(typeof(AbstractActor), "CanMoveAfterShooting", MethodType.Getter)]
-        public static class AbstractActor_CanMoveAfterShooting
+        [HarmonyPatch(typeof(LanceConfiguratorPanel), "OnButtonClicked",
+            new Type[] {typeof(IMechLabDraggableItem)})]
+        public static class LanceConfiguratorPanel_OnButtonClicked
         {
-            public static void Postfix(AbstractActor __instance, ref bool __result)
+            private static bool Prepare() => true;
+
+            public static void Postfix(LanceConfiguratorPanel __instance, IMechLabDraggableItem item)
             {
-                if (__instance.CanSwarm() || __instance.IsAirlifted())
+                var proc = Input.GetKey(KeyCode.LeftShift) || Input.GetKey(KeyCode.RightShift);
+
+                if (proc)
                 {
-                    __result = false;
+                    if (item.ItemType == MechLabDraggableItemType.Mech &&
+                        item.DropParent.dropTargetType == MechLabDropTargetType.LanceSlot)
+                    {
+                        if (item is not LanceLoadoutMechItem lanceLoadoutMechItem) return;
+                        var mechDef = lanceLoadoutMechItem.MechDef;
+                        if (mechDef == null) return;
+
+                        foreach (var slot in __instance.loadoutSlots)
+                        {
+                            if (slot.SelectedMech == lanceLoadoutMechItem)
+                            {
+                                if (slot.SelectedPilot == null)
+                                    return; // need to have pilot assigned before we can assign BA-Mech Pairings.
+                                var pilotID = slot.SelectedPilot.Pilot.pilotDef.Description.Id;
+                                ModInit.modLog?.Trace?.Write($"[LanceConfiguratorPanel_OnButtonClicked] current pilotID {pilotID}");
+                                var unitCustomInfo = lanceLoadoutMechItem.MechDef.GetCustomInfo();
+                                if (unitCustomInfo is {SquadInfo.Troopers: > 1})
+                                {
+                                    if (ModState.PendingPairBAUnit == slot)
+                                    {
+                                        ModState.PendingPairBAUnit = null;
+                                        __instance.SetPairingOverlay(slot, false);
+                                        //lanceLoadoutMechItem.UnavailableOverlay.SetActive(false);
+                                        return;
+                                    }
+
+                                    if (ModState.PendingPairBAUnit == null)
+                                    {
+                                        ModState.PendingPairBAUnit = slot;
+                                        __instance.SetPairingOverlay(slot, true); // maybe tweak unavailable overlay GO ccolors?
+                                        return;
+                                    }
+                                }
+                                
+                                if (ModState.PendingPairBAUnit != null && ModState.PendingPairBAUnit != slot)
+                                {
+                                    ModInit.modLog?.Trace?.Write(
+                                        $"[LanceConfiguratorPanel_OnButtonClicked] found pending BA {ModState.PendingPairBAUnit.SelectedMech.MechDef.Description.Id} and pilot {pilotID}with no pairing");
+                                    var pendingBAPilot = ModState.PendingPairBAUnit.SelectedPilot.Pilot.pilotDef
+                                        .Description.Id;
+                                    if (!ModState.PairingInfos.ContainsKey(pilotID))
+                                    {
+                                        var totalBASpace = mechDef.GetTotalBASpaceMechDef();
+                                        if (totalBASpace > 0)
+                                        {
+                                            ModState.PairingInfos.Add(pilotID,
+                                                new Classes.BAPairingInfo(totalBASpace, pendingBAPilot));
+                                            __instance.SetPairingOverlay(ModState.PendingPairBAUnit, true, slot);
+                                            //ModState.PendingPairBAUnit.SelectedMech.UnavailableOverlay.SetActive(false); // maybe tweak unavailable overlay GO ccolors?
+                                            ModState.PendingPairBAUnit = null;
+                                            ModInit.modLog?.Trace?.Write(
+                                                $"[LanceConfiguratorPanel_OnButtonClicked] Added new BA Pairing info. {mechDef.Description.Id} and {pilotID} paired with {string.Join(", ", ModState.PairingInfos[pilotID].PairedBattleArmor)}");
+                                            //make a notification that pairing happened? bloop?
+                                        }
+                                    }
+                                    else
+                                    {
+                                        var pairInfo = ModState.PairingInfos[pilotID];
+                                        if (pairInfo.PairedBattleArmor.Count < pairInfo.CapacityInitial)
+                                        {
+                                            pairInfo.PairedBattleArmor.Add(pendingBAPilot);
+                                            __instance.SetPairingOverlay(ModState.PendingPairBAUnit, true, slot);
+                                            //ModState.PendingPairBAUnit.SelectedMech.UnavailableOverlay.SetActive(false); // maybe tweak unavailable overlay GO ccolors?
+                                            ModState.PendingPairBAUnit = null;
+                                            ModInit.modLog?.Trace?.Write(
+                                                $"[LanceConfiguratorPanel_OnButtonClicked] Added BA Pairing to existing info for {pilotID}. {mechDef.Description.Id} and {pilotID} paired with {string.Join(", ", ModState.PairingInfos[pilotID].PairedBattleArmor)}");
+                                            //make a notification that pairing happened? bloop?
+                                        }
+                                    }
+                                    return;
+                                }
+                                return;
+                            }
+                        }
+                    }
                 }
             }
         }
 
-        [HarmonyPatch(typeof(CombatSelectionHandler), "AddSprintState",
-            new Type[] {typeof(AbstractActor)})]
-        public static class CombatSelectionHandler_AddSprintState
+        [HarmonyPatch(typeof(LanceConfiguratorPanel), "OnCancelClicked",
+            new Type[] {})]
+        public static class LanceConfiguratorPanel_OnCancelClicked
         {
-            public static void Prefix(ref bool __runOriginal, CombatSelectionHandler __instance, AbstractActor actor)
+            private static bool Prepare() => true;
+
+            public static void Postfix(LanceConfiguratorPanel __instance)
+            {
+                if (__instance.IsSimGame)
+                {
+                    ModState.PairingInfos = new Dictionary<string, Classes.BAPairingInfo>();
+                    ModState.UsedOverlayColors = new List<Color>();
+                    ModState.UsedOverlayColorsByCarrier = new Dictionary<string, Color>();
+                }
+            }
+        }
+
+        [HarmonyPatch(typeof(LanceLoadoutSlot), "OnRemoveItem",
+            new Type[] {typeof(IMechLabDraggableItem), typeof(bool) })]
+        public static class LanceLoadoutSlot_OnRemoveItem
+        {
+            private static bool Prepare() => true;
+
+            public static void Prefix(ref bool __runOriginal, LanceLoadoutSlot __instance, IMechLabDraggableItem item, bool validate)
             {
                 if (!__runOriginal) return;
-                if (actor.IsMountedUnit() || actor.IsSwarmingUnit() || actor.IsAirlifted() || actor.IsGarrisoned())
+                ModState.PendingPairBAUnit = null;
+                if (__instance.SelectedPilot != null)
                 {
-                    ModInit.modLog?.Trace?.Write(
-                        $"[CombatSelectionHandler.AddSprintState] Actor {actor.DisplayName}: Disabling SprintState");
-                    var SelectionStack =
-                        __instance
-                            .SelectionStack; //Traverse.Create(__instance).Property("SelectionStack").GetValue<List<SelectionState>>();
-                    if (!SelectionStack.Any(x => x is SelectionStateDoneWithMech))
+                    var pilotID = __instance.SelectedPilot.Pilot.pilotDef.Description.Id;
+                    var toRemoveKeys = new List<string>();
+                    if (ModState.PairingInfos.ContainsKey(pilotID))
                     {
-                        var HUD = __instance
-                            .HUD; //IRBTModUtils.SharedState.CombatHUD;//Traverse.Create(__instance).Property("HUD").GetValue<CombatHUD>();
-                        var doneState = new SelectionStateDoneWithMech(actor.Combat, HUD,
-                            HUD.MechWarriorTray.DoneWithMechButton, actor);
-                        //var addState = Traverse.Create(__instance).Method("addNewState", new Type[] {typeof(SelectionState)});
-                        //addState.GetValue(doneState);
-                        __instance.addNewState(doneState);
-                    }
-
-                    __runOriginal = false;
-                    return;
-                }
-
-                __runOriginal = true;
-                return;
-            }
-        }
-
-        [HarmonyPatch(typeof(CombatSelectionHandler), "AddMoveState",
-            new Type[] {typeof(AbstractActor)})]
-        public static class CombatSelectionHandler_AddMoveState
-        {
-            public static void Prefix(ref bool __runOriginal, CombatSelectionHandler __instance, AbstractActor actor)
-            {
-                if (!__runOriginal) return;
-                if (actor.IsSwarmingUnit() || actor.IsMountedUnit() || actor.IsAirlifted() || actor.IsGarrisoned())
-                {
-                    ModInit.modLog?.Trace?.Write(
-                        $"[CombatSelectionHandler.AddMoveState] Actor {actor.DisplayName}: Disabling AddMoveState");
-                    var SelectionStack =
-                        __instance
-                            .SelectionStack; //Traverse.Create(__instance).Property("SelectionStack").GetValue<List<SelectionState>>();
-                    if (!SelectionStack.Any(x => x is SelectionStateDoneWithMech))
-                    {
-                        var HUD = __instance
-                            .HUD; //IRBTModUtils.SharedState.CombatHUD;//Traverse.Create(__instance).Property("HUD").GetValue<CombatHUD>();
-                        var doneState = new SelectionStateDoneWithMech(actor.Combat, HUD,
-                            HUD.MechWarriorTray.DoneWithMechButton, actor);
-                        //var addState = Traverse.Create(__instance).Method("addNewState", new Type[] { typeof(SelectionState) });
-                        //addState.GetValue(doneState);
-                        __instance.addNewState(doneState);
-                    }
-
-                    __runOriginal = false;
-                    return;
-                }
-
-                __runOriginal = true;
-                return;
-            }
-        }
-
-        [HarmonyPatch(typeof(CombatSelectionHandler), "AddFireState",
-            new Type[] { typeof(AbstractActor) })]
-        public static class CombatSelectionHandler_AddFireState
-        {
-            public static void Prefix(ref bool __runOriginal, CombatSelectionHandler __instance, AbstractActor actor)
-            {
-                if (!__runOriginal) return;
-                var mountedNoPorts = false;
-                if (actor.IsMountedUnit())
-                {
-                    var carrier = actor.Combat.FindActorByGUID(ModState.PositionLockMount[actor.GUID]);
-                    if (!carrier.HasFiringPorts()) mountedNoPorts = true;
-                }
-                if (actor.IsSwarmingUnit() || mountedNoPorts)
-                {
-                    ModInit.modLog?.Trace?.Write(
-                        $"[CombatSelectionHandler.AddFireState] Actor {actor.DisplayName}: Disabling AddFireState");
-                    var selectionStack =
-                        __instance
-                            .SelectionStack; //Traverse.Create(__instance).Property("SelectionStack").GetValue<List<SelectionState>>();
-                    if (!selectionStack.Any(x => x is SelectionStateDoneWithMech))
-                    {
-                        var HUD = __instance
-                            .HUD; //IRBTModUtils.SharedState.CombatHUD;//Traverse.Create(__instance).Property("HUD").GetValue<CombatHUD>();
-                        var doneState = new SelectionStateDoneWithMech(actor.Combat, HUD,
-                            HUD.MechWarriorTray.DoneWithMechButton, actor);
-                        //var addState = Traverse.Create(__instance).Method("addNewState", new Type[] { typeof(SelectionState) });
-                        //addState.GetValue(doneState);
-                        __instance.addNewState(doneState);
-                    }
-
-                    __runOriginal = false;
-                    return;
-                }
-
-                __runOriginal = true;
-                return;
-            }
-        }
-
-        [HarmonyPatch(typeof(Mech), "DamageLocation",
-            new Type[]
-            {
-                typeof(int), typeof(WeaponHitInfo), typeof(ArmorLocation), typeof(Weapon), typeof(float), typeof(float),
-                typeof(int), typeof(AttackImpactQuality), typeof(DamageType)
-            })]
-        public static class Mech_DamageLocation_Patch
-        {
-            public static void Prefix(Mech __instance, int originalHitLoc, WeaponHitInfo hitInfo, ArmorLocation aLoc,
-                Weapon weapon, ref float totalArmorDamage, ref float directStructureDamage, int hitIndex,
-                AttackImpactQuality impactQuality, DamageType damageType)
-            {
-                if (__instance is TrooperSquad squad)
-                {
-                    if (squad.IsGarrisoned())
-                    {
-                        var bldgCombatant =
-                            squad.Combat.FindCombatantByGUID(ModState.PositionLockGarrison[squad.GUID].BuildingGUID);
-                        if (bldgCombatant is BattleTech.Building building)
+                        var toRemove = new List<string>();
+                        foreach (var pairedBA in ModState.PairingInfos[pilotID].PairedBattleArmor)
                         {
-                            ModInit.modLog?.Trace?.Write(
-                                $"[Mech.DamageLocation] Redirecting {totalArmorDamage} armor and {directStructureDamage} structure damaghe from squad {squad.DisplayName} {squad.GUID} to garrisoned building {bldgCombatant.DisplayName}");
-                            building.TakeWeaponDamage(hitInfo, 1, weapon, totalArmorDamage, directStructureDamage,
-                                hitIndex, damageType);
-                            totalArmorDamage = 0f;
-                            directStructureDamage = 0f;
+                            toRemove.Add(pairedBA);
                         }
-                    }
-                }
-
-                if (!__instance.HasMountedUnits() && !__instance.HasSwarmingUnits()) return;
-
-                foreach (var squadInfo in ModState.BADamageTrackers.Where(x =>
-                             x.Value.TargetGUID == __instance.GUID && !x.Value.IsSquadInternal &&
-                             x.Value.BA_MountedLocations.ContainsValue((int) aLoc)))
-                {
-                    ModInit.modLog?.Trace?.Write(
-                        $"[Mech.DamageLocation] Evaluating {squadInfo.Key} for {squadInfo.Value.TargetGUID}");
-                    if (ModInit.Random.NextDouble() > (double) 1 / 3) continue;
-                    if (__instance.Combat.FindActorByGUID(squadInfo.Key) is Mech BattleArmorAsMech)
-                    {
-                        if (BattleArmorAsMech.GUID == hitInfo.attackerId) continue;
-                        var BattleArmorMounts = squadInfo.Value.BA_MountedLocations.Where(x => x.Value == (int) aLoc);
-                        foreach (var mount in BattleArmorMounts)
+                        ModState.PairingInfos.Remove(pilotID);
+                        foreach (var slot in __instance.LC.loadoutSlots)
                         {
-                            var BALocArmor = (ArmorLocation) mount.Key;
-                            //var BALocArmorString = BattleArmorAsMech.GetStringForArmorLocation(BALocArmor);
-                            var BALocStruct = MechStructureRules.GetChassisLocationFromArmorLocation(BALocArmor);
-                            //var BALocStructString = BattleArmorAsMech.GetStringForStructureLocation(BALocStruct);
-
-                            var BattleArmorLocArmor = BattleArmorAsMech.ArmorForLocation((int) BALocArmor);
-                            var BattleArmorLocStruct = BattleArmorAsMech.StructureForLocation((int) BALocStruct);
-
-                            if (directStructureDamage > 0)
+                            if (toRemove.Contains(slot?.SelectedPilot?.Pilot.pilotDef.Description.Id))
                             {
-                                ModInit.modLog?.Info?.Write(
-                                    $"[Mech.DamageLocation] directStructureDamage: {directStructureDamage}");
-                                var directStructureDiff = directStructureDamage - BattleArmorLocStruct;
-                                if (directStructureDiff >= 0)
+                                var overlayChildren = slot?.SelectedMech?.UnavailableOverlay.gameObject.GetComponentsInChildren<Image>();
+                                if (overlayChildren == null) continue;
+                                foreach (var overlayChild in overlayChildren)
                                 {
-                                    directStructureDamage -= BattleArmorLocStruct;
-                                    ModInit.modLog?.Info?.Write(
-                                        $"[Mech.DamageLocation] directStructureDamage Diff: {directStructureDiff}. Mech directStructureDamage decremented to {directStructureDamage}");
-                                    BattleArmorAsMech.TakeWeaponDamage(hitInfo, (int) BALocArmor, weapon, 0,
-                                        BattleArmorLocStruct, hitIndex, damageType);
-                                    ModInit.modLog?.Info?.Write(
-                                        $"[Mech.DamageLocation] Battle Armor at location {BALocArmor} takes {BattleArmorLocStruct} direct structure damage");
-                                    __instance.Combat.MessageCenter.PublishMessage(
-                                        new AddSequenceToStackMessage(new ShowActorInfoSequence(BattleArmorAsMech,
-                                            Strings.T("Battle Armor Damaged!"),
-                                            FloatieMessage.MessageNature.CriticalHit, false)));
-                                    continue;
-                                }
-
-                                else if (directStructureDiff < 0)
-                                {
-                                    ModInit.modLog?.Info?.Write(
-                                        $"[Mech.DamageLocation] directStructureDamage Diff: {directStructureDiff}. Mech directStructureDamage decremented to 0");
-                                    BattleArmorAsMech.TakeWeaponDamage(hitInfo, (int) BALocArmor, weapon, 0,
-                                        Mathf.Abs(directStructureDamage), hitIndex, damageType);
-                                    ModInit.modLog?.Info?.Write(
-                                        $"[Mech.DamageLocation] Battle Armor at location {BALocArmor} takes {directStructureDamage} direct structure damage");
-                                    __instance.Combat.MessageCenter.PublishMessage(
-                                        new AddSequenceToStackMessage(new ShowActorInfoSequence(BattleArmorAsMech,
-                                            Strings.T("Battle Armor Damaged!"),
-                                            FloatieMessage.MessageNature.CriticalHit, false)));
-                                    directStructureDamage = 0;
-                                }
-                            }
-
-                            if (totalArmorDamage > 0)
-                            {
-                                ModInit.modLog?.Info?.Write(
-                                    $"[Mech.DamageLocation] totalArmorDamage: {totalArmorDamage}");
-                                var totalArmorDamageDiff =
-                                    totalArmorDamage - (BattleArmorLocArmor + BattleArmorLocStruct);
-                                if (totalArmorDamageDiff > 0)
-                                {
-                                    totalArmorDamage -= totalArmorDamageDiff;
-                                    ModInit.modLog?.Info?.Write(
-                                        $"[Mech.DamageLocation] totalArmorDamageDiff Diff: {totalArmorDamageDiff}. Mech totalArmorDamage decremented to {totalArmorDamage}");
-                                    BattleArmorAsMech.TakeWeaponDamage(hitInfo, (int) BALocArmor, weapon,
-                                        Mathf.Abs(totalArmorDamageDiff), 0, hitIndex, damageType);
-                                    ModInit.modLog?.Info?.Write(
-                                        $"[Mech.DamageLocation] Battle Armor at location {BALocArmor} takes {BattleArmorLocArmor} damage");
-                                    __instance.Combat.MessageCenter.PublishMessage(
-                                        new AddSequenceToStackMessage(new ShowActorInfoSequence(BattleArmorAsMech,
-                                            Strings.T("Battle Armor Damaged!"),
-                                            FloatieMessage.MessageNature.CriticalHit, false)));
-                                }
-
-                                else if (totalArmorDamageDiff <= 0)
-                                {
-                                    ModInit.modLog?.Info?.Write(
-                                        $"[Mech.DamageLocation] totalArmorDamageDiff Diff: {totalArmorDamageDiff}. Mech totalArmorDamage decremented to 0");
-                                    BattleArmorAsMech.TakeWeaponDamage(hitInfo, (int) BALocArmor, weapon,
-                                        Mathf.Abs(totalArmorDamage), 0, hitIndex, damageType);
-                                    ModInit.modLog?.Info?.Write(
-                                        $"[Mech.DamageLocation] Battle Armor at location {BALocArmor} takes {totalArmorDamage} damage");
-                                    totalArmorDamage = 0;
-                                    __instance.Combat.MessageCenter.PublishMessage(
-                                        new AddSequenceToStackMessage(new ShowActorInfoSequence(BattleArmorAsMech,
-                                            Strings.T("Battle Armor Damaged!"),
-                                            FloatieMessage.MessageNature.CriticalHit, false)));
+                                    if (overlayChild.name != "stripes") continue;
+                                    var overlayChildImage = overlayChild.GetComponent<Image>();
+                                    if (overlayChildImage.color != ModState.DefaultOverlay &&
+                                        slot.SelectedMech.UnavailableOverlay.activeSelf)
+                                    {
+                                        overlayChildImage.color = ModState.PendingSelectionColor;//new Color(0, 0, 0, ModState.DefaultOverlay.a);
+                                        slot.SelectedMech.UnavailableOverlay.SetActive(false);
+                                    }
                                 }
                             }
                         }
                     }
-                }
-            }
-        }
 
-        [HarmonyPatch(typeof(Vehicle), "DamageLocation",
-            new Type[]
-            {
-                typeof(WeaponHitInfo), typeof(int), typeof(VehicleChassisLocations), typeof(Weapon), typeof(float),
-                typeof(float), typeof(AttackImpactQuality)
-            })]
-        public static class Vehicle_DamageLocation_Patch
-        {
-            public static void Prefix(Vehicle __instance, WeaponHitInfo hitInfo, int originalHitLoc,
-                VehicleChassisLocations vLoc, Weapon weapon, ref float totalArmorDamage,
-                ref float directStructureDamage, AttackImpactQuality impactQuality)
-            {
-                if (!__instance.HasMountedUnits() && !__instance.HasSwarmingUnits()) return;
-
-                foreach (var squadInfo in ModState.BADamageTrackers.Where(x =>
-                             x.Value.TargetGUID == __instance.GUID && !x.Value.IsSquadInternal &&
-                             x.Value.BA_MountedLocations.ContainsValue((int) vLoc)))
-                {
-                    ModInit.modLog?.Trace?.Write(
-                        $"[Vehicle.DamageLocation] Evaluating {squadInfo.Key} for {squadInfo.Value.TargetGUID}");
-                    if (ModInit.Random.NextDouble() > (double) 1 / 3) continue;
-                    if (__instance.Combat.FindActorByGUID(squadInfo.Key) is Mech BattleArmorAsMech)
+                    else
                     {
-                        if (BattleArmorAsMech.GUID == hitInfo.attackerId) continue;
-                        var BattleArmorMounts = squadInfo.Value.BA_MountedLocations.Where(x => x.Value == (int) vLoc);
-                        foreach (var mount in BattleArmorMounts)
+                        foreach (var pairedKvP in ModState.PairingInfos)
                         {
-                            var BALocArmor = (ArmorLocation) mount.Key;
-                            //var BALocArmorString = BattleArmorAsMech.GetStringForArmorLocation(BALocArmor);
-                            var BALocStruct = MechStructureRules.GetChassisLocationFromArmorLocation(BALocArmor);
-                            //var BALocStructString = BattleArmorAsMech.GetStringForStructureLocation(BALocStruct);
-
-                            var BattleArmorLocArmor = BattleArmorAsMech.ArmorForLocation((int) BALocArmor);
-                            var BattleArmorLocStruct = BattleArmorAsMech.StructureForLocation((int) BALocStruct);
-
-                            if (directStructureDamage > 0)
+                            if (pairedKvP.Value.PairedBattleArmor.Contains(pilotID))
                             {
-                                ModInit.modLog?.Info?.Write(
-                                    $"[Vehicle.DamageLocation] directStructureDamage: {directStructureDamage}");
-                                var directStructureDiff = directStructureDamage - BattleArmorLocStruct;
-                                if (directStructureDiff >= 0)
+                                var carrierID = pairedKvP.Key;
+                                pairedKvP.Value.PairedBattleArmor.Remove(pilotID);
+                                if (pairedKvP.Value.PairedBattleArmor.Count == 0)
                                 {
-                                    directStructureDamage -= BattleArmorLocStruct;
-                                    ModInit.modLog?.Info?.Write(
-                                        $"[Vehicle.DamageLocation] directStructureDamage Diff: {directStructureDiff}. Vehicle directStructureDamage decremented to {directStructureDamage}");
-                                    BattleArmorAsMech.TakeWeaponDamage(hitInfo, (int) BALocArmor, weapon, 0,
-                                        BattleArmorLocStruct, 1, DamageType.Combat);
-                                    ModInit.modLog?.Info?.Write(
-                                        $"[Vehicle.DamageLocation] Battle Armor at location {BALocArmor} takes {BattleArmorLocStruct} direct structure damage");
-                                    __instance.Combat.MessageCenter.PublishMessage(
-                                        new AddSequenceToStackMessage(new ShowActorInfoSequence(BattleArmorAsMech,
-                                            Strings.T("Battle Armor Damaged!"),
-                                            FloatieMessage.MessageNature.CriticalHit, false)));
-                                    continue;
+                                    toRemoveKeys.Add(carrierID);
                                 }
-
-                                else if (directStructureDiff < 0)
+                                foreach (var slot in __instance.LC.loadoutSlots)
                                 {
-                                    ModInit.modLog?.Info?.Write(
-                                        $"[Vehicle.DamageLocation] directStructureDamage Diff: {directStructureDiff}. Vehicle directStructureDamage decremented to 0");
-                                    BattleArmorAsMech.TakeWeaponDamage(hitInfo, (int) BALocArmor, weapon, 0,
-                                        Mathf.Abs(directStructureDamage), 1, DamageType.Combat);
-                                    ModInit.modLog?.Info?.Write(
-                                        $"[Vehicle.DamageLocation] Battle Armor at location {BALocArmor} takes {directStructureDamage} direct structure damage");
-                                    directStructureDamage = 0;
-                                    __instance.Combat.MessageCenter.PublishMessage(
-                                        new AddSequenceToStackMessage(new ShowActorInfoSequence(BattleArmorAsMech,
-                                            Strings.T("Battle Armor Damaged!"),
-                                            FloatieMessage.MessageNature.CriticalHit, false)));
-                                }
-                            }
-
-                            if (totalArmorDamage > 0)
-                            {
-                                ModInit.modLog?.Info?.Write(
-                                    $"[Vehicle.DamageLocation] totalArmorDamage: {totalArmorDamage}");
-                                var totalArmorDamageDiff =
-                                    totalArmorDamage - (BattleArmorLocArmor + BattleArmorLocStruct);
-                                if (totalArmorDamageDiff > 0)
-                                {
-                                    totalArmorDamage -= totalArmorDamageDiff;
-                                    ModInit.modLog?.Info?.Write(
-                                        $"[Vehicle.DamageLocation] totalArmorDamageDiff Diff: {totalArmorDamageDiff}. Vehicle totalArmorDamage decremented to {totalArmorDamage}");
-                                    BattleArmorAsMech.TakeWeaponDamage(hitInfo, (int) BALocArmor, weapon,
-                                        Mathf.Abs(totalArmorDamageDiff), 0, 1, DamageType.Combat);
-                                    ModInit.modLog?.Info?.Write(
-                                        $"[Vehicle.DamageLocation] Battle Armor at location {BALocArmor} takes {BattleArmorLocArmor} damage");
-                                    __instance.Combat.MessageCenter.PublishMessage(
-                                        new AddSequenceToStackMessage(new ShowActorInfoSequence(BattleArmorAsMech,
-                                            Strings.T("Battle Armor Damaged!"),
-                                            FloatieMessage.MessageNature.CriticalHit, false)));
-                                }
-
-                                else if (totalArmorDamageDiff <= 0)
-                                {
-                                    ModInit.modLog?.Info?.Write(
-                                        $"[Vehicle.DamageLocation] totalArmorDamageDiff Diff: {totalArmorDamageDiff}. Vehicle totalArmorDamage decremented to 0");
-                                    BattleArmorAsMech.TakeWeaponDamage(hitInfo, (int) BALocArmor, weapon,
-                                        Mathf.Abs(totalArmorDamage), 0, 1, DamageType.Combat);
-                                    ModInit.modLog?.Info?.Write(
-                                        $"[Vehicle.DamageLocation] Battle Armor at location {BALocArmor} takes {totalArmorDamage} damage");
-                                    totalArmorDamage = 0;
-                                    __instance.Combat.MessageCenter.PublishMessage(
-                                        new AddSequenceToStackMessage(new ShowActorInfoSequence(BattleArmorAsMech,
-                                            Strings.T("Battle Armor Damaged!"),
-                                            FloatieMessage.MessageNature.CriticalHit, false)));
+                                    if (pilotID == slot?.SelectedPilot?.Pilot.pilotDef.Description.Id || toRemoveKeys.Contains(slot?.SelectedPilot?.Pilot.pilotDef.Description.Id))
+                                    {
+                                        var overlayChildren = slot?.SelectedMech?.UnavailableOverlay.gameObject.GetComponentsInChildren<Image>();
+                                        if (overlayChildren == null) continue;
+                                        foreach (var overlayChild in overlayChildren)
+                                        {
+                                            if (overlayChild.name != "stripes") continue;
+                                            var overlayChildImage = overlayChild.GetComponentInChildren<Image>();
+                                            if (overlayChildImage.color != ModState.DefaultOverlay &&
+                                                slot.SelectedMech.UnavailableOverlay.activeSelf)
+                                            {
+                                                overlayChildImage.color = ModState.PendingSelectionColor;//new Color(0, 0, 0, ModState.DefaultOverlay.a);
+                                                slot.SelectedMech.UnavailableOverlay.SetActive(false);
+                                            }
+                                        }
+                                    }
                                 }
                             }
                         }
-                    }
-                }
-            }
-        }
 
-        [HarmonyPatch(typeof(Turret), "DamageLocation",
-            new Type[] {typeof(WeaponHitInfo), typeof(BuildingLocation), typeof(Weapon), typeof(float), typeof(float)})]
-        public static class Turret_DamageLocation_Patch
-        {
-            public static void Prefix(Turret __instance, WeaponHitInfo hitInfo, BuildingLocation bLoc, Weapon weapon,
-                ref float totalArmorDamage, ref float directStructureDamage)
-            {
-                if (bLoc == BuildingLocation.None || bLoc == BuildingLocation.Invalid)
-                {
-                    return;
-                }
-
-                if (!__instance.HasMountedUnits() && !__instance.HasSwarmingUnits()) return;
-
-                foreach (var squadInfo in ModState.BADamageTrackers.Where(x =>
-                             x.Value.TargetGUID == __instance.GUID && !x.Value.IsSquadInternal &&
-                             x.Value.BA_MountedLocations.ContainsValue((int) bLoc)))
-                {
-                    ModInit.modLog?.Trace?.Write(
-                        $"[Turret.DamageLocation] Evaluating {squadInfo.Key} for {squadInfo.Value.TargetGUID}");
-                    if (ModInit.Random.NextDouble() > (double) 1 / 3) continue;
-                    if (__instance.Combat.FindActorByGUID(squadInfo.Key) is Mech BattleArmorAsMech)
-                    {
-                        if (BattleArmorAsMech.GUID == hitInfo.attackerId) continue;
-                        var BattleArmorMounts = squadInfo.Value.BA_MountedLocations.Where(x => x.Value == (int) bLoc);
-                        foreach (var mount in BattleArmorMounts)
+                        foreach (var toRemoveKey in toRemoveKeys)
                         {
-                            var BALocArmor = (ArmorLocation) mount.Key;
-                            //var BALocArmorString = BattleArmorAsMech.GetStringForArmorLocation(BALocArmor);
-                            var BALocStruct = MechStructureRules.GetChassisLocationFromArmorLocation(BALocArmor);
-                            //var BALocStructString = BattleArmorAsMech.GetStringForStructureLocation(BALocStruct);
-
-                            var BattleArmorLocArmor = BattleArmorAsMech.ArmorForLocation((int) BALocArmor);
-                            var BattleArmorLocStruct = BattleArmorAsMech.StructureForLocation((int) BALocStruct);
-
-                            if (directStructureDamage > 0)
-                            {
-                                ModInit.modLog?.Info?.Write(
-                                    $"[Turret.DamageLocation] directStructureDamage: {directStructureDamage}");
-                                var directStructureDiff = directStructureDamage - BattleArmorLocStruct;
-                                if (directStructureDiff >= 0)
-                                {
-                                    directStructureDamage -= BattleArmorLocStruct;
-                                    ModInit.modLog?.Info?.Write(
-                                        $"[Turret.DamageLocation] directStructureDamage Diff: {directStructureDiff}. Turret directStructureDamage decremented to {directStructureDamage}");
-                                    BattleArmorAsMech.TakeWeaponDamage(hitInfo, (int) BALocArmor, weapon, 0,
-                                        BattleArmorLocStruct, 1, DamageType.Combat);
-                                    ModInit.modLog?.Info?.Write(
-                                        $"[Turret.DamageLocation] Battle Armor at location {BALocArmor} takes {BattleArmorLocStruct} direct structure damage");
-                                    __instance.Combat.MessageCenter.PublishMessage(
-                                        new AddSequenceToStackMessage(new ShowActorInfoSequence(BattleArmorAsMech,
-                                            Strings.T("Battle Armor Damaged!"),
-                                            FloatieMessage.MessageNature.CriticalHit, false)));
-                                    continue;
-                                }
-
-                                else if (directStructureDiff < 0)
-                                {
-                                    ModInit.modLog?.Info?.Write(
-                                        $"[Turret.DamageLocation] directStructureDamage Diff: {directStructureDiff}. Turret directStructureDamage decremented to 0");
-                                    BattleArmorAsMech.TakeWeaponDamage(hitInfo, (int) BALocArmor, weapon, 0,
-                                        Mathf.Abs(directStructureDamage), 1, DamageType.Combat);
-                                    ModInit.modLog?.Info?.Write(
-                                        $"[Turret.DamageLocation] Battle Armor at location {BALocArmor} takes {directStructureDamage} direct structure damage");
-                                    directStructureDamage = 0;
-                                    __instance.Combat.MessageCenter.PublishMessage(
-                                        new AddSequenceToStackMessage(new ShowActorInfoSequence(BattleArmorAsMech,
-                                            Strings.T("Battle Armor Damaged!"),
-                                            FloatieMessage.MessageNature.CriticalHit, false)));
-                                }
-                            }
-
-                            if (totalArmorDamage > 0)
-                            {
-                                ModInit.modLog?.Info?.Write(
-                                    $"[Turret.DamageLocation] totalArmorDamage: {totalArmorDamage}");
-                                var totalArmorDamageDiff =
-                                    totalArmorDamage - (BattleArmorLocArmor + BattleArmorLocStruct);
-                                if (totalArmorDamageDiff > 0)
-                                {
-                                    totalArmorDamage -= totalArmorDamageDiff;
-                                    ModInit.modLog?.Info?.Write(
-                                        $"[Turret.DamageLocation] totalArmorDamageDiff Diff: {totalArmorDamageDiff}. Turret totalArmorDamage decremented to {totalArmorDamage}");
-                                    BattleArmorAsMech.TakeWeaponDamage(hitInfo, (int) BALocArmor, weapon,
-                                        Mathf.Abs(totalArmorDamageDiff), 0, 1, DamageType.Combat);
-                                    ModInit.modLog?.Info?.Write(
-                                        $"[Turret.DamageLocation] Battle Armor at location {BALocArmor} takes {BattleArmorLocArmor} damage");
-                                    __instance.Combat.MessageCenter.PublishMessage(
-                                        new AddSequenceToStackMessage(new ShowActorInfoSequence(BattleArmorAsMech,
-                                            Strings.T("Battle Armor Damaged!"),
-                                            FloatieMessage.MessageNature.CriticalHit, false)));
-                                }
-
-                                else if (totalArmorDamageDiff <= 0)
-                                {
-                                    ModInit.modLog?.Info?.Write(
-                                        $"[Turret.DamageLocation] totalArmorDamageDiff Diff: {totalArmorDamageDiff}. Turret totalArmorDamage decremented to 0");
-                                    BattleArmorAsMech.TakeWeaponDamage(hitInfo, (int) BALocArmor, weapon,
-                                        Mathf.Abs(totalArmorDamage), 0, 1, DamageType.Combat);
-                                    ModInit.modLog?.Info?.Write(
-                                        $"[Turret.DamageLocation] Battle Armor at location {BALocArmor} takes {totalArmorDamage} damage");
-                                    totalArmorDamage = 0;
-                                    __instance.Combat.MessageCenter.PublishMessage(
-                                        new AddSequenceToStackMessage(new ShowActorInfoSequence(BattleArmorAsMech,
-                                            Strings.T("Battle Armor Damaged!"),
-                                            FloatieMessage.MessageNature.CriticalHit, false)));
-                                }
-                            }
+                            ModState.PairingInfos.Remove(toRemoveKey);
                         }
                     }
+                    ModInit.modLog?.Trace?.Write($"[LanceLoadoutSlot_OnRemoveItem] Removed {pilotID}. Should have removed {string.Join(", ",toRemoveKeys)} from PairingInfo keys. Pairing info keys: {string.Join(", ", ModState.PairingInfos.Keys)}");
                 }
-            }
-        }
-
-        [HarmonyPatch(typeof(CombatHUDMechTrayArmorHover), "setToolTipInfo",
-            new Type[] {typeof(Mech), typeof(ArmorLocation)})]
-        public static class CombatHUDMechTrayArmorHover_setToolTipInfo
-        {
-            public static void Postfix(CombatHUDMechTrayArmorHover __instance, Mech mech, ArmorLocation location)
-            {
-                if (!mech.HasSwarmingUnits() && !mech.HasMountedUnits()) return;
-                var tooltip =
-                    __instance
-                        .ToolTip; //Traverse.Create(__instance).Property("ToolTip").GetValue<CombatHUDTooltipHoverElement>();
-                foreach (var squadInfo in ModState.BADamageTrackers.Where(x =>
-                             x.Value.TargetGUID == mech.GUID && !x.Value.IsSquadInternal &&
-                             x.Value.BA_MountedLocations.ContainsValue((int) location)))
-                {
-                    ModInit.modLog?.Trace?.Write(
-                        $"[CombatHUDMechTrayArmorHover.setToolTipInfo] Evaluating {squadInfo.Key} for {squadInfo.Value.TargetGUID} for tooltip infos");
-
-                    if (mech.Combat.FindActorByGUID(squadInfo.Key) is Mech BattleArmorAsMech)
-                    {
-                        var BattleArmorMounts =
-                            squadInfo.Value.BA_MountedLocations.Where(x => x.Value == (int) location);
-                        foreach (var mount in BattleArmorMounts)
-                        {
-
-                            var BALocArmor = (ArmorLocation) mount.Key;
-                            //var BALocArmorString = BattleArmorAsMech.GetStringForArmorLocation(BALocArmor);
-                            var BALocStruct = MechStructureRules.GetChassisLocationFromArmorLocation(BALocArmor);
-                            //var BALocStructString = BattleArmorAsMech.GetStringForStructureLocation(BALocStruct);
-
-                            var BattleArmorLocArmor = BattleArmorAsMech.ArmorForLocation((int) BALocArmor);
-                            var BattleArmorLocStruct = BattleArmorAsMech.StructureForLocation((int) BALocStruct);
-                            var newText =
-                                new Localize.Text(
-                                    $"Battle Armor: Arm. {Mathf.RoundToInt(BattleArmorLocArmor)} / Str. {Mathf.RoundToInt(BattleArmorLocStruct)}",
-                                    Array.Empty<object>());
-                            if (mech.team.IsFriendly(BattleArmorAsMech.team))
-                            {
-                                tooltip.BuffStrings.Add(newText);
-                            }
-                            else
-                            {
-                                tooltip.DebuffStrings.Add(newText);
-                            }
-                        }
-                    }
-                }
-            }
-        }
-
-        [HarmonyPatch(typeof(CombatHUDVehicleArmorHover), "setToolTipInfo",
-            new Type[] {typeof(Vehicle), typeof(VehicleChassisLocations)})]
-        public static class CombatHUDVehicleArmorHover_setToolTipInfo
-        {
-            public static void Postfix(CombatHUDVehicleArmorHover __instance, Vehicle vehicle,
-                VehicleChassisLocations location)
-            {
-                if (!vehicle.HasSwarmingUnits() && !vehicle.HasMountedUnits()) return;
-                var tooltip =
-                    __instance
-                        .ToolTip; //Traverse.Create(__instance).Property("ToolTip").GetValue<CombatHUDTooltipHoverElement>();
-                foreach (var squadInfo in ModState.BADamageTrackers.Where(x =>
-                             x.Value.TargetGUID == vehicle.GUID && !x.Value.IsSquadInternal &&
-                             x.Value.BA_MountedLocations.ContainsValue((int) location)))
-                {
-                    ModInit.modLog?.Trace?.Write(
-                        $"[CombatHUDMechTrayArmorHover.setToolTipInfo] Evaluating {squadInfo.Key} for {squadInfo.Value.TargetGUID} for tooltip infos");
-
-                    if (vehicle.Combat.FindActorByGUID(squadInfo.Key) is Mech BattleArmorAsMech)
-                    {
-                        var BattleArmorMounts =
-                            squadInfo.Value.BA_MountedLocations.Where(x => x.Value == (int) location);
-                        foreach (var mount in BattleArmorMounts)
-                        {
-
-                            var BALocArmor = (VehicleChassisLocations) mount.Key;
-                            //var BALocArmorString = BattleArmorAsMech.GetStringForArmorLocation(BALocArmor);
-                            //var BALocStructString = BattleArmorAsMech.GetStringForStructureLocation(BALocStruct);
-
-                            var BattleArmorLocArmor = BattleArmorAsMech.ArmorForLocation((int) BALocArmor);
-                            var BattleArmorLocStruct = BattleArmorAsMech.StructureForLocation((int) BALocArmor);
-                            var newText =
-                                new Localize.Text(
-                                    $"Battle Armor: Arm. {Mathf.RoundToInt(BattleArmorLocArmor)} / Str. {Mathf.RoundToInt(BattleArmorLocStruct)}",
-                                    Array.Empty<object>());
-                            if (vehicle.team.IsFriendly(BattleArmorAsMech.team))
-                            {
-                                tooltip.BuffStrings.Add(newText);
-                            }
-                            else
-                            {
-                                tooltip.DebuffStrings.Add(newText);
-                            }
-                        }
-                    }
-                }
+                __instance.SelectedMech?.UnavailableOverlay.SetActive(false);
             }
         }
 
@@ -2364,25 +1693,276 @@ namespace StrategicOperations.Patches
             }
         }
 
-        [HarmonyPatch(typeof(WeaponRangeIndicators), "DrawLine")]
-        public static class WeaponRangeIndicators_DrawLine //maybe change LOS color if friendly swarmers?
-        {
-            static bool Prepare() => false; //doersnt work, fuckit.
-
-            public static void Prefix(WeaponRangeIndicators __instance, Vector3 position, Quaternion rotation,
-                bool isPositionLocked,
-                AbstractActor selectedActor, ICombatant target, bool usingMultifire, bool isLocked, bool isMelee)
+        [HarmonyPatch(typeof(Mech), "DamageLocation",
+            new Type[]
             {
-                if (target is AbstractActor targetActor && targetActor.HasSwarmingUnits())
+                typeof(int), typeof(WeaponHitInfo), typeof(ArmorLocation), typeof(Weapon), typeof(float), typeof(float),
+                typeof(int), typeof(AttackImpactQuality), typeof(DamageType)
+            })]
+        public static class Mech_DamageLocation_Patch
+        {
+            public static void Prefix(Mech __instance, int originalHitLoc, WeaponHitInfo hitInfo, ArmorLocation aLoc,
+                Weapon weapon, ref float totalArmorDamage, ref float directStructureDamage, int hitIndex,
+                AttackImpactQuality impactQuality, DamageType damageType)
+            {
+                if (__instance is TrooperSquad squad)
                 {
-                    if (selectedActor.team.IsEnemy(targetActor.team))
+                    if (squad.IsGarrisoned())
                     {
-                        var previewInfo =
-                            __instance.HUD.SelectionHandler.ActiveState.FiringPreview.GetPreviewInfo(target);
-                        //Traverse.Create(previewInfo).Field("collisionPoint").SetValue(selectedActor.CurrentPosition);
-
-                        previewInfo.collisionPoint = selectedActor.CurrentPosition;
+                        var bldgCombatant =
+                            squad.Combat.FindCombatantByGUID(ModState.PositionLockGarrison[squad.GUID].BuildingGUID);
+                        if (bldgCombatant is BattleTech.Building building)
+                        {
+                            ModInit.modLog?.Trace?.Write(
+                                $"[Mech.DamageLocation] Redirecting {totalArmorDamage} armor and {directStructureDamage} structure damaghe from squad {squad.DisplayName} {squad.GUID} to garrisoned building {bldgCombatant.DisplayName}");
+                            building.TakeWeaponDamage(hitInfo, 1, weapon, totalArmorDamage, directStructureDamage,
+                                hitIndex, damageType);
+                            totalArmorDamage = 0f;
+                            directStructureDamage = 0f;
+                        }
                     }
+                }
+
+                if (!__instance.HasMountedUnits() && !__instance.HasSwarmingUnits()) return;
+
+                foreach (var squadInfo in ModState.BADamageTrackers.Where(x =>
+                             x.Value.TargetGUID == __instance.GUID && !x.Value.IsSquadInternal &&
+                             x.Value.BA_MountedLocations.ContainsValue((int) aLoc)))
+                {
+                    ModInit.modLog?.Trace?.Write(
+                        $"[Mech.DamageLocation] Evaluating {squadInfo.Key} for {squadInfo.Value.TargetGUID}");
+                    if (ModInit.Random.NextDouble() > (double) 1 / 3) continue;
+                    if (__instance.Combat.FindActorByGUID(squadInfo.Key) is Mech BattleArmorAsMech)
+                    {
+                        if (BattleArmorAsMech.GUID == hitInfo.attackerId) continue;
+                        var BattleArmorMounts = squadInfo.Value.BA_MountedLocations.Where(x => x.Value == (int) aLoc);
+                        foreach (var mount in BattleArmorMounts)
+                        {
+                            var BALocArmor = (ArmorLocation) mount.Key;
+                            //var BALocArmorString = BattleArmorAsMech.GetStringForArmorLocation(BALocArmor);
+                            var BALocStruct = MechStructureRules.GetChassisLocationFromArmorLocation(BALocArmor);
+                            //var BALocStructString = BattleArmorAsMech.GetStringForStructureLocation(BALocStruct);
+
+                            var BattleArmorLocArmor = BattleArmorAsMech.ArmorForLocation((int) BALocArmor);
+                            var BattleArmorLocStruct = BattleArmorAsMech.StructureForLocation((int) BALocStruct);
+
+                            if (directStructureDamage > 0)
+                            {
+                                ModInit.modLog?.Info?.Write(
+                                    $"[Mech.DamageLocation] directStructureDamage: {directStructureDamage}");
+                                var directStructureDiff = directStructureDamage - BattleArmorLocStruct;
+                                if (directStructureDiff >= 0)
+                                {
+                                    directStructureDamage -= BattleArmorLocStruct;
+                                    ModInit.modLog?.Info?.Write(
+                                        $"[Mech.DamageLocation] directStructureDamage Diff: {directStructureDiff}. Mech directStructureDamage decremented to {directStructureDamage}");
+                                    BattleArmorAsMech.TakeWeaponDamage(hitInfo, (int) BALocArmor, weapon, 0,
+                                        BattleArmorLocStruct, hitIndex, damageType);
+                                    ModInit.modLog?.Info?.Write(
+                                        $"[Mech.DamageLocation] Battle Armor at location {BALocArmor} takes {BattleArmorLocStruct} direct structure damage");
+                                    __instance.Combat.MessageCenter.PublishMessage(
+                                        new AddSequenceToStackMessage(new ShowActorInfoSequence(BattleArmorAsMech,
+                                            Strings.T("Battle Armor Damaged!"),
+                                            FloatieMessage.MessageNature.CriticalHit, false)));
+                                    continue;
+                                }
+
+                                else if (directStructureDiff < 0)
+                                {
+                                    ModInit.modLog?.Info?.Write(
+                                        $"[Mech.DamageLocation] directStructureDamage Diff: {directStructureDiff}. Mech directStructureDamage decremented to 0");
+                                    BattleArmorAsMech.TakeWeaponDamage(hitInfo, (int) BALocArmor, weapon, 0,
+                                        Mathf.Abs(directStructureDamage), hitIndex, damageType);
+                                    ModInit.modLog?.Info?.Write(
+                                        $"[Mech.DamageLocation] Battle Armor at location {BALocArmor} takes {directStructureDamage} direct structure damage");
+                                    __instance.Combat.MessageCenter.PublishMessage(
+                                        new AddSequenceToStackMessage(new ShowActorInfoSequence(BattleArmorAsMech,
+                                            Strings.T("Battle Armor Damaged!"),
+                                            FloatieMessage.MessageNature.CriticalHit, false)));
+                                    directStructureDamage = 0;
+                                }
+                            }
+
+                            if (totalArmorDamage > 0)
+                            {
+                                ModInit.modLog?.Info?.Write(
+                                    $"[Mech.DamageLocation] totalArmorDamage: {totalArmorDamage}");
+                                var totalArmorDamageDiff =
+                                    totalArmorDamage - (BattleArmorLocArmor + BattleArmorLocStruct);
+                                if (totalArmorDamageDiff > 0)
+                                {
+                                    totalArmorDamage -= totalArmorDamageDiff;
+                                    ModInit.modLog?.Info?.Write(
+                                        $"[Mech.DamageLocation] totalArmorDamageDiff Diff: {totalArmorDamageDiff}. Mech totalArmorDamage decremented to {totalArmorDamage}");
+                                    BattleArmorAsMech.TakeWeaponDamage(hitInfo, (int) BALocArmor, weapon,
+                                        Mathf.Abs(totalArmorDamageDiff), 0, hitIndex, damageType);
+                                    ModInit.modLog?.Info?.Write(
+                                        $"[Mech.DamageLocation] Battle Armor at location {BALocArmor} takes {BattleArmorLocArmor} damage");
+                                    __instance.Combat.MessageCenter.PublishMessage(
+                                        new AddSequenceToStackMessage(new ShowActorInfoSequence(BattleArmorAsMech,
+                                            Strings.T("Battle Armor Damaged!"),
+                                            FloatieMessage.MessageNature.CriticalHit, false)));
+                                }
+
+                                else if (totalArmorDamageDiff <= 0)
+                                {
+                                    ModInit.modLog?.Info?.Write(
+                                        $"[Mech.DamageLocation] totalArmorDamageDiff Diff: {totalArmorDamageDiff}. Mech totalArmorDamage decremented to 0");
+                                    BattleArmorAsMech.TakeWeaponDamage(hitInfo, (int) BALocArmor, weapon,
+                                        Mathf.Abs(totalArmorDamage), 0, hitIndex, damageType);
+                                    ModInit.modLog?.Info?.Write(
+                                        $"[Mech.DamageLocation] Battle Armor at location {BALocArmor} takes {totalArmorDamage} damage");
+                                    totalArmorDamage = 0;
+                                    __instance.Combat.MessageCenter.PublishMessage(
+                                        new AddSequenceToStackMessage(new ShowActorInfoSequence(BattleArmorAsMech,
+                                            Strings.T("Battle Armor Damaged!"),
+                                            FloatieMessage.MessageNature.CriticalHit, false)));
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        [HarmonyPatch(typeof(Mech), "OnLocationDestroyed",
+            new Type[] {typeof(ChassisLocations), typeof(Vector3), typeof(WeaponHitInfo), typeof(DamageType)})]
+        public static class Mech_OnLocationDestroyed
+        {
+            public static void Prefix(Mech __instance, ChassisLocations location, Vector3 attackDirection,
+                WeaponHitInfo hitInfo, DamageType damageType)
+            {
+                if (!__instance.HasMountedUnits() && !__instance.HasSwarmingUnits()) return;
+
+                foreach (var squadInfo in ModState.BADamageTrackers.Where(x =>
+                             x.Value.TargetGUID == __instance.GUID && !x.Value.IsSquadInternal &&
+                             x.Value.BA_MountedLocations.ContainsValue((int) location)))
+                {
+                    var wereSwarmingUnitsResponsible = squadInfo.Key == hitInfo.attackerId;
+
+                    ModInit.modLog?.Trace?.Write(
+                        $"[Mech.OnLocationDestroyed] Evaluating {squadInfo.Key} for {squadInfo.Value.TargetGUID}");
+                    if (ModInit.Random.NextDouble() >= (double) 1 / 3 || wereSwarmingUnitsResponsible) continue;
+                    if (__instance.Combat.FindActorByGUID(squadInfo.Key) is Mech battleArmorAsMech)
+                    {
+                        var battleArmorMounts =
+                            squadInfo.Value.BA_MountedLocations.Where(x => x.Value == (int) location);
+                        var battleArmorMountsCopy = new List<KeyValuePair<int, int>>(battleArmorMounts);
+                        foreach (var mount in battleArmorMountsCopy)
+                        {
+                            var BALocArmor = (ArmorLocation) mount.Key;
+                            var BALocStruct = MechStructureRules.GetChassisLocationFromArmorLocation(BALocArmor);
+                            battleArmorAsMech.NukeStructureLocation(hitInfo, 1, BALocStruct, attackDirection,
+                                damageType);
+                        }
+                        //battleArmorAsMech.DismountBA(__instance, Vector3.zero, false, true, true);
+                        //battleArmorAsMech.FlagForDeath("Killed When Mount Died", DeathMethod.VitalComponentDestroyed, DamageType.Melee, 0, -1, __instance.GUID, false);
+                        //battleArmorAsMech.HandleDeath(__instance.GUID); //this is probably wrong but i dont care
+                    }
+                }
+            }
+        }
+
+        [HarmonyPatch(typeof(MechBayMechInfoWidget), "SetData",
+            new Type[] {typeof(SimGameState), typeof(MechBayPanel), typeof(DataManager), typeof(MechBayMechUnitElement), typeof(bool), typeof(bool)})]
+        public static class MechBayMechInfoWidget_SetData
+        {
+            public static void Postfix(MechBayMechInfoWidget __instance, SimGameState sim, MechBayPanel mechBay,
+                DataManager dataManager, MechBayMechUnitElement mechElement, bool useNoMechOverlay,
+                bool useRepairButton)
+            {
+                var decoGO = __instance.gameObject.FindFirstChildNamed("Deco");
+                var svgComponentDeco = decoGO.GetComponent<SVGImage>();
+                var decoParent = decoGO?.transform?.parent;
+                UnityEngine.Object.DestroyImmediate(svgComponentDeco);
+                var newlocTxtGO = decoParent?.gameObject.FindFirstChildNamed("StratOps_SquadCarrierTip");
+                if (newlocTxtGO == null)
+                {
+                    ModInit.modLog?.Trace?.Write($"[MechBayMechInfoWidget_SetData] couldnt find game object `StratOps_SquadCarrierTip`, instantiating a new one");
+                    newlocTxtGO = UnityEngine.Object.Instantiate<GameObject>(decoGO, decoParent);
+                    newlocTxtGO.name = "StratOps_SquadCarrierTip";
+                }
+                else
+                {
+                    ModInit.modLog?.Trace?.Write($"[MechBayMechInfoWidget_SetData] Found game object `StratOps_SquadCarrierTip` and using it.");
+                }
+                var localizableTextComponent = newlocTxtGO.GetOrAddComponent<LocalizableText>();
+                localizableTextComponent.SetText(ModInit.modSettings.BAMountReminderText);
+                localizableTextComponent.alignment = TextAlignmentOptions.BottomLeft;
+                localizableTextComponent.enableAutoSizing = true;
+                localizableTextComponent.enableWordWrapping = false;
+                if (mechBay == null) newlocTxtGO.SetActive(__instance?.selectedMech?.GetCustomInfo()?.SquadInfo?.Troopers > 0);
+                //decoGO.SetActive(true);
+                
+            }
+        }
+
+        [HarmonyPatch(typeof(MechJumpSequence), "CompleteOrders")]
+        public static class MechJumpSequence_CompleteOrders
+        {
+            public static void Postfix(MechJumpSequence __instance)
+            {
+                if (__instance.OwningMech == null) return;
+                var settings = ModInit.modSettings.DeswarmMovementConfig;
+
+                if (ModState.DeSwarmMovementInfo?.Carrier?.GUID == __instance.OwningMech.GUID)
+                {
+                    var baseChance = settings.BaseSuccessChance; //__instance.owningActor.getMovementDeSwarmMinChance();
+                    var chanceFromPips = __instance.owningActor.EvasivePipsCurrent * settings.EvasivePipsFactor;
+                    //__instance.owningActor.getMovementDeSwarmEvasivePipsFactor();
+                    var finalChance =
+                        Mathf.Min((baseChance + chanceFromPips) * settings.JumpMovementModifier,
+                            settings
+                                .MaxSuccessChance); //__instance.owningActor.getMovementDeSwarmEvasiveJumpMovementMultiplier(), __instance.owningActor.getMovementDeSwarmMaxChance());
+                    var roll = ModInit.Random.NextDouble();
+                    ModInit.modLog?.Info?.Write(
+                        $"[ActorMovementSequence.CompleteOrders] Found DeSwarmMovementInfo for unit {__instance.owningActor.DisplayName} {__instance.owningActor.GUID}. Rolled {roll} vs finalChance {finalChance} from (baseChance {baseChance} + evasive chance {chanceFromPips}) x JumpMovementMulti {settings.JumpMovementModifier}");
+                    if (roll <= finalChance)
+                    {
+                        var baseDistance = Vector3.Distance(__instance.StartPos, __instance.FinalPos);
+
+                        foreach (var swarmingUnit in ModState.DeSwarmMovementInfo.SwarmingUnits)
+                        {
+                            var finalDist = (float) (baseDistance * ModInit.Random.NextDouble());
+                            var finalDestination =
+                                Utils.LerpByDistance(__instance.StartPos, __instance.FinalPos, finalDist);
+                            finalDestination.y =
+                                swarmingUnit.Combat.MapMetaData.GetLerpedHeightAt(finalDestination,
+                                    false); //set proper height on ground.
+                            ModInit.modLog?.Info?.Write(
+                                $"[ActorMovementSequence.CompleteOrders] Roll succeeded, plonking {swarmingUnit.DisplayName} at {finalDestination}");
+                            swarmingUnit.DismountBA(__instance.owningActor, finalDestination, false, true);
+                            if (swarmingUnit is TrooperSquad swarmingUnitSquad)
+                            {
+                                var dmg = settings.UseDFADamage
+                                    ? swarmingUnitSquad.StatCollection.GetValue<float>("DFASelfDamage")
+                                    : settings.LocationDamageOverride;
+                                var reduction = settings.PilotingDamageReductionFactor *
+                                                swarmingUnitSquad.GetPilot().Piloting;
+                                var dmgReduction = dmg * reduction;
+                                dmg -= dmgReduction;
+                                if (dmg > 0f)
+                                {
+                                    var trooperLocs = swarmingUnitSquad.GetPossibleHitLocations(__instance.owningActor);
+                                    for (int i = 0; i < trooperLocs.Count; i++)
+                                    {
+                                        var hitinfo = new WeaponHitInfo(-1, -1, 0, 0, __instance.owningActor.GUID,
+                                            swarmingUnitSquad.GUID, 1, new float[1], new float[1], new float[1],
+                                            new bool[1], new int[trooperLocs[i]], new int[1],
+                                            new AttackImpactQuality[1],
+                                            new AttackDirection[1], new Vector3[1], new string[1],
+                                            new int[trooperLocs[i]]);
+
+                                        swarmingUnitSquad.TakeWeaponDamage(hitinfo, trooperLocs[i],
+                                            swarmingUnitSquad.MeleeWeapon, dmg,
+                                            0, 0, DamageType.DFASelf);
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    ModState.DeSwarmMovementInfo = new Classes.BA_DeswarmMovementInfo();
                 }
             }
         }
@@ -2406,6 +1986,457 @@ namespace StrategicOperations.Patches
                         {
                             __instance.headlightReps[i].SetActive(false);
                         }
+                    }
+                }
+            }
+        }
+
+        [HarmonyPatch(typeof(SelectionStateAbilityInstant), "OnAddToStack", new Type[] { })]
+        public static class SelectionStateAbilityInstant_OnAddToStack
+        {
+            public static void Postfix(SelectionStateAbilityInstant __instance)
+            {
+                var cHUD = __instance
+                    .HUD; //IRBTModUtils.SharedState.CombatHUD;//Traverse.Create(__instance).Property("HUD").GetValue<CombatHUD>();
+                var creator = cHUD.SelectedActor;
+                if (__instance.FromButton.Ability.Def.Id == ModInit.modSettings.BattleArmorDeSwarmRoll)
+                {
+                    var settings =
+                        ModInit.modSettings.DeswarmConfigs.ContainsKey(ModInit.modSettings.BattleArmorDeSwarmRoll)
+                            ? ModInit.modSettings.DeswarmConfigs[ModInit.modSettings.BattleArmorDeSwarmRoll]
+                            : new Classes.ConfigOptions.BA_DeswarmAbilityConfig();
+                    //var parsed = float.TryParse(__instance.FromButton.Ability.Def.EffectData
+                    //    .FirstOrDefault(x => x.statisticData.statName == "BattleArmorDeSwarmerRoll")
+                    //    ?.statisticData
+                    //    .modValue, out var baseChance);
+
+                    var pilotSkill = creator.GetPilot().Piloting;
+                    var finalChance = Mathf.Min(settings.BaseSuccessChance + (0.05f * pilotSkill),
+                        settings.MaxSuccessChance);
+                    ModInit.modLog?.Info?.Write(
+                        $"[SelectionStateAbilityInstant.OnAddToStack - BattleArmorDeSwarm] Deswarm chance: {finalChance} from baseChance {settings.BaseSuccessChance} + pilotSkill x 0.05 {0.05f * pilotSkill}, max {settings.MaxSuccessChance}., stored in state.");
+                    ModState.DeSwarmSuccessChance = finalChance;
+                    var chanceDisplay = (float) Math.Round(finalChance, 3) * 100;
+                    cHUD.AttackModeSelector.FireButton.FireText.SetText($"{chanceDisplay}% - Confirm",
+                        Array.Empty<object>());
+                }
+                else if (__instance.FromButton.Ability.Def.Id == ModInit.modSettings.BattleArmorDeSwarmSwat)
+                {
+                    var settings =
+                        ModInit.modSettings.DeswarmConfigs.ContainsKey(ModInit.modSettings.BattleArmorDeSwarmSwat)
+                            ? ModInit.modSettings.DeswarmConfigs[ModInit.modSettings.BattleArmorDeSwarmSwat]
+                            : new Classes.ConfigOptions.BA_DeswarmAbilityConfig();
+                    //var parsed = float.TryParse(__instance.FromButton.Ability.Def.EffectData
+                    //    .FirstOrDefault(x => x.statisticData.statName == "BattleArmorDeSwarmerSwat")
+                    //    ?.statisticData
+                    //    .modValue, out var baseChance);
+                    //if (!parsed) baseChance = 0.55f;
+
+                    var pilotSkill = creator.GetPilot().Piloting;
+                    var missingActuatorCount = -8;
+                    foreach (var armComponent in creator.allComponents.Where(x =>
+                                 x.IsFunctional && (x.Location == 2 || x.Location == 32)))
+                    {
+                        foreach (var CategoryID in ModInit.modSettings.ArmActuatorCategoryIDs)
+                        {
+                            if (armComponent.mechComponentRef.IsCategory(CategoryID))
+                            {
+                                missingActuatorCount += 1;
+                                break;
+                            }
+                        }
+                    }
+
+                    var finalChance =
+                        Mathf.Min(settings.BaseSuccessChance + (0.05f * pilotSkill) - (0.05f * missingActuatorCount),
+                            settings.MaxSuccessChance);
+
+                    ModInit.modLog?.Info?.Write(
+                        $"[SelectionStateAbilityInstant.OnAddToStack - BattleArmorDeSwarm] Deswarm chance: {finalChance} from baseChance {settings.BaseSuccessChance} + pilotSkill x 0.05 {0.05f * pilotSkill} - missingActuators x 0.05 {0.05f * missingActuatorCount}, max {settings.MaxSuccessChance} stored in state.");
+                    ModState.DeSwarmSuccessChance = finalChance;
+                    var chanceDisplay = (float) Math.Round(finalChance, 3) * 100;
+                    cHUD.AttackModeSelector.FireButton.FireText.SetText($"{chanceDisplay}% - Confirm",
+                        Array.Empty<object>());
+                }
+            }
+        }
+
+
+        [HarmonyPatch(typeof(SelectionStateFire), "ProcessClickedCombatant",
+            new Type[] {typeof(ICombatant)})]
+        public static class SelectionStateFire_ProcessClickedCombatant
+        {
+            static bool Prepare() => false; //disable for now, try with force-end turn.
+
+            public static void Postfix(SelectionStateFire __instance, ref ICombatant combatant)
+            {
+                if (__instance.SelectedActor.IsSwarmingUnit())
+                {
+                    var newTarget =
+                        __instance.SelectedActor.Combat.FindActorByGUID(
+                            ModState.PositionLockSwarm[__instance.SelectedActor.GUID]);
+                    combatant = newTarget;
+                }
+            }
+        }
+
+        [HarmonyPatch(typeof(SelectionStateTargetSingleCombatantBase), "ProcessClickedCombatant",
+            new Type[] {typeof(ICombatant)})]
+        public static class SelectionStateTargetSingleCombatantBase_ProcessClickedCombatant
+        {
+            //private static bool Prepare() => false;
+            public static void Postfix(SelectionStateTargetSingleCombatantBase __instance, ICombatant combatant)
+            {
+
+                if (__instance.FromButton.Ability.Def.Id == ModInit.modSettings.BattleArmorMountAndSwarmID)
+                {
+                    var cHUD = __instance
+                        .HUD; //IRBTModUtils.SharedState.CombatHUD;//Traverse.Create(__instance).Property("HUD").GetValue<CombatHUD>();
+                    var creator = cHUD.SelectedActor;
+                    if (!creator.Pathing.ArePathGridsComplete)
+                    {
+                        cHUD.AttackModeSelector.FireButton.CurrentFireMode = CombatHUDFireButton.FireMode.None;
+                        cHUD.AttackModeSelector.FireButton.FireText.SetText($"Pathing Incomplete - DISABLED",
+                            Array.Empty<object>());
+                        return;
+                    }
+
+                    if (creator is Mech creatorMech && combatant != null && combatant.team.IsEnemy(creator.team))
+                    {
+                        var chance = creator.Combat.ToHit.GetToHitChance(creator, creatorMech.MeleeWeapon, combatant,
+                            creator.CurrentPosition, combatant.CurrentPosition, 1, MeleeAttackType.Charge, false);
+                        ModInit.modLog?.Trace?.Write(
+                            $"[SelectionState.ShowFireButton - Swarm Success calculated as {chance}, storing in state.");
+                        ModState.SwarmSuccessChance = chance;
+                        var chanceDisplay = (float) Math.Round(chance, 2) * 100;
+                        cHUD.AttackModeSelector.FireButton.FireText.SetText($"{chanceDisplay}% - Confirm",
+                            Array.Empty<object>());
+                    }
+                }
+                else if (__instance.FromButton.Ability.Def.Id == ModInit.modSettings.AirliftAbilityID)
+                {
+                    var cHUD = __instance
+                        .HUD; //IRBTModUtils.SharedState.CombatHUD;//Traverse.Create(__instance).Property("HUD").GetValue<CombatHUD>();
+                    var creator = cHUD.SelectedActor;
+                    if (!creator.Pathing.ArePathGridsComplete)
+                    {
+                        cHUD.AttackModeSelector.FireButton.CurrentFireMode = CombatHUDFireButton.FireMode.None;
+                        cHUD.AttackModeSelector.FireButton.FireText.SetText($"Wait For Pathing Incomplete - DISABLED",
+                            Array.Empty<object>());
+                    }
+                }
+            }
+        }
+
+        [HarmonyPatch(typeof(Team), "DeferAllAvailableActors",
+            new Type[] { })]
+        public static class Team_DeferAllAvailableActors
+        {
+            static bool Prepare() => ModInit.modSettings.EnableQuickReserve;
+
+            public static void Prefix(ref bool __runOriginal, Team __instance)
+            {
+                if (!__runOriginal) return;
+                var hk = Input.GetKey(KeyCode.LeftShift) || Input.GetKey(KeyCode.RightShift);
+                if (hk)
+                {
+                    for (int i = 0; i < __instance.units.Count; i++)
+                    {
+                        if (__instance.units[i].Combat.TurnDirector.IsInterleaved && !__instance.units[i].IsDead &&
+                            !__instance.units[i].IsFlaggedForDeath && !__instance.units[i].HasActivatedThisRound &&
+                            !__instance.units[i].HasBegunActivation)
+                        {
+                            if (__instance.units[i].Initiative != __instance.units[i].Combat.TurnDirector.LastPhase)
+                            {
+                                __instance.units[i].DeferUnit();
+                                __instance.units[i].ForceUnitToLastActualPhase();
+                            }
+                        }
+                    }
+
+                    __runOriginal = false;
+                    return;
+                }
+
+                __runOriginal = true;
+                return;
+            }
+        }
+
+        [HarmonyPatch(typeof(Turret), "DamageLocation",
+            new Type[] {typeof(WeaponHitInfo), typeof(BuildingLocation), typeof(Weapon), typeof(float), typeof(float)})]
+        public static class Turret_DamageLocation_Patch
+        {
+            public static void Prefix(Turret __instance, WeaponHitInfo hitInfo, BuildingLocation bLoc, Weapon weapon,
+                ref float totalArmorDamage, ref float directStructureDamage)
+            {
+                if (bLoc == BuildingLocation.None || bLoc == BuildingLocation.Invalid)
+                {
+                    return;
+                }
+
+                if (!__instance.HasMountedUnits() && !__instance.HasSwarmingUnits()) return;
+
+                foreach (var squadInfo in ModState.BADamageTrackers.Where(x =>
+                             x.Value.TargetGUID == __instance.GUID && !x.Value.IsSquadInternal &&
+                             x.Value.BA_MountedLocations.ContainsValue((int) bLoc)))
+                {
+                    ModInit.modLog?.Trace?.Write(
+                        $"[Turret.DamageLocation] Evaluating {squadInfo.Key} for {squadInfo.Value.TargetGUID}");
+                    if (ModInit.Random.NextDouble() > (double) 1 / 3) continue;
+                    if (__instance.Combat.FindActorByGUID(squadInfo.Key) is Mech BattleArmorAsMech)
+                    {
+                        if (BattleArmorAsMech.GUID == hitInfo.attackerId) continue;
+                        var BattleArmorMounts = squadInfo.Value.BA_MountedLocations.Where(x => x.Value == (int) bLoc);
+                        foreach (var mount in BattleArmorMounts)
+                        {
+                            var BALocArmor = (ArmorLocation) mount.Key;
+                            //var BALocArmorString = BattleArmorAsMech.GetStringForArmorLocation(BALocArmor);
+                            var BALocStruct = MechStructureRules.GetChassisLocationFromArmorLocation(BALocArmor);
+                            //var BALocStructString = BattleArmorAsMech.GetStringForStructureLocation(BALocStruct);
+
+                            var BattleArmorLocArmor = BattleArmorAsMech.ArmorForLocation((int) BALocArmor);
+                            var BattleArmorLocStruct = BattleArmorAsMech.StructureForLocation((int) BALocStruct);
+
+                            if (directStructureDamage > 0)
+                            {
+                                ModInit.modLog?.Info?.Write(
+                                    $"[Turret.DamageLocation] directStructureDamage: {directStructureDamage}");
+                                var directStructureDiff = directStructureDamage - BattleArmorLocStruct;
+                                if (directStructureDiff >= 0)
+                                {
+                                    directStructureDamage -= BattleArmorLocStruct;
+                                    ModInit.modLog?.Info?.Write(
+                                        $"[Turret.DamageLocation] directStructureDamage Diff: {directStructureDiff}. Turret directStructureDamage decremented to {directStructureDamage}");
+                                    BattleArmorAsMech.TakeWeaponDamage(hitInfo, (int) BALocArmor, weapon, 0,
+                                        BattleArmorLocStruct, 1, DamageType.Combat);
+                                    ModInit.modLog?.Info?.Write(
+                                        $"[Turret.DamageLocation] Battle Armor at location {BALocArmor} takes {BattleArmorLocStruct} direct structure damage");
+                                    __instance.Combat.MessageCenter.PublishMessage(
+                                        new AddSequenceToStackMessage(new ShowActorInfoSequence(BattleArmorAsMech,
+                                            Strings.T("Battle Armor Damaged!"),
+                                            FloatieMessage.MessageNature.CriticalHit, false)));
+                                    continue;
+                                }
+
+                                else if (directStructureDiff < 0)
+                                {
+                                    ModInit.modLog?.Info?.Write(
+                                        $"[Turret.DamageLocation] directStructureDamage Diff: {directStructureDiff}. Turret directStructureDamage decremented to 0");
+                                    BattleArmorAsMech.TakeWeaponDamage(hitInfo, (int) BALocArmor, weapon, 0,
+                                        Mathf.Abs(directStructureDamage), 1, DamageType.Combat);
+                                    ModInit.modLog?.Info?.Write(
+                                        $"[Turret.DamageLocation] Battle Armor at location {BALocArmor} takes {directStructureDamage} direct structure damage");
+                                    directStructureDamage = 0;
+                                    __instance.Combat.MessageCenter.PublishMessage(
+                                        new AddSequenceToStackMessage(new ShowActorInfoSequence(BattleArmorAsMech,
+                                            Strings.T("Battle Armor Damaged!"),
+                                            FloatieMessage.MessageNature.CriticalHit, false)));
+                                }
+                            }
+
+                            if (totalArmorDamage > 0)
+                            {
+                                ModInit.modLog?.Info?.Write(
+                                    $"[Turret.DamageLocation] totalArmorDamage: {totalArmorDamage}");
+                                var totalArmorDamageDiff =
+                                    totalArmorDamage - (BattleArmorLocArmor + BattleArmorLocStruct);
+                                if (totalArmorDamageDiff > 0)
+                                {
+                                    totalArmorDamage -= totalArmorDamageDiff;
+                                    ModInit.modLog?.Info?.Write(
+                                        $"[Turret.DamageLocation] totalArmorDamageDiff Diff: {totalArmorDamageDiff}. Turret totalArmorDamage decremented to {totalArmorDamage}");
+                                    BattleArmorAsMech.TakeWeaponDamage(hitInfo, (int) BALocArmor, weapon,
+                                        Mathf.Abs(totalArmorDamageDiff), 0, 1, DamageType.Combat);
+                                    ModInit.modLog?.Info?.Write(
+                                        $"[Turret.DamageLocation] Battle Armor at location {BALocArmor} takes {BattleArmorLocArmor} damage");
+                                    __instance.Combat.MessageCenter.PublishMessage(
+                                        new AddSequenceToStackMessage(new ShowActorInfoSequence(BattleArmorAsMech,
+                                            Strings.T("Battle Armor Damaged!"),
+                                            FloatieMessage.MessageNature.CriticalHit, false)));
+                                }
+
+                                else if (totalArmorDamageDiff <= 0)
+                                {
+                                    ModInit.modLog?.Info?.Write(
+                                        $"[Turret.DamageLocation] totalArmorDamageDiff Diff: {totalArmorDamageDiff}. Turret totalArmorDamage decremented to 0");
+                                    BattleArmorAsMech.TakeWeaponDamage(hitInfo, (int) BALocArmor, weapon,
+                                        Mathf.Abs(totalArmorDamage), 0, 1, DamageType.Combat);
+                                    ModInit.modLog?.Info?.Write(
+                                        $"[Turret.DamageLocation] Battle Armor at location {BALocArmor} takes {totalArmorDamage} damage");
+                                    totalArmorDamage = 0;
+                                    __instance.Combat.MessageCenter.PublishMessage(
+                                        new AddSequenceToStackMessage(new ShowActorInfoSequence(BattleArmorAsMech,
+                                            Strings.T("Battle Armor Damaged!"),
+                                            FloatieMessage.MessageNature.CriticalHit, false)));
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        [HarmonyPatch(typeof(Vehicle), "DamageLocation",
+            new Type[]
+            {
+                typeof(WeaponHitInfo), typeof(int), typeof(VehicleChassisLocations), typeof(Weapon), typeof(float),
+                typeof(float), typeof(AttackImpactQuality)
+            })]
+        public static class Vehicle_DamageLocation_Patch
+        {
+            public static void Prefix(Vehicle __instance, WeaponHitInfo hitInfo, int originalHitLoc,
+                VehicleChassisLocations vLoc, Weapon weapon, ref float totalArmorDamage,
+                ref float directStructureDamage, AttackImpactQuality impactQuality)
+            {
+                if (!__instance.HasMountedUnits() && !__instance.HasSwarmingUnits()) return;
+
+                foreach (var squadInfo in ModState.BADamageTrackers.Where(x =>
+                             x.Value.TargetGUID == __instance.GUID && !x.Value.IsSquadInternal &&
+                             x.Value.BA_MountedLocations.ContainsValue((int) vLoc)))
+                {
+                    ModInit.modLog?.Trace?.Write(
+                        $"[Vehicle.DamageLocation] Evaluating {squadInfo.Key} for {squadInfo.Value.TargetGUID}");
+                    if (ModInit.Random.NextDouble() > (double) 1 / 3) continue;
+                    if (__instance.Combat.FindActorByGUID(squadInfo.Key) is Mech BattleArmorAsMech)
+                    {
+                        if (BattleArmorAsMech.GUID == hitInfo.attackerId) continue;
+                        var BattleArmorMounts = squadInfo.Value.BA_MountedLocations.Where(x => x.Value == (int) vLoc);
+                        foreach (var mount in BattleArmorMounts)
+                        {
+                            var BALocArmor = (ArmorLocation) mount.Key;
+                            //var BALocArmorString = BattleArmorAsMech.GetStringForArmorLocation(BALocArmor);
+                            var BALocStruct = MechStructureRules.GetChassisLocationFromArmorLocation(BALocArmor);
+                            //var BALocStructString = BattleArmorAsMech.GetStringForStructureLocation(BALocStruct);
+
+                            var BattleArmorLocArmor = BattleArmorAsMech.ArmorForLocation((int) BALocArmor);
+                            var BattleArmorLocStruct = BattleArmorAsMech.StructureForLocation((int) BALocStruct);
+
+                            if (directStructureDamage > 0)
+                            {
+                                ModInit.modLog?.Info?.Write(
+                                    $"[Vehicle.DamageLocation] directStructureDamage: {directStructureDamage}");
+                                var directStructureDiff = directStructureDamage - BattleArmorLocStruct;
+                                if (directStructureDiff >= 0)
+                                {
+                                    directStructureDamage -= BattleArmorLocStruct;
+                                    ModInit.modLog?.Info?.Write(
+                                        $"[Vehicle.DamageLocation] directStructureDamage Diff: {directStructureDiff}. Vehicle directStructureDamage decremented to {directStructureDamage}");
+                                    BattleArmorAsMech.TakeWeaponDamage(hitInfo, (int) BALocArmor, weapon, 0,
+                                        BattleArmorLocStruct, 1, DamageType.Combat);
+                                    ModInit.modLog?.Info?.Write(
+                                        $"[Vehicle.DamageLocation] Battle Armor at location {BALocArmor} takes {BattleArmorLocStruct} direct structure damage");
+                                    __instance.Combat.MessageCenter.PublishMessage(
+                                        new AddSequenceToStackMessage(new ShowActorInfoSequence(BattleArmorAsMech,
+                                            Strings.T("Battle Armor Damaged!"),
+                                            FloatieMessage.MessageNature.CriticalHit, false)));
+                                    continue;
+                                }
+
+                                else if (directStructureDiff < 0)
+                                {
+                                    ModInit.modLog?.Info?.Write(
+                                        $"[Vehicle.DamageLocation] directStructureDamage Diff: {directStructureDiff}. Vehicle directStructureDamage decremented to 0");
+                                    BattleArmorAsMech.TakeWeaponDamage(hitInfo, (int) BALocArmor, weapon, 0,
+                                        Mathf.Abs(directStructureDamage), 1, DamageType.Combat);
+                                    ModInit.modLog?.Info?.Write(
+                                        $"[Vehicle.DamageLocation] Battle Armor at location {BALocArmor} takes {directStructureDamage} direct structure damage");
+                                    directStructureDamage = 0;
+                                    __instance.Combat.MessageCenter.PublishMessage(
+                                        new AddSequenceToStackMessage(new ShowActorInfoSequence(BattleArmorAsMech,
+                                            Strings.T("Battle Armor Damaged!"),
+                                            FloatieMessage.MessageNature.CriticalHit, false)));
+                                }
+                            }
+
+                            if (totalArmorDamage > 0)
+                            {
+                                ModInit.modLog?.Info?.Write(
+                                    $"[Vehicle.DamageLocation] totalArmorDamage: {totalArmorDamage}");
+                                var totalArmorDamageDiff =
+                                    totalArmorDamage - (BattleArmorLocArmor + BattleArmorLocStruct);
+                                if (totalArmorDamageDiff > 0)
+                                {
+                                    totalArmorDamage -= totalArmorDamageDiff;
+                                    ModInit.modLog?.Info?.Write(
+                                        $"[Vehicle.DamageLocation] totalArmorDamageDiff Diff: {totalArmorDamageDiff}. Vehicle totalArmorDamage decremented to {totalArmorDamage}");
+                                    BattleArmorAsMech.TakeWeaponDamage(hitInfo, (int) BALocArmor, weapon,
+                                        Mathf.Abs(totalArmorDamageDiff), 0, 1, DamageType.Combat);
+                                    ModInit.modLog?.Info?.Write(
+                                        $"[Vehicle.DamageLocation] Battle Armor at location {BALocArmor} takes {BattleArmorLocArmor} damage");
+                                    __instance.Combat.MessageCenter.PublishMessage(
+                                        new AddSequenceToStackMessage(new ShowActorInfoSequence(BattleArmorAsMech,
+                                            Strings.T("Battle Armor Damaged!"),
+                                            FloatieMessage.MessageNature.CriticalHit, false)));
+                                }
+
+                                else if (totalArmorDamageDiff <= 0)
+                                {
+                                    ModInit.modLog?.Info?.Write(
+                                        $"[Vehicle.DamageLocation] totalArmorDamageDiff Diff: {totalArmorDamageDiff}. Vehicle totalArmorDamage decremented to 0");
+                                    BattleArmorAsMech.TakeWeaponDamage(hitInfo, (int) BALocArmor, weapon,
+                                        Mathf.Abs(totalArmorDamage), 0, 1, DamageType.Combat);
+                                    ModInit.modLog?.Info?.Write(
+                                        $"[Vehicle.DamageLocation] Battle Armor at location {BALocArmor} takes {totalArmorDamage} damage");
+                                    totalArmorDamage = 0;
+                                    __instance.Combat.MessageCenter.PublishMessage(
+                                        new AddSequenceToStackMessage(new ShowActorInfoSequence(BattleArmorAsMech,
+                                            Strings.T("Battle Armor Damaged!"),
+                                            FloatieMessage.MessageNature.CriticalHit, false)));
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        [HarmonyPatch(typeof(Weapon), "WillFireAtTargetFromPosition",
+            new Type[] {typeof(ICombatant), typeof(Vector3), typeof(Quaternion)})]
+        public static class Weapon_WillFireAtTargetFromPosition
+        {
+            public static void Postfix(Weapon __instance, ICombatant target, Vector3 position, Quaternion rotation,
+                ref bool __result)
+            {
+                if (__instance.parent == null) return;
+                if (target is AbstractActor targetActor)
+                {
+                    if (__instance.parent.IsSwarmingUnit())
+                    {
+                        if (ModState.PositionLockSwarm[__instance.parent.GUID] == targetActor.GUID)
+                        {
+                            //                       ModInit.modLog?.Trace?.Write($"[Weapon.WillFireAtTargetFromPosition] {__instance.parent.DisplayName} is swarming {targetActor.DisplayName}, forcing LOS for weapon {__instance.Name}");
+                            __result = true;
+                            return;
+                        }
+                    }
+
+                    if (targetActor.IsSwarmingUnit() || targetActor.IsMountedUnit())
+                    {
+                        __result = false;
+                    }
+                }
+            }
+        }
+
+        [HarmonyPatch(typeof(WeaponRangeIndicators), "DrawLine")]
+        public static class WeaponRangeIndicators_DrawLine //maybe change LOS color if friendly swarmers?
+        {
+            static bool Prepare() => false; //doersnt work, fuckit.
+
+            public static void Prefix(WeaponRangeIndicators __instance, Vector3 position, Quaternion rotation,
+                bool isPositionLocked,
+                AbstractActor selectedActor, ICombatant target, bool usingMultifire, bool isLocked, bool isMelee)
+            {
+                if (target is AbstractActor targetActor && targetActor.HasSwarmingUnits())
+                {
+                    if (selectedActor.team.IsEnemy(targetActor.team))
+                    {
+                        var previewInfo =
+                            __instance.HUD.SelectionHandler.ActiveState.FiringPreview.GetPreviewInfo(target);
+                        //Traverse.Create(previewInfo).Field("collisionPoint").SetValue(selectedActor.CurrentPosition);
+
+                        previewInfo.collisionPoint = selectedActor.CurrentPosition;
                     }
                 }
             }
