@@ -944,7 +944,7 @@ namespace StrategicOperations.Framework
                 //newBattleArmorDef.Refresh();
                 CustomEncounterTags = new TagSet(TeamSelection.EncounterTags) { "SpawnedFromAbility" };
 
-                if (!NewUnitDef.DependenciesLoaded(1000U) || !NewPilotDef.DependenciesLoaded(1000U))
+                if (NewPilotDef != null && (!NewUnitDef.DependenciesLoaded(1000U) || !NewPilotDef.DependenciesLoaded(1000U)))
                 {
                     DataManager.InjectedDependencyLoadRequest dependencyLoad = new DataManager.InjectedDependencyLoadRequest(DM);
                     dependencyLoad.RegisterLoadCompleteCallback(new Action(this.OnBADepsLoaded));
@@ -1014,32 +1014,39 @@ namespace StrategicOperations.Framework
                 if (NewUnitDef == null)
                 {
                     ModInit.modLog?.Info?.Write($"[ERROR] Unable to fetch NewUnitDef from DataManager. Shit gon broke.");
+                    return;
                 }
                 NewUnitDef.Refresh();
                 DM.PilotDefs.TryGet(ChosenPilot, out NewPilotDef);
                 if (NewPilotDef == null)
                 {
-                    ModInit.modLog?.Info?.Write($"[ERROR] Unable to fetch pilotDef from DataManager. Shit gon broke.");
+                    ModInit.modLog?.Info?.Write(
+                        $"[ERROR] Unable to fetch pilotDef from DataManager. Shit gon broke.");
+                    return;
                 }
 
                 //var injectedDependencyLoadRequest = new DataManager.InjectedDependencyLoadRequest(dm);
                 //newBattleArmorDef.GatherDependencies(dm, injectedDependencyLoadRequest, 1000U);
                 //newBattleArmorDef.Refresh();
-                CustomEncounterTags = new TagSet(TeamSelection.EncounterTags) { "SpawnedFromAbility" };
+                CustomEncounterTags = new TagSet(TeamSelection.EncounterTags) {"SpawnedFromAbility"};
 
                 if (!NewUnitDef.DependenciesLoaded(1000U) || !NewPilotDef.DependenciesLoaded(1000U))
                 {
-                    DataManager.InjectedDependencyLoadRequest dependencyLoad = new DataManager.InjectedDependencyLoadRequest(DM);
+                    DataManager.InjectedDependencyLoadRequest dependencyLoad =
+                        new DataManager.InjectedDependencyLoadRequest(DM);
                     dependencyLoad.RegisterLoadCompleteCallback(new Action(this.OnBeaconDepsLoaded));
-                    dependencyLoad.RegisterLoadFailedCallback(new Action(this.OnStratOpsDepsFailed)); // do failure handling here
+                    dependencyLoad.RegisterLoadFailedCallback(
+                        new Action(this.OnStratOpsDepsFailed)); // do failure handling here
                     if (!NewUnitDef.DependenciesLoaded(1000U))
                     {
                         NewUnitDef.GatherDependencies(DM, dependencyLoad, 1000U);
                     }
+
                     if (!NewPilotDef.DependenciesLoaded(1000U))
                     {
                         NewPilotDef.GatherDependencies(DM, dependencyLoad, 1000U);
                     }
+
                     DM.InjectDependencyLoader(dependencyLoad, 1000U);
                 }
                 else
@@ -1096,7 +1103,7 @@ namespace StrategicOperations.Framework
                 //newBattleArmorDef.Refresh();
                 CustomEncounterTags = new TagSet(TeamSelection.EncounterTags) { "SpawnedFromAbility" };
 
-                if (!NewUnitDef.DependenciesLoaded(1000U) || !NewPilotDef.DependenciesLoaded(1000U))
+                if (NewPilotDef != null && (!NewUnitDef.DependenciesLoaded(1000U) || !NewPilotDef.DependenciesLoaded(1000U)))
                 {
                     DataManager.InjectedDependencyLoadRequest dependencyLoad = new DataManager.InjectedDependencyLoadRequest(DM);
                     dependencyLoad.RegisterLoadCompleteCallback(new Action(this.OnStrafeDepsLoaded));

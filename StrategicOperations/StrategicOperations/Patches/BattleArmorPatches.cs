@@ -329,26 +329,29 @@ namespace StrategicOperations.Patches
                     foreach (var swarmingUnit in swarmingUnits)
                     {
                         var actor = __instance.Combat.FindActorByGUID(swarmingUnit.Key);
-                        var squad = actor as TrooperSquad;
-                        if (ModInit.Random.NextDouble() <= (double) 1 / 3 && !wereSwarmingUnitsResponsible && !dismount)
+                        if (actor is TrooperSquad squad)
                         {
-                            var trooperLocs = squad.GetPossibleHitLocations(__instance);
-                            for (int i = 0; i < trooperLocs.Count; i++)
+                            if (ModInit.Random.NextDouble() <= (double) 1 / 3 && !wereSwarmingUnitsResponsible &&
+                                !dismount)
                             {
-                                var cLoc = (ChassisLocations) trooperLocs[i];
-                                var hitinfo = new WeaponHitInfo(-1, -1, 0, 0, __instance.GUID, squad.GUID, 1,
-                                    new float[1], new float[1], new float[1], new bool[1], new int[trooperLocs[i]],
-                                    new int[1], new AttackImpactQuality[1], new AttackDirection[1], new Vector3[1],
-                                    new string[1], new int[trooperLocs[i]]);
-                                squad.NukeStructureLocation(hitinfo, trooperLocs[i], cLoc, Vector3.up,
-                                    DamageType.ComponentExplosion);
-                            }
+                                var trooperLocs = squad.GetPossibleHitLocations(__instance);
+                                for (int i = 0; i < trooperLocs.Count; i++)
+                                {
+                                    var cLoc = (ChassisLocations) trooperLocs[i];
+                                    var hitinfo = new WeaponHitInfo(-1, -1, 0, 0, __instance.GUID, squad.GUID, 1,
+                                        new float[1], new float[1], new float[1], new bool[1], new int[trooperLocs[i]],
+                                        new int[1], new AttackImpactQuality[1], new AttackDirection[1], new Vector3[1],
+                                        new string[1], new int[trooperLocs[i]]);
+                                    squad.NukeStructureLocation(hitinfo, trooperLocs[i], cLoc, Vector3.up,
+                                        DamageType.ComponentExplosion);
+                                }
 
-                            actor.DismountBA(__instance, Vector3.zero, false, true);
-                            actor.FlagForDeath("Killed When Mount Died", DeathMethod.VitalComponentDestroyed,
-                                DamageType.Melee, 0, -1, __instance.GUID, false);
-                            actor.HandleDeath(__instance.GUID);
-                            continue;
+                                actor.DismountBA(__instance, Vector3.zero, false, true);
+                                actor.FlagForDeath("Killed When Mount Died", DeathMethod.VitalComponentDestroyed,
+                                    DamageType.Melee, 0, -1, __instance.GUID, false);
+                                actor.HandleDeath(__instance.GUID);
+                                continue;
+                            }
                         }
 
                         ModInit.modLog?.Trace?.Write(
@@ -364,26 +367,28 @@ namespace StrategicOperations.Patches
                     foreach (var mountedUnit in mountedUnits)
                     {
                         var actor = __instance.Combat.FindActorByGUID(mountedUnit.Key);
-                        var squad = actor as TrooperSquad;
-                        if (ModInit.Random.NextDouble() <= (double) 1 / 3 && !dismount)
+                        if (actor is TrooperSquad squad)
                         {
-                            var trooperLocs = squad.GetPossibleHitLocations(__instance);
-                            for (int i = 0; i < trooperLocs.Count; i++)
+                            if (ModInit.Random.NextDouble() <= (double) 1 / 3 && !dismount)
                             {
-                                var cLoc = (ChassisLocations) trooperLocs[i];
-                                var hitinfo = new WeaponHitInfo(-1, -1, 0, 0, __instance.GUID, squad.GUID, 1,
-                                    new float[1], new float[1], new float[1], new bool[1], new int[trooperLocs[i]],
-                                    new int[1], new AttackImpactQuality[1], new AttackDirection[1], new Vector3[1],
-                                    new string[1], new int[trooperLocs[i]]);
-                                squad.NukeStructureLocation(hitinfo, trooperLocs[i], cLoc, Vector3.up,
-                                    DamageType.ComponentExplosion);
-                            }
+                                var trooperLocs = squad.GetPossibleHitLocations(__instance);
+                                for (int i = 0; i < trooperLocs.Count; i++)
+                                {
+                                    var cLoc = (ChassisLocations) trooperLocs[i];
+                                    var hitinfo = new WeaponHitInfo(-1, -1, 0, 0, __instance.GUID, squad.GUID, 1,
+                                        new float[1], new float[1], new float[1], new bool[1], new int[trooperLocs[i]],
+                                        new int[1], new AttackImpactQuality[1], new AttackDirection[1], new Vector3[1],
+                                        new string[1], new int[trooperLocs[i]]);
+                                    squad.NukeStructureLocation(hitinfo, trooperLocs[i], cLoc, Vector3.up,
+                                        DamageType.ComponentExplosion);
+                                }
 
-                            actor.DismountBA(__instance, Vector3.zero, true, true);
-                            actor.FlagForDeath("Killed When Mount Died", DeathMethod.VitalComponentDestroyed,
-                                DamageType.Melee, 0, -1, __instance.GUID, false);
-                            actor.HandleDeath(__instance.GUID);
-                            continue;
+                                actor.DismountBA(__instance, Vector3.zero, true, true);
+                                actor.FlagForDeath("Killed When Mount Died", DeathMethod.VitalComponentDestroyed,
+                                    DamageType.Melee, 0, -1, __instance.GUID, false);
+                                actor.HandleDeath(__instance.GUID);
+                                continue;
+                            }
                         }
 
                         ModInit.modLog?.Trace?.Write(
@@ -538,8 +543,6 @@ namespace StrategicOperations.Patches
                 try
                 {
                     if (__instance.owningActor == null) return;
-
-
                     if (ModState.DeSwarmMovementInfo?.Carrier?.GUID == __instance.owningActor.GUID)
                     {
                         var settings = ModInit.modSettings.DeswarmMovementConfig;
@@ -556,18 +559,19 @@ namespace StrategicOperations.Patches
                             $"[ActorMovementSequence.CompleteOrders] Found DeSwarmMovementInfo for unit {__instance.owningActor.DisplayName} {__instance.owningActor.GUID}. Rolled {roll} vs finalChance {finalChance} from baseChance {baseChance} and evasive chance {chanceFromPips}");
                         if (roll <= finalChance)
                         {
-                            var waypoints =
-                                __instance
-                                    .Waypoints; //Traverse.Create(__instance).Property("Waypoints").GetValue<List<WayPoint>>();
-                            foreach (var swarmingUnit in ModState.DeSwarmMovementInfo?.SwarmingUnits)
-                            {
-                                var selectedWaypoint = waypoints.GetRandomElement();
-                                ModInit.modLog?.Info?.Write(
-                                    $"[ActorMovementSequence.CompleteOrders] Roll succeeded, plonking {swarmingUnit.DisplayName} at {selectedWaypoint.Position}");
-                                swarmingUnit.DismountBA(__instance.owningActor, selectedWaypoint.Position, false, true);
-                            }
+                            var waypoints = __instance.Waypoints; //Traverse.Create(__instance).Property("Waypoints").GetValue<List<WayPoint>>();
+                            if (ModState.DeSwarmMovementInfo != null)
+                                for (var index = ModState.DeSwarmMovementInfo.SwarmingUnits.Count - 1; index >= 0; index--)
+                                {
+                                    var swarmingUnit = ModState.DeSwarmMovementInfo.SwarmingUnits[index];
+                                    var selectedWaypoint = __instance.FinalPos;
+                                    if (waypoints != null && waypoints.Count > 0) selectedWaypoint = waypoints.GetRandomElement().Position;
+                                    ModInit.modLog?.Info?.Write(
+                                        $"[ActorMovementSequence.CompleteOrders] Roll succeeded, plonking {swarmingUnit.DisplayName} at {selectedWaypoint}");
+                                    swarmingUnit.DismountBA(__instance.owningActor, selectedWaypoint, false,
+                                        true);
+                                }
                         }
-
                         ModState.DeSwarmMovementInfo = new Classes.BA_DeswarmMovementInfo();
                     }
                 }
@@ -770,7 +774,7 @@ namespace StrategicOperations.Patches
                 }
                 else
                 {
-                    __instance.Text.SetText(__instance.Ability.Def?.Description.Name);
+                    __instance.Text.SetText(__instance.Ability?.Def?.Description.Name);
                 }
             }
         }
@@ -1921,45 +1925,48 @@ namespace StrategicOperations.Patches
                     {
                         var baseDistance = Vector3.Distance(__instance.StartPos, __instance.FinalPos);
 
-                        foreach (var swarmingUnit in ModState.DeSwarmMovementInfo.SwarmingUnits)
-                        {
-                            var finalDist = (float) (baseDistance * ModInit.Random.NextDouble());
-                            var finalDestination =
-                                Utils.LerpByDistance(__instance.StartPos, __instance.FinalPos, finalDist);
-                            finalDestination.y =
-                                swarmingUnit.Combat.MapMetaData.GetLerpedHeightAt(finalDestination,
-                                    false); //set proper height on ground.
-                            ModInit.modLog?.Info?.Write(
-                                $"[ActorMovementSequence.CompleteOrders] Roll succeeded, plonking {swarmingUnit.DisplayName} at {finalDestination}");
-                            swarmingUnit.DismountBA(__instance.owningActor, finalDestination, false, true);
-                            if (swarmingUnit is TrooperSquad swarmingUnitSquad)
+                        if (ModState.DeSwarmMovementInfo != null)
+                            for (var index = ModState.DeSwarmMovementInfo.SwarmingUnits.Count - 1; index >= 0; index--)
                             {
-                                var dmg = settings.UseDFADamage
-                                    ? swarmingUnitSquad.StatCollection.GetValue<float>("DFASelfDamage")
-                                    : settings.LocationDamageOverride;
-                                var reduction = settings.PilotingDamageReductionFactor *
-                                                swarmingUnitSquad.GetPilot().Piloting;
-                                var dmgReduction = dmg * reduction;
-                                dmg -= dmgReduction;
-                                if (dmg > 0f)
+                                var swarmingUnit = ModState.DeSwarmMovementInfo.SwarmingUnits[index];
+                                var finalDist = (float) (baseDistance * ModInit.Random.NextDouble());
+                                var finalDestination =
+                                    Utils.LerpByDistance(__instance.StartPos, __instance.FinalPos, finalDist);
+                                finalDestination.y =
+                                    swarmingUnit.Combat.MapMetaData.GetLerpedHeightAt(finalDestination,
+                                        false); //set proper height on ground.
+                                ModInit.modLog?.Info?.Write(
+                                    $"[ActorMovementSequence.CompleteOrders] Roll succeeded, plonking {swarmingUnit.DisplayName} at {finalDestination}");
+                                swarmingUnit.DismountBA(__instance.owningActor, finalDestination, false, true);
+                                if (swarmingUnit is TrooperSquad swarmingUnitSquad)
                                 {
-                                    var trooperLocs = swarmingUnitSquad.GetPossibleHitLocations(__instance.owningActor);
-                                    for (int i = 0; i < trooperLocs.Count; i++)
+                                    var dmg = settings.UseDFADamage
+                                        ? swarmingUnitSquad.StatCollection.GetValue<float>("DFASelfDamage")
+                                        : settings.LocationDamageOverride;
+                                    var reduction = settings.PilotingDamageReductionFactor *
+                                                    swarmingUnitSquad.GetPilot().Piloting;
+                                    var dmgReduction = dmg * reduction;
+                                    dmg -= dmgReduction;
+                                    if (dmg > 0f)
                                     {
-                                        var hitinfo = new WeaponHitInfo(-1, -1, 0, 0, __instance.owningActor.GUID,
-                                            swarmingUnitSquad.GUID, 1, new float[1], new float[1], new float[1],
-                                            new bool[1], new int[trooperLocs[i]], new int[1],
-                                            new AttackImpactQuality[1],
-                                            new AttackDirection[1], new Vector3[1], new string[1],
-                                            new int[trooperLocs[i]]);
+                                        var trooperLocs =
+                                            swarmingUnitSquad.GetPossibleHitLocations(__instance.owningActor);
+                                        for (int i = 0; i < trooperLocs.Count; i++)
+                                        {
+                                            var hitinfo = new WeaponHitInfo(-1, -1, 0, 0, __instance.owningActor.GUID,
+                                                swarmingUnitSquad.GUID, 1, new float[1], new float[1], new float[1],
+                                                new bool[1], new int[trooperLocs[i]], new int[1],
+                                                new AttackImpactQuality[1],
+                                                new AttackDirection[1], new Vector3[1], new string[1],
+                                                new int[trooperLocs[i]]);
 
-                                        swarmingUnitSquad.TakeWeaponDamage(hitinfo, trooperLocs[i],
-                                            swarmingUnitSquad.MeleeWeapon, dmg,
-                                            0, 0, DamageType.DFASelf);
+                                            swarmingUnitSquad.TakeWeaponDamage(hitinfo, trooperLocs[i],
+                                                swarmingUnitSquad.MeleeWeapon, dmg,
+                                                0, 0, DamageType.DFASelf);
+                                        }
                                     }
                                 }
                             }
-                        }
                     }
 
                     ModState.DeSwarmMovementInfo = new Classes.BA_DeswarmMovementInfo();

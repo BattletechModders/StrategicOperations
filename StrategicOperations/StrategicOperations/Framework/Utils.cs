@@ -1076,7 +1076,7 @@ namespace StrategicOperations.Framework
                             var id = mechComponentRef.Def.ComponentTags.FirstOrDefault(x =>
                                 x.StartsWith("mechdef_") || x.StartsWith("vehicledef_") ||
                                 x.StartsWith("turretdef_"));
-                            if (!id.StartsWith(type))
+                            if (!string.IsNullOrEmpty(id) && !id.StartsWith(type))
                             {
 //                                ModInit.modLog?.Info?.Write($"{id} != {type}, ignoring.");
                                 continue;

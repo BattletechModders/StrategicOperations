@@ -221,14 +221,11 @@ namespace StrategicOperations.Framework
                 {
                     var count = 0;
                     var targetEnemy = actor.GetClosestDetectedEnemy(actor.CurrentPosition);
-
-                    if (targetEnemy != null)
-                    {
-                        ModInit.modLog?.Trace?.Write(
-                            $"Target enemy {targetEnemy.DisplayName}");
-                        theCenter = targetEnemy.CurrentPosition;
-                        count = 1;
-                    }
+                    if (targetEnemy == null) return 0;
+                    ModInit.modLog?.Trace?.Write(
+                        $"Target enemy {targetEnemy.DisplayName}");
+                    theCenter = targetEnemy.CurrentPosition;
+                    count = 1;
 
                     if (Vector3.Distance(actor.CurrentPosition, theCenter) > maxRange)
                     {

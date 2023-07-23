@@ -142,7 +142,7 @@ namespace StrategicOperations.Framework
                     var effectData = new EffectData();
                     effectData.FromJSON(jObject.ToString());
                     BA_Effect.effects.Add(effectData);
-                    ModInit.modLog?.Trace?.Write($"EffectData statname: {effectData?.statisticData?.statName}");
+                    ModInit.modLog?.Trace?.Write($"EffectData statname: {effectData.statisticData?.statName}");
                 }
                 BA_MountSwarmEffects.Add(BA_Effect);
             }
@@ -156,7 +156,7 @@ namespace StrategicOperations.Framework
                     var effectData = new EffectData();
                     effectData.FromJSON(jObject.ToString());
                     BA_Effect.effects.Add(effectData);
-                    ModInit.modLog?.Trace?.Write($"EffectData statname: {effectData?.statisticData?.statName}");
+                    ModInit.modLog?.Trace?.Write($"EffectData statname: {effectData.statisticData?.statName}");
                 }
                 OnGarrisonCollapseEffects.Add(BA_Effect);
             }
@@ -170,7 +170,7 @@ namespace StrategicOperations.Framework
                     var effectData = new EffectData();
                     effectData.FromJSON(jObject.ToString());
                     airliftEffect.effects.Add(effectData);
-                    ModInit.modLog?.Trace?.Write($"EffectData statname: {effectData?.statisticData?.statName}");
+                    ModInit.modLog?.Trace?.Write($"EffectData statname: {effectData.statisticData?.statName}");
                 }
                 AirliftEffects.Add(airliftEffect);
             }

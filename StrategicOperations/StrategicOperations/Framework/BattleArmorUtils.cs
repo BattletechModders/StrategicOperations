@@ -366,7 +366,7 @@ namespace StrategicOperations.Framework
             {
                 if (!ModState.GarrisonFriendlyTeam[building.GUID])
                 {
-                    building.AddToTeam(squad?.Combat?.Teams?.FirstOrDefault(x => x?.GUID == "421027ec-8480-4cc6-bf01-369f84a22012")); // add back to world team.
+                    building.AddToTeam(squad.Combat.Teams?.FirstOrDefault(x => x?.GUID == "421027ec-8480-4cc6-bf01-369f84a22012")); // add back to world team.
                 }
             }
             
@@ -781,7 +781,7 @@ namespace StrategicOperations.Framework
                 {
                     if (effectData?.statisticData?.statName == "InternalBattleArmorSquadCap")
                     {
-                        if (int.TryParse(effectData?.statisticData?.modValue, out var space)) capacity += space;
+                        if (int.TryParse(effectData.statisticData?.modValue, out var space)) capacity += space;
                     }
 
                     if (effectData?.statisticData?.statName == "HasBattleArmorMounts")
@@ -1199,44 +1199,52 @@ namespace StrategicOperations.Framework
             foreach (var swarmingUnit in swarmingUnits)
             {
                 var swarmingUnitActor = creator.Combat.FindActorByGUID(swarmingUnit.Key);
-                var swarmingUnitSquad = swarmingUnitActor as TrooperSquad;
-                if (roll <= finalChance)
+                if (swarmingUnitActor is TrooperSquad swarmingUnitSquad)
                 {
-                    ModInit.modLog?.Info?.Write(
-                        $"[Ability.Activate - BattleArmorDeSwarm] Deswarm SUCCESS: {roll} <= {finalChance}.");
-                    var txt = new Text("Remove Swarming Battle Armor: SUCCESS");
-                    creator.Combat.MessageCenter.PublishMessage(new AddSequenceToStackMessage(
-                        new ShowActorInfoSequence(creator, txt, FloatieMessage.MessageNature.Buff,
-                            false)));
-                    for (int i = 0; i < rollInitPenalty; i++)
+                    if (roll <= finalChance)
                     {
-                        swarmingUnitActor.ForceUnitOnePhaseDown(creator.GUID, -1, false);
-                    }
-
-                    var destroyBARoll = ModInit.Random.NextDouble();
-                    if (destroyBARoll <= .3f)
-                    {
-                        swarmingUnitActor.DismountBA(creator, Vector3.zero, false, true);
                         ModInit.modLog?.Info?.Write(
-                            $"[Ability.Activate - DestroyBA on Roll] SUCCESS: {destroyBARoll} <= {finalChance}.");
-                        var trooperLocs = swarmingUnitActor.GetPossibleHitLocations(creator);
-                        var damages = BattleArmorUtils.CalculateClusterDamages(settings.TotalDamage, settings.Clusters, trooperLocs,
-                            out var locs);
-
-                        for (int i = 0; i < damages.Length; i++)
+                            $"[Ability.Activate - BattleArmorDeSwarm] Deswarm SUCCESS: {roll} <= {finalChance}.");
+                        var txt = new Text("Remove Swarming Battle Armor: SUCCESS");
+                        creator.Combat.MessageCenter.PublishMessage(new AddSequenceToStackMessage(
+                            new ShowActorInfoSequence(creator, txt, FloatieMessage.MessageNature.Buff,
+                                false)));
+                        for (int i = 0; i < rollInitPenalty; i++)
                         {
-                            var hitinfo = new WeaponHitInfo(-1, -1, 0, 0, creator.GUID, swarmingUnitActor.GUID, 1, new float[1], new float[1], new float[1], new bool[1], new int[locs[i]], new int[1], new AttackImpactQuality[1], new AttackDirection[1], new Vector3[1], new string[1], new int[locs[i]]);
-                            swarmingUnitActor.TakeWeaponDamage(hitinfo, locs[i], swarmingUnitSquad.MeleeWeapon, damages[i], 0, 0, DamageType.Melee);
+                            swarmingUnitActor.ForceUnitOnePhaseDown(creator.GUID, -1, false);
                         }
-                        if (swarmingUnitSquad.IsFlaggedForDeath)
-                        //swarmingUnitActor.FlagForDeath("Squished", DeathMethod.VitalComponentDestroyed, DamageType.Melee, 0, -1, creator.GUID, false);
-                        swarmingUnitActor.HandleDeath(creator.GUID);
-                    }
-                    else
-                    {
-                        ModInit.modLog?.Info?.Write(
-                            $"[Ability.Activate - DestroyBA on Roll] FAILURE: {destroyBARoll} > {finalChance}.");
-                        swarmingUnitActor.DismountBA(creator, Vector3.zero, false, true);
+
+                        var destroyBARoll = ModInit.Random.NextDouble();
+                        if (destroyBARoll <= .3f)
+                        {
+                            swarmingUnitActor.DismountBA(creator, Vector3.zero, false, true);
+                            ModInit.modLog?.Info?.Write(
+                                $"[Ability.Activate - DestroyBA on Roll] SUCCESS: {destroyBARoll} <= {finalChance}.");
+                            var trooperLocs = swarmingUnitActor.GetPossibleHitLocations(creator);
+                            var damages = BattleArmorUtils.CalculateClusterDamages(settings.TotalDamage,
+                                settings.Clusters, trooperLocs,
+                                out var locs);
+
+                            for (int i = 0; i < damages.Length; i++)
+                            {
+                                var hitinfo = new WeaponHitInfo(-1, -1, 0, 0, creator.GUID, swarmingUnitActor.GUID, 1,
+                                    new float[1], new float[1], new float[1], new bool[1], new int[locs[i]], new int[1],
+                                    new AttackImpactQuality[1], new AttackDirection[1], new Vector3[1], new string[1],
+                                    new int[locs[i]]);
+                                swarmingUnitActor.TakeWeaponDamage(hitinfo, locs[i], swarmingUnitSquad.MeleeWeapon,
+                                    damages[i], 0, 0, DamageType.Melee);
+                            }
+
+                            if (swarmingUnitSquad.IsFlaggedForDeath)
+                                //swarmingUnitActor.FlagForDeath("Squished", DeathMethod.VitalComponentDestroyed, DamageType.Melee, 0, -1, creator.GUID, false);
+                                swarmingUnitActor.HandleDeath(creator.GUID);
+                        }
+                        else
+                        {
+                            ModInit.modLog?.Info?.Write(
+                                $"[Ability.Activate - DestroyBA on Roll] FAILURE: {destroyBARoll} > {finalChance}.");
+                            swarmingUnitActor.DismountBA(creator, Vector3.zero, false, true);
+                        }
                     }
                 }
                 else
@@ -1725,7 +1733,7 @@ namespace StrategicOperations.Framework
                                         loadOutSlot.SelectedMech.UnavailableOverlay.SetActive(true);
                                     }
                                     else if (carrierLanceLoadoutSlot?.SelectedMech != null &&
-                                             loadOutSlot?.SelectedMech != carrierLanceLoadoutSlot.SelectedMech)
+                                             loadOutSlot.SelectedMech != carrierLanceLoadoutSlot.SelectedMech)
                                     {
                                         if (ModState.UsedOverlayColorsByCarrier.TryGetValue(pilotID, out var color))
                                         {

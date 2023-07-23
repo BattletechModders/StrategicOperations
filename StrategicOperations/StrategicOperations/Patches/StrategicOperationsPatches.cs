@@ -1063,16 +1063,22 @@ namespace StrategicOperations.Patches
             public static void Prefix(ref bool __runOriginal, AbstractActor __instance, MessageCenterMessage message)
             {
                 if (!__runOriginal) return;
-                AbilityMessage msg = message as AbilityMessage;
-                if (msg.actingObjectGuid == __instance.GUID && msg.positionA != Vector3.zero && msg.positionB != Vector3.zero)
+                if (message is AbilityMessage msg)
                 {
-                    if (__instance.GetPilot().ActiveAbilities.Find((Ability x) => x.Def.Id == msg.abilityID) != null)
+                    if (msg.actingObjectGuid == __instance.GUID && msg.positionA != Vector3.zero &&
+                        msg.positionB != Vector3.zero)
                     {
-                        __instance.ActivateAbility(__instance, msg.abilityID, msg.affectedObjectGuid, msg.positionA, msg.positionB);
-                        __runOriginal = false;
-                        return;
+                        if (__instance.GetPilot().ActiveAbilities.Find((Ability x) => x.Def.Id == msg.abilityID) !=
+                            null)
+                        {
+                            __instance.ActivateAbility(__instance, msg.abilityID, msg.affectedObjectGuid, msg.positionA,
+                                msg.positionB);
+                            __runOriginal = false;
+                            return;
+                        }
                     }
                 }
+
                 __runOriginal = true;
                 return;
             }
@@ -2704,7 +2710,7 @@ namespace StrategicOperations.Patches
                     var chanceDisplay = (float)Math.Round(1 - ModState.CancelChanceForPlayerStrafe, 2) * 100;
                     cHUD.AttackModeSelector.FireButton.FireText.SetText($"{chanceDisplay}% - Confirm", Array.Empty<object>());
 
-                    ModInit.modLog?.Trace?.Write($"[SelectionStateCommandTargetTwoPoints.ProcessLeftClick] Creator {creator.DisplayName} initializing strafe vs target {opforUnit.team.DisplayName}. Calculated cancelChance {ModState.CancelChanceForPlayerStrafe}, display success chance: {chanceDisplay}.");
+                    ModInit.modLog?.Trace?.Write($"[SelectionStateCommandTargetTwoPoints.ProcessLeftClick] Creator {creator.DisplayName} initializing strafe vs target {opforUnit?.team.DisplayName}. Calculated cancelChance {ModState.CancelChanceForPlayerStrafe}, display success chance: {chanceDisplay}.");
                 }
             }
         }
