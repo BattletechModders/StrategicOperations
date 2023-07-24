@@ -96,7 +96,14 @@ namespace StrategicOperations.Patches
                     }
 
                     var weps = unit.Weapons.Where(x => x.IsEnabled && x.HasAmmo).ToList();
-
+                    if (weps.Count <= 0)
+                    {
+                        //dismount, no more weapons...should probably loop back up to try and resupply??
+                        unit.DismountBA(target, Vector3.zero, false);
+                        __result = new ReserveActorInvocation(unit, unit.CanDeferUnit? ReserveActorAction.DEFER : ReserveActorAction.DONE, unit.Combat.TurnDirector.CurrentRound);
+                        __runOriginal = false;
+                        return;
+                    }
                     var loc = ModState.BADamageTrackers[unit.GUID].BA_MountedLocations.Values.GetRandomElement();
                     //var attackStackSequence = new AttackStackSequence(unit, target, unit.CurrentPosition, unit.CurrentRotation, weps, MeleeAttackType.NotSet, loc, -1);
                     //unit.Combat.MessageCenter.PublishMessage(new AddSequenceToStackMessage(attackStackSequence));
@@ -266,320 +273,338 @@ namespace StrategicOperations.Patches
             CanMoveAndShootWithoutOverheatingNode_Tick_Patch 
             // may need to be CanMoveAndShootWithoutOverheatingNode. was IsMovementAvailableForUnitNode
         {
-            public static void Prefix(ref bool __runOriginal, CanMoveAndShootWithoutOverheatingNode __instance, ref BehaviorTreeResults __result)
-           {
-               if (!__runOriginal) return;
-               if (!__instance.unit.Combat.TurnDirector.IsInterleaved)
-               {
+            public static void Prefix(ref bool __runOriginal, CanMoveAndShootWithoutOverheatingNode __instance, ref BehaviorTreeResults __result) 
+            {
+                if (!__runOriginal) return; 
+                if (!__instance.unit.Combat.TurnDirector.IsInterleaved) {
                    __runOriginal = true;
-                   return;
-               }
-               if (__instance.unit.AreAnyWeaponsOutOfAmmo() || __instance.unit.SummaryArmorCurrent / __instance.unit.StartingArmor <= 0.6f)
-               {
-                   var resupplyAbility = __instance.unit.ComponentAbilities.FirstOrDefault(x =>
-                       x.Def.Id == ModInit.modSettings.ResupplyConfig.ArmorSupplyAmmoDefId);
-                   if (resupplyAbility != null)
-                   {
-                       var closestResupply = __instance.unit.GetClosestDetectedResupply();
-                       if (closestResupply != null)
-                       {
-                           var distToResupply =
-                               Vector3.Distance(closestResupply.CurrentPosition, __instance.unit.CurrentPosition);
-                           if (distToResupply <= resupplyAbility.Def.IntParam2)
-                           {
-                               if (ModState.StrategicActorTargetInvocationCmds.ContainsKey(__instance.unit.GUID))
-                               {
-                                   if (ModState.StrategicActorTargetInvocationCmds[__instance.unit.GUID].active)
-                                   {
-                                       __result = new BehaviorTreeResults(BehaviorNodeState.Failure);
-                                       __runOriginal = false;
-                                       return;
-                                   }
+                   return; } 
+                if (__instance.unit.AreAnyWeaponsOutOfAmmo() || __instance.unit.SummaryArmorCurrent / __instance.unit.StartingArmor <= 0.6f) 
+                {
+                    var resupplyAbility = __instance.unit.ComponentAbilities.FirstOrDefault(x =>
+                       x.Def.Id == ModInit.modSettings.ResupplyConfig.ArmorSupplyAmmoDefId); 
+                    if (resupplyAbility != null)
+                    {
+                        var closestResupply = __instance.unit.GetClosestDetectedResupply();
+                        if (closestResupply != null)
+                        {
+                            var distToResupply =
+                                Vector3.Distance(closestResupply.CurrentPosition, __instance.unit.CurrentPosition);
+                            if (distToResupply <= resupplyAbility.Def.IntParam2)
+                            {
+                                if (ModState.StrategicActorTargetInvocationCmds.ContainsKey(__instance.unit.GUID))
+                                {
+                                    if (ModState.StrategicActorTargetInvocationCmds[__instance.unit.GUID].active)
+                                    {
+                                        __result = new BehaviorTreeResults(BehaviorNodeState.Failure);
+                                        __runOriginal = false;
+                                        return;
+                                    }
 
-                                   var info = new StrategicActorTargetInvocation(resupplyAbility, closestResupply,
-                                       true);
-                                   ModState.StrategicActorTargetInvocationCmds[__instance.unit.GUID] = info;
-                                   __result = new BehaviorTreeResults(BehaviorNodeState.Failure);
-                                   __runOriginal = false;
-                                   return;
-                               }
-                               else
-                               {
-                                   var info = new StrategicActorTargetInvocation(resupplyAbility, closestResupply,
-                                       true);
-                                   ModState.StrategicActorTargetInvocationCmds.Add(__instance.unit.GUID, info);
-                                   __result = new BehaviorTreeResults(BehaviorNodeState.Failure);
-                                   __runOriginal = false;
-                                   return;
-                               }
-                           }
-                       }
-                   }
-               }
+                                    var info = new StrategicActorTargetInvocation(resupplyAbility, closestResupply,
+                                        true);
+                                    ModState.StrategicActorTargetInvocationCmds[__instance.unit.GUID] = info;
+                                    __result = new BehaviorTreeResults(BehaviorNodeState.Failure);
+                                    __runOriginal = false;
+                                    return;
+                                }
+                                else
+                                {
+                                    var info = new StrategicActorTargetInvocation(resupplyAbility, closestResupply,
+                                        true);
+                                    ModState.StrategicActorTargetInvocationCmds.Add(__instance.unit.GUID, info);
+                                    __result = new BehaviorTreeResults(BehaviorNodeState.Failure);
+                                    __runOriginal = false;
+                                    return;
+                                }
+                            }
+                        }
+                    }
+                } 
+                if (__instance.unit.IsAirlifted()) 
+                {
+                    ModInit.modLog?.Trace?.Write(
+                       $"[CanMoveAndShootWithoutOverheatingNode] Actor {__instance.unit.DisplayName} is currently being airlifted. Doing nothing."); 
+                    __result = new BehaviorTreeResults(BehaviorNodeState.Failure); 
+                    __runOriginal = false; 
+                    return;
+                }
 
-               if (__instance.unit.IsAirlifted())
-               {
-                   ModInit.modLog?.Trace?.Write(
-                       $"[CanMoveAndShootWithoutOverheatingNode] Actor {__instance.unit.DisplayName} is currently being airlifted. Doing nothing.");
-                   __result = new BehaviorTreeResults(BehaviorNodeState.Failure);
-                   __runOriginal = false;
-                   return;
-               }
+                var battleArmorAbility =
+                    __instance.unit.ComponentAbilities.FirstOrDefault(x =>
+                        x.Def.Id == ModInit.modSettings.BattleArmorMountAndSwarmID); 
+                if (battleArmorAbility != null)// && __instance.unit.canSwarm())
+                {
+                    if (battleArmorAbility.IsAvailable)
+                    {
+                        if (__instance.unit.IsSwarmingUnit())
+                        {
+                            ModInit.modLog?.Trace?.Write(
+                                $"[CanMoveAndShootWithoutOverheatingNode] Actor {__instance.unit.DisplayName} is currently swarming. Doing nothing.");
+                            //if currently swarming, dont do anything else.
+                            __result = new BehaviorTreeResults(BehaviorNodeState.Failure);
+                            __runOriginal = false;
+                            return;
+                        }
 
-               var battleArmorAbility =
-                   __instance.unit.ComponentAbilities.FirstOrDefault(x =>
-                       x.Def.Id == ModInit.modSettings.BattleArmorMountAndSwarmID);
-               if (battleArmorAbility != null)// && __instance.unit.canSwarm())
-               {
-                   if (battleArmorAbility.IsAvailable)
-                   {
-                       if (__instance.unit.IsSwarmingUnit())
-                       {
-                           ModInit.modLog?.Trace?.Write(
-                               $"[CanMoveAndShootWithoutOverheatingNode] Actor {__instance.unit.DisplayName} is currently swarming. Doing nothing.");
-                           //if currently swarming, dont do anything else.
-                           __result = new BehaviorTreeResults(BehaviorNodeState.Failure);
-                           __runOriginal = false;
-                           return;
-                       }
+                        var closestEnemy = __instance.unit.GetClosestDetectedSwarmTarget(__instance.unit.CurrentPosition);
+                        if (closestEnemy != null)
+                        {
+                            var distance = Vector3.Distance(__instance.unit.CurrentPosition, closestEnemy.CurrentPosition);
+                            var jumpdist = 0f;
+                            if (__instance.unit is Mech mech)
+                            {
+                                jumpdist = mech.JumpDistance;
+                                if (float.IsNaN(jumpdist)) jumpdist = 0f;
+                            }
 
-                       var closestEnemy = __instance.unit.GetClosestDetectedSwarmTarget(__instance.unit.CurrentPosition);
-                       if (closestEnemy != null)
-                       {
+                            var maxRange = new List<float>()
+                            {
+                                __instance.unit.MaxWalkDistance,
+                                __instance.unit.MaxSprintDistance,
+                                jumpdist,
+                                battleArmorAbility.Def.IntParam2
+                            }.Max();
 
-                           var distance = Vector3.Distance(__instance.unit.CurrentPosition, closestEnemy.CurrentPosition);
-                           var jumpdist = 0f;
-                           if (__instance.unit is Mech mech)
-                           {
-                               jumpdist = mech.JumpDistance;
-                               if (float.IsNaN(jumpdist)) jumpdist = 0f;
-                           }
+                            ModInit.modLog?.Trace?.Write(
+                                $"[CanMoveAndShootWithoutOverheatingNode] Actor {__instance.unit.DisplayName} maxRange to be used is {maxRange}, largest of: MaxWalkDistance - {__instance.unit.MaxWalkDistance}, MaxSprintDistance - {__instance.unit.MaxSprintDistance}, JumpDistance - {jumpdist}, and Ability Override {battleArmorAbility.Def.IntParam2}");
 
-                           var maxRange = new List<float>()
-                           {
-                               __instance.unit.MaxWalkDistance,
-                               __instance.unit.MaxSprintDistance,
-                               jumpdist,
-                               battleArmorAbility.Def.IntParam2
-                           }.Max();
+                            if (__instance.unit.IsMountedUnit())
+                            {
+                                ModInit.modLog?.Trace?.Write(
+                                    $"[CanMoveAndShootWithoutOverheatingNode] Actor {__instance.unit.DisplayName} is currently mounted. Evaluating range to nearest enemy.");
+                                if (distance <= 1.25 * maxRange ||
+                                    (!__instance.unit.CanSwarm() && distance <= AIUtil.GetMaxWeaponRange(__instance.unit)))
+                                {
+                                    ModInit.modLog?.Trace?.Write(
+                                        $"[CanMoveAndShootWithoutOverheatingNode] Actor {__instance.unit.DisplayName} is {distance} from nearest enemy, maxrange was {maxRange} * 1.25.");
+                                    var carrier =
+                                        __instance.unit.Combat.FindActorByGUID(ModState.PositionLockMount[__instance.unit.GUID]);
+                                    if (ModState.StrategicActorTargetInvocationCmds.ContainsKey(__instance.unit.GUID))
+                                    {
+                                        if (ModState.StrategicActorTargetInvocationCmds[__instance.unit.GUID].active)
+                                        {
+                                            __result = new BehaviorTreeResults(BehaviorNodeState.Failure);
+                                            __runOriginal = false;
+                                            return;
+                                        }
 
-                           ModInit.modLog?.Trace?.Write(
-                               $"[CanMoveAndShootWithoutOverheatingNode] Actor {__instance.unit.DisplayName} maxRange to be used is {maxRange}, largest of: MaxWalkDistance - {__instance.unit.MaxWalkDistance}, MaxSprintDistance - {__instance.unit.MaxSprintDistance}, JumpDistance - {jumpdist}, and Ability Override {battleArmorAbility.Def.IntParam2}");
+                                        var info = new StrategicActorTargetInvocation(battleArmorAbility, closestEnemy,
+                                            true, true);
+                                        ModState.StrategicActorTargetInvocationCmds[__instance.unit.GUID] = info;
+                                        __result = new BehaviorTreeResults(BehaviorNodeState.Failure);
+                                        __runOriginal = false;
+                                        return;
+                                    }
+                                    else
+                                    {
+                                        var info = new StrategicActorTargetInvocation(battleArmorAbility, closestEnemy,
+                                            true, true);
+                                        ModState.StrategicActorTargetInvocationCmds.Add(__instance.unit.GUID, info);
+                                        __result = new BehaviorTreeResults(BehaviorNodeState.Failure);
+                                        __runOriginal = false;
+                                        return;
+                                    }
+                                }
 
-                           if (__instance.unit.IsMountedUnit())
-                           {
-                               ModInit.modLog?.Trace?.Write(
-                                   $"[CanMoveAndShootWithoutOverheatingNode] Actor {__instance.unit.DisplayName} is currently mounted. Evaluating range to nearest enemy.");
-                               if (distance <= 1.25 * maxRange ||
-                                   (!__instance.unit.CanSwarm() && distance <= AIUtil.GetMaxWeaponRange(__instance.unit)))
-                               {
-                                   ModInit.modLog?.Trace?.Write(
-                                       $"[CanMoveAndShootWithoutOverheatingNode] Actor {__instance.unit.DisplayName} is {distance} from nearest enemy, maxrange was {maxRange} * 1.25.");
-                                   var carrier =
-                                       __instance.unit.Combat.FindActorByGUID(ModState.PositionLockMount[__instance.unit.GUID]);
-                                   if (ModState.StrategicActorTargetInvocationCmds.ContainsKey(__instance.unit.GUID))
-                                   {
-                                       if (ModState.StrategicActorTargetInvocationCmds[__instance.unit.GUID].active)
-                                       {
-                                           __result = new BehaviorTreeResults(BehaviorNodeState.Failure);
-                                           __runOriginal = false;
-                                           return;
-                                       }
+                                __result = new BehaviorTreeResults(BehaviorNodeState.Failure);
+                                __runOriginal = false;
+                                return;
+                            }
+                            // check if we even have weapons that can attack on a swarm?
+                            
+                            if (!__instance.unit.HasFiredThisRound)
+                            {
+                                if (__instance.unit.GetAbilityUsedFiring())
+                                {
+                                    foreach (var weapon in __instance.unit.Weapons)
+                                    {
+                                        weapon.DisableWeapon();
+                                    }
+                                }
+                                else
+                                {
+                                    foreach (var weapon in __instance.unit.Weapons)
+                                    {
+                                        weapon.EnableWeapon();
+                                    }
+                                }
 
-                                       var info = new StrategicActorTargetInvocation(battleArmorAbility, closestEnemy,
-                                           true, true);
-                                       ModState.StrategicActorTargetInvocationCmds[__instance.unit.GUID] = info;
-                                       __result = new BehaviorTreeResults(BehaviorNodeState.Failure);
-                                       __runOriginal = false;
-                                       return;
-                                   }
-                                   else
-                                   {
-                                       var info = new StrategicActorTargetInvocation(battleArmorAbility, closestEnemy,
-                                           true, true);
-                                       ModState.StrategicActorTargetInvocationCmds.Add(__instance.unit.GUID, info);
-                                       __result = new BehaviorTreeResults(BehaviorNodeState.Failure);
-                                       __runOriginal = false;
-                                       return;
-                                   }
-                               }
+                                var weps = __instance.unit.Weapons.Where(x => x.IsEnabled && x.HasAmmo).ToList();
+                                if (weps.Count <= 0)
+                                {
+                                    goto noswarm;
+                                }
+                            }
 
-                               __result = new BehaviorTreeResults(BehaviorNodeState.Failure);
-                               __runOriginal = false;
-                               return;
-                           }
+                            //if it isnt mounted, its on the ground and should try to swarm if it can.
+                            if (distance <= maxRange && !(closestEnemy is TrooperSquad) && __instance.unit.CanSwarm())
+                            {
+                                ModInit.modLog?.Trace?.Write(
+                                    $"[CanMoveAndShootWithoutOverheatingNode] Actor {__instance.unit.DisplayName} is on the ground, trying to swarm at {distance} from nearest enemy, maxrange was {maxRange} * 1.25.");
+                                if (ModState.StrategicActorTargetInvocationCmds.ContainsKey(__instance.unit.GUID))
+                                {
+                                    if (ModState.StrategicActorTargetInvocationCmds[__instance.unit.GUID].active)
+                                    {
+                                        __result = new BehaviorTreeResults(BehaviorNodeState.Failure);
+                                        __runOriginal = false;
+                                        return;
+                                    }
 
-                           //if it isnt mounted, its on the ground and should try to swarm if it can.
-                           if (distance <= maxRange && !(closestEnemy is TrooperSquad) && __instance.unit.CanSwarm())
-                           {
-                               ModInit.modLog?.Trace?.Write(
-                                   $"[CanMoveAndShootWithoutOverheatingNode] Actor {__instance.unit.DisplayName} is on the ground, trying to swarm at {distance} from nearest enemy, maxrange was {maxRange} * 1.25.");
-                               if (ModState.StrategicActorTargetInvocationCmds.ContainsKey(__instance.unit.GUID))
-                               {
-                                   if (ModState.StrategicActorTargetInvocationCmds[__instance.unit.GUID].active)
-                                   {
-                                       __result = new BehaviorTreeResults(BehaviorNodeState.Failure);
-                                       __runOriginal = false;
-                                       return;
-                                   }
+                                    var info = new StrategicActorTargetInvocation(battleArmorAbility, closestEnemy,
+                                        true);
+                                    ModState.StrategicActorTargetInvocationCmds[__instance.unit.GUID] = info;
+                                    __result = new BehaviorTreeResults(BehaviorNodeState.Failure);
+                                    __runOriginal = false;
+                                    return;
+                                }
+                                else
+                                {
+                                    var info = new StrategicActorTargetInvocation(battleArmorAbility, closestEnemy,
+                                        true);
+                                    ModState.StrategicActorTargetInvocationCmds.Add(__instance.unit.GUID, info);
+                                    __result = new BehaviorTreeResults(BehaviorNodeState.Failure);
+                                    __runOriginal = false;
+                                    return;
+                                }
+                            }
+                        }
+                        noswarm:
+                        ModInit.modLog?.Trace?.Write($"[CanMoveAndShootWithoutOverheatingNode] Some nerd running all LAMS or VTOLs or we're out of ammo, can't swarm anything; should just use vanilla tree.");
+                    }
+                }
 
-                                   var info = new StrategicActorTargetInvocation(battleArmorAbility, closestEnemy,
-                                       true);
-                                   ModState.StrategicActorTargetInvocationCmds[__instance.unit.GUID] = info;
-                                   __result = new BehaviorTreeResults(BehaviorNodeState.Failure);
-                                   __runOriginal = false;
-                                   return;
-                               }
-                               else
-                               {
-                                   var info = new StrategicActorTargetInvocation(battleArmorAbility, closestEnemy,
-                                       true);
-                                   ModState.StrategicActorTargetInvocationCmds.Add(__instance.unit.GUID, info);
-                                   __result = new BehaviorTreeResults(BehaviorNodeState.Failure);
-                                   __runOriginal = false;
-                                   return;
-                               }
-                           }
-                       }
-                       else
-                       {
-                           ModInit.modLog?.Trace?.Write(
-                               $"[CanMoveAndShootWithoutOverheatingNode] Some nerd running all LAMS or VTOLs, can't swarm anything; should just use vanilla tree.");
-                       }
-                   }
-               }
+                if (__instance.unit.HasSwarmingUnits())
+                {
+                    var deswarm = __instance.unit.GetDeswarmerAbilityForAI();
+                    if (deswarm != null && deswarm?.Def?.Description?.Id != null)
+                    {
+                        if (ModState.AiDealWithBattleArmorCmds.ContainsKey(__instance.unit.GUID))
+                        {
+                            if (ModState.AiDealWithBattleArmorCmds[__instance.unit.GUID].active)
+                            {
+                                __result = new BehaviorTreeResults(BehaviorNodeState.Failure);
+                                __runOriginal = false;
+                                return;
+                            }
 
-               if (__instance.unit.HasSwarmingUnits())
-               {
-                   var deswarm = __instance.unit.GetDeswarmerAbilityForAI();
-                   if (deswarm != null && deswarm?.Def?.Description?.Id != null)
-                   {
-                       if (ModState.AiDealWithBattleArmorCmds.ContainsKey(__instance.unit.GUID))
-                       {
-                           if (ModState.AiDealWithBattleArmorCmds[__instance.unit.GUID].active)
-                           {
-                               __result = new BehaviorTreeResults(BehaviorNodeState.Failure);
-                               __runOriginal = false;
-                               return;
-                           }
+                            var info = new AI_DealWithBAInvocation(deswarm, __instance.unit, true);
+                            ModState.AiDealWithBattleArmorCmds[__instance.unit.GUID] = info;
+                            __result = new BehaviorTreeResults(BehaviorNodeState.Failure);
+                            __runOriginal = false;
+                            return;
+                        }
+                        else
+                        {
+                            var info = new AI_DealWithBAInvocation(deswarm, __instance.unit, true);
+                            ModState.AiDealWithBattleArmorCmds.Add(__instance.unit.GUID, info);
+                            __result = new BehaviorTreeResults(BehaviorNodeState.Failure);
+                            __runOriginal = false;
+                            return;
+                        }
+                    }
+                }
 
-                           var info = new AI_DealWithBAInvocation(deswarm, __instance.unit, true);
-                           ModState.AiDealWithBattleArmorCmds[__instance.unit.GUID] = info;
-                           __result = new BehaviorTreeResults(BehaviorNodeState.Failure);
-                           __runOriginal = false;
-                           return;
-                       }
-                       else
-                       {
-                           var info = new AI_DealWithBAInvocation(deswarm, __instance.unit, true);
-                           ModState.AiDealWithBattleArmorCmds.Add(__instance.unit.GUID, info);
-                           __result = new BehaviorTreeResults(BehaviorNodeState.Failure);
-                           __runOriginal = false;
-                           return;
-                       }
-                   }
-               }
+                if (!ModState.AiCmds.ContainsKey(__instance.unit.GUID))
+                {
+                    var cmdAbility = __instance.unit.ComponentAbilities.FirstOrDefault(x => x.Def.Resource == AbilityDef.ResourceConsumed.CommandAbility);
+                    if (cmdAbility != null)
+                    {
+                        if (cmdAbility.Def.specialRules == AbilityDef.SpecialRules.Strafe)
+                        {
+                            var strafeVal = AI_Utils.EvaluateStrafing(__instance.unit, out var abilityStrafe, out var vector1Strafe,
+                                out var vector2Strafe, out var startUnit);
 
-               if (!ModState.AiCmds.ContainsKey(__instance.unit.GUID))
-               {
-                   var cmdAbility = __instance.unit.ComponentAbilities.FirstOrDefault(x => x.Def.Resource == AbilityDef.ResourceConsumed.CommandAbility);
-                   if (cmdAbility != null)
-                   {
-                       if (cmdAbility.Def.specialRules == AbilityDef.SpecialRules.Strafe)
-                       {
-                           var strafeVal = AI_Utils.EvaluateStrafing(__instance.unit, out var abilityStrafe, out var vector1Strafe,
-                               out var vector2Strafe, out var startUnit);
+                            if (startUnit == null)
+                            {
+                                //__result = new BehaviorTreeResults(BehaviorNodeState.Failure);
+                                __runOriginal = true;
+                                return;
+                            }
 
-                           if (startUnit == null)
-                           {
-                               //__result = new BehaviorTreeResults(BehaviorNodeState.Failure);
-                               __runOriginal = true;
-                               return;
-                           }
+                            var skipStrafeChance = startUnit.GetAvoidStrafeChanceForTeam(); //should i save the thing?
+                            //ModState.startUnitFromInvocation = startUnit;
+                            ModInit.modLog?.Trace?.Write($"final AA value for {startUnit.team.DisplayName}: {skipStrafeChance}");
+                            if (skipStrafeChance < ModInit.modSettings.strafeAAFailThreshold)
+                            {
+                                if (strafeVal >= ModInit.modSettings.AI_InvokeStrafeThreshold)
+                                {
+                                    var info = new AI_CmdInvocation(abilityStrafe, vector1Strafe, vector2Strafe, true);
+                                    ModState.AiCmds.Add(__instance.unit.GUID, info);
+                                    __result = new BehaviorTreeResults(BehaviorNodeState.Failure);
+                                    __runOriginal = false;
+                                    return;
+                                }
+                            }
+                        }
+                        else if (cmdAbility.Def.specialRules == AbilityDef.SpecialRules.SpawnTurret)
+                        {
+                            var spawnVal = AI_Utils.EvaluateSpawn(__instance.unit, out var abilitySpawn, out var vector1Spawn,
+                                out var vector2Spawn);
+                            if (spawnVal >= ModInit.modSettings.AI_InvokeSpawnThreshold)
+                            {
+                                var info = new AI_CmdInvocation(abilitySpawn, vector1Spawn, vector2Spawn, true);
+                                ModState.AiCmds.Add(__instance.unit.GUID, info);
+                                __result = new BehaviorTreeResults(BehaviorNodeState.Failure);
+                                __runOriginal = false;
+                                return;
+                            }
+                        }
+                    }
+                }
+                else
+                {
+                    if (ModState.AiCmds[__instance.unit.GUID].active)
+                    {
+                        __result = new BehaviorTreeResults(BehaviorNodeState.Failure);
+                        __runOriginal = false;
+                        return;
+                    }
 
-                           var skipStrafeChance = startUnit.GetAvoidStrafeChanceForTeam(); //should i save the thing?
-                           //ModState.startUnitFromInvocation = startUnit;
-                           ModInit.modLog?.Trace?.Write($"final AA value for {startUnit.team.DisplayName}: {skipStrafeChance}");
-                           if (skipStrafeChance < ModInit.modSettings.strafeAAFailThreshold)
-                           {
-                               if (strafeVal >= ModInit.modSettings.AI_InvokeStrafeThreshold)
-                               {
-                                   var info = new AI_CmdInvocation(abilityStrafe, vector1Strafe, vector2Strafe, true);
-                                   ModState.AiCmds.Add(__instance.unit.GUID, info);
-                                   __result = new BehaviorTreeResults(BehaviorNodeState.Failure);
-                                   __runOriginal = false;
-                                   return;
-                               }
-                           }
-                       }
-                       else if (cmdAbility.Def.specialRules == AbilityDef.SpecialRules.SpawnTurret)
-                       {
-                           var spawnVal = AI_Utils.EvaluateSpawn(__instance.unit, out var abilitySpawn, out var vector1Spawn,
-                               out var vector2Spawn);
-                           if (spawnVal >= ModInit.modSettings.AI_InvokeSpawnThreshold)
-                           {
-                               var info = new AI_CmdInvocation(abilitySpawn, vector1Spawn, vector2Spawn, true);
-                               ModState.AiCmds.Add(__instance.unit.GUID, info);
-                               __result = new BehaviorTreeResults(BehaviorNodeState.Failure);
-                               __runOriginal = false;
-                               return;
-                           }
-                       }
-                   }
-               }
-               else
-               {
-                   if (ModState.AiCmds[__instance.unit.GUID].active)
-                   {
-                       __result = new BehaviorTreeResults(BehaviorNodeState.Failure);
-                       __runOriginal = false;
-                       return;
-                   }
+                    if (ModState.AiCmds[__instance.unit.GUID].ability.Def.specialRules ==
+                        AbilityDef.SpecialRules.Strafe)
+                    {
+                        var strafeVal = AI_Utils.EvaluateStrafing(__instance.unit, out var abilityStrafe, out var vector1Strafe,
+                            out var vector2Strafe, out var startUnit);
+                        if (startUnit == null)
+                        {
+                            //__result = new BehaviorTreeResults(BehaviorNodeState.Failure);
+                            __runOriginal = true;
+                            return;
+                        }
+                        var skipStrafeChance = startUnit.GetAvoidStrafeChanceForTeam();
+                        ModInit.modLog?.Trace?.Write($"final AA value for {startUnit.team.DisplayName}: {skipStrafeChance}");
+                        //                    ModState.startUnitFromInvocation = startUnit;
+                        if (skipStrafeChance < ModInit.modSettings.strafeAAFailThreshold)
+                        {
+                            if (strafeVal > ModInit.modSettings.AI_InvokeStrafeThreshold)
+                            {
+                                var info = new AI_CmdInvocation(abilityStrafe, vector1Strafe, vector2Strafe, true);
+                                ModState.AiCmds[__instance.unit.GUID] = info;
+                                __result = new BehaviorTreeResults(BehaviorNodeState.Failure);
+                                __runOriginal = false;
+                                return;
+                            }
+                        }
+                    }
+                    else if (ModState.AiCmds[__instance.unit.GUID].ability.Def.specialRules ==
+                             AbilityDef.SpecialRules.SpawnTurret)
+                    {
+                        var spawnVal = AI_Utils.EvaluateSpawn(__instance.unit, out var abilitySpawn, out var vector1Spawn,
+                            out var vector2Spawn);
 
-                   if (ModState.AiCmds[__instance.unit.GUID].ability.Def.specialRules ==
-                       AbilityDef.SpecialRules.Strafe)
-                   {
-                       var strafeVal = AI_Utils.EvaluateStrafing(__instance.unit, out var abilityStrafe, out var vector1Strafe,
-                           out var vector2Strafe, out var startUnit);
-                       if (startUnit == null)
-                       {
-                           //__result = new BehaviorTreeResults(BehaviorNodeState.Failure);
-                           __runOriginal = true;
-                           return;
-                       }
-                       var skipStrafeChance = startUnit.GetAvoidStrafeChanceForTeam();
-                       ModInit.modLog?.Trace?.Write($"final AA value for {startUnit.team.DisplayName}: {skipStrafeChance}");
-                       //                    ModState.startUnitFromInvocation = startUnit;
-                       if (skipStrafeChance < ModInit.modSettings.strafeAAFailThreshold)
-                       {
-                           if (strafeVal > ModInit.modSettings.AI_InvokeStrafeThreshold)
-                           {
-                               var info = new AI_CmdInvocation(abilityStrafe, vector1Strafe, vector2Strafe, true);
-                               ModState.AiCmds[__instance.unit.GUID] = info;
-                               __result = new BehaviorTreeResults(BehaviorNodeState.Failure);
-                               __runOriginal = false;
-                               return;
-                           }
-                       }
-                   }
-                   else if (ModState.AiCmds[__instance.unit.GUID].ability.Def.specialRules ==
-                            AbilityDef.SpecialRules.SpawnTurret)
-                   {
-                       var spawnVal = AI_Utils.EvaluateSpawn(__instance.unit, out var abilitySpawn, out var vector1Spawn,
-                           out var vector2Spawn);
-
-                       if (spawnVal >= ModInit.modSettings.AI_InvokeSpawnThreshold)
-                       {
-                           var info = new AI_CmdInvocation(abilitySpawn, vector1Spawn, vector2Spawn, true);
-                           ModState.AiCmds[__instance.unit.GUID] = info;
-                           __result = new BehaviorTreeResults(BehaviorNodeState.Failure);
-                           __runOriginal = false;
-                           return;
-                       }
-                   }
-               }
-               __runOriginal = true;
-               return;
+                        if (spawnVal >= ModInit.modSettings.AI_InvokeSpawnThreshold)
+                        {
+                            var info = new AI_CmdInvocation(abilitySpawn, vector1Spawn, vector2Spawn, true);
+                            ModState.AiCmds[__instance.unit.GUID] = info;
+                            __result = new BehaviorTreeResults(BehaviorNodeState.Failure);
+                            __runOriginal = false;
+                            return;
+                        }
+                    }
+                }
+                __runOriginal = true;
+                return;
             }
         }
 
