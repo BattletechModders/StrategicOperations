@@ -5,6 +5,7 @@ using Abilifier.Patches;
 using BattleTech;
 using BattleTech.Data;
 using BattleTech.UI;
+using CBTBehaviorsEnhanced.MeleeStates;
 using CustomComponents;
 using CustomUnits;
 using HBS.Collections;
@@ -13,6 +14,7 @@ using IRTweaks.Modules.Combat;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using UnityEngine;
+using static MonoMod.Cil.RuntimeILReferenceBag.FastDelegateInvokers;
 
 namespace StrategicOperations.Framework
 {
@@ -1342,17 +1344,41 @@ namespace StrategicOperations.Framework
                                 }
                                 
                                 var weps = squad2.Weapons.Where(x => x.IsEnabled && x.HasAmmo).ToList();
-                                var loc = ModState.BADamageTrackers[squad2.GUID].BA_MountedLocations.Values
-                                    .GetRandomElement();
-                                
-                                var attackStackSequence = new AttackStackSequence(squad2, targetActor,
-                                    squad2.CurrentPosition,
-                                    squad2.CurrentRotation, weps, MeleeAttackType.NotSet, loc, -1);
-                                squad2.Combat.MessageCenter.PublishMessage(
-                                    new AddSequenceToStackMessage(attackStackSequence));
+
+                                //                var baselineAccuracyModifier = actor.StatCollection.GetValue<float>("AccuracyModifier");
+                                //                actor.StatCollection.Set<float>("AccuracyModifier", -99999.0f);
+                                //                ModInit.modLog?.Trace?.Write($"[AbstractActor.DoneWithActor] Actor {actor.DisplayName} getting baselineAccuracyModifer set to {actor.AccuracyModifier}");
+
+                                var loc = ModState.BADamageTrackers[squad2.GUID].BA_MountedLocations.Values.GetRandomElement();
+
                                 ModInit.modLog?.Info?.Write(
                                     $"[StrategicMovementSequence - CompleteOrders] Creating attack sequence on successful swarm attack targeting location {loc}.");
-                                
+
+                                if (squad2 is Mech unitMech && ModInit.modSettings.MeleeOnSwarmAttacks)
+                                {
+                                    if (!ModState.SwarmMeleeSequences.ContainsKey(squad2.GUID))
+                                    {
+                                        ModState.SwarmMeleeSequences.Add(squad2.GUID, loc);
+                                    }
+                                    var meleeState = CBTBehaviorsEnhanced.ModState.AddorUpdateMeleeState(squad2, targetActor.CurrentPosition, targetActor, true);
+                                    if (meleeState != null)
+                                    {
+                                        MeleeAttack highestDamageAttackForUI = meleeState.GetHighestDamageAttackForUI();
+                                        CBTBehaviorsEnhanced.ModState.AddOrUpdateSelectedAttack(squad2, highestDamageAttackForUI);
+                                    }
+                                    MessageCenterMessage meleeInvocationMessage = new MechMeleeInvocation(unitMech, targetActor, weps, targetActor.CurrentPosition);
+                                    squad2.Combat.MessageCenter.PublishInvocationExternal(meleeInvocationMessage);
+                                }
+                                else
+                                {
+                                    var attackStackSequence = new AttackStackSequence(squad2, targetActor, squad2.CurrentPosition,
+                                        squad2.CurrentRotation, weps, MeleeAttackType.NotSet, loc, -1);
+                                    squad2.Combat.MessageCenter.PublishMessage(new AddSequenceToStackMessage(attackStackSequence));
+
+                                    //                actor.StatCollection.Set<float>("AccuracyModifier", baselineAccuracyModifier);
+                                    //                ModInit.modLog?.Trace?.Write($"[AbstractActor.DoneWithActor] Actor {actor.DisplayName} resetting baselineAccuracyModifer to {actor.AccuracyModifier}");
+                                   
+                                }
                             }
 
                             //doattacksequencehere

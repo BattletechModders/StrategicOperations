@@ -9,6 +9,7 @@ namespace StrategicOperations.Framework
 {
     public static class ModState
     {
+        public static Dictionary<string, int> SwarmMeleeSequences = new Dictionary<string, int>();
         public static Dictionary<string, AI_CmdInvocation> AiCmds = new Dictionary<string, AI_CmdInvocation>();
 
         public static Dictionary<string, AI_DealWithBAInvocation> AiDealWithBattleArmorCmds = new Dictionary<string, AI_DealWithBAInvocation>();
@@ -186,6 +187,7 @@ namespace StrategicOperations.Framework
 
         public static void ResetAll()
         {
+            SwarmMeleeSequences = new Dictionary<string, int>();
             UsedOverlayColors = new List<Color>();
             UsedOverlayColorsByCarrier = new Dictionary<string, Color>();
             PendingPairBAUnit = null; 

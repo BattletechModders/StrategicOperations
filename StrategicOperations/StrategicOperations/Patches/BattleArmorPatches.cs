@@ -6,6 +6,7 @@ using BattleTech.Data;
 using BattleTech.Save;
 using BattleTech.UI;
 using BattleTech.UI.TMProWrapper;
+using CBTBehaviorsEnhanced.MeleeStates;
 using CustomActivatableEquipment;
 using CustomComponents;
 using CustomUnits;
@@ -13,6 +14,7 @@ using HBS.Extensions;
 using HBS.Math;
 using IRTweaks.Modules.Combat;
 using Localize;
+using Steamworks;
 using StrategicOperations.Framework;
 using SVGImporter;
 using TMPro;
@@ -729,7 +731,7 @@ namespace StrategicOperations.Patches
                 var target = actor.Combat.FindActorByGUID(ModState.PositionLockSwarm[actor.GUID]);
                 ModInit.modLog?.Info?.Write(
                     $"[CombatHUDButtonBase.OnClick] Actor {actor.DisplayName} has active swarm attack on {target.DisplayName}");
-
+                
                 var weps = actor.Weapons.Where(x => x.IsEnabled && x.HasAmmo).ToList();
 
                 //                var baselineAccuracyModifier = actor.StatCollection.GetValue<float>("AccuracyModifier");
@@ -737,14 +739,33 @@ namespace StrategicOperations.Patches
                 //                ModInit.modLog?.Trace?.Write($"[AbstractActor.DoneWithActor] Actor {actor.DisplayName} getting baselineAccuracyModifer set to {actor.AccuracyModifier}");
 
                 var loc = ModState.BADamageTrackers[actor.GUID].BA_MountedLocations.Values.GetRandomElement();
-                var attackStackSequence = new AttackStackSequence(actor, target, actor.CurrentPosition,
-                    actor.CurrentRotation, weps, MeleeAttackType.NotSet, loc, -1);
-                actor.Combat.MessageCenter.PublishMessage(new AddSequenceToStackMessage(attackStackSequence));
 
-//                actor.StatCollection.Set<float>("AccuracyModifier", baselineAccuracyModifier);
-//                ModInit.modLog?.Trace?.Write($"[AbstractActor.DoneWithActor] Actor {actor.DisplayName} resetting baselineAccuracyModifer to {actor.AccuracyModifier}");
-                __runOriginal = true;
-                return;
+                if (actor is Mech unitMech && ModInit.modSettings.MeleeOnSwarmAttacks)
+                {
+                    if (!ModState.SwarmMeleeSequences.ContainsKey(actor.GUID))
+                    {
+                        ModState.SwarmMeleeSequences.Add(actor.GUID, loc);
+                    }
+                    var meleeState = CBTBehaviorsEnhanced.ModState.AddorUpdateMeleeState(actor, target.CurrentPosition, target, true);
+                    if (meleeState != null)
+                    {
+                        MeleeAttack highestDamageAttackForUI = meleeState.GetHighestDamageAttackForUI();
+                        CBTBehaviorsEnhanced.ModState.AddOrUpdateSelectedAttack(actor, highestDamageAttackForUI);
+                    }
+                    MessageCenterMessage meleeInvocationMessage = new MechMeleeInvocation(unitMech, target, weps, target.CurrentPosition);
+                    actor.Combat.MessageCenter.PublishInvocationExternal(meleeInvocationMessage);
+                }
+                else
+                {
+                    var attackStackSequence = new AttackStackSequence(actor, target, actor.CurrentPosition,
+                        actor.CurrentRotation, weps, MeleeAttackType.NotSet, loc, -1);
+                    actor.Combat.MessageCenter.PublishMessage(new AddSequenceToStackMessage(attackStackSequence));
+
+                    //                actor.StatCollection.Set<float>("AccuracyModifier", baselineAccuracyModifier);
+                    //                ModInit.modLog?.Trace?.Write($"[AbstractActor.DoneWithActor] Actor {actor.DisplayName} resetting baselineAccuracyModifer to {actor.AccuracyModifier}");
+                    __runOriginal = true;
+                    return;
+                }
             }
         }
 
@@ -1994,6 +2015,36 @@ namespace StrategicOperations.Patches
                             __instance.headlightReps[i].SetActive(false);
                         }
                     }
+                }
+            }
+        }
+
+        [HarmonyPatch(typeof(MechMeleeSequence), "BuildWeaponDirectorSequence", new Type[] { })]
+        public static class MechMeleeSequence_BuildWeaponDirectorSequence
+        {
+            public static void Prefix(ref bool __runOriginal, MechMeleeSequence __instance)
+            {
+                if (!__runOriginal) return;
+                if (ModState.SwarmMeleeSequences.TryGetValue(__instance.OwningMech.GUID, out var loc))
+                {
+                    __instance.requestedWeapons.RemoveAll((Weapon x) => x.Type == WeaponType.Melee);
+                    if (__instance.requestedWeapons.Count > 0)
+                    {
+                        __instance.weaponSequence = new AttackStackSequence(__instance.OwningMech,
+                            __instance.MeleeTarget, __instance.moveSequence.FinalPos,
+                            Quaternion.LookRotation(__instance.moveSequence.FinalHeading), __instance.requestedWeapons,
+                            MeleeAttackType.NotSet, loc, 1);
+                        __instance.weaponSequence.willConsumeFiring = false;
+                        __instance.weaponSequence.hasOwningSequence = true;
+                        __instance.weaponSequence.directorSequences[0].isParentMelee = true;
+                        __instance.weaponSequence.RootSequenceGUID = __instance.RootSequenceGUID;
+                        if (__instance.cameraSequence != null)
+                        {
+                            __instance.weaponSequence.SetCamera(__instance.cameraSequence, __instance.MessageIndex);
+                        }
+                    }
+                    ModState.SwarmMeleeSequences.Remove(__instance.OwningMech.GUID);
+                    __runOriginal = false;
                 }
             }
         }

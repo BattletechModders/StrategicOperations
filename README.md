@@ -1,6 +1,8 @@
 # StrategicOperations
 
-**Depends On Abilifier v1.4.1.0 or higher!** 
+**Depends On Abilifier v1.4.1.0 or higher!,** 
+
+**Versions 3.1.2.4 and higher depend on CBTBehaviorsEnhanced  2.3.5 or higher**
 
 **Versions 3.1.0.0 and higher requires modtek v3 or higher**
 
@@ -518,7 +520,8 @@ settings in the mod.json:
 				"b": 255
 			}
 		],
-		"BAMountReminderText": "Shift-click unit in drop slot to set carrier"
+		"BAMountReminderText": "Shift-click unit in drop slot to set carrier",
+		"MeleeOnSwarmAttacks": true
 ```
 
 `enableLogging` - bool, enable logging
@@ -774,6 +777,8 @@ Using the following settings, ClanGhostBear and ClanWolf have baseline 30% chanc
 `BAMountPairColors` - list of color configs (same format as `MountIndicatorColor` setting) that defines possible overlay colors for pre-mission squad and carrier assignments.
 
 `BAMountReminderText` - controls reminder text for shift-click to assign squads to carriers, which is displayed below the mech widget in the lance config screen
+
+`MeleeOnSwarmAttacks` - if true, BA will initiate a melee weapon attack when swarming (and when attacking during an ongoing swarm).
 	
 ## Spawns
 	

@@ -1787,7 +1787,7 @@ namespace StrategicOperations.Patches
                             {
                                 pos = __instance.parentActor.CurrentPosition + Vector3.down * trackerInfo.Value.Offset +
                                       Vector3.up * mech.custGameRep.HeightController.CurrentHeight;
-                                targetActor.TeleportActorVisual(pos);
+                                targetActor.TeleportActorNoResetPathing(pos);
                                 if (targetActor is CustomMech customMech)
                                 {
                                     customMech.custGameRep.j_Root.localRotation = Quaternion.identity;
@@ -1800,7 +1800,7 @@ namespace StrategicOperations.Patches
                             else
                             {
                                 pos = __instance.parentActor.CurrentPosition + Vector3.down * trackerInfo.Value.Offset;
-                                targetActor.TeleportActorVisual(pos);
+                                targetActor.TeleportActorNoResetPathing(pos);
                                 if (targetActor is CustomMech customMech)
                                 {
                                     customMech.custGameRep.j_Root.localRotation = Quaternion.identity;
@@ -1832,11 +1832,11 @@ namespace StrategicOperations.Patches
                             {
                                 pos = __instance.parentActor.CurrentPosition +
                                       Vector3.up * mech.custGameRep.HeightController.CurrentHeight;
-                                targetActor.TeleportActorVisual(pos);
+                                targetActor.TeleportActorNoResetPathing(pos);
                             }
                             else
                             {
-                                targetActor.TeleportActorVisual(__instance.parentActor.CurrentPosition);
+                                targetActor.TeleportActorNoResetPathing(__instance.parentActor.CurrentPosition);
                             }
 
                             targetActor.MountedEvasion(__instance.parentActor);
@@ -1856,7 +1856,7 @@ namespace StrategicOperations.Patches
                         {
                             var targetActor = combat.FindActorByGUID(targetActorGUID.Key);
                             if (targetActor == null) continue;
-                            targetActor.TeleportActorVisual(__instance.parentActor.CurrentPosition);
+                            targetActor.TeleportActorNoResetPathing(__instance.parentActor.CurrentPosition);
                             targetActor.MountedEvasion(__instance.parentActor);
                             ModInit.modLog?.Debug?.Write(
                                 $"[CustomMechRepresentation_GameRepresentation_Update] PositionLockMount- Setting riding unit {targetActor.DisplayName} position to same as carrier unit {__instance.parentActor.DisplayName}");
@@ -1890,7 +1890,7 @@ namespace StrategicOperations.Patches
                                     {
                                         var pos = custMech.CurrentPosition +
                                                   Vector3.up * custMech.custGameRep.HeightController.CurrentHeight;
-                                        squad.TeleportActorVisual(pos);
+                                        squad.TeleportActorNoResetPathing(pos);
                                     }
                                 }
                             }
@@ -2030,7 +2030,7 @@ namespace StrategicOperations.Patches
                         {
                             pos = __instance.OwningMech.CurrentPosition + Vector3.down * trackerInfo.Value.Offset +
                                   Vector3.up * mech.custGameRep.HeightController.CurrentHeight;
-                            targetActor.TeleportActorVisual(pos);
+                            targetActor.TeleportActorNoResetPathing(pos);
                             if (targetActor is CustomMech customMech)
                             {
                                 customMech.custGameRep.j_Root.localRotation = Quaternion.identity;
@@ -2043,7 +2043,7 @@ namespace StrategicOperations.Patches
                         else
                         {
                             pos = __instance.OwningMech.CurrentPosition + Vector3.down * trackerInfo.Value.Offset;
-                            targetActor.TeleportActorVisual(pos);
+                            targetActor.TeleportActorNoResetPathing(pos);
                             if (targetActor is CustomMech customMech)
                             {
                                 customMech.custGameRep.j_Root.localRotation = Quaternion.identity;
@@ -2075,11 +2075,11 @@ namespace StrategicOperations.Patches
                         {
                             pos = __instance.OwningMech.CurrentPosition +
                                   Vector3.up * mech.custGameRep.HeightController.CurrentHeight;
-                            targetActor.TeleportActorVisual(pos);
+                            targetActor.TeleportActorNoResetPathing(pos);
                         }
                         else
                         {
-                            targetActor.TeleportActorVisual(__instance.OwningMech.CurrentPosition);
+                            targetActor.TeleportActorNoResetPathing(__instance.OwningMech.CurrentPosition);
                         }
 
                         targetActor.MountedEvasion(__instance.OwningMech);
@@ -2099,7 +2099,7 @@ namespace StrategicOperations.Patches
                     {
                         var targetActor = combat.FindActorByGUID(targetActorGUID.Key);
                         if (targetActor == null) continue;
-                        targetActor.TeleportActorVisual(__instance.OwningMech.CurrentPosition);
+                        targetActor.TeleportActorNoResetPathing(__instance.OwningMech.CurrentPosition);
                         targetActor.MountedEvasion(__instance.OwningMech);
                         ModInit.modLog?.Debug?.Write(
                             $"[MechDisplacementSequence_OnComplete] PositionLockMount- Setting riding unit {targetActor.DisplayName} position to same as carrier unit {__instance.OwningMech.DisplayName}");
@@ -2186,7 +2186,7 @@ namespace StrategicOperations.Patches
                         {
                             pos = __instance.owningActor.CurrentPosition + Vector3.down * trackerInfo.Value.Offset +
                                   Vector3.up * mech.custGameRep.HeightController.CurrentHeight;
-                            targetActor.TeleportActorVisual(pos);
+                            targetActor.TeleportActorNoResetPathing(pos);
                             if (targetActor is CustomMech customMech)
                             {
                                 customMech.custGameRep.j_Root.localRotation = Quaternion.identity;
@@ -2199,7 +2199,7 @@ namespace StrategicOperations.Patches
                         else
                         {
                             pos = __instance.owningActor.CurrentPosition + Vector3.down * trackerInfo.Value.Offset;
-                            targetActor.TeleportActorVisual(pos);
+                            targetActor.TeleportActorNoResetPathing(pos);
                             if (targetActor is CustomMech customMech)
                             {
                                 customMech.custGameRep.j_Root.localRotation = Quaternion.identity;
@@ -2231,11 +2231,11 @@ namespace StrategicOperations.Patches
                         {
                             pos = __instance.owningActor.CurrentPosition +
                                   Vector3.up * mech.custGameRep.HeightController.CurrentHeight;
-                            targetActor.TeleportActorVisual(pos);
+                            targetActor.TeleportActorNoResetPathing(pos);
                         }
                         else
                         {
-                            targetActor.TeleportActorVisual(__instance.owningActor.CurrentPosition);
+                            targetActor.TeleportActorNoResetPathing(__instance.owningActor.CurrentPosition);
                         }
 
                         targetActor.MountedEvasion(__instance.owningActor);
@@ -2255,13 +2255,25 @@ namespace StrategicOperations.Patches
                     {
                         var targetActor = combat.FindActorByGUID(targetActorGUID.Key);
                         if (targetActor == null) continue;
-                        targetActor.TeleportActorVisual(__instance.owningActor.CurrentPosition);
+                        targetActor.TeleportActorNoResetPathing(__instance.owningActor.CurrentPosition);
                         targetActor.MountedEvasion(__instance.owningActor);
                         ModInit.modLog?.Debug?.Write(
                             $"[OrderSequence_OnUpdate] PositionLockMount- Setting riding unit {targetActor.DisplayName} position to same as carrier unit {__instance.owningActor.DisplayName}");
 
                         ModState.CachedUnitCoordinates[__instance.owningActor.GUID] = __instance.owningActor.CurrentPosition;
                     }
+                }
+
+                if (__instance.owningActor.IsSwarmingUnit())
+                {
+                    var carrier = combat.FindActorByGUID(ModState.PositionLockSwarm[__instance.owningActor.GUID]);
+                    if (carrier == null) return;
+                    __instance.owningActor.TeleportActorNoResetPathing(carrier.CurrentPosition);
+                    __instance.owningActor.MountedEvasion(__instance.owningActor);
+                    ModInit.modLog?.Debug?.Write(
+                            $"[OrderSequence_OnUpdate] PositionLockMount- Setting riding unit {__instance.owningActor.DisplayName} position to same as carrier unit {carrier.DisplayName}");
+                    ModState.CachedUnitCoordinates[__instance.owningActor.GUID] = carrier.CurrentPosition;
+
                 }
             }
         }
@@ -3224,7 +3236,7 @@ namespace StrategicOperations.Patches
                                     {
                                         var pos = custMech.CurrentPosition +
                                                   Vector3.up * custMech.custGameRep.HeightController.CurrentHeight;
-                                        squad.TeleportActorVisual(pos);
+                                        squad.TeleportActorNoResetPathing(pos);
                                     }
                                 }
                             }

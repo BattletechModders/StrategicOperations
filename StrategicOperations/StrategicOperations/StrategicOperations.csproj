@@ -33,8 +33,8 @@
   <PropertyGroup>
     <!-- avoids IgnoresAccessChecksToAttribute warnings -->
     <PublicizerRuntimeStrategies>Unsafe</PublicizerRuntimeStrategies>
-    <AssemblyVersion>3.1.2.3</AssemblyVersion>
-    <FileVersion>3.1.2.3</FileVersion>
+    <AssemblyVersion>3.1.2.4</AssemblyVersion>
+    <FileVersion>3.1.2.4</FileVersion>
   </PropertyGroup>
   <ItemGroup>
     <Compile Remove="Framework\Logger.cs" />
@@ -55,11 +55,15 @@
     </PackageReference>
   </ItemGroup>
   <ItemGroup>
-  <Reference Include="IRBTModUtils">
+	<Reference Include="IRBTModUtils">
       <HintPath>$(StrategicOperationsModPath)\..\IRBTModUtils\IRBTModUtils.dll</HintPath>
       <Private>False</Private>
     </Reference>
-		<Reference Include="CustomComponents">
+	<Reference Include="CBTBehaviorsEnhanced">
+      <HintPath>$(StrategicOperationsModPath)\..\CBTBehaviorsEnhanced\CBTBehaviorsEnhanced.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+	<Reference Include="CustomComponents">
       <HintPath>$(StrategicOperationsModPath)\..\CustomComponents\CustomComponents.dll</HintPath>
       <Private>False</Private>
     </Reference>

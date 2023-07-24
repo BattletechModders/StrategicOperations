@@ -1661,7 +1661,7 @@ namespace StrategicOperations.Framework
             return newHeraldry;
         }
 
-        public static void TeleportActorVisual(this AbstractActor actor, Vector3 newPosition)
+        public static void TeleportActorNoResetPathing(this AbstractActor actor, Vector3 newPosition)
         {
             actor.CurrentPosition = newPosition;
             actor.GameRep.transform.position = newPosition;

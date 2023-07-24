@@ -3,6 +3,7 @@ using System.Linq;
 using System.Reflection;
 using Abilifier.Patches;
 using BattleTech;
+using CBTBehaviorsEnhanced.MeleeStates;
 using CustomUnits;
 using IRTweaks.Modules.Combat;
 using StrategicOperations.Framework;
@@ -22,18 +23,6 @@ namespace StrategicOperations.Patches
                 if (!__runOriginal) return;
                 if (unit.HasSwarmingUnits()){
 
-                    if (unit is FakeVehicleMech && !unit.HasMovedThisRound && order.OrderType == OrderType.Move || order.OrderType == OrderType.JumpMove || order.OrderType == OrderType.SprintMove)
-                    {
-                        var ability = unit.GetDeswarmerAbilityForAI(true);
-                        if (ability.IsAvailable && !ability.IsActive)
-                        {
-                            ability.Activate(unit, unit);
-                            ModInit.modLog?.Info?.Write($"{unit.DisplayName} {unit.GUID} is vehicle being swarmed. Found movement order, activating erratic maneuvers ability.");
-                            __runOriginal = true;
-                            return;
-                        }
-                    }
-
                     if (ModState.AiDealWithBattleArmorCmds.ContainsKey(unit.GUID))
                     {
                         ModState.AiDealWithBattleArmorCmds[unit.GUID].ability.Activate(unit, unit);
@@ -52,6 +41,18 @@ namespace StrategicOperations.Patches
                         ModState.AiDealWithBattleArmorCmds.Remove(unit.GUID);
                         __runOriginal = false;
                         return;
+                    }
+
+                    if (unit is FakeVehicleMech && !unit.HasMovedThisRound && order.OrderType == OrderType.Move || order.OrderType == OrderType.JumpMove || order.OrderType == OrderType.SprintMove)
+                    {
+                        var ability = unit.GetDeswarmerAbilityForAI(true);
+                        if (ability.IsAvailable && !ability.IsActive)
+                        {
+                            ability.Activate(unit, unit);
+                            ModInit.modLog?.Info?.Write($"{unit.DisplayName} {unit.GUID} is vehicle being swarmed. Found movement order, activating erratic maneuvers ability.");
+                            __runOriginal = true;
+                            return;
+                        }
                     }
                 }
 
@@ -96,7 +97,7 @@ namespace StrategicOperations.Patches
                     }
 
                     var weps = unit.Weapons.Where(x => x.IsEnabled && x.HasAmmo).ToList();
-                    if (weps.Count <= 0)
+                    if (weps.Count <= 0 && !ModInit.modSettings.MeleeOnSwarmAttacks)
                     {
                         //dismount, no more weapons...should probably loop back up to try and resupply??
                         unit.DismountBA(target, Vector3.zero, false);
@@ -107,11 +108,29 @@ namespace StrategicOperations.Patches
                     var loc = ModState.BADamageTrackers[unit.GUID].BA_MountedLocations.Values.GetRandomElement();
                     //var attackStackSequence = new AttackStackSequence(unit, target, unit.CurrentPosition, unit.CurrentRotation, weps, MeleeAttackType.NotSet, loc, -1);
                     //unit.Combat.MessageCenter.PublishMessage(new AddSequenceToStackMessage(attackStackSequence));
-                    var vent = unit.HasVentCoolantAbility && unit.CanVentCoolant;
-                    __result = new AttackInvocation(unit, target, weps, MeleeAttackType.NotSet, loc)
+                    
+                    if (unit is Mech unitMech && ModInit.modSettings.MeleeOnSwarmAttacks)
                     {
-                        ventHeatBeforeAttack = vent
-                    }; // making a regular attack invocation here, instead of stacksequence + reserve
+                        if (!ModState.SwarmMeleeSequences.ContainsKey(unit.GUID))
+                        {
+                            ModState.SwarmMeleeSequences.Add(unit.GUID, loc);
+                        }
+                        var meleeState = CBTBehaviorsEnhanced.ModState.AddorUpdateMeleeState(unit, target.CurrentPosition, target, true);
+                        if (meleeState != null)
+                        {
+                            MeleeAttack highestDamageAttackForUI = meleeState.GetHighestDamageAttackForUI();
+                            CBTBehaviorsEnhanced.ModState.AddOrUpdateSelectedAttack(unit, highestDamageAttackForUI);
+                        }
+                        __result = new MechMeleeInvocation(unitMech, target, weps, target.CurrentPosition);
+                    }
+                    else
+                    {
+                        var vent = unit.HasVentCoolantAbility && unit.CanVentCoolant;
+                        __result = new AttackInvocation(unit, target, weps, MeleeAttackType.NotSet, loc)
+                        {
+                            ventHeatBeforeAttack = vent
+                        }; // making a regular attack invocation here, instead of stacksequence + reserve
+                    }
 
                     //if (!unit.HasMovedThisRound)
                     //{
@@ -431,7 +450,7 @@ namespace StrategicOperations.Patches
                                 }
 
                                 var weps = __instance.unit.Weapons.Where(x => x.IsEnabled && x.HasAmmo).ToList();
-                                if (weps.Count <= 0)
+                                if (weps.Count <= 0 && !ModInit.modSettings.MeleeOnSwarmAttacks)
                                 {
                                     goto noswarm;
                                 }
@@ -479,6 +498,7 @@ namespace StrategicOperations.Patches
                     var deswarm = __instance.unit.GetDeswarmerAbilityForAI();
                     if (deswarm != null && deswarm?.Def?.Description?.Id != null)
                     {
+                        ModInit.modLog?.Trace?.Write($"[CanMoveAndShootWithoutOverheatingNode] unit {__instance.unit.DisplayName} is being swarmed, found deswarm ability {deswarm.Def.Description.Name}.");
                         if (ModState.AiDealWithBattleArmorCmds.ContainsKey(__instance.unit.GUID))
                         {
                             if (ModState.AiDealWithBattleArmorCmds[__instance.unit.GUID].active)

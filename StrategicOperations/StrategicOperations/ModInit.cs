@@ -183,5 +183,6 @@ namespace StrategicOperations
         //public List<string> BeaconExcludedContractIDs = new List<string>();
         public bool UsingMechAffinityForSwarmBreach = false;
         public bool ReworkedCarrierEvasion = true;
+        public bool MeleeOnSwarmAttacks = true;
     }
 }
