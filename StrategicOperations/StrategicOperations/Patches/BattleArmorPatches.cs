@@ -700,6 +700,7 @@ namespace StrategicOperations.Patches
                 var hud = __instance
                     .HUD; //IRBTModUtils.SharedState.CombatHUD;//Traverse.Create(__instance).Property("HUD").GetValue<CombatHUD>();
                 var actor = hud.SelectedActor;
+                if (actor == null) return;
                 if (ModInit.modSettings.EnableQuickReserve)
                 {
                     var hk = Input.GetKey(KeyCode.LeftShift) || Input.GetKey(KeyCode.RightShift);
@@ -731,7 +732,7 @@ namespace StrategicOperations.Patches
                 var target = actor.Combat.FindActorByGUID(ModState.PositionLockSwarm[actor.GUID]);
                 ModInit.modLog?.Info?.Write(
                     $"[CombatHUDButtonBase.OnClick] Actor {actor.DisplayName} has active swarm attack on {target.DisplayName}");
-                
+
                 var weps = actor.Weapons.Where(x => x.IsEnabled && x.HasAmmo).ToList();
 
                 //                var baselineAccuracyModifier = actor.StatCollection.GetValue<float>("AccuracyModifier");
@@ -746,13 +747,18 @@ namespace StrategicOperations.Patches
                     {
                         ModState.SwarmMeleeSequences.Add(actor.GUID, loc);
                     }
-                    var meleeState = CBTBehaviorsEnhanced.ModState.AddorUpdateMeleeState(actor, target.CurrentPosition, target, true);
+
+                    var meleeState =
+                        CBTBehaviorsEnhanced.ModState.AddorUpdateMeleeState(actor, target.CurrentPosition, target,
+                            true);
                     if (meleeState != null)
                     {
                         MeleeAttack highestDamageAttackForUI = meleeState.GetHighestDamageAttackForUI();
                         CBTBehaviorsEnhanced.ModState.AddOrUpdateSelectedAttack(actor, highestDamageAttackForUI);
                     }
-                    MessageCenterMessage meleeInvocationMessage = new MechMeleeInvocation(unitMech, target, weps, target.CurrentPosition);
+
+                    MessageCenterMessage meleeInvocationMessage =
+                        new MechMeleeInvocation(unitMech, target, weps, target.CurrentPosition);
                     actor.Combat.MessageCenter.PublishInvocationExternal(meleeInvocationMessage);
                 }
                 else
@@ -2145,12 +2151,12 @@ namespace StrategicOperations.Patches
             //private static bool Prepare() => false;
             public static void Postfix(SelectionStateTargetSingleCombatantBase __instance, ICombatant combatant)
             {
-
+                var cHUD = __instance
+                    .HUD; //IRBTModUtils.SharedState.CombatHUD;//Traverse.Create(__instance).Property("HUD").GetValue<CombatHUD>();
+                var creator = cHUD.SelectedActor;
+                if (creator == null) return;
                 if (__instance.FromButton.Ability.Def.Id == ModInit.modSettings.BattleArmorMountAndSwarmID)
                 {
-                    var cHUD = __instance
-                        .HUD; //IRBTModUtils.SharedState.CombatHUD;//Traverse.Create(__instance).Property("HUD").GetValue<CombatHUD>();
-                    var creator = cHUD.SelectedActor;
                     if (!creator.Pathing.ArePathGridsComplete)
                     {
                         cHUD.AttackModeSelector.FireButton.CurrentFireMode = CombatHUDFireButton.FireMode.None;
@@ -2173,9 +2179,6 @@ namespace StrategicOperations.Patches
                 }
                 else if (__instance.FromButton.Ability.Def.Id == ModInit.modSettings.AirliftAbilityID)
                 {
-                    var cHUD = __instance
-                        .HUD; //IRBTModUtils.SharedState.CombatHUD;//Traverse.Create(__instance).Property("HUD").GetValue<CombatHUD>();
-                    var creator = cHUD.SelectedActor;
                     if (!creator.Pathing.ArePathGridsComplete)
                     {
                         cHUD.AttackModeSelector.FireButton.CurrentFireMode = CombatHUDFireButton.FireMode.None;

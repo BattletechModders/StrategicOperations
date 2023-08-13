@@ -2712,6 +2712,7 @@ namespace StrategicOperations.Patches
                 {
                     var cHUD = __instance.HUD;//IRBTModUtils.SharedState.CombatHUD;//Traverse.Create(__instance).Property("HUD").GetValue<CombatHUD>();
                     var creator = cHUD.SelectedActor;
+                    if (creator == null) return;
                     ModState.CancelChanceForPlayerStrafe = 0f;
 
                     var opforUnit = creator.FindMeAnOpforUnit();

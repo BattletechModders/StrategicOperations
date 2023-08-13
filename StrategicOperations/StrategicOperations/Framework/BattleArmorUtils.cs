@@ -11,6 +11,7 @@ using CustomUnits;
 using HBS.Math;
 using UnityEngine;
 using UnityEngine.UI;
+using static MonoMod.Cil.RuntimeILReferenceBag.FastDelegateInvokers;
 using Random = UnityEngine.Random;
 using Text = Localize.Text;
 
@@ -99,13 +100,13 @@ namespace StrategicOperations.Framework
 
         public static bool CanRideInternalOnly(this AbstractActor actor)
         {
-            return actor.StatCollection.GetValue<bool>("BattleArmorInternalMountsOnly");
+            return actor != null && actor.StatCollection.GetValue<bool>("BattleArmorInternalMountsOnly");
         }
 
         public static bool CanSwarm(this AbstractActor actor)
         {
-            if (actor.GetStaticUnitTags().Contains(ModInit.modSettings.DisableAISwarmTag) && actor.team is AITeam) return false;
-            return actor.StatCollection.GetValue<bool>("CanSwarm");
+            if (actor != null && actor.GetStaticUnitTags().Contains(ModInit.modSettings.DisableAISwarmTag) && actor.team is AITeam) return false;
+            return actor != null && actor.StatCollection.GetValue<bool>("CanSwarm");
         }
 
         public static void CheckForBPodAndActivate(this AbstractActor actor)
@@ -576,37 +577,37 @@ namespace StrategicOperations.Framework
 
         public static bool GetHasBattleArmorMounts(this AbstractActor actor)
         {
-            return actor.StatCollection.GetValue<bool>("HasBattleArmorMounts");
+            return actor != null && actor.StatCollection.GetValue<bool>("HasBattleArmorMounts");
         }
 
         public static bool GetHasExternalMountedBattleArmor(this AbstractActor actor)
         {
-            return actor.StatCollection.GetValue<bool>("HasExternalMountedBattleArmor");
+            return actor != null && actor.StatCollection.GetValue<bool>("HasExternalMountedBattleArmor");
         }
 
         public static int GetInternalBACap(this AbstractActor actor)
         {
-            return actor.StatCollection.GetValue<int>("InternalBattleArmorSquadCap");
+            return actor == null ? 0 : actor.StatCollection.GetValue<int>("InternalBattleArmorSquadCap");
         }
 
         public static int GetInternalBASquads(this AbstractActor actor)
         {
-            return actor.StatCollection.GetValue<int>("InternalBattleArmorSquads");
+            return actor == null ? 0 : actor.StatCollection.GetValue<int>("InternalBattleArmorSquads");
         }
 
         public static bool GetIsBattleArmorHandsy(this AbstractActor actor)
         {
-            return actor.StatCollection.GetValue<bool>("IsBattleArmorHandsy");
+            return actor != null && actor.StatCollection.GetValue<bool>("IsBattleArmorHandsy");
         }
 
         public static bool GetIsUnMountable(this AbstractActor actor)
         {
-            return actor.StatCollection.GetValue<bool>("IsUnmountableBattleArmor");
+            return actor != null && actor.StatCollection.GetValue<bool>("IsUnmountableBattleArmor");
         }
 
         public static bool GetIsUnSwarmable(this AbstractActor actor)
         {
-            return (actor is TrooperSquad || actor.StatCollection.GetValue<bool>("IsUnswarmableBattleArmor"));
+            return actor != null && (actor is TrooperSquad || actor.StatCollection.GetValue<bool>("IsUnswarmableBattleArmor"));
         }
 
         public static LineOfFireLevel GetLineOfFireForGarrison(this ICombatant source, AbstractActor garrisonSquad,
@@ -814,22 +815,22 @@ namespace StrategicOperations.Framework
 
         public static bool HasFiringPorts(this AbstractActor actor)
         {
-            return actor.StatCollection.GetValue<bool>("HasFiringPorts");
+            return actor != null && actor.StatCollection.GetValue<bool>("HasFiringPorts");
         }
 
         public static bool HasGarrisonedUnits(this BattleTech.Building building)
         {
-            return ModState.PositionLockGarrison.Any(x=>x.Value.BuildingGUID == building.GUID);
+            return building != null && ModState.PositionLockGarrison.Any(x=>x.Value.BuildingGUID == building.GUID);
         }
 
         public static bool HasMountedUnits(this AbstractActor actor)
         {
-            return ModState.PositionLockMount.ContainsValue(actor.GUID);
+            return actor != null && ModState.PositionLockMount.ContainsValue(actor.GUID);
         }
 
         public static bool HasSwarmingUnits(this AbstractActor actor)
         {
-            return ModState.PositionLockSwarm.ContainsValue(actor.GUID);
+            return actor != null && ModState.PositionLockSwarm.ContainsValue(actor.GUID);
         }
 
         public static bool IsAvailableBAAbility(this Ability ability)
@@ -854,37 +855,37 @@ namespace StrategicOperations.Framework
 
         public static bool IsGarrisoned(this AbstractActor actor)
         {
-            return ModState.PositionLockGarrison.ContainsKey(actor.GUID);
+            return actor != null && ModState.PositionLockGarrison.ContainsKey(actor.GUID);
         }
 
         public static bool IsGarrisonedInTargetBuilding(this AbstractActor actor, BattleTech.Building building)
         {
-            return ModState.PositionLockGarrison.ContainsKey(actor.GUID) && ModState.PositionLockGarrison[actor.GUID].BuildingGUID == building.GUID;
+            return actor != null && building != null && ModState.PositionLockGarrison.ContainsKey(actor.GUID) && ModState.PositionLockGarrison[actor.GUID].BuildingGUID == building.GUID;
         }
 
         public static bool IsMountedInternal(this AbstractActor actor)
         {
-            return (ModState.BADamageTrackers.ContainsKey(actor.GUID) && ModState.BADamageTrackers[actor.GUID].IsSquadInternal);
+            return actor != null && ModState.BADamageTrackers.ContainsKey(actor.GUID) && ModState.BADamageTrackers[actor.GUID].IsSquadInternal;
         }
 
         public static bool IsMountedToUnit(this AbstractActor actor, AbstractActor target)
         {
-            return ModState.PositionLockMount.ContainsKey(actor.GUID) && ModState.PositionLockMount[actor.GUID] == target.GUID;
+            return actor != null && target != null && ModState.PositionLockMount.ContainsKey(actor.GUID) && ModState.PositionLockMount[actor.GUID] == target.GUID;
         }
 
         public static bool IsMountedUnit(this AbstractActor actor)
         {
-            return ModState.PositionLockMount.ContainsKey(actor.GUID);
+            return actor != null && ModState.PositionLockMount.ContainsKey(actor.GUID);
         }
 
         public static bool IsSwarmingTargetUnit(this AbstractActor actor, AbstractActor target)
         {
-            return ModState.PositionLockSwarm.ContainsKey(actor.GUID) && ModState.PositionLockSwarm[actor.GUID] == target.GUID;
+            return actor != null && target != null && ModState.PositionLockSwarm.ContainsKey(actor.GUID) && ModState.PositionLockSwarm[actor.GUID] == target.GUID;
         }
 
         public static bool IsSwarmingUnit(this AbstractActor actor)
         {
-            return ModState.PositionLockSwarm.ContainsKey(actor.GUID);
+            return actor != null && ModState.PositionLockSwarm.ContainsKey(actor.GUID);
         }
 
         public static void ModifyInternalBASquads(this AbstractActor actor, int value)
