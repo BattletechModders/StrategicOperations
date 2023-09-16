@@ -291,7 +291,7 @@ namespace StrategicOperations.Framework
                                         totalArmorPoints += ammobox.CurrentAmmo;
                                         mech.ModifyMechArmorValue(loc, ammobox.CurrentAmmo);
                                         ammobox.ZeroAmmoCount();
-                                        ModInit.modLog?.Trace?.Write($"[ProcessResupplyUnit - ARMOR] - Location {loc} replaced {missingArmor} points of armor, using {armorAmmoNeeded} armorAmmo. {ammobox.CurrentAmmo} remains.");
+                                        ModInit.modLog?.Trace?.Write($"[ProcessResupplyUnit - ARMOR] - Location {loc} replaced {ammobox.CurrentAmmo} points of armor, using {armorAmmoNeeded} armorAmmo. {ammobox.CurrentAmmo} remains.");
                                     }
                                 }
                             }
