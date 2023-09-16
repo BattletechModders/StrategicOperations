@@ -1110,8 +1110,8 @@ On the player-facing side, an additional bool stat, `IsBattleArmorHandsy` can be
 This was added to allow Battle Armor such as the Marauder BA that canonically have Magnetic Clamps to allow them to ride on <i>any</i> friendly unit.
 
 
-- Units with AbstractActor statistic `IsUnmountableBattleArmor` are <i>never</i> mountable, even by BA with `IsBattleArmorHandsy`.
-- Units with AbstractActor statistic `IsUnswarmableBattleArmor` are <i>never</i> swarmable (i.e, LAMs in LAM mode, or VTOLs)
+- Units with AbstractActor statistic `IsUnmountableBattleArmor` set true are <i>never</i> mountable, even by BA with `IsBattleArmorHandsy`.
+- Units with AbstractActor statistic `IsUnswarmableBattleArmor` set true are <i>never</i> swarmable (i.e, LAMs in LAM mode, or VTOLs)
 
 For example, this may be added to the `statusEffects` section of the omnimech gyro:
 
