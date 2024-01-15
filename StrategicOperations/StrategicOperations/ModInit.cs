@@ -184,5 +184,7 @@ namespace StrategicOperations
         public bool UsingMechAffinityForSwarmBreach = false;
         public bool ReworkedCarrierEvasion = true;
         public bool MeleeOnSwarmAttacks = true;
+
+        public string SimBattleArmorMountError = "The selected squad cannot be transported by this unit.";
     }
 }

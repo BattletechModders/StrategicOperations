@@ -785,7 +785,7 @@ namespace StrategicOperations.Framework
                         if (int.TryParse(effectData.statisticData?.modValue, out var space)) capacity += space;
                     }
 
-                    if (effectData?.statisticData?.statName == "HasBattleArmorMounts")
+                    if (effectData?.statisticData?.statName == "HasBattleArmorMounts" || (ModState.PendingPairBAUnit != null && ModState.PendingPairBAUnit.SelectedMech.MechDef.CanMountBADef()))
                     {
                         if (parsedExt) continue;
                         capacity += 1;
@@ -794,6 +794,53 @@ namespace StrategicOperations.Framework
                 }
             }
             return capacity;
+        }
+
+        public static bool CanMountBADef(this MechDef mechDef)
+        {
+            var canMount = false;
+            foreach (var item in mechDef.Inventory)
+            {
+                foreach (var effectData in item.Def.statusEffects) 
+                {
+                    if (effectData?.statisticData?.statName == "IsBattleArmorHandsy")
+                    {
+                        if (bool.TryParse(effectData.statisticData?.modValue, out canMount)) ;
+                    }
+                }
+            }
+            return canMount;
+        }
+
+        public static bool CanTransportSquad(MechDef transport, MechDef squad, out string error)
+        {
+            var capacity = 0;
+            var parsedExt = false;
+            foreach (var item in transport.Inventory)
+            {
+                foreach (var effectData in item.Def.statusEffects)
+                {
+                    if (effectData?.statisticData?.statName == "InternalBattleArmorSquadCap")
+                    {
+                        if (int.TryParse(effectData.statisticData?.modValue, out var space)) capacity += space;
+                    }
+
+                    if (effectData?.statisticData?.statName == "HasBattleArmorMounts" && squad.CanMountBADef())
+                    {
+                        if (parsedExt) continue;
+                        capacity += 1;
+                        parsedExt = true;
+                    }
+                }
+            }
+
+            if (capacity > 0)
+            {
+                error = "";
+                return true;
+            }
+            error = ModInit.modSettings.SimBattleArmorMountError;
+            return false;
         }
 
         public static void HandleBattleArmorFallingDamage(this TrooperSquad squad)
