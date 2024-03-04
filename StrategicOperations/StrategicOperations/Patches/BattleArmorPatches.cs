@@ -14,7 +14,7 @@ using HBS.Extensions;
 using HBS.Math;
 using IRTweaks.Modules.Combat;
 using Localize;
-using Steamworks;
+//using Steamworks;
 using StrategicOperations.Framework;
 using SVGImporter;
 using TMPro;
@@ -1254,6 +1254,7 @@ namespace StrategicOperations.Patches
 
             public static void Postfix(LanceConfiguratorPanel __instance, IMechLabDraggableItem item)
             {
+                if (ModInit.modSettings.UseOriginalBAMountInterface == false) { return; }
                 var proc = Input.GetKey(KeyCode.LeftShift) || Input.GetKey(KeyCode.RightShift);
 
                 if (proc)
@@ -1922,7 +1923,17 @@ namespace StrategicOperations.Patches
                 localizableTextComponent.alignment = TextAlignmentOptions.BottomLeft;
                 localizableTextComponent.enableAutoSizing = true;
                 localizableTextComponent.enableWordWrapping = false;
-                if (mechBay == null) newlocTxtGO.SetActive(__instance?.selectedMech?.GetCustomInfo()?.SquadInfo?.Troopers > 0);
+                if (mechBay == null)
+                {
+                    if (ModInit.modSettings.UseOriginalBAMountInterface)
+                    {
+                        newlocTxtGO.SetActive(__instance?.selectedMech?.GetCustomInfo()?.SquadInfo?.Troopers > 0);
+                    }
+                    else
+                    {
+                        newlocTxtGO.SetActive(false);
+                    }
+                }
                 //decoGO.SetActive(true);
                 
             }

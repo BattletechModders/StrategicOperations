@@ -4,6 +4,7 @@ using System.Linq;
 using BattleTech;
 using BattleTech.Data;
 using BattleTech.UI;
+using BestHTTP.SocketIO;
 using CustAmmoCategories;
 using CustomActivatableEquipment;
 using CustomComponents;
@@ -790,6 +791,37 @@ namespace StrategicOperations.Framework
                         if (parsedExt) continue;
                         capacity += 1;
                         parsedExt = true;
+                    }
+                }
+            }
+            return capacity;
+        }
+        public static bool HasBattleArmorMounts(this MechDef mechDef)
+        {
+            foreach (var item in mechDef.Inventory)
+            {
+                foreach (var effectData in item.Def.statusEffects)
+                {
+
+                    if (effectData?.statisticData?.statName == "HasBattleArmorMounts")
+                    {
+                        return true;
+                    }
+                }
+            }
+            return false;
+        }
+        public static int CargoCapacity(this MechDef mechDef)
+        {
+            var capacity = 0;
+            foreach (var item in mechDef.Inventory)
+            {
+                foreach (var effectData in item.Def.statusEffects)
+                {
+
+                    if (effectData?.statisticData?.statName == "InternalBattleArmorSquadCap")
+                    {
+                        if (int.TryParse(effectData.statisticData?.modValue, out var space)) capacity += space;
                     }
                 }
             }
