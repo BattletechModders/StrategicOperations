@@ -124,7 +124,6 @@ namespace StrategicOperations.Framework
     public class LanceLoadoutSlotCargo : MonoBehaviour
     {
         public LanceLoadoutSlotCargoConfig parent;
-        public bool isExternalMount = false;
     }
     public class LanceLoadoutSlotCargoConfig : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler
     {
@@ -165,7 +164,7 @@ namespace StrategicOperations.Framework
             {
                 if (t >= count) { cargoSlots[t].OnClearSlotsClicked(); }
                 cargoSlots[t].gameObject.SetActive(t < count);
-                cargoSlots[t].gameObject.GetComponent<LanceLoadoutSlotCargo>().isExternalMount = have_external && (t == (count - 1));
+                //cargoSlots[t].gameObject.GetComponent<LanceLoadoutSlotCargo>().isExternalMount = have_external && (t == (count - 1));
             }
         }
         public void OnPointerEnter(PointerEventData eventData)
@@ -330,7 +329,7 @@ namespace StrategicOperations.Framework
                     {
                         LanceLoadoutSlotCargo cargo = cargoInfo.cargoSlots[tt].gameObject.AddComponent<LanceLoadoutSlotCargo>();
                         cargo.parent = cargoInfo;
-                        cargo.isExternalMount = (tt == 0);
+                        //cargo.isExternalMount = (tt == 0);
                     }
                     //cargoInfo.cargoTargetHeights.Reverse();
                     //cargoInfo.cargoRectTransform = subsSlotsContainer.GetComponent<Image>().rectTransform;
@@ -364,15 +363,42 @@ namespace StrategicOperations.Framework
                 __result = false;
                 __runOriginal = false;
                 GenericPopupBuilder.Create("CAN'T COMPLY", "Only squads allowed").AddFader(new UIColorRef?(LazySingletonBehavior<UIManager>.Instance.UILookAndColorConstants.PopupBackfill), 0.0f, true).Render();
+                return;
             }
             else
             {
-                if (cargoSlot.isExternalMount && (lanceLoadoutMechItem.MechDef.CanMountBADef() == false))
+                LanceLoadoutSlotCargoConfig cargoInfo = cargoSlot.parent;
+                if (cargoInfo.parent.SelectedMech == null) {
+                    if (__instance.LC != null) { __instance.LC.ReturnItem(item); }
+                    __result = false;
+                    __runOriginal = false;
+                    return;
+                }
+                int mounted = 0;
+                foreach (var cargo in cargoInfo.cargoSlots) { if (cargo.SelectedMech != null) { ++mounted; } };
+                int mountCap = cargoInfo.parent.SelectedMech.MechDef.CargoCapacity();
+                if (mounted < mountCap) { return; }
+                if (mounted > mountCap) {
+                    if (__instance.LC != null) { __instance.LC.ReturnItem(item); }
+                    __result = false;
+                    __runOriginal = false;
+                    return;
+                }
+                if (cargoInfo.parent.SelectedMech.MechDef.HasBattleArmorMounts() == false)
+                {                    
+                    if (__instance.LC != null) { __instance.LC.ReturnItem(item); } 
+                    __result = false;
+                    __runOriginal = false;
+                    GenericPopupBuilder.Create("CAN'T COMPLY", $"Carrier does not have battle armor mounts").AddFader(new UIColorRef?(LazySingletonBehavior<UIManager>.Instance.UILookAndColorConstants.PopupBackfill), 0.0f, true).Render();
+                    return;
+                }
+                if (lanceLoadoutMechItem.MechDef.CanMountBADef() == false)
                 {
                     if (__instance.LC != null) { __instance.LC.ReturnItem(item); }
                     __result = false;
                     __runOriginal = false;
-                    GenericPopupBuilder.Create("CAN'T COMPLY", "This slot is only for BA with magnetic clamps").AddFader(new UIColorRef?(LazySingletonBehavior<UIManager>.Instance.UILookAndColorConstants.PopupBackfill), 0.0f, true).Render();
+                    GenericPopupBuilder.Create("CAN'T COMPLY", $"Battle armor does not have mount clamps").AddFader(new UIColorRef?(LazySingletonBehavior<UIManager>.Instance.UILookAndColorConstants.PopupBackfill), 0.0f, true).Render();
+                    return;
                 }
             }
         }
