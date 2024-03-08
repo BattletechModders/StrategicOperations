@@ -384,20 +384,30 @@ namespace StrategicOperations.Framework
                     __runOriginal = false;
                     return;
                 }
-                if (cargoInfo.parent.SelectedMech.MechDef.HasBattleArmorMounts() == false)
+                if (cargoInfo.parent.SelectedMech.MechDef.CanMountBAExternally() == false)
+                {
+                    if (__instance.LC != null) { __instance.LC.ReturnItem(item); }
+                    __result = false;
+                    __runOriginal = false;
+                    GenericPopupBuilder.Create("CAN'T COMPLY", $"This unit can be used as carrier").AddFader(new UIColorRef?(LazySingletonBehavior<UIManager>.Instance.UILookAndColorConstants.PopupBackfill), 0.0f, true).Render();
+                    return;
+                }
+                if (lanceLoadoutMechItem.MechDef.isBattleArmorInternalMountsOnly())
+                {
+                    if (__instance.LC != null) { __instance.LC.ReturnItem(item); }
+                    __result = false;
+                    __runOriginal = false;
+                    GenericPopupBuilder.Create("CAN'T COMPLY", $"This unit can be carried only internally").AddFader(new UIColorRef?(LazySingletonBehavior<UIManager>.Instance.UILookAndColorConstants.PopupBackfill), 0.0f, true).Render();
+                    return;
+                }
+                bool BA_CanMountBADef = lanceLoadoutMechItem.MechDef.CanMountBADef();
+                bool Carrier_HasBattleArmorMounts = cargoInfo.parent.SelectedMech.MechDef.HasBattleArmorMounts();
+                if ((Carrier_HasBattleArmorMounts == false)&&(BA_CanMountBADef == false))
                 {                    
                     if (__instance.LC != null) { __instance.LC.ReturnItem(item); } 
                     __result = false;
                     __runOriginal = false;
                     GenericPopupBuilder.Create("CAN'T COMPLY", $"Carrier does not have battle armor mounts").AddFader(new UIColorRef?(LazySingletonBehavior<UIManager>.Instance.UILookAndColorConstants.PopupBackfill), 0.0f, true).Render();
-                    return;
-                }
-                if (lanceLoadoutMechItem.MechDef.CanMountBADef() == false)
-                {
-                    if (__instance.LC != null) { __instance.LC.ReturnItem(item); }
-                    __result = false;
-                    __runOriginal = false;
-                    GenericPopupBuilder.Create("CAN'T COMPLY", $"Battle armor does not have mount clamps").AddFader(new UIColorRef?(LazySingletonBehavior<UIManager>.Instance.UILookAndColorConstants.PopupBackfill), 0.0f, true).Render();
                     return;
                 }
             }
@@ -413,8 +423,8 @@ namespace StrategicOperations.Framework
                 if (cargoInfo != null)
                 {
                     LanceLoadoutMechItem lanceLoadoutMechItem = item as LanceLoadoutMechItem;
-                    ModInit.modLog?.Info?.Write($"LanceLoadoutSlot.OnAddItem {lanceLoadoutMechItem.MechDef.ChassisID} cargoCap:{lanceLoadoutMechItem.MechDef.CargoCapacity()} HasBattleArmorMounts:{lanceLoadoutMechItem.MechDef.HasBattleArmorMounts()}");
-                    cargoInfo.SetSlotsCount(lanceLoadoutMechItem.MechDef.CargoCapacity(), lanceLoadoutMechItem.MechDef.HasBattleArmorMounts());
+                    ModInit.modLog?.Info?.Write($"LanceLoadoutSlot.OnAddItem {lanceLoadoutMechItem.MechDef.ChassisID} cargoCap:{lanceLoadoutMechItem.MechDef.CargoCapacity()} CanMountBAExternally:{lanceLoadoutMechItem.MechDef.CanMountBAExternally()}");
+                    cargoInfo.SetSlotsCount(lanceLoadoutMechItem.MechDef.CargoCapacity(), lanceLoadoutMechItem.MechDef.CanMountBAExternally());
                 }
             }
             catch (Exception e)
@@ -828,7 +838,7 @@ namespace StrategicOperations.Framework
                     LanceLoadoutSlotCargoPreview cargoInfo = slot.gameObject.GetComponent<LanceLoadoutSlotCargoPreview>();
                     if (cargoInfo == null) { continue; }
                     if (slot.SelectedMech == null) { continue; }
-                    cargoInfo.SetSlotsCount(slot.SelectedMech.MechDef.CargoCapacity(), slot.SelectedMech.MechDef.HasBattleArmorMounts());
+                    cargoInfo.SetSlotsCount(slot.SelectedMech.MechDef.CargoCapacity(), slot.SelectedMech.MechDef.CanMountBAExternally());
                     if (lanceUnit.Mounts == null) { continue; }
                     for (int tt = 0; tt < lanceUnit.Mounts.Length; ++tt)
                     {

@@ -827,6 +827,28 @@ namespace StrategicOperations.Framework
             }
             return capacity;
         }
+        public static bool CanMountBAExternally(this MechDef mechDef)
+        {
+            UnitCustomInfo info = mechDef.GetCustomInfo();
+            if (info == null) { return true; }
+            if (info.SquadInfo.Troopers > 1) { return false; }
+            return true;
+        }
+        public static bool isBattleArmorInternalMountsOnly(this MechDef mechDef)
+        {
+            var internalOnly = false;
+            foreach (var item in mechDef.Inventory)
+            {
+                foreach (var effectData in item.Def.statusEffects)
+                {
+                    if (effectData?.statisticData?.statName == "BattleArmorInternalMountsOnly")
+                    {
+                        if (bool.TryParse(effectData.statisticData?.modValue, out internalOnly)) ;
+                    }
+                }
+            }
+            return internalOnly;
+        }
 
         public static bool CanMountBADef(this MechDef mechDef)
         {
