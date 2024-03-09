@@ -796,8 +796,9 @@ namespace StrategicOperations.Framework
             }
             return capacity;
         }
-        public static bool HasBattleArmorMounts(this MechDef mechDef)
+        public static bool HasBattleArmorMounts(this MechDef mechDef, Contract contract)
         {
+            if(contract != null) if (ModInit.modSettings.forbidCarrierContractTypes.Contains(contract.ContractTypeValue.Name)) { return false; }
             foreach (var item in mechDef.Inventory)
             {
                 foreach (var effectData in item.Def.statusEffects)
@@ -811,8 +812,9 @@ namespace StrategicOperations.Framework
             }
             return false;
         }
-        public static int CargoCapacity(this MechDef mechDef)
+        public static int CargoCapacity(this MechDef mechDef, Contract contract)
         {
+            if (contract != null) if (ModInit.modSettings.forbidCarrierContractTypes.Contains(contract.ContractTypeValue.Name)) { return 0; }
             var capacity = 0;
             foreach (var item in mechDef.Inventory)
             {
@@ -827,15 +829,17 @@ namespace StrategicOperations.Framework
             }
             return capacity;
         }
-        public static bool CanMountBAExternally(this MechDef mechDef)
+        public static bool CanMountBAExternally(this MechDef mechDef, Contract contract)
         {
+            if (contract != null) if (ModInit.modSettings.forbidCarrierContractTypes.Contains(contract.ContractTypeValue.Name)) { return false; }
             UnitCustomInfo info = mechDef.GetCustomInfo();
             if (info == null) { return true; }
             if (info.SquadInfo.Troopers > 1) { return false; }
             return true;
         }
-        public static bool isBattleArmorInternalMountsOnly(this MechDef mechDef)
+        public static bool isBattleArmorInternalMountsOnly(this MechDef mechDef, Contract contract)
         {
+            if (contract != null) if (ModInit.modSettings.forbidCarrierContractTypes.Contains(contract.ContractTypeValue.Name)) { return true; }
             var internalOnly = false;
             foreach (var item in mechDef.Inventory)
             {

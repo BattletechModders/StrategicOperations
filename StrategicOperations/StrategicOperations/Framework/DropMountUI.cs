@@ -376,7 +376,7 @@ namespace StrategicOperations.Framework
                 }
                 int mounted = 0;
                 foreach (var cargo in cargoInfo.cargoSlots) { if (cargo.SelectedMech != null) { ++mounted; } };
-                int mountCap = cargoInfo.parent.SelectedMech.MechDef.CargoCapacity();
+                int mountCap = cargoInfo.parent.SelectedMech.MechDef.CargoCapacity(__instance.LC != null ? __instance.LC.activeContract: null);
                 if (mounted < mountCap) { return; }
                 if (mounted > mountCap) {
                     if (__instance.LC != null) { __instance.LC.ReturnItem(item); }
@@ -384,7 +384,7 @@ namespace StrategicOperations.Framework
                     __runOriginal = false;
                     return;
                 }
-                if (cargoInfo.parent.SelectedMech.MechDef.CanMountBAExternally() == false)
+                if (cargoInfo.parent.SelectedMech.MechDef.CanMountBAExternally(__instance.LC != null ? __instance.LC.activeContract : null) == false)
                 {
                     if (__instance.LC != null) { __instance.LC.ReturnItem(item); }
                     __result = false;
@@ -392,7 +392,7 @@ namespace StrategicOperations.Framework
                     GenericPopupBuilder.Create("CAN'T COMPLY", $"This unit can be used as carrier").AddFader(new UIColorRef?(LazySingletonBehavior<UIManager>.Instance.UILookAndColorConstants.PopupBackfill), 0.0f, true).Render();
                     return;
                 }
-                if (lanceLoadoutMechItem.MechDef.isBattleArmorInternalMountsOnly())
+                if (lanceLoadoutMechItem.MechDef.isBattleArmorInternalMountsOnly(__instance.LC != null ? __instance.LC.activeContract : null))
                 {
                     if (__instance.LC != null) { __instance.LC.ReturnItem(item); }
                     __result = false;
@@ -401,7 +401,7 @@ namespace StrategicOperations.Framework
                     return;
                 }
                 bool BA_CanMountBADef = lanceLoadoutMechItem.MechDef.CanMountBADef();
-                bool Carrier_HasBattleArmorMounts = cargoInfo.parent.SelectedMech.MechDef.HasBattleArmorMounts();
+                bool Carrier_HasBattleArmorMounts = cargoInfo.parent.SelectedMech.MechDef.HasBattleArmorMounts(__instance.LC != null ? __instance.LC.activeContract : null);
                 if ((Carrier_HasBattleArmorMounts == false)&&(BA_CanMountBADef == false))
                 {                    
                     if (__instance.LC != null) { __instance.LC.ReturnItem(item); } 
@@ -423,8 +423,8 @@ namespace StrategicOperations.Framework
                 if (cargoInfo != null)
                 {
                     LanceLoadoutMechItem lanceLoadoutMechItem = item as LanceLoadoutMechItem;
-                    ModInit.modLog?.Info?.Write($"LanceLoadoutSlot.OnAddItem {lanceLoadoutMechItem.MechDef.ChassisID} cargoCap:{lanceLoadoutMechItem.MechDef.CargoCapacity()} CanMountBAExternally:{lanceLoadoutMechItem.MechDef.CanMountBAExternally()}");
-                    cargoInfo.SetSlotsCount(lanceLoadoutMechItem.MechDef.CargoCapacity(), lanceLoadoutMechItem.MechDef.CanMountBAExternally());
+                    ModInit.modLog?.Info?.Write($"LanceLoadoutSlot.OnAddItem {lanceLoadoutMechItem.MechDef.ChassisID} cargoCap:{lanceLoadoutMechItem.MechDef.CargoCapacity(__instance.LC != null ? __instance.LC.activeContract : null)} CanMountBAExternally:{lanceLoadoutMechItem.MechDef.CanMountBAExternally(__instance.LC != null ? __instance.LC.activeContract : null)}");
+                    cargoInfo.SetSlotsCount(lanceLoadoutMechItem.MechDef.CargoCapacity(__instance.LC != null ? __instance.LC.activeContract : null), lanceLoadoutMechItem.MechDef.CanMountBAExternally(__instance.LC != null ? __instance.LC.activeContract : null));
                 }
             }
             catch (Exception e)
@@ -838,7 +838,7 @@ namespace StrategicOperations.Framework
                     LanceLoadoutSlotCargoPreview cargoInfo = slot.gameObject.GetComponent<LanceLoadoutSlotCargoPreview>();
                     if (cargoInfo == null) { continue; }
                     if (slot.SelectedMech == null) { continue; }
-                    cargoInfo.SetSlotsCount(slot.SelectedMech.MechDef.CargoCapacity(), slot.SelectedMech.MechDef.CanMountBAExternally());
+                    cargoInfo.SetSlotsCount(slot.SelectedMech.MechDef.CargoCapacity(__instance.LC != null ? __instance.LC.activeContract : null), slot.SelectedMech.MechDef.CanMountBAExternally(__instance.LC != null ? __instance.LC.activeContract : null));
                     if (lanceUnit.Mounts == null) { continue; }
                     for (int tt = 0; tt < lanceUnit.Mounts.Length; ++tt)
                     {
