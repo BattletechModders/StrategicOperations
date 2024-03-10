@@ -98,6 +98,10 @@ namespace StrategicOperations
         public List<BA_TargetEffect> BATargetEffects = new List<BA_TargetEffect>();
         public string BattleArmorDeSwarmRoll = "";
         public string BattleArmorDeSwarmSwat = "";
+        public bool InternalBAAffectsOverallDropTonnage = true;
+        public bool ExternalBAAffectsOverallDropTonnage = true;
+        public bool InternalBAAffectsSlotDropTonnage = false;
+        public bool ExternalBAAffectsSlotDropTonnage = true;
         public List<BA_FactionAssoc> BattleArmorFactionAssociations = new List<BA_FactionAssoc>();
         public string BattleArmorMountAndSwarmID = "";
 
