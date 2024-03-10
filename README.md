@@ -1167,6 +1167,8 @@ If you are using CustomUnits' manual drops feature, it doeesn't matter where you
 
 When a squad is selected in the lance config screen, a reminder text for shift-click to assign is displayed below the mech widget. The specific text can be set using the `BAMountReminderText` setting.
 
+As of 3.1.2.7, the above system has been replaced by a very nice UI created by kmission. The old pre-mission mounting system can still be used if desired, by setting `UseOriginalBAMountInterface` to true in settings (defaults to false and using the new UI).
+
 #### Firing Ports
 
 Carrier units with actor bool statistic `HasFiringPorts` set to true will allow mounted BA to fire at enemies within range <i>while they are mounted</i>. Units so mounted will have the same LOF level as the carrier unit.
