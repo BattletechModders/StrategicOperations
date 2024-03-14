@@ -424,6 +424,7 @@ namespace StrategicOperations.Framework
                 {
                     LanceLoadoutMechItem lanceLoadoutMechItem = item as LanceLoadoutMechItem;
                     ModInit.modLog?.Info?.Write($"LanceLoadoutSlot.OnAddItem {lanceLoadoutMechItem.MechDef.ChassisID} cargoCap:{lanceLoadoutMechItem.MechDef.CargoCapacity(__instance.LC != null ? __instance.LC.activeContract : null)} CanMountBAExternally:{lanceLoadoutMechItem.MechDef.CanMountBAExternally(__instance.LC != null ? __instance.LC.activeContract : null)}");
+                    cargoInfo.ClearCargo();
                     cargoInfo.SetSlotsCount(lanceLoadoutMechItem.MechDef.CargoCapacity(__instance.LC != null ? __instance.LC.activeContract : null), lanceLoadoutMechItem.MechDef.CanMountBAExternally(__instance.LC != null ? __instance.LC.activeContract : null));
                 }
             }
@@ -435,6 +436,36 @@ namespace StrategicOperations.Framework
             }
         }
     }
+
+    [HarmonyPatch(typeof(LanceLoadoutSlot))]
+    [HarmonyPatch("SetLockedData")]
+    [HarmonyPatch(MethodType.Normal)]
+    [HarmonyPatch(new Type[] { typeof(IMechLabDraggableItem), typeof(IMechLabDraggableItem), typeof(bool) })]
+    public static class LanceLoadoutSlot_SetLockedData
+    {
+        public static void Postfix(LanceLoadoutSlot __instance, IMechLabDraggableItem forcedMech, IMechLabDraggableItem forcedPilot, bool shouldBeLocked)
+        {
+            try
+            {
+                LanceLoadoutSlotCargoConfig cargoInfo = __instance.gameObject.GetComponent<LanceLoadoutSlotCargoConfig>();
+                if (cargoInfo != null)
+                {
+                    if (__instance.isMechLocked)
+                    {
+                        cargoInfo.ClearCargo();
+                        cargoInfo.SetSlotsCount(0, false);
+                    }
+                }
+            }
+            catch (Exception e)
+            {
+                ModInit.modLog?.Error?.Write(e.ToString());
+                UIManager.logger.LogException(e);
+                return;
+            }
+        }
+    }
+
     [HarmonyPatch(typeof(LanceLoadoutSlot))]
     [HarmonyPatch("OnRemoveItem")]
     [HarmonyPatch(MethodType.Normal)]
