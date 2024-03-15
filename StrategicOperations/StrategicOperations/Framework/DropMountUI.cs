@@ -376,7 +376,7 @@ namespace StrategicOperations.Framework
                 }
                 int mounted = 0;
                 foreach (var cargo in cargoInfo.cargoSlots) { if (cargo.SelectedMech != null) { ++mounted; } };
-                int mountCap = cargoInfo.parent.SelectedMech.MechDef.CargoCapacity();
+                int mountCap = cargoInfo.parent.SelectedMech.MechDef.CargoCapacity(__instance.LC != null ? __instance.LC.activeContract: null);
                 if (mounted < mountCap) { return; }
                 if (mounted > mountCap) {
                     if (__instance.LC != null) { __instance.LC.ReturnItem(item); }
@@ -384,7 +384,7 @@ namespace StrategicOperations.Framework
                     __runOriginal = false;
                     return;
                 }
-                if (cargoInfo.parent.SelectedMech.MechDef.CanMountBAExternally() == false)
+                if (cargoInfo.parent.SelectedMech.MechDef.CanMountBAExternally(__instance.LC != null ? __instance.LC.activeContract : null) == false)
                 {
                     if (__instance.LC != null) { __instance.LC.ReturnItem(item); }
                     __result = false;
@@ -392,7 +392,7 @@ namespace StrategicOperations.Framework
                     GenericPopupBuilder.Create("CAN'T COMPLY", $"This unit can be used as carrier").AddFader(new UIColorRef?(LazySingletonBehavior<UIManager>.Instance.UILookAndColorConstants.PopupBackfill), 0.0f, true).Render();
                     return;
                 }
-                if (lanceLoadoutMechItem.MechDef.isBattleArmorInternalMountsOnly())
+                if (lanceLoadoutMechItem.MechDef.isBattleArmorInternalMountsOnly(__instance.LC != null ? __instance.LC.activeContract : null))
                 {
                     if (__instance.LC != null) { __instance.LC.ReturnItem(item); }
                     __result = false;
@@ -401,7 +401,7 @@ namespace StrategicOperations.Framework
                     return;
                 }
                 bool BA_CanMountBADef = lanceLoadoutMechItem.MechDef.CanMountBADef();
-                bool Carrier_HasBattleArmorMounts = cargoInfo.parent.SelectedMech.MechDef.HasBattleArmorMounts();
+                bool Carrier_HasBattleArmorMounts = cargoInfo.parent.SelectedMech.MechDef.HasBattleArmorMounts(__instance.LC != null ? __instance.LC.activeContract : null);
                 if ((Carrier_HasBattleArmorMounts == false)&&(BA_CanMountBADef == false))
                 {                    
                     if (__instance.LC != null) { __instance.LC.ReturnItem(item); } 
@@ -423,8 +423,9 @@ namespace StrategicOperations.Framework
                 if (cargoInfo != null)
                 {
                     LanceLoadoutMechItem lanceLoadoutMechItem = item as LanceLoadoutMechItem;
-                    ModInit.modLog?.Info?.Write($"LanceLoadoutSlot.OnAddItem {lanceLoadoutMechItem.MechDef.ChassisID} cargoCap:{lanceLoadoutMechItem.MechDef.CargoCapacity()} CanMountBAExternally:{lanceLoadoutMechItem.MechDef.CanMountBAExternally()}");
-                    cargoInfo.SetSlotsCount(lanceLoadoutMechItem.MechDef.CargoCapacity(), lanceLoadoutMechItem.MechDef.CanMountBAExternally());
+                    ModInit.modLog?.Info?.Write($"LanceLoadoutSlot.OnAddItem {lanceLoadoutMechItem.MechDef.ChassisID} cargoCap:{lanceLoadoutMechItem.MechDef.CargoCapacity(__instance.LC != null ? __instance.LC.activeContract : null)} CanMountBAExternally:{lanceLoadoutMechItem.MechDef.CanMountBAExternally(__instance.LC != null ? __instance.LC.activeContract : null)}");
+                    cargoInfo.ClearCargo();
+                    cargoInfo.SetSlotsCount(lanceLoadoutMechItem.MechDef.CargoCapacity(__instance.LC != null ? __instance.LC.activeContract : null), lanceLoadoutMechItem.MechDef.CanMountBAExternally(__instance.LC != null ? __instance.LC.activeContract : null));
                 }
             }
             catch (Exception e)
@@ -435,6 +436,36 @@ namespace StrategicOperations.Framework
             }
         }
     }
+
+    [HarmonyPatch(typeof(LanceLoadoutSlot))]
+    [HarmonyPatch("SetLockedData")]
+    [HarmonyPatch(MethodType.Normal)]
+    [HarmonyPatch(new Type[] { typeof(IMechLabDraggableItem), typeof(IMechLabDraggableItem), typeof(bool) })]
+    public static class LanceLoadoutSlot_SetLockedData
+    {
+        public static void Postfix(LanceLoadoutSlot __instance, IMechLabDraggableItem forcedMech, IMechLabDraggableItem forcedPilot, bool shouldBeLocked)
+        {
+            try
+            {
+                LanceLoadoutSlotCargoConfig cargoInfo = __instance.gameObject.GetComponent<LanceLoadoutSlotCargoConfig>();
+                if (cargoInfo != null)
+                {
+                    if (__instance.isMechLocked)
+                    {
+                        cargoInfo.ClearCargo();
+                        cargoInfo.SetSlotsCount(0, false);
+                    }
+                }
+            }
+            catch (Exception e)
+            {
+                ModInit.modLog?.Error?.Write(e.ToString());
+                UIManager.logger.LogException(e);
+                return;
+            }
+        }
+    }
+
     [HarmonyPatch(typeof(LanceLoadoutSlot))]
     [HarmonyPatch("OnRemoveItem")]
     [HarmonyPatch(MethodType.Normal)]
@@ -555,7 +586,61 @@ namespace StrategicOperations.Framework
             }
         }
     }
-
+    [HarmonyPatch(typeof(LanceHeaderWidget))]
+    [HarmonyPatch("RefreshLanceInfo")]
+    [HarmonyPatch(MethodType.Normal)]
+    [HarmonyPatch(new Type[] { typeof(bool), typeof(Localize.Text), typeof(List<MechDef>) })]
+    public static class LanceHeaderWidget_RefreshLanceInfo
+    {
+        public static void Prefix(LanceHeaderWidget __instance, bool lanceValid, Localize.Text errorText, ref List<MechDef> mechs)
+        {
+            try
+            {
+                if (ModInit.modSettings.UseOriginalBAMountInterface) { return; }
+                LanceConfiguratorPanel panel = __instance.gameObject.GetComponentInParent<LanceConfiguratorPanel>();
+                if (panel == null) {
+                    ModInit.modLog?.Info?.Write("LanceHeaderWidget.RefreshLanceInfo does not have LanceConfiguratorPanel parent");
+                    return; 
+                }
+                ModInit.modLog?.Info?.Write("LanceHeaderWidget.RefreshLanceInfo");
+                for (int index = 0; index < panel.loadoutSlots.Length; ++index)
+                {
+                    LanceLoadoutSlot loadoutSlot = panel.loadoutSlots[index];
+                    if (loadoutSlot.SelectedMech == null) { continue; }
+                    LanceLoadoutSlotCargoConfig cargoInfo = loadoutSlot.gameObject.GetComponent<LanceLoadoutSlotCargoConfig>();
+                    if (cargoInfo == null) { continue; }
+                    int mountCounter = 0;
+                    int cargoSpace = loadoutSlot.SelectedMech.MechDef.CargoCapacity(__instance.activeContract);
+                    for (int t = 0; t < cargoInfo.cargoSlots.Count; ++t)
+                    {
+                        var cargoSlot = cargoInfo.cargoSlots[t];
+                        if (cargoSlot.gameObject.activeSelf == false) { continue; }
+                        if (cargoSlot.SelectedMech != null)
+                        {
+                            ++mountCounter;
+                            if (mountCounter > cargoSpace)
+                            {
+                                if (ModInit.modSettings.ExternalBAAffectsOverallDropTonnage == false) { continue; }
+                                ModInit.modLog?.Error?.Write($" external:{cargoSlot.SelectedMech.MechDef.ChassisID}");
+                            }
+                            else
+                            {
+                                if (ModInit.modSettings.InternalBAAffectsOverallDropTonnage == false) { continue; }
+                                ModInit.modLog?.Error?.Write($" internal:{cargoSlot.SelectedMech.MechDef.ChassisID}");
+                            }
+                            mechs.Add(cargoSlot.SelectedMech.MechDef);
+                        }
+                    }
+                }
+            }
+            catch (Exception e)
+            {
+                ModInit.modLog?.Error?.Write(e.ToString());
+                UIManager.logger.LogException(e);
+                return;
+            }
+        }
+    }
     [HarmonyPatch(typeof(LanceConfiguratorPanel))]
     [HarmonyPatch("ValidateLanceTonnage")]
     [HarmonyPatch(MethodType.Normal)]
@@ -579,26 +664,64 @@ namespace StrategicOperations.Framework
                 if (ModInit.modSettings.UseOriginalBAMountInterface) { return; }
                 if (__result == false) { return; }
                 List<MechDef> mechs = new List<MechDef>();
+                ModInit.modLog?.Error?.Write("LanceConfiguratorPanel.ValidateLanceTonnage");
                 for (int index = 0; index < __instance.loadoutSlots.Length; ++index)
                 {
                     LanceLoadoutSlot loadoutSlot = __instance.loadoutSlots[index];
                     if (loadoutSlot.SelectedMech == null) { continue; }
                     mechs.Add(loadoutSlot.SelectedMech.MechDef);
-                    int cargoSlots = loadoutSlot.SelectedMech.MechDef.GetTotalBASpaceMechDef();
-                    if (cargoSlots == 0) { continue; }
+                    //int cargoSlots = loadoutSlot.SelectedMech.MechDef.GetTotalBASpaceMechDef();
+                    //if (cargoSlots == 0) { continue; }
                     LanceLoadoutSlotCargoConfig cargoInfo = loadoutSlot.gameObject.GetComponent<LanceLoadoutSlotCargoConfig>();
                     if (cargoInfo == null) { continue; }
                     float slotTonnage = loadoutSlot.SelectedMech.MechDef.Chassis.Tonnage;
-                    for (int t = 0; t < cargoSlots; ++t)
+                    int mountCounter = 0;
+                    int cargoSpace = loadoutSlot.SelectedMech.MechDef.CargoCapacity(__instance.activeContract);
+                    ModInit.modLog?.Error?.Write($" {loadoutSlot.SelectedMech.MechDef.ChassisID} curSlotTonnage:{slotTonnage}");
+                    for (int t = 0; t < cargoInfo.cargoSlots.Count; ++t)
                     {
                         var cargoSlot = cargoInfo.cargoSlots[t];
+                        if (cargoSlot.gameObject.activeSelf == false) { continue; }
                         if (cargoSlot.SelectedMech != null)
                         {
+                            ++mountCounter;
+                            if (mountCounter > cargoSpace) {
+                                if (ModInit.modSettings.ExternalBAAffectsSlotDropTonnage) {
+                                    slotTonnage += cargoSlot.SelectedMech.MechDef.Chassis.Tonnage;
+                                    ModInit.modLog?.Error?.Write($"  external:{cargoSlot.SelectedMech.MechDef.ChassisID} curSlotTonnage:{slotTonnage}");
+                                }
+                                if (ModInit.modSettings.ExternalBAAffectsOverallDropTonnage == false) { continue; }
+                            }
+                            else
+                            {
+                                if (ModInit.modSettings.InternalBAAffectsSlotDropTonnage)
+                                {
+                                    slotTonnage += cargoSlot.SelectedMech.MechDef.Chassis.Tonnage;
+                                    ModInit.modLog?.Error?.Write($"  internal:{cargoSlot.SelectedMech.MechDef.ChassisID} curSlotTonnage:{slotTonnage}");
+                                }
+                                if (ModInit.modSettings.InternalBAAffectsOverallDropTonnage == false) { continue; }
+                            }
                             __instance.currentLanceValue += cargoSlot.SelectedMech.MechDef.Description.Cost;
-                            mechs.Add(cargoSlot.SelectedMech.MechDef);
-                            slotTonnage += cargoSlot.SelectedMech.MechDef.Chassis.Tonnage;
+                            mechs.Add(cargoSlot.SelectedMech.MechDef);                            
                         }
                     }
+                    if(TonnageWithinRange(slotTonnage, loadoutSlot.minTonnage, loadoutSlot.maxTonnage) == false)
+                    {
+                        __result = false;
+                        if (__instance.slotMinTonnages[index] >= 0.0f && __instance.slotMaxTonnages[index] >= 0.0f)
+                            __instance.lanceErrorText.Append("Lance slot {0} requires a 'Mech between {1} and {2} Tons\n", index, __instance.slotMinTonnages[index], __instance.slotMaxTonnages[index]);
+                        else if (__instance.slotMinTonnages[index] >= 0.0f)
+                            __instance.lanceErrorText.Append("Lance slot {0} requires a 'Mech over {1} Tons\n", index, __instance.slotMinTonnages[index]);
+                        else if (__instance.slotMaxTonnages[index] >= 0.0f)
+                            __instance.lanceErrorText.Append("Lance slot {0} requires a 'Mech under {1} Tons\n", index, __instance.slotMaxTonnages[index]);
+                    }
+                }
+                float lanceWeight = 0f;
+                ModInit.modLog?.Error?.Write("overall");
+                foreach (var mech in mechs)
+                {
+                    lanceWeight += mech.Chassis.Tonnage;
+                    ModInit.modLog?.Error?.Write($" {mech.ChassisID}:{mech.Chassis.Tonnage}:{lanceWeight}");
                 }
                 bool lanceOkTonnage = MechValidationRules.LanceTonnageWithinRange(mechs, __instance.lanceMinTonnage, __instance.lanceMaxTonnage);
                 if (lanceOkTonnage == false)
@@ -611,6 +734,7 @@ namespace StrategicOperations.Framework
                     else if (__instance.lanceMaxTonnage >= 0.0)
                         __instance.lanceErrorText.Append("Total Lance tonnage must be less than {0} Tons\n", __instance.lanceMaxTonnage);
                 }
+                ModInit.modLog?.Error?.Write($"cur:{lanceWeight} min:{__instance.lanceMinTonnage} max:{__instance.lanceMaxTonnage} ok:{lanceOkTonnage} result:{__result}");
             }
             catch (Exception e)
             {
@@ -838,7 +962,7 @@ namespace StrategicOperations.Framework
                     LanceLoadoutSlotCargoPreview cargoInfo = slot.gameObject.GetComponent<LanceLoadoutSlotCargoPreview>();
                     if (cargoInfo == null) { continue; }
                     if (slot.SelectedMech == null) { continue; }
-                    cargoInfo.SetSlotsCount(slot.SelectedMech.MechDef.CargoCapacity(), slot.SelectedMech.MechDef.CanMountBAExternally());
+                    cargoInfo.SetSlotsCount(slot.SelectedMech.MechDef.CargoCapacity(__instance.LC != null ? __instance.LC.activeContract : null), slot.SelectedMech.MechDef.CanMountBAExternally(__instance.LC != null ? __instance.LC.activeContract : null));
                     if (lanceUnit.Mounts == null) { continue; }
                     for (int tt = 0; tt < lanceUnit.Mounts.Length; ++tt)
                     {

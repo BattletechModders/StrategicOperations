@@ -94,9 +94,14 @@ namespace StrategicOperations
         public List<ColorSetting> BAMountPairColors = new List<ColorSetting>();
         public string BAMountReminderText = "Shift-click unit in drop slot to set carrier";
         public bool UseOriginalBAMountInterface = false;
+        public HashSet<string> forbidCarrierContractTypes = new HashSet<string>() { "SoloDuel", "DuoDuel" };
         public List<BA_TargetEffect> BATargetEffects = new List<BA_TargetEffect>();
         public string BattleArmorDeSwarmRoll = "";
         public string BattleArmorDeSwarmSwat = "";
+        public bool InternalBAAffectsOverallDropTonnage = true;
+        public bool ExternalBAAffectsOverallDropTonnage = true;
+        public bool InternalBAAffectsSlotDropTonnage = false;
+        public bool ExternalBAAffectsSlotDropTonnage = true;
         public List<BA_FactionAssoc> BattleArmorFactionAssociations = new List<BA_FactionAssoc>();
         public string BattleArmorMountAndSwarmID = "";
 
