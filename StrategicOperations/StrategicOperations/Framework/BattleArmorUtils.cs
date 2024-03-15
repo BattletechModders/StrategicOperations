@@ -845,10 +845,6 @@ namespace StrategicOperations.Framework
             {
                 foreach (var effectData in item.Def.statusEffects)
                 {
-                    if (effectData?.statisticData?.statName == "HasBattleArmorMounts")
-                    {
-                        return false;
-                    }
                     if (effectData?.statisticData?.statName == "BattleArmorInternalMountsOnly")
                     {
                         if (bool.TryParse(effectData.statisticData?.modValue, out internalOnly)) ;

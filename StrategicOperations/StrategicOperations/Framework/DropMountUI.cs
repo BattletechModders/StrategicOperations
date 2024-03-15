@@ -392,7 +392,9 @@ namespace StrategicOperations.Framework
                     GenericPopupBuilder.Create("CAN'T COMPLY", $"This unit can be used as carrier").AddFader(new UIColorRef?(LazySingletonBehavior<UIManager>.Instance.UILookAndColorConstants.PopupBackfill), 0.0f, true).Render();
                     return;
                 }
-                if (lanceLoadoutMechItem.MechDef.isBattleArmorInternalMountsOnly(__instance.LC != null ? __instance.LC.activeContract : null))
+                bool BA_CanMountBADef = lanceLoadoutMechItem.MechDef.CanMountBADef();
+                if ((BA_CanMountBADef == false) &&
+                    lanceLoadoutMechItem.MechDef.isBattleArmorInternalMountsOnly(__instance.LC != null ? __instance.LC.activeContract : null))
                 {
                     if (__instance.LC != null) { __instance.LC.ReturnItem(item); }
                     __result = false;
@@ -400,7 +402,6 @@ namespace StrategicOperations.Framework
                     GenericPopupBuilder.Create("CAN'T COMPLY", $"This unit can be carried only internally").AddFader(new UIColorRef?(LazySingletonBehavior<UIManager>.Instance.UILookAndColorConstants.PopupBackfill), 0.0f, true).Render();
                     return;
                 }
-                bool BA_CanMountBADef = lanceLoadoutMechItem.MechDef.CanMountBADef();
                 bool Carrier_HasBattleArmorMounts = cargoInfo.parent.SelectedMech.MechDef.HasBattleArmorMounts(__instance.LC != null ? __instance.LC.activeContract : null);
                 if ((Carrier_HasBattleArmorMounts == false)&&(BA_CanMountBADef == false))
                 {                    
