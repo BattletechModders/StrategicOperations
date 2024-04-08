@@ -577,7 +577,7 @@ namespace StrategicOperations.Framework
                     __instance.lanceErrorText.Append("Lance slots require both a 'Unit and Pilot\n");
                     __result = false;
                 }
-                __instance.headerWidget.RefreshLanceInfo(__instance.lanceValid, __instance.lanceErrorText, mechs);
+                //__instance.headerWidget.RefreshLanceInfo(__instance.lanceValid, __instance.lanceErrorText, mechs);
             }
             catch (Exception e)
             {
@@ -632,6 +632,12 @@ namespace StrategicOperations.Framework
                             mechs.Add(cargoSlot.SelectedMech.MechDef);
                         }
                     }
+                }
+                float tonnage = 0f;
+                foreach(var mech in mechs)
+                {
+                    tonnage += mech.Chassis.Tonnage;
+                    ModInit.modLog?.Info?.Write($" {mech.ChassisID} {mech.Chassis.Tonnage} all:{tonnage}");
                 }
             }
             catch (Exception e)

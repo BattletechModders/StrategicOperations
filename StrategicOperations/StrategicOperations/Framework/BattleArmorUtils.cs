@@ -275,7 +275,7 @@ namespace StrategicOperations.Framework
                 ModState.PositionLockMount.Remove(actor.GUID);
                 ModState.PositionLockSwarm.Remove(actor.GUID);
                 ModState.CachedUnitCoordinates.Remove(carrier.GUID);
-
+                squad.SetCarrier(null, false);
                 if (unShrinkRep)
                 {
                     actor.GameRep.transform.localScale = new Vector3(1f, 1f, 1f);
@@ -1086,13 +1086,16 @@ namespace StrategicOperations.Framework
                         }
                     }
 
+                    if (battleArmor is TrooperSquad squad) { squad.SetCarrier(carrier, !tracker.IsSquadInternal); }
                     if (tracker.IsSquadInternal) return;
                     carrier.SetHasExternalMountedBattleArmor(true);
                 }
                 else
                 {
+                    if (battleArmor is TrooperSquad squad) { squad.SetCarrier(carrier, true); }
                     ModState.PositionLockSwarm.Add(battleArmor.GUID, carrier.GUID);
                 }
+
 
                 foreach (ChassisLocations battleArmorChassisLoc in Enum.GetValues(typeof(ChassisLocations)))
                 {
