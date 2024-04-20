@@ -869,6 +869,20 @@ namespace StrategicOperations.Framework
             }
             return canMount;
         }
+        public static bool HaveMountAbility(this MechDef mechDef)
+        {
+            foreach (var item in mechDef.Inventory)
+            {
+                foreach (var effectData in item.Def.statusEffects)
+                {
+                    if (effectData == null) { continue; }
+                    if (effectData.effectType != EffectType.ActiveAbility) { continue; }
+                    if (effectData.activeAbilityEffectData == null) { continue; }
+                    if (effectData.activeAbilityEffectData.abilityName == ModInit.modSettings.BattleArmorMountAndSwarmID) { return true; }
+                }
+            }
+            return false;
+        }
 
         public static bool CanTransportSquad(MechDef transport, MechDef squad, out string error)
         {

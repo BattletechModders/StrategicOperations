@@ -1,14 +1,17 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
+using System.Threading;
 using Abilifier.Patches;
 using BattleTech;
 using CBTBehaviorsEnhanced.MeleeStates;
 using CustomUnits;
+using IRBTModUtils;
 using IRTweaks.Modules.Combat;
 using StrategicOperations.Framework;
 using UnityEngine;
 using static StrategicOperations.Framework.Classes;
+using ModState = StrategicOperations.Framework.ModState;
 
 namespace StrategicOperations.Patches
 {
@@ -374,6 +377,12 @@ namespace StrategicOperations.Patches
                             if (__instance.unit is Mech mech)
                             {
                                 jumpdist = mech.JumpDistance;
+                                if(jumpdist > 100.0f)
+                                {
+                                    Thread.CurrentThread.SetFlag("CU_JUMPDISTANCE_DEBUG");
+                                    jumpdist = mech.JumpDistance;
+                                    Thread.CurrentThread.ClearFlag("CU_JUMPDISTANCE_DEBUG");
+                                }
                                 if (float.IsNaN(jumpdist)) jumpdist = 0f;
                             }
 

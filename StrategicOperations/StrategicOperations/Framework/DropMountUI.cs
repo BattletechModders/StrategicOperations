@@ -367,6 +367,14 @@ namespace StrategicOperations.Framework
             }
             else
             {
+                if(lanceLoadoutMechItem.MechDef.HaveMountAbility() == false)
+                {
+                    if (__instance.LC != null) { __instance.LC.ReturnItem(item); }
+                    __result = false;
+                    __runOriginal = false;
+                    GenericPopupBuilder.Create("CAN'T COMPLY", $"Unit you are trying to mount have no mount ability").AddFader(new UIColorRef?(LazySingletonBehavior<UIManager>.Instance.UILookAndColorConstants.PopupBackfill), 0.0f, true).Render();
+                    return;
+                }
                 LanceLoadoutSlotCargoConfig cargoInfo = cargoSlot.parent;
                 if (cargoInfo.parent.SelectedMech == null) {
                     if (__instance.LC != null) { __instance.LC.ReturnItem(item); }
