@@ -266,9 +266,15 @@ namespace StrategicOperations.Framework
                         continue;
                     }
                 }
+                
 
-                if (allCombatants[i] is BattleTech.Building building && !building.isDropshipNotLanded())
+                if (allCombatants[i] is BattleTech.Building building)
                 {
+                    if (building.isDropshipNotLanded())
+                    {
+                        ModInit.modLog?.Info?.Write($"{allCombatants[i].DisplayName}: {allCombatants[i].GUID} is dropship in invisible state, skipping");
+                        continue;
+                    }
                     var rollBuilding = ModInit.Random.NextDouble();
                     var isObjective = building.isObjectiveTarget;//Traverse.Create(building).Field("isObjectiveTarget").GetValue<bool>();
                     if (isObjective)
