@@ -445,6 +445,19 @@ namespace StrategicOperations.Framework
             {
                 point = validPoints.GetRandomElement();
                 point.y = actor.Combat.MapMetaData.GetLerpedHeightAt(point, false);
+                if (Mathf.Approximately(point.x, actor.CurrentPosition.x) && Mathf.Approximately(point.z, actor.CurrentPosition.z))
+                {
+                    ModInit.modLog?.Warn?.Write($"[FetchRandomAdjacentHex] Picked same position {point} as current position {actor.CurrentPosition}");
+                }
+            }
+            else
+            {
+                ModInit.modLog?.Warn?.Write("[FetchRandomAdjacentHex] No valid nearby position found, will plonk on same hex causing a stacked unit.");
+                ModInit.modLog?.Warn?.Write($"  Current position is {point}. Adjacent points were: ");
+                foreach (Vector3 vector3 in points)
+                {
+                    ModInit.modLog?.Warn?.Write($"    {vector3}");
+                }
             }
             return point;
         }
@@ -1052,6 +1065,7 @@ namespace StrategicOperations.Framework
 
                     var internalCap = carrier.GetInternalBACap();
                     var currentInternalSquads = carrier.GetInternalBASquads();
+                    var hud = CameraControl.Instance.HUD;
                     if (currentInternalSquads < internalCap)
                     {
                         ModInit.modLog?.Info?.Write($"[MountBattleArmorToChassis] - target unit {carrier.DisplayName} has internal BA capacity of {internalCap}. Currently used: {currentInternalSquads}, mounting squad internally.");
@@ -1060,7 +1074,6 @@ namespace StrategicOperations.Framework
                         // try and set firing arc to 360?
                         battleArmor.FiringArc(360f);
                         //refresh firing button state to make sure firing ports are respected
-                        var hud = CameraControl.Instance.HUD;
                         if (isPlayer && battleArmor == hud.selectedUnit && !carrier.HasFiringPorts())
                         {
                             CameraControl.Instance.HUD.MechWarriorTray.FireButton.DisableButton();
@@ -1657,7 +1670,9 @@ namespace StrategicOperations.Framework
                     $"[Ability.Activate - BattleArmorSwarmID] Cleaning up dummy attacksequence.");
                 ModInit.modLog?.Info?.Write(
                     $"[Ability.Activate - BattleArmorSwarmID] No hits in HitInfo, plonking unit at adjacent hex.");
-                creatorMech.TeleportActor(targetActor.FetchRandomAdjacentHex());
+                Vector3 fetchRandomAdjacentHex = targetActor.FetchRandomAdjacentHex();
+                ModInit.modLog?.Debug?.Write($"[Ability.Activate - BattleArmorSwarmID]   Swarming Position: {targetActor.CurrentPosition}  Selected Random Adjacent Hex: {fetchRandomAdjacentHex}");
+                creatorMech.TeleportActor(fetchRandomAdjacentHex);
                 creatorMech.ResetPathing(false);
                 creatorMech.Pathing.UpdateCurrentPath(false);
                 if (creatorMech.team.IsLocalPlayer)
