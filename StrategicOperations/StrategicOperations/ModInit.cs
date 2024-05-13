@@ -104,6 +104,7 @@ namespace StrategicOperations
         public bool ExternalBAAffectsSlotDropTonnage = true;
         public List<BA_FactionAssoc> BattleArmorFactionAssociations = new List<BA_FactionAssoc>();
         public string BattleArmorMountAndSwarmID = "";
+        public bool BattleArmorHandsyOverridesInternalOnly = false;
 
         public Dictionary<string, ConfigOptions.BeaconExclusionConfig> BeaconExclusionConfig =
             new Dictionary<string, ConfigOptions.BeaconExclusionConfig>();
