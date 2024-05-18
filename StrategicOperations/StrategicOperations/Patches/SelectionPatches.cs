@@ -105,7 +105,9 @@ namespace StrategicOperations.Patches
                             }
 
                             if (!SelectedActor.IsMountedUnit() && SelectedActor.CanRideInternalOnly() &&
-                                targetActor.GetAvailableInternalBASpace() <= 0)
+                                targetActor.GetAvailableInternalBASpace() <= 0 &&
+                                (!ModInit.modSettings.BattleArmorHandsyOverridesInternalOnly ||
+                                 !SelectedActor.GetIsBattleArmorHandsy()))
                             {
                                 return false;
                             }
