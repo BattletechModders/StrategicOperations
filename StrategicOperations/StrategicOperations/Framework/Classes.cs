@@ -716,7 +716,7 @@ namespace StrategicOperations.Framework
                 newBattleArmor.Init(Actor.CurrentPosition, Actor.CurrentRotation.eulerAngles.y, true);
                 newBattleArmor.InitGameRep(null);
                 TeamSelection.AddUnit(newBattleArmor);
-                newBattleArmor.AddToTeam(TeamSelection);
+                //newBattleArmor.AddToTeam(TeamSelection);
                 newBattleArmor.AddToLance(CustomLance);
                 CustomLance.AddUnitGUID(newBattleArmor.GUID);
                 newBattleArmor.BehaviorTree = BehaviorTreeFactory.MakeBehaviorTree(
