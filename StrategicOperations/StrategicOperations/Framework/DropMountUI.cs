@@ -1478,7 +1478,7 @@ namespace StrategicOperations.Framework
         {
             if (ModInit.modSettings.UseOriginalBAMountInterface) { return; }
             ModInit.modLog?.Info?.Write("SimGameState.SaveLastLance");
-            List<LastUsedMounts> all_mounts = new List<LastUsedMounts>();
+            ModState.LastMounts = new List<LastUsedMounts>();
             foreach (SpawnableUnit lanceUnit in config.GetLanceUnits("bf40fd39-ccf9-47c4-94a6-061809681140"))
             {
                 if (lanceUnit.Unit == null) { continue; }
@@ -1493,11 +1493,8 @@ namespace StrategicOperations.Framework
                     }
                     mounts.mounts.Add(new LastUsedMount(cargoUnit.Unit.GUID, cargoUnit.Pilot.Description.Id));
                 }
-                all_mounts.Add(mounts);
+                ModState.LastMounts.Add(mounts);
             }
-            Statistic lastMountsStat = __instance.CompanyStats.GetOrCreateStatisic<string>(LastUsedMounts.LAST_MOUNTS_STATISTIC_NAME, "[]");
-            lastMountsStat.SetValue(JsonConvert.SerializeObject(all_mounts, Formatting.Indented));
-            ModInit.modLog?.Info?.Write($" {lastMountsStat.Value<string>()}");
         }
     }
     [HarmonyPatch(typeof(SimGameState))]
@@ -1509,10 +1506,7 @@ namespace StrategicOperations.Framework
         {
             if (ModInit.modSettings.UseOriginalBAMountInterface) { return; }
             ModInit.modLog?.Info?.Write("SimGameState.GetLastLance");
-            Statistic lastMountsStat = __instance.CompanyStats.GetOrCreateStatisic<string>(LastUsedMounts.LAST_MOUNTS_STATISTIC_NAME, "[]");
-            List<LastUsedMounts> all_mounts = JsonConvert.DeserializeObject<List<LastUsedMounts>>(lastMountsStat.Value<string>());
-            ModInit.modLog?.Info?.Write($" {lastMountsStat.Value<string>()}");
-            foreach (var mounts in all_mounts)
+            foreach (var mounts in ModState.LastMounts)
             {
                 foreach(var mount in mounts.mounts)
                 {

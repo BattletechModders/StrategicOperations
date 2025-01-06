@@ -1,7 +1,12 @@
 ﻿using System;
+using System.Collections.Generic;
 using BattleTech;
 using BattleTech.Framework;
+using BattleTech.Save;
 using BattleTech.UI;
+using CustAmmoCategories;
+using IRBTModUtils.Logging;
+using Newtonsoft.Json;
 using StrategicOperations.Framework;
 
 namespace StrategicOperations.Patches
@@ -46,6 +51,40 @@ namespace StrategicOperations.Patches
                 //Traverse.Create(__instance).Property("MoneyResults").SetValue(moneyResults);
                 __instance.MoneyResults = moneyResults;
             }
+        }
+    }
+    
+    [HarmonyPatch(typeof (SimGameState), "Rehydrate")]
+    public static class SimGameState_Rehdyrate_Patch
+    {
+        public static void Postfix(GameInstanceSave gameInstanceSave, SimGameState __instance)
+        {
+            Statistic statisic = StatisticHelper.GetOrCreateStatisic<string>(__instance.CompanyStats, LastUsedMounts.LAST_MOUNTS_STATISTIC_NAME, "[]");
+            ModState.LastMounts = JsonConvert.DeserializeObject<List<LastUsedMounts>>(statisic.Value<string>());
+            ModInit.modLog?.Info?.Write($"Last mount stat: {statisic.Value<string>()}");
+        }
+    }
+    
+    [HarmonyPatch(typeof (GameInstanceSave), "PreSerialization")]
+    public static class GameInstanceSave_PreSerialization_Patch
+    {
+        public static void Prefix()
+        {
+            ModInit.modLog?.Info?.Write("Saving LastMounts to company stats");
+            Statistic statisic = StatisticHelper.GetOrCreateStatisic<string>(UnityGameInstance.BattleTechGame.Simulation.CompanyStats, LastUsedMounts.LAST_MOUNTS_STATISTIC_NAME, "[]");
+            statisic.SetValue<string>(JsonConvert.SerializeObject((object) ModState.LastMounts, Formatting.Indented));
+            ModInit.modLog?.Info?.Write($"Last mount stat: {statisic.Value<string>()}");
+        }
+    }
+    
+    [HarmonyPatch(typeof (GameInstanceSave), "PostSerialization")]
+    public static class GameInstanceSave_PostSerialization_Patch
+    {
+        [HarmonyPostfix]
+        public static void RemoveLastMounts()
+        {
+            ModInit.modLog?.Info?.Write("Clearing LastMounts from company stats");
+            UnityGameInstance.BattleTechGame.Simulation.CompanyStats.RemoveStatistic(LastUsedMounts.LAST_MOUNTS_STATISTIC_NAME);
         }
     }
 }
