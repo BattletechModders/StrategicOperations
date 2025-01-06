@@ -105,6 +105,7 @@ namespace StrategicOperations.Framework
         public static Dictionary<string, Color> UsedOverlayColorsByCarrier = new Dictionary<string, Color>();
 
         public static List<VehicleChassisLocations> VehicleMountOrder = new List<VehicleChassisLocations>();
+        public static List<LastUsedMounts> LastMounts = new List<LastUsedMounts>();
 
         public static void Initialize()
         {
