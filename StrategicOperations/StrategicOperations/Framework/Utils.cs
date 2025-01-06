@@ -928,8 +928,7 @@ namespace StrategicOperations.Framework
 
         public static AbstractActor GetClosestDetectedEnemy(this AbstractActor actor, Vector3 loc)
         {
-            var enemyUnits = new List<AbstractActor>();
-            enemyUnits.AddRange(actor.team.VisibilityCache.GetAllDetectedEnemies(actor).Where(x=>!x.IsDead && !x.IsFlaggedForDeath));
+            var enemyUnits = actor.team.VisibilityCache.GetAllDetectedEnemies(actor);
             var num = -1f;
             AbstractActor closestActor = null;
             foreach (var enemy in enemyUnits)
@@ -946,7 +945,7 @@ namespace StrategicOperations.Framework
 
         public static AbstractActor GetClosestDetectedFriendly(Vector3 loc, AbstractActor actor)
         {
-            var friendlyUnits = actor.team.VisibilityCache.GetAllFriendlies(actor).Where(x=> !x.IsDead && !x.IsFlaggedForDeath);
+            var friendlyUnits = actor.team.VisibilityCache.GetAllFriendlies(actor);
             var num = -1f;
             AbstractActor closestActor = null;
             foreach (var friendly in friendlyUnits)
@@ -963,8 +962,7 @@ namespace StrategicOperations.Framework
 
         public static AbstractActor GetClosestDetectedSwarmTarget(this AbstractActor actor, Vector3 loc)
         {
-            var enemyUnits = new List<AbstractActor>();
-            enemyUnits.AddRange(actor.team.VisibilityCache.GetAllDetectedEnemies(actor).Where(x => !x.IsDead && !x.IsFlaggedForDeath));
+             var enemyUnits =actor.team.VisibilityCache.GetAllDetectedEnemies(actor);
             var num = -1f;
             AbstractActor closestActor = null;
             foreach (var enemy in enemyUnits)

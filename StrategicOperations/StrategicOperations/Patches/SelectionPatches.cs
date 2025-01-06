@@ -41,7 +41,7 @@ namespace StrategicOperations.Patches
 
                 if (FromButton.Ability.Def.Id == ModInit.modSettings.ResupplyConfig.ResupplyAbilityID)
                 {
-                    if (potentialTarget is AbstractActor targetActor && targetActor.GetStaticUnitTags().Contains(ModInit.modSettings.ResupplyConfig.ResupplyUnitTag))
+                    if (potentialTarget is AbstractActor targetActor && targetActor.statCollection.GetValue<bool>(ResupplyUtils.ResupplyUnitStat))
                     {
                         return true;
                     }

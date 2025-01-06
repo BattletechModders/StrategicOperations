@@ -1053,6 +1053,7 @@ namespace StrategicOperations.Patches
                 __instance.StatCollection.AddStatistic<bool>("OverrideGlobalCapacity", false);
                 __instance.StatCollection.AddStatistic<float>("AAAFactor", 0f);
                 __instance.StatCollection.AddStatistic<bool>("UseAAAFactor", false);
+                __instance.StatCollection.AddStatistic<bool>(ResupplyUtils.ResupplyUnitStat, false);
             }
         }
 
@@ -2907,6 +2908,13 @@ namespace StrategicOperations.Patches
         {
             public static void Postfix(Team __instance, AbstractActor unit)
             {
+                
+                if (unit.GetStaticUnitTags().Contains(ModInit.modSettings.ResupplyConfig.ResupplyUnitTag))
+                {
+                    unit.statCollection.Set(ResupplyUtils.ResupplyUnitStat, true);
+                }
+                
+                
                 if (__instance.Combat.TurnDirector.CurrentRound > 1)
                 {
                     __instance.Combat.UpdateResupplyTeams();
