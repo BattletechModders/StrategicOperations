@@ -32,7 +32,7 @@ namespace StrategicOperations.Framework
             AbstractActor resupplyActor = null;
             foreach (var friendly in friendlyUnits)
             {
-                if (!friendly.statCollection.GetValue<bool>(ResupplyUnitStat)) continue;
+                if (!friendly.IsResupplyUnit) continue;
                 distance = Vector3.Distance(actor.CurrentPosition, friendly.CurrentPosition);
                 if (num < 0f || distance < num)
                 {
@@ -50,7 +50,7 @@ namespace StrategicOperations.Framework
             var magnitude = -9999f;
             foreach (var friendly in friendlyUnits)
             {
-                if (!friendly.statCollection.GetValue<bool>(ResupplyUnitStat)) continue;
+                if (!friendly.IsResupplyUnit) continue;
                 magnitude = (position - friendly.CurrentPosition).magnitude;
                 if (num < 0f || magnitude < num)
                 {
@@ -324,7 +324,7 @@ namespace StrategicOperations.Framework
             foreach (var unit in actors)
             {
                 if (!ModState.TeamsWithResupply.Contains(unit.team.GUID)) continue;
-                if (unit.statCollection.GetValue<bool>(ResupplyUnitStat)) continue;
+                if (unit.IsResupplyUnit) continue;
                 if (unit.GetPilot().Abilities
                         .All(x => x.Def.Id != ModInit.modSettings.ResupplyConfig.ResupplyAbilityID) &&
                     unit.ComponentAbilities.All(y =>
@@ -346,7 +346,7 @@ namespace StrategicOperations.Framework
         {
             foreach (var actor in combat.GetAllLivingActors())
             {
-                if (actor.statCollection.GetValue<bool>(ResupplyUnitStat))
+                if (actor.IsResupplyUnit)
                 {
                     foreach (var team in combat.Teams)
                     {

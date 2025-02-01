@@ -57,6 +57,9 @@
     <Compile Include="Log.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
+  <ItemGroup>
+    <Content Include="ModTek\Injectors\ModTekSimpleInjector.StrategicOperations.xml" />
+  </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <Target Name="AfterBuild">
 		<Copy SourceFiles="$(TargetPath)" DestinationFolder="$(BattleTechGameDir)\Mods\ModTek\Injectors" Condition="'$(BattleTechGameDir)' != '' And Exists('$(BattleTechGameDir)\Mods\ModTek\Injectors')" />

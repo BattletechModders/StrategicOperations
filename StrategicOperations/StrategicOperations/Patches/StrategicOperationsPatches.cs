@@ -1054,6 +1054,8 @@ namespace StrategicOperations.Patches
                 __instance.StatCollection.AddStatistic<float>("AAAFactor", 0f);
                 __instance.StatCollection.AddStatistic<bool>("UseAAAFactor", false);
                 __instance.StatCollection.AddStatistic<bool>(ResupplyUtils.ResupplyUnitStat, false);
+                
+                __instance.SwarmingDisabled = __instance.GetStaticUnitTags().Contains(ModInit.modSettings.DisableAISwarmTag);
             }
         }
 
@@ -2912,6 +2914,7 @@ namespace StrategicOperations.Patches
                 if (unit.GetStaticUnitTags().Contains(ModInit.modSettings.ResupplyConfig.ResupplyUnitTag))
                 {
                     unit.statCollection.Set(ResupplyUtils.ResupplyUnitStat, true);
+                    unit.IsResupplyUnit = true;
                 }
                 
                 
@@ -3284,6 +3287,17 @@ namespace StrategicOperations.Patches
                         __instance.MountedEvasion(carrier);
                     }
                 }
+            }
+        }
+        
+        [HarmonyPatch(typeof(AbstractActor), "Hydrate")]
+        public static class AbstractActor_Hydrate_Patch
+        {
+            public static void Postfix(AbstractActor __instance)
+            {
+                __instance.IsResupplyUnit = __instance.StatCollection.GetValue<bool>(ResupplyUtils.ResupplyUnitStat);
+                __instance.SwarmingDisabled = __instance.GetStaticUnitTags().Contains(ModInit.modSettings.DisableAISwarmTag);
+
             }
         }
     }
