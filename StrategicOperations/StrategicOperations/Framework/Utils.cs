@@ -877,9 +877,9 @@ namespace StrategicOperations.Framework
         public static List<AbstractActor> GetAllFriendlies (this SharedVisibilityCache cache, AbstractActor actor)
         {
             var friendlyActors = new List<AbstractActor>();
-            foreach (var friendly in actor.Combat.GetAllLivingActors())
+            foreach (var friendly in actor.Combat.allActors)
             {
-                if (actor.team.IsFriendly(friendly.team) && !friendly.IsDead && !friendly.IsFlaggedForDeath)
+                if (!friendly.IsDead && actor.team.IsFriendly(friendly.team) && !friendly.IsFlaggedForDeath)
                 {
                     ModInit.modLog?.Debug?.Write($"unit {friendly.DisplayName} is friendly of {actor.DisplayName}.");
                     friendlyActors.Add(friendly);
