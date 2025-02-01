@@ -12,6 +12,9 @@ namespace StrategicOperations.Framework
 {
     public static class ResupplyUtils
     {
+        
+        public const string ResupplyUnitStat = "IsResupplyUnit";
+        
         public static bool AreAnyWeaponsOutOfAmmo(this AbstractActor actor)
         {
             foreach (var weapon in actor.Weapons)
@@ -23,13 +26,13 @@ namespace StrategicOperations.Framework
 
         public static AbstractActor GetClosestDetectedResupply(this AbstractActor actor)
         {
-            var friendlyUnits = actor.team.VisibilityCache.GetAllFriendlies(actor).Where(x => !x.IsDead && !x.IsFlaggedForDeath);
+            var friendlyUnits = actor.team.VisibilityCache.GetAllFriendlies(actor);
             var num = -1f;
             var distance = -9999f;
             AbstractActor resupplyActor = null;
             foreach (var friendly in friendlyUnits)
             {
-                if (!friendly.GetStaticUnitTags().Contains(ModInit.modSettings.ResupplyConfig.ResupplyUnitTag)) continue;
+                if (!friendly.statCollection.GetValue<bool>(ResupplyUnitStat)) continue;
                 distance = Vector3.Distance(actor.CurrentPosition, friendly.CurrentPosition);
                 if (num < 0f || distance < num)
                 {
@@ -42,12 +45,12 @@ namespace StrategicOperations.Framework
 
         public static float GetDistanceToClosestDetectedResupply(this AbstractActor actor, Vector3 position)
         {
-            var friendlyUnits = actor.team.VisibilityCache.GetAllFriendlies(actor).Where(x => !x.IsDead && !x.IsFlaggedForDeath);
+            var friendlyUnits = actor.team.VisibilityCache.GetAllFriendlies(actor);
             var num = -1f;
             var magnitude = -9999f;
             foreach (var friendly in friendlyUnits)
             {
-                if (!friendly.GetStaticUnitTags().Contains(ModInit.modSettings.ResupplyConfig.ResupplyUnitTag)) continue;
+                if (!friendly.statCollection.GetValue<bool>(ResupplyUnitStat)) continue;
                 magnitude = (position - friendly.CurrentPosition).magnitude;
                 if (num < 0f || magnitude < num)
                 {
@@ -321,7 +324,7 @@ namespace StrategicOperations.Framework
             foreach (var unit in actors)
             {
                 if (!ModState.TeamsWithResupply.Contains(unit.team.GUID)) continue;
-                if (unit.GetStaticUnitTags().Contains(ModInit.modSettings.ResupplyConfig.ResupplyUnitTag)) continue;
+                if (unit.statCollection.GetValue<bool>(ResupplyUnitStat)) continue;
                 if (unit.GetPilot().Abilities
                         .All(x => x.Def.Id != ModInit.modSettings.ResupplyConfig.ResupplyAbilityID) &&
                     unit.ComponentAbilities.All(y =>
@@ -343,7 +346,7 @@ namespace StrategicOperations.Framework
         {
             foreach (var actor in combat.GetAllLivingActors())
             {
-                if (actor.GetStaticUnitTags().Contains(ModInit.modSettings.ResupplyConfig.ResupplyUnitTag))
+                if (actor.statCollection.GetValue<bool>(ResupplyUnitStat))
                 {
                     foreach (var team in combat.Teams)
                     {
