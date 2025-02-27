@@ -2719,7 +2719,8 @@ namespace StrategicOperations.Patches
                     var opforUnit = creator.FindMeAnOpforUnit();
                     if (opforUnit != null)
                     {
-                        ModState.CancelChanceForPlayerStrafe = opforUnit.GetAvoidStrafeChanceForTeam();
+                        var actorResource = __instance.FromButton.Ability.Def.ActorResource; // This is a player initiated strike, so strafe attacker should always be the one from the AbilityDef
+                        ModState.CancelChanceForPlayerStrafe = opforUnit.GetAvoidStrafeChanceForTeam(actorResource); // Actor resource is only used for alternative Strafe implementation
                     }
                     var chanceDisplay = (float)Math.Round(1 - ModState.CancelChanceForPlayerStrafe, 2) * 100;
                     cHUD.AttackModeSelector.FireButton.FireText.SetText($"{chanceDisplay}% - Confirm", Array.Empty<object>());

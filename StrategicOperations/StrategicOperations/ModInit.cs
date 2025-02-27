@@ -171,7 +171,9 @@ namespace StrategicOperations
         public bool spawnTurretEndsActivation = true;
         // ive strafing runs.
 
+        public bool strafeUseAlternativeImplementation = false; // if true, use the AA cover method based on cover unit distance and strafe unit strength
         public float strafeAAFailThreshold = 1f; //for AI strafes, if fail % is higher than this, they wont try
+        public float strafeAAMaxCoverDistance = 1000f;
         public float strafeAltitudeMax = 250f;
         public float strafeAltitudeMin = 75f;
         public bool strafeEndsActivation = true;
@@ -183,6 +185,7 @@ namespace StrategicOperations
         public float strafeTargetsFriendliesChance = 1f;
         public float strafeVelocityDefault = 150f;
         public int strafeWaves = 1; // strafes will spawn this many units and do
+        public Dictionary<string, float> strafeAttackerStrength = new Dictionary<string, float>(); // Used for alternative AA factor implementation
 
         public float timeBetweenAttacks = 0.35f;
 

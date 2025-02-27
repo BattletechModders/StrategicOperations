@@ -107,6 +107,9 @@ namespace StrategicOperations.Framework
         public static List<VehicleChassisLocations> VehicleMountOrder = new List<VehicleChassisLocations>();
         public static List<LastUsedMounts> LastMounts = new List<LastUsedMounts>();
 
+        public static string StrafeAttacker = null; // AI Selected Strafe Attacker, only used for alternative strafing implementation
+        public static int StrafeSelectedWaves = 0; // AI selected amount of waves, only used for alternative strafing implementation
+
         public static void Initialize()
         {
             MechArmorMountOrder.Add(ArmorLocation.CenterTorso);
@@ -232,6 +235,8 @@ namespace StrategicOperations.Framework
             IsStrafeAOE = false;
             PlayerSpawnGUIDs = new List<string>();
             ReinitPhaseIcons = false;
+            StrafeAttacker = null;
+            StrafeSelectedWaves = 0;
         }
 
         public static void ResetDeferredBASpawners()
