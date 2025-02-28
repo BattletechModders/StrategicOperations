@@ -234,9 +234,21 @@ namespace StrategicOperations.Patches
                 //ModState.PopupActorResource = AI_Utils.AssignRandomSpawnAsset(ModState.AiCmds[unit.GUID].ability, unit.team.FactionValue.Name, out var waves);
                 //ModState.StrafeWaves = waves;
                 var newParams = new CmdInvocationParams();
-                newParams.ActorResource  = AI_Utils.AssignRandomSpawnAsset(ModState.AiCmds[unit.GUID].ability, unit.team.FactionValue.Name,
-                    out var waves);
-                newParams.StrafeWaves = waves;
+                
+                if (ModInit.modSettings.strafeUseAlternativeImplementation) {
+                    // The below values should have been randomized in the earlier AI_Utils.EvaluateStrafing call. They are being recalled here for ensuring same values are used as when AI made its choice to perform a strafe.
+                    newParams.ActorResource = ModState.StrafeAttacker ?? ModState.AiCmds[unit.GUID].ability.Def.ActorResource; // Fallback is the ability default strafe attacker
+                    newParams.StrafeWaves = ModState.StrafeSelectedWaves;
+                }
+                else
+                {
+                    newParams.ActorResource  = AI_Utils.AssignRandomSpawnAsset(ModState.AiCmds[unit.GUID].ability, unit.team.FactionValue.Name, out var waves);
+                    newParams.StrafeWaves = waves;
+                }
+                
+                // Once invocation has been created, clear state
+                ModState.StrafeAttacker = null;
+                ModState.StrafeSelectedWaves = 0;
 
                 if (!string.IsNullOrEmpty(ModState.AiCmds[unit.GUID].ability.Def.getAbilityDefExtension()
                         .CMDPilotOverride))
@@ -551,7 +563,7 @@ namespace StrategicOperations.Patches
                                 return;
                             }
 
-                            var skipStrafeChance = startUnit.GetAvoidStrafeChanceForTeam(); //should i save the thing?
+                            var skipStrafeChance = startUnit.GetAvoidStrafeChanceForTeam(ModState.StrafeAttacker); // StrafeAttacker will be set by AI_Utils.EvaluateStrafing above, only used for Alternative Strafing implementation
                             //ModState.startUnitFromInvocation = startUnit;
                             ModInit.modLog?.Trace?.Write($"final AA value for {startUnit.team.DisplayName}: {skipStrafeChance}");
                             if (skipStrafeChance < ModInit.modSettings.strafeAAFailThreshold)
@@ -601,7 +613,7 @@ namespace StrategicOperations.Patches
                             __runOriginal = true;
                             return;
                         }
-                        var skipStrafeChance = startUnit.GetAvoidStrafeChanceForTeam();
+                        var skipStrafeChance = startUnit.GetAvoidStrafeChanceForTeam(ModState.StrafeAttacker); // StrafeAttacker will be set by AI_Utils.EvaluateStrafing above, only used for Alternative Strafing implementation
                         ModInit.modLog?.Trace?.Write($"final AA value for {startUnit.team.DisplayName}: {skipStrafeChance}");
                         //                    ModState.startUnitFromInvocation = startUnit;
                         if (skipStrafeChance < ModInit.modSettings.strafeAAFailThreshold)

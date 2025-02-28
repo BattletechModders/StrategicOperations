@@ -183,6 +183,10 @@ namespace StrategicOperations
         public float strafeTargetsFriendliesChance = 1f;
         public float strafeVelocityDefault = 150f;
         public int strafeWaves = 1; // strafes will spawn this many units and do
+        public bool strafeUseAlternativeImplementation = false; // if true, use the AA cover method based on cover unit distance and strafe unit strength
+        public float strafeAAMaxCoverDistance = 1000f; // Only used by alternative implementation
+        public float strafeFallbackStrengthValue = 5f; // Only used by alternative implementation
+        public Dictionary<string, float> strafeAttackerStrength = new Dictionary<string, float>(); // Only used by alternative implementation
 
         public float timeBetweenAttacks = 0.35f;
 
