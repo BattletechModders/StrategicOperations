@@ -27,6 +27,10 @@ settings in the mod.json:
 	"strafeAltitudeMax": 250.0,
 	"strafePreDistanceMult": 15.0,
 	"strafeMinDistanceToEnd": 10.0,
+	"strafeUseAlternativeImplementation": false,
+    "strafeAAMaxCoverDistance": 1000,
+    "strafeFallbackStrengthValue": 5,
+    "strafeAttackerStrength": {},
 	"timeBetweenAttacks": 0.35,
 	"commandUseCostsMulti": 1.0,
 	"deploymentBeaconEquipment": [
@@ -575,6 +579,19 @@ settings in the mod.json:
 <s>"AI_FactionBeacons"`: essentially functions the same as `deploymentBeaconEquipment`, but restricts factions listed to the corresponding equipment. if a faction is not listed in here, it will use only the "default" unit listed in a given command ability.</s> **deprecated in 2.0.2.8**
 
 `commandAbilities_AI` - **Format Change in v2.0.2.8** - Changed to similar format as `BattleArmorFactionAssociations`. Can be used to give AI strafe and spawn (Beacon) abilities. Obviously the StrafeWaves field only applies to strafes, and will do nothing for beacons. MaxUsersAddedPerContract limit is based on only *this* ability, and is separate *per faction*. I.e, in a 3-way contract with you, ClanGhostBear and ClanWolf, both Ghost Bear and Wolf could get 3 units each with AbilityDefCMD_Strafe_AI.
+
+**new in v3.1.5.0** 
+Added a new alternate implementation for handling the calculation around prevented strafe attacks due to units in AA stance.
+
+The default implementation is based on the formula `Chance to cancel a strafe = <AAA Factor of all allied units in AA Stance> / <total allied units>`.
+
+With the new alternative implementation this is changed to `Chance to cancel a strafe = <AAA Factor of all allied units in AA Stance within range> / <the strength of the strafing unit>`.<br>
+
+The new settings for this alternative implementation are:
+* `strafeUseAlternativeImplementation` = enables the alternative implementation
+* `strafeAAMaxCoverDistance` = the max range a friendly unit can be at to help prevent the strafe. counted from the position of where the attacked unit is.
+* `strafeAttackerStrength` = mappings of the strength of each attacking unit, in the format of `"unitId": <strength (float)>"
+* `strafeFallbackStrengthValue` = if no mapping for the id of the attacking unit exists in the above setting, this fallback value is used
 
 **new in v3.1.1.0** 
 "ContractBlacklist" defines contract types and/or individual contract IDs for which this specific ability cannot be added to the AI

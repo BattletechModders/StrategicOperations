@@ -949,20 +949,20 @@ namespace StrategicOperations.Framework
                     if (distance <= ModInit.modSettings.strafeAAMaxCoverDistance)
                     {
                         cumAA += unit.GetAAAFactor();
-                        ModInit.modLog?.Debug?.Write($"unit {unit.DisplayName} is friendly of {combatant.DisplayName} at distance {distance} which is within maximum cover distance of {ModInit.modSettings.strafeAAMaxCoverDistance}. " +
+                        ModInit.modLog?.Trace?.Write($"unit {unit.DisplayName} is friendly of {combatant.DisplayName} at distance {distance} which is within maximum cover distance of {ModInit.modSettings.strafeAAMaxCoverDistance}. " +
                                                      $"Added AA factor {unit.GetAAAFactor()}; total is now {cumAA}");
                     }
                 }
             }
 
-            if (!ModInit.modSettings.strafeAttackerStrength.TryGetValue(attackingUnitId, out var strafeAttackerDetermination))
+            if (!ModInit.modSettings.strafeAttackerStrength.TryGetValue(attackingUnitId, out var strafeAttackerStrength))
             {
-                ModInit.modLog?.Debug?.Write($"No strafe attacker strength found for {attackingUnitId}, using fallback.");
-                strafeAttackerDetermination = 5f;
+                ModInit.modLog?.Warn?.Write($"No strafe attacker strength found for {attackingUnitId}, using fallback.");
+                strafeAttackerStrength = ModInit.modSettings.strafeFallbackStrengthValue;
             }
 
-            var finalAA = cumAA / strafeAttackerDetermination;
-            ModInit.modLog?.Debug?.Write($"final AA value for {combatant.DisplayName} and team {combatant.team.DisplayName}: {finalAA}");
+            var finalAA = cumAA / strafeAttackerStrength;
+            ModInit.modLog?.Trace?.Write($"final AA value for {combatant.DisplayName} and team {combatant.team.DisplayName}: {finalAA}");
             return finalAA;
         }
 
