@@ -106,8 +106,9 @@ namespace StrategicOperations.Framework
 
         public static bool CanSwarm(this AbstractActor actor)
         {
-            if (actor != null && actor.GetStaticUnitTags().Contains(ModInit.modSettings.DisableAISwarmTag) && actor.team is AITeam) return false;
-            return actor != null && actor.StatCollection.GetValue<bool>("CanSwarm");
+            if (actor == null) return false;
+            if (actor.SwarmingDisabled && actor.team is AITeam) return false;
+            return actor.StatCollection.GetValue<bool>("CanSwarm");
         }
 
         public static void CheckForBPodAndActivate(this AbstractActor actor)
