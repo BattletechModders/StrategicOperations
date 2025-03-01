@@ -313,7 +313,7 @@ namespace StrategicOperations.Framework
                     }
                     else if (cancelChanceFromAA == 0f)
                     {
-                        cancelChanceFromAA = allCombatants[i].GetAvoidStrafeChanceForTeam();
+                        cancelChanceFromAA = allCombatants[i].GetAvoidStrafeChanceForTeam(Attacker.Description.Id);
                     }
 
                     if (roll <= cancelChanceFromAA)

@@ -905,7 +905,18 @@ namespace StrategicOperations.Framework
             return detectedFriendlies;
         }
 
-        public static float GetAvoidStrafeChanceForTeam(this ICombatant combatant)
+        public static float GetAvoidStrafeChanceForTeam(this ICombatant combatant, string attackingUnitId)
+        {
+            if (ModInit.modSettings.strafeUseAlternativeImplementation)
+            {
+                ModInit.modLog?.Debug?.Write("Using alternative implementation for strafes.");
+                return GetAvoidStrafeChanceForTeamAlternate(combatant, attackingUnitId);
+            }
+
+            return GetAvoidStrafeChanceForTeamDefault(combatant);
+        }
+
+        private static float GetAvoidStrafeChanceForTeamDefault(this ICombatant combatant)
         {
             var actors = combatant.Combat.GetAllLivingActors();
             var cumAA = 0f;
@@ -923,6 +934,35 @@ namespace StrategicOperations.Framework
             if (unitDivisor == 0) return 0f;
             var finalAA = cumAA / unitDivisor;
             ModInit.modLog?.Debug?.Write($"final AA value for {combatant.DisplayName} and team {combatant.team.DisplayName}: {finalAA}");
+            return finalAA;
+        }
+
+        private static float GetAvoidStrafeChanceForTeamAlternate(this ICombatant combatant, string attackingUnitId)
+        {
+            var actors = combatant.Combat.GetAllLivingActors();
+            var cumAA = 0f;
+            foreach (var unit in actors)
+            {
+                if (unit.team.IsFriendly(combatant.team))
+                {
+                    var distance = (combatant.CurrentPosition - unit.CurrentPosition).magnitude;
+                    if (distance <= ModInit.modSettings.strafeAAMaxCoverDistance)
+                    {
+                        cumAA += unit.GetAAAFactor();
+                        ModInit.modLog?.Trace?.Write($"unit {unit.DisplayName} is friendly of {combatant.DisplayName} at distance {distance} which is within maximum cover distance of {ModInit.modSettings.strafeAAMaxCoverDistance}. " +
+                                                     $"Added AA factor {unit.GetAAAFactor()}; total is now {cumAA}");
+                    }
+                }
+            }
+
+            if (!ModInit.modSettings.strafeAttackerStrength.TryGetValue(attackingUnitId, out var strafeAttackerStrength))
+            {
+                ModInit.modLog?.Warn?.Write($"No strafe attacker strength found for {attackingUnitId}, using fallback.");
+                strafeAttackerStrength = ModInit.modSettings.strafeFallbackStrengthValue;
+            }
+
+            var finalAA = cumAA / strafeAttackerStrength;
+            ModInit.modLog?.Trace?.Write($"final AA value for {combatant.DisplayName} and team {combatant.team.DisplayName}: {finalAA}");
             return finalAA;
         }
 

@@ -360,6 +360,13 @@ namespace StrategicOperations.Framework
             targetUnit = null;
             if (!CanStrafe(actor, out ability)) return 0;
             var assetID = AssignRandomSpawnAsset(ability, actor.team.FactionValue.Name, out var waves);
+
+            if (ModInit.modSettings.strafeUseAlternativeImplementation)
+            {
+                ModState.StrafeAttacker = assetID;
+                ModState.StrafeSelectedWaves = waves;
+            }
+
             var dmg = Mathf.RoundToInt(CalcExpectedDamage(actor, assetID) * waves);
 
             var targets = TargetsForStrafe(actor, ability,out startpoint, out endpoint, out targetUnit);
