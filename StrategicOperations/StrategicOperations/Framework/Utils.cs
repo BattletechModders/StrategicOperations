@@ -955,14 +955,18 @@ namespace StrategicOperations.Framework
                 }
             }
 
-            if (!ModInit.modSettings.strafeAttackerStrength.TryGetValue(attackingUnitId, out var strafeAttackerStrength))
+            if (ModInit.modSettings.strafeAttackerStrength.TryGetValue(attackingUnitId, out var strafeAttackerStrength))
+            {
+                ModInit.modLog?.Trace?.Write($"Strafe attack unit {attackingUnitId} has strength {strafeAttackerStrength}.");
+            }
+            else
             {
                 ModInit.modLog?.Warn?.Write($"No strafe attacker strength found for {attackingUnitId}, using fallback.");
                 strafeAttackerStrength = ModInit.modSettings.strafeFallbackStrengthValue;
             }
 
             var finalAA = cumAA / strafeAttackerStrength;
-            ModInit.modLog?.Trace?.Write($"final AA value for {combatant.DisplayName} and team {combatant.team.DisplayName}: {finalAA}");
+            ModInit.modLog?.Trace?.Write($"final AA value for {combatant.DisplayName} and team {combatant.team.DisplayName} with attacker {attackingUnitId}: {finalAA}");
             return finalAA;
         }
 

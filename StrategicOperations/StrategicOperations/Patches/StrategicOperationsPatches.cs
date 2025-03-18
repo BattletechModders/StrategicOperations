@@ -2719,15 +2719,26 @@ namespace StrategicOperations.Patches
                     ModState.CancelChanceForPlayerStrafe = 0f;
 
                     var opforUnit = creator.FindMeAnOpforUnit();
+                    var abilityDef = __instance.FromButton.Ability.Def;
+                    
                     if (opforUnit != null)
                     {
-                        var actorResource = __instance.FromButton.Ability.Def.ActorResource; // This is a player initiated strike, so strafe attacker should always be the one from the AbilityDef
-                        ModState.CancelChanceForPlayerStrafe = opforUnit.GetAvoidStrafeChanceForTeam(actorResource); // Actor resource is only used for alternative Strafe implementation
-                    }
-                    var chanceDisplay = (float)Math.Round(1 - ModState.CancelChanceForPlayerStrafe, 2) * 100;
-                    cHUD.AttackModeSelector.FireButton.FireText.SetText($"{chanceDisplay}% - Confirm", Array.Empty<object>());
+                        if (abilityDef.specialRules == AbilityDef.SpecialRules.Strafe)
+                        {
+                            // This is a player initiated strike, so strafe attacker should always be the one from the AbilityDef
+                            ModState.CancelChanceForPlayerStrafe = opforUnit.GetAvoidStrafeChanceForTeam(abilityDef.ActorResource); // Actor resource is only used for alternative Strafe implementation
+                            
+                            var chanceDisplay = (float)Math.Round(1 - ModState.CancelChanceForPlayerStrafe, 2) * 100;
+                            cHUD.AttackModeSelector.FireButton.FireText.SetText($"{chanceDisplay}% - Confirm", Array.Empty<object>());
 
-                    ModInit.modLog?.Trace?.Write($"[SelectionStateCommandTargetTwoPoints.ProcessLeftClick] Creator {creator.DisplayName} initializing strafe vs target {opforUnit?.team.DisplayName}. Calculated cancelChance {ModState.CancelChanceForPlayerStrafe}, display success chance: {chanceDisplay}.");
+                            ModInit.modLog?.Trace?.Write($"[SelectionStateCommandTargetTwoPoints.ProcessLeftClick] Creator {creator.DisplayName} initializing strafe vs target {opforUnit?.team.DisplayName}. Calculated cancelChance {ModState.CancelChanceForPlayerStrafe}, display success chance: {chanceDisplay}.");
+
+                            return;
+                        }
+                    }
+                    cHUD.AttackModeSelector.FireButton.FireText.SetText($"Confirm", Array.Empty<object>());
+
+                    ModInit.modLog?.Trace?.Write($"[SelectionStateCommandTargetTwoPoints.ProcessLeftClick] Creator {creator.DisplayName} initializing ability {abilityDef.Id} vs target {opforUnit?.team.DisplayName}.");
                 }
             }
         }
