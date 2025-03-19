@@ -301,7 +301,7 @@ namespace StrategicOperations.Framework
                 var chance = ModInit.modSettings.strafeTargetsFriendliesChance;
                 if (roll >= chance && allCombatants[i].team.IsFriendly(this.StrafingTeam))
                 {
-                    ModInit.modLog?.Info?.Write($"Roll {roll} >= chance {chance}, skipping.");
+                    ModInit.modLog?.Info?.Write($"Roll {roll} >= strafeTargetsFriendliesChance {chance}, skipping.");
                     continue;
                 }
 
