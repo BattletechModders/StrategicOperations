@@ -1,78 +1,13 @@
-﻿using CustomComponents;
-using IRBTModUtils.CustomInfluenceMap;
-using IRBTModUtils.Logging;
-using Newtonsoft.Json;
-using StrategicOperations.Framework;
-using System;
+﻿using System;
 using System.Collections.Generic;
-using System.Reflection;
-using UnityEngine;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
 using static StrategicOperations.Framework.Classes;
-using Random = System.Random;
 
 namespace StrategicOperations
 {
-    public static class ModInit
-    {
-        public const string HarmonyPackage = "us.tbone.StrategicOperations";
-        private static string modDir;
-        internal static DeferringLogger modLog;
-
-        internal static Settings modSettings;
-        public static readonly Random Random = new Random();
-
-        public static void FinishedLoading(List<string> loadOrder)
-        {
-            ModInit.modLog?.Info?.Write($"Invoking FinishedLoading");
-            var customPositionFactors = new List<CustomInfluenceMapPositionFactor>()
-            {
-                new StrategicInfluenceMapFactors.CustomPositionFactors.PreferAvoidStandingInAirstrikeAreaPosition(),
-                new StrategicInfluenceMapFactors.CustomPositionFactors.PreferCloserToResupply(),
-                new StrategicInfluenceMapFactors.CustomPositionFactors.PreferNearerToSwarmTargets()
-            };
-            CustomFactors.Register("StrategicOperations_PositionFactors", customPositionFactors);
-            var customHostileFactors = new List<CustomInfluenceMapHostileFactor>()
-            {
-                new StrategicInfluenceMapFactors.CustomHostileFactors.PreferAvoidStandingInAirstrikeAreaWithHostile(),
-                new StrategicInfluenceMapFactors.CustomHostileFactors.PreferCloserToResupplyWithHostile(),
-                new StrategicInfluenceMapFactors.CustomHostileFactors.PreferNearerToSwarmTargetsWithHostile()
-            };
-            CustomFactors.Register("StrategicOperations_HostileFactors", customHostileFactors);
-        }
-
-        public static void Init(string directory, string settings)
-        {
-            
-            modDir = directory;
-            Exception settingsException = null;
-            try
-            {
-                modSettings = JsonConvert.DeserializeObject<Settings>(settings);
-            }
-            catch (Exception ex)
-            {
-                settingsException = ex;
-                modSettings = new Settings();
-            }
-            //HarmonyInstance.DEBUG = true;
-            modLog = new DeferringLogger(modDir, "Strategery", modSettings.Debug, modSettings.enableTrace);
-            if (settingsException != null)
-            {
-                ModInit.modLog?.Error?.Write($"EXCEPTION while reading settings file! Error was: {settingsException}");
-            }
-            
-            ModInit.modLog?.Info?.Write($"Initializing StrategicOperations - Version {typeof(Settings).Assembly.GetName().Version}");
-            //var harmony = HarmonyInstance.Create(HarmonyPackage);
-            //harmony.PatchAll(Assembly.GetExecutingAssembly());
-            //FileLog.Log(HarmonyPackage);
-            Registry.RegisterSimpleCustomComponents(Assembly.GetExecutingAssembly());
-            Harmony.CreateAndPatchAll(Assembly.GetExecutingAssembly(), HarmonyPackage);
-            ModState.Initialize();
-            //dump settings
-            ModInit.modLog?.Info?.Write($"Settings dump: {settings}");
-        }
-    }
-    class Settings
+    internal class ModSettings
     {
         public List<string> AI_BattleArmorExcludedContractIDs = new List<string>();
         public List<string> AI_BattleArmorExcludedContractTypes = new List<string>();

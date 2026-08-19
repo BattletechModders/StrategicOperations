@@ -78,9 +78,9 @@ namespace StrategicOperations.Framework
                 if (dropPodVfxPrefab != null)
                 {
                     this.DropPodVfxPrefab = UnityEngine.Object.Instantiate<ParticleSystem>(dropPodVfxPrefab);
-                    ModInit.modLog?.Trace?.Write($"instantiated prefabs");
+                    Mod.Log.Trace?.Log($"instantiated prefabs");
                     this.DropPodVfxPrefab.transform.position = DropPodPosition;
-                    ModInit.modLog?.Trace?.Write($"set position");
+                    Mod.Log.Trace?.Log($"set position");
                     this.DropPodVfxPrefab.Pause();
                     this.DropPodVfxPrefab.Clear();
                 }
@@ -88,7 +88,7 @@ namespace StrategicOperations.Framework
                 {
                     this.DropPodLandedPrefab = UnityEngine.Object.Instantiate<GameObject>(dropPodLandedPrefab, this.OffscreenDropPodPosition, Quaternion.identity);
                 }
-                ModInit.modLog?.Trace?.Write($"finished load drop prefabs");
+                Mod.Log.Trace?.Log($"finished load drop prefabs");
             }
 
             public IEnumerator StartDropPodAnimation(float initialDelay)//, Action unitDropPodAnimationComplete)
@@ -104,11 +104,11 @@ namespace StrategicOperations.Framework
                     this.DropPodVfxPrefab.transform.position = DropPodPosition;
                     this.DropPodVfxPrefab.Simulate(0.0f);
                     this.DropPodVfxPrefab.Play();
-                    ModInit.modLog?.Trace?.Write($"playing droppod anim");
+                    Mod.Log.Trace?.Log($"playing droppod anim");
                 }
                 else
                 {
-                    ModInit.modLog?.Trace?.Write($"No Drop pod anim for biome");
+                    Mod.Log.Trace?.Log($"No Drop pod anim for biome");
                 }
 
                 yield return (object) new WaitForSeconds(1f);
@@ -122,7 +122,7 @@ namespace StrategicOperations.Framework
                 this.DropProcessing = false;
                 //Combat.MessageCenter.PublishMessage((MessageCenterMessage) new AddSequenceToStackMessage(this.Unit.DoneWithActor()));
                 //unitDropPodAnimationComplete();
-                ModInit.modLog?.Trace?.Write($"finish droppod anim");
+                Mod.Log.Trace?.Log($"finish droppod anim");
                 Utils.DeployEvasion(this.Unit);
             }
 
@@ -134,7 +134,7 @@ namespace StrategicOperations.Framework
                     this.DropPodLandedPrefab.transform.rotation = DropPodRotation;
                 }
                 this.Unit.TeleportActor(DropPodPosition);
-                ModInit.modLog?.Trace?.Write($"teleported actor to {DropPodPosition}");
+                Mod.Log.Trace?.Log($"teleported actor to {DropPodPosition}");
                 this.Unit.GameRep.FadeIn(1f);
                 this.Unit.OnPlayerVisibilityChanged(VisibilityLevel.LOSFull);
             }

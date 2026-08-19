@@ -11,12 +11,12 @@ namespace StrategicOperations.Patches
         [HarmonyPatch(typeof(CombatHUDFakeVehicleArmorHover), "setToolTipInfo", new Type[] {typeof(Mech), typeof(ChassisLocations)})]
         public static class CombatHUDFakeVehicleArmorHover_setToolTipInfo
         {
-            static bool Prepare() => ModInit.modSettings.ShowAmmoInVehicleTooltips;
+            static bool Prepare() => Mod.modSettings.ShowAmmoInVehicleTooltips;
 
             public static void Prefix(ref bool __runOriginal, CombatHUDFakeVehicleArmorHover __instance, Mech vehicle, ChassisLocations location)
             {
                 if (!__runOriginal) return;
-                if (!ModInit.modSettings.EnforceIFFForAmmoTooltips || (ModInit.modSettings.EnforceIFFForAmmoTooltips &&
+                if (!Mod.modSettings.EnforceIFFForAmmoTooltips || (Mod.modSettings.EnforceIFFForAmmoTooltips &&
                     vehicle.team.IsFriendly(vehicle.Combat.LocalPlayerTeam)))
                 {
                     //var tooltip = Traverse.Create(__instance).Property("ToolTip").GetValue<CombatHUDTooltipHoverElement>();

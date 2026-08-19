@@ -34,7 +34,7 @@ namespace StrategicOperations.Framework
 
                 public override float EvaluateInfluenceMapFactorAtPositionWithHostile(AbstractActor unit, Vector3 position, float angle, MoveType moveType, ICombatant hostileUnit)
                 {
-                    ModInit.modLog?.Trace?.Write(Name);
+                    Mod.Log.Trace?.Log(Name);
                     if (!AI_Utils.IsPositionWithinAnAirstrike(unit, position))
                     {
                         IgnoreFactorNormalization = false;
@@ -68,7 +68,7 @@ namespace StrategicOperations.Framework
 
                 public override float EvaluateInfluenceMapFactorAtPositionWithHostile(AbstractActor unit, Vector3 position, float angle, MoveType moveType, ICombatant hostileUnit)
                 {
-                    ModInit.modLog?.Trace?.Write(Name);
+                    Mod.Log.Trace?.Log(Name);
 
                     if (unit.AreAnyWeaponsOutOfAmmo() || unit.SummaryArmorCurrent / unit.StartingArmor <= 0.6f)
                     {
@@ -108,7 +108,7 @@ namespace StrategicOperations.Framework
 
                 public override float EvaluateInfluenceMapFactorAtPositionWithHostile(AbstractActor unit, Vector3 position, float angle, MoveType moveType, ICombatant hostileUnit)
                 {
-                    ModInit.modLog?.Trace?.Write(Name);
+                    Mod.Log.Trace?.Log(Name);
                     if (!unit.HasMountedUnits() && !unit.CanSwarm())
                     {
                         IgnoreFactorNormalization = false;
@@ -145,7 +145,7 @@ namespace StrategicOperations.Framework
                 public override float EvaluateInfluenceMapFactorAtPosition(AbstractActor unit, Vector3 position,
                     float angle, MoveType moveType, PathNode pathNode)
                 {
-                    ModInit.modLog?.Trace?.Write(Name);
+                    Mod.Log.Trace?.Log(Name);
                     if (!AI_Utils.IsPositionWithinAnAirstrike(unit, position))
                     {
                         IgnoreFactorNormalization = false;
@@ -180,7 +180,7 @@ namespace StrategicOperations.Framework
                 public override float EvaluateInfluenceMapFactorAtPosition(AbstractActor unit, Vector3 position,
                     float angle, MoveType moveType, PathNode pathNode)
                 {
-                    ModInit.modLog?.Trace?.Write(Name);
+                    Mod.Log.Trace?.Log(Name);
 
                     if (unit.AreAnyWeaponsOutOfAmmo() || unit.SummaryArmorCurrent / unit.StartingArmor <= 0.6f)
                     {
@@ -221,7 +221,7 @@ namespace StrategicOperations.Framework
                 public override float EvaluateInfluenceMapFactorAtPosition(AbstractActor unit, Vector3 position,
                     float angle, MoveType moveType, PathNode pathNode)
                 {
-                    ModInit.modLog?.Trace?.Write(Name);
+                    Mod.Log.Trace?.Log(Name);
                     if (!unit.HasMountedUnits() && !unit.CanSwarm())
                     {
                         IgnoreFactorNormalization = false;
@@ -519,7 +519,7 @@ namespace StrategicOperations.Framework
             public int UseCost;
             public int UseCount;
             public int TotalCost => UseCount * UseCostAdjusted;
-            public int UseCostAdjusted => Mathf.RoundToInt((UseCost * ModInit.modSettings.commandUseCostsMulti) + AbilityUseCost);
+            public int UseCostAdjusted => Mathf.RoundToInt((UseCost * Mod.modSettings.commandUseCostsMulti) + AbilityUseCost);
 
             public CmdUseInfo(string unitId, string commandName, string unitName, int useCost, int abilityUseCost)
             {
@@ -734,7 +734,7 @@ namespace StrategicOperations.Framework
                 }
                 //Actor.Combat.ItemRegistry.AddItem(newBattleArmor);
                 Actor.Combat.RebuildAllLists();
-                ModInit.modLog?.Info?.Write(
+                Mod.Log.Info?.Log(
                     $"[SpawnBattleArmorAtActor] Added PositionLockMount with rider  {newBattleArmor.DisplayName} {newBattleArmor.GUID} and carrier {Actor.DisplayName} {Actor.GUID}.");
             }
 
@@ -783,19 +783,19 @@ namespace StrategicOperations.Framework
                 dropSpawner.DropPodPosition = SpawnLoc;
                 dropSpawner.DropPodRotation = SpawnRotation;
 
-                ModInit.modLog?.Trace?.Write($"DropPodAnim location {SpawnLoc} is also {dropSpawner.DropPodPosition}");
+                Mod.Log.Trace?.Log($"DropPodAnim location {SpawnLoc} is also {dropSpawner.DropPodPosition}");
                 //ModInit.modLog?.Trace?.Write($"Is dropAnim null fuckin somehow? {dropSpawner == null}");
                 dropSpawner.DropPodVfxPrefab = dropSpawner.Parent.DropPodVfxPrefab;
                 dropSpawner.DropPodLandedPrefab = dropSpawner.Parent.dropPodLandedPrefab;
                 dropSpawner.LoadDropPodPrefabs(dropSpawner.DropPodVfxPrefab, dropSpawner.DropPodLandedPrefab);
-                ModInit.modLog?.Trace?.Write($"loaded prefabs success");
+                Mod.Log.Trace?.Log($"loaded prefabs success");
                 dropSpawner.StartCoroutine(dropSpawner.StartDropPodAnimation(0f));
-                ModInit.modLog?.Trace?.Write($"started drop pod anim");
+                Mod.Log.Trace?.Log($"started drop pod anim");
                 if (PlayerControl)
                 {
                     CameraControl.Instance.HUD.MechWarriorTray.RefreshTeam(Combat.LocalPlayerTeam);
                 }
-                if (SourceTeam.IsLocalPlayer && (ModInit.modSettings.commandUseCostsMulti > 0 ||
+                if (SourceTeam.IsLocalPlayer && (Mod.modSettings.commandUseCostsMulti > 0 ||
                                                SourceAbility.Def.getAbilityDefExtension().CBillCost > 0))
                 {
                     var unitName = "";
@@ -813,7 +813,7 @@ namespace StrategicOperations.Framework
                                 SourceAbility.Def.getAbilityDefExtension().CBillCost);
 
                         ModState.CommandUses.Add(commandUse);
-                        ModInit.modLog?.Info?.Write(
+                        Mod.Log.Info?.Log(
                             $"Added usage cost for {commandUse.CommandName} - {commandUse.UnitName}. UnitUseCost (unadjusted): {unitCost}. Ability Use Cost: {SourceAbility.Def.getAbilityDefExtension().CBillCost}");
                     }
                     else
@@ -821,12 +821,12 @@ namespace StrategicOperations.Framework
                         var cmdUse = ModState.CommandUses.FirstOrDefault(x => x.UnitID == ChosenUnit);
                         if (cmdUse == null)
                         {
-                            ModInit.modLog?.Info?.Write($"ERROR: cmdUseInfo was null");
+                            Mod.Log.Info?.Log($"ERROR: cmdUseInfo was null");
                         }
                         else
                         {
                             cmdUse.UseCount += 1;
-                            ModInit.modLog?.Info?.Write(
+                            Mod.Log.Info?.Log(
                                 $"Added usage cost for {cmdUse.CommandName} - {cmdUse.UnitName}. UnitUseCost (unadjusted): {unitCost}. Ability Use Cost: {SourceAbility.Def.getAbilityDefExtension().CBillCost}. Now used {cmdUse.UseCount} times.");
                         }
                     }
@@ -849,7 +849,7 @@ namespace StrategicOperations.Framework
                         this.StrafeWave.Ability.Combat.BattleTechGame, newUnit,
                         BehaviorTreeIDEnum.DoNothingTree);
                 var eventID = Guid.NewGuid().ToString();
-                ModInit.modLog?.Info?.Write($"Initializing Strafing Run (wave) with id {eventID}!");
+                Mod.Log.Info?.Log($"Initializing Strafing Run (wave) with id {eventID}!");
                 TB_StrafeSequence eventSequence =
                     new TB_StrafeSequence(this.ParentSequenceIDForStrafe, eventID, newUnit, SpawnLoc,
                         this.StrafeWave.PositionB, this.StrafeWave.Radius, this.StrafeWave.Team, ModState.IsStrafeAOE, this.StrafeWave.Ability.Def.IntParam1);
@@ -858,7 +858,7 @@ namespace StrategicOperations.Framework
                 Combat.TurnDirector.AddTurnEvent(tEvent);
 
 
-                if (this.StrafeWave.Team.IsLocalPlayer && (ModInit.modSettings.commandUseCostsMulti > 0 ||
+                if (this.StrafeWave.Team.IsLocalPlayer && (Mod.modSettings.commandUseCostsMulti > 0 ||
                                                            this.StrafeWave.Ability.Def.getAbilityDefExtension().CBillCost > 0))
                 {
                     var unitName = "";
@@ -867,7 +867,7 @@ namespace StrategicOperations.Framework
                     unitName = NewUnitDef.Description.UIName;
                     unitID = NewUnitDef.Description.Id;
                     unitCost = NewUnitDef.Chassis.Description.Cost;
-                    ModInit.modLog?.Info?.Write($"Usage cost will be {unitCost}");
+                    Mod.Log.Info?.Log($"Usage cost will be {unitCost}");
 
                     if (ModState.CommandUses.All(x => x.UnitID != this.StrafeWave.ActorResource))
                     {
@@ -876,7 +876,7 @@ namespace StrategicOperations.Framework
                             unitCost, this.StrafeWave.Ability.Def.getAbilityDefExtension().CBillCost);
 
                         ModState.CommandUses.Add(commandUse);
-                        ModInit.modLog?.Info?.Write(
+                        Mod.Log.Info?.Log(
                             $"Added usage cost for {commandUse.CommandName} - {commandUse.UnitName}");
                     }
                     else
@@ -884,12 +884,12 @@ namespace StrategicOperations.Framework
                         var cmdUse = ModState.CommandUses.FirstOrDefault(x => x.UnitID == this.StrafeWave.ActorResource);
                         if (cmdUse == null)
                         {
-                            ModInit.modLog?.Info?.Write($"ERROR: cmdUseInfo was null");
+                            Mod.Log.Info?.Log($"ERROR: cmdUseInfo was null");
                         }
                         else
                         {
                             cmdUse.UseCount += 1;
-                            ModInit.modLog?.Info?.Write(
+                            Mod.Log.Info?.Log(
                                 $"Added usage cost for {cmdUse.CommandName} - {cmdUse.UnitName}, used {cmdUse.UseCount} times");
                         }
                     }
@@ -898,14 +898,14 @@ namespace StrategicOperations.Framework
 
             public void OnStratOpsDepsFailed()
             {
-                ModInit.modLog?.Trace?.Write($"Failed to load Dependencies for {ChosenUnit}. This shouldnt happen!");
+                Mod.Log.Trace?.Log($"Failed to load Dependencies for {ChosenUnit}. This shouldnt happen!");
             }
 
             public void SpawnBattleArmorAtActor()
             {
                 LoadRequest loadRequest = DM.CreateLoadRequest();
                 loadRequest.AddBlindLoadRequest(BattleTechResourceType.MechDef, ChosenUnit);
-                ModInit.modLog?.Info?.Write($"Added loadrequest for MechDef: {ChosenUnit}");
+                Mod.Log.Info?.Log($"Added loadrequest for MechDef: {ChosenUnit}");
                 loadRequest.ProcessRequests(1000U);
 
                 var instanceGUID =
@@ -915,7 +915,7 @@ namespace StrategicOperations.Framework
                 {
                     if (ModState.DeferredInvokeBattleArmor.All(x => x.Key != instanceGUID) && !ModState.DeferredBattleArmorSpawnerFromDelegate)
                     {
-                        ModInit.modLog?.Trace?.Write(
+                        Mod.Log.Trace?.Log(
                             $"Deferred BA Spawner missing, creating delegate and returning. Delegate should spawn {ChosenUnit}");
 
                         void DeferredInvokeBASpawn() =>
@@ -925,7 +925,7 @@ namespace StrategicOperations.Framework
                         ModState.DeferredInvokeBattleArmor.Add(kvp);
                         foreach (var value in ModState.DeferredInvokeBattleArmor)
                         {
-                            ModInit.modLog?.Trace?.Write(
+                            Mod.Log.Trace?.Log(
                                 $"there is a delegate {value.Key} here, with value {value.Value}");
                         }
                         return;
@@ -937,7 +937,7 @@ namespace StrategicOperations.Framework
                 var chosenpilotSourceMech = alliedActors.GetRandomElement();
                 var newPilotDefID = chosenpilotSourceMech.pilot.pilotDef.Description.Id;
                 DM.PilotDefs.TryGet(newPilotDefID, out this.NewPilotDef);
-                ModInit.modLog?.Info?.Write($"Attempting to spawn {ChosenUnit} with pilot {NewPilotDef?.Description?.Callsign}.");
+                Mod.Log.Info?.Log($"Attempting to spawn {ChosenUnit} with pilot {NewPilotDef?.Description?.Callsign}.");
                 DM.MechDefs.TryGet(ChosenUnit, out NewUnitDef);
                 NewUnitDef.Refresh();
                 //var injectedDependencyLoadRequest = new DataManager.InjectedDependencyLoadRequest(dm);
@@ -971,57 +971,58 @@ namespace StrategicOperations.Framework
             {
                 LoadRequest loadRequest = DM.CreateLoadRequest();
                 loadRequest.AddBlindLoadRequest(BattleTechResourceType.MechDef, ChosenUnit);
-                ModInit.modLog?.Info?.Write($"Added loadrequest for MechDef: {ChosenUnit}");
+                Mod.Log.Info?.Log($"Added loadrequest for MechDef: {ChosenUnit}");
                 loadRequest.AddBlindLoadRequest(BattleTechResourceType.PilotDef, ChosenPilot);
-                ModInit.modLog?.Info?.Write($"Added loadrequest for PilotDef: {ChosenPilot}");
+                Mod.Log.Info?.Log($"Added loadrequest for PilotDef: {ChosenPilot}");
                 
                 loadRequest.ProcessRequests(1000U);
 
-                if (false) // maybe dont need? initial invoke should already be deferred, and we cant do this round 1 anyway
-                {
-                    var instanceGUID =
-                        $"{Actor.Description.Id}_{Actor.team.Name}_{ChosenUnit}";
+                // UNREACHABLE CLEANUP
+                //if (false) // maybe dont need? initial invoke should already be deferred, and we cant do this round 1 anyway
+                //{
+                //    var instanceGUID =
+                //        $"{Actor.Description.Id}_{Actor.team.Name}_{ChosenUnit}";
 
-                    if (Actor.Combat.TurnDirector.CurrentRound <= 1)
-                    {
-                        if (ModState.DeferredInvokeBattleArmor.All(x => x.Key != instanceGUID) &&
-                            !ModState.DeferredBattleArmorSpawnerFromDelegate)
-                        {
-                            ModInit.modLog?.Trace?.Write(
-                                $"Deferred BA Spawner missing, creating delegate and returning. Delegate should spawn {ChosenUnit}");
+                //    if (Actor.Combat.TurnDirector.CurrentRound <= 1)
+                //    {
+                //        if (ModState.DeferredInvokeBattleArmor.All(x => x.Key != instanceGUID) &&
+                //            !ModState.DeferredBattleArmorSpawnerFromDelegate)
+                //        {
+                //            Mod.Log.Trace?.Log(
+                //                $"Deferred BA Spawner missing, creating delegate and returning. Delegate should spawn {ChosenUnit}");
 
-                            void DeferredInvokeBASpawn() =>
-                                SpawnBattleArmorAtActor();
+                //            void DeferredInvokeBASpawn() =>
+                //                SpawnBattleArmorAtActor();
 
-                            var kvp = new KeyValuePair<string, Action>(instanceGUID, DeferredInvokeBASpawn);
-                            ModState.DeferredInvokeBattleArmor.Add(kvp);
-                            foreach (var value in ModState.DeferredInvokeBattleArmor)
-                            {
-                                ModInit.modLog?.Trace?.Write(
-                                    $"there is a delegate {value.Key} here, with value {value.Value}");
-                            }
+                //            var kvp = new KeyValuePair<string, Action>(instanceGUID, DeferredInvokeBASpawn);
+                //            ModState.DeferredInvokeBattleArmor.Add(kvp);
+                //            foreach (var value in ModState.DeferredInvokeBattleArmor)
+                //            {
+                //                Mod.Log.Trace?.Log(
+                //                    $"there is a delegate {value.Key} here, with value {value.Value}");
+                //            }
 
-                            return;
-                        }
-                    }
-                }
+                //            return;
+                //        }
+                //    }
+                //}
 
                 //var alliedActors = Combat.AllMechs.Where(x => x.team.IsFriendly(TeamSelection));
                 //var chosenpilotSourceMech = alliedActors.GetRandomElement();
                 //var newPilotDefID = chosenpilotSourceMech.pilot.pilotDef.Description.Id;
                 //DM.PilotDefs.TryGet(newPilotDefID, out this.NewPilotDef);
-                ModInit.modLog?.Info?.Write($"Attempting to spawn {ChosenUnit} with pilot {NewPilotDef?.Description?.Callsign}.");
+                Mod.Log.Info?.Log($"Attempting to spawn {ChosenUnit} with pilot {NewPilotDef?.Description?.Callsign}.");
                 DM.MechDefs.TryGet(ChosenUnit, out NewUnitDef);
                 if (NewUnitDef == null)
                 {
-                    ModInit.modLog?.Info?.Write($"[ERROR] Unable to fetch NewUnitDef from DataManager. Shit gon broke.");
+                    Mod.Log.Info?.Log($"[ERROR] Unable to fetch NewUnitDef from DataManager. Shit gon broke.");
                     return;
                 }
                 NewUnitDef.Refresh();
                 DM.PilotDefs.TryGet(ChosenPilot, out NewPilotDef);
                 if (NewPilotDef == null)
                 {
-                    ModInit.modLog?.Info?.Write(
+                    Mod.Log.Info?.Log(
                         $"[ERROR] Unable to fetch pilotDef from DataManager. Shit gon broke.");
                     return;
                 }
@@ -1060,43 +1061,44 @@ namespace StrategicOperations.Framework
             {
                 LoadRequest loadRequest = DM.CreateLoadRequest();
                 loadRequest.AddBlindLoadRequest(BattleTechResourceType.MechDef, this.StrafeWave.ActorResource);
-                ModInit.modLog?.Info?.Write($"Added loadrequest for MechDef: {this.StrafeWave.ActorResource}");
+                Mod.Log.Info?.Log($"Added loadrequest for MechDef: {this.StrafeWave.ActorResource}");
                 loadRequest.ProcessRequests(1000U);
 
-                if (false) // maybe dont need? initial invoke should already be deferred, and we cant do this round 1 anyway
-                {
-                    var instanceGUID =
-                        $"{Actor.Description.Id}_{Actor.team.Name}_{ChosenUnit}";
+                // UNREACHABLE CLEANUP
+                //if (false) // maybe dont need? initial invoke should already be deferred, and we cant do this round 1 anyway
+                //{
+                //    var instanceGUID =
+                //        $"{Actor.Description.Id}_{Actor.team.Name}_{ChosenUnit}";
 
-                    if (Actor.Combat.TurnDirector.CurrentRound <= 1)
-                    {
-                        if (ModState.DeferredInvokeBattleArmor.All(x => x.Key != instanceGUID) &&
-                            !ModState.DeferredBattleArmorSpawnerFromDelegate)
-                        {
-                            ModInit.modLog?.Trace?.Write(
-                                $"Deferred BA Spawner missing, creating delegate and returning. Delegate should spawn {ChosenUnit}");
+                //    if (Actor.Combat.TurnDirector.CurrentRound <= 1)
+                //    {
+                //        if (ModState.DeferredInvokeBattleArmor.All(x => x.Key != instanceGUID) &&
+                //            !ModState.DeferredBattleArmorSpawnerFromDelegate)
+                //        {
+                //            Mod.Log.Trace?.Log(
+                //                $"Deferred BA Spawner missing, creating delegate and returning. Delegate should spawn {ChosenUnit}");
 
-                            void DeferredInvokeBASpawn() =>
-                                SpawnBattleArmorAtActor();
+                //            void DeferredInvokeBASpawn() =>
+                //                SpawnBattleArmorAtActor();
 
-                            var kvp = new KeyValuePair<string, Action>(instanceGUID, DeferredInvokeBASpawn);
-                            ModState.DeferredInvokeBattleArmor.Add(kvp);
-                            foreach (var value in ModState.DeferredInvokeBattleArmor)
-                            {
-                                ModInit.modLog?.Trace?.Write(
-                                    $"there is a delegate {value.Key} here, with value {value.Value}");
-                            }
+                //            var kvp = new KeyValuePair<string, Action>(instanceGUID, DeferredInvokeBASpawn);
+                //            ModState.DeferredInvokeBattleArmor.Add(kvp);
+                //            foreach (var value in ModState.DeferredInvokeBattleArmor)
+                //            {
+                //                Mod.Log.Trace?.Log(
+                //                    $"there is a delegate {value.Key} here, with value {value.Value}");
+                //            }
 
-                            return;
-                        }
-                    }
-                }
+                //            return;
+                //        }
+                //    }
+                //}
 
                 //var alliedActors = Combat.AllMechs.Where(x => x.team.IsFriendly(TeamSelection));
                 //var chosenpilotSourceMech = alliedActors.GetRandomElement();
                 //var newPilotDefID = chosenpilotSourceMech.pilot.pilotDef.Description.Id;
                 //DM.PilotDefs.TryGet(newPilotDefID, out this.NewPilotDef);
-                ModInit.modLog?.Info?.Write($"Attempting to spawn {ChosenUnit} with pilot {NewPilotDef?.Description?.Callsign}.");
+                Mod.Log.Info?.Log($"Attempting to spawn {ChosenUnit} with pilot {NewPilotDef?.Description?.Callsign}.");
                 DM.MechDefs.TryGet(ChosenUnit, out NewUnitDef);
                 NewUnitDef.Refresh();
                 //var injectedDependencyLoadRequest = new DataManager.InjectedDependencyLoadRequest(dm);
@@ -1298,7 +1300,7 @@ namespace StrategicOperations.Framework
                 {
                     if (this.Target is BattleTech.Building building)
                     {
-                        ModInit.modLog?.Info?.Write(
+                        Mod.Log.Info?.Log(
                             $"[StrategicMovementSequence] Called for BA movement to garrison building {building.DisplayName}.");
                         squad.ProcessGarrisonBuilding(building);
                         return;
@@ -1309,7 +1311,7 @@ namespace StrategicOperations.Framework
                 {
                     if (MountSwarmBA)
                     {
-                        ModInit.modLog?.Info?.Write(
+                        Mod.Log.Info?.Log(
                             $"[StrategicMovementSequence] Called for BA movement to mount or swarm.");
                         if (base.owningActor is TrooperSquad squad2)
                         {
@@ -1327,11 +1329,11 @@ namespace StrategicOperations.Framework
                                 squad2.ProcessSwarmEnemy(targetActor);
                             }
 
-                            if (ModInit.modSettings.AttackOnSwarmSuccess && squad2.IsSwarmingUnit())
+                            if (Mod.modSettings.AttackOnSwarmSuccess && squad2.IsSwarmingUnit())
                             {
                                 if (squad2.GetAbilityUsedFiring())
                                 {
-                                    ModInit.modLog?.Info?.Write($"[StrategicMovementSequence] Actor {squad2.DisplayName} has used an ability that consumed firing, not generating swarm.");
+                                    Mod.Log.Info?.Log($"[StrategicMovementSequence] Actor {squad2.DisplayName} has used an ability that consumed firing, not generating swarm.");
                                     return;
                                 }
                                 if (!squad2.team.IsLocalPlayer)
@@ -1350,10 +1352,10 @@ namespace StrategicOperations.Framework
 
                                 var loc = ModState.BADamageTrackers[squad2.GUID].BA_MountedLocations.Values.GetRandomElement();
 
-                                ModInit.modLog?.Info?.Write(
+                                Mod.Log.Info?.Log(
                                     $"[StrategicMovementSequence - CompleteOrders] Creating attack sequence on successful swarm attack targeting location {loc}.");
 
-                                if (squad2 is Mech unitMech && ModInit.modSettings.MeleeOnSwarmAttacks)
+                                if (squad2 is Mech unitMech && Mod.modSettings.MeleeOnSwarmAttacks)
                                 {
                                     if (!ModState.SwarmMeleeSequences.ContainsKey(squad2.GUID))
                                     {
@@ -1385,14 +1387,14 @@ namespace StrategicOperations.Framework
                         }
                         else
                         {
-                            ModInit.modLog?.Info?.Write(
+                            Mod.Log.Info?.Log(
                                 $"[StrategicMovementSequence] ERROR: called sequence for BA, but actor is not TrooperSquad.");
                             return;
                         }
                     }
                     else if (!MountSwarmBA)
                     {
-                        ModInit.modLog?.Info?.Write(
+                        Mod.Log.Info?.Log(
                             $"[StrategicMovementSequence] Called for airlift/dropoff for Target {this.Target.DisplayName}.");
 
                         if (targetActor.IsAirlifted())

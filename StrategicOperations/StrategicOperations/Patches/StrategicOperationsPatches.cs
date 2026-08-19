@@ -37,9 +37,9 @@ namespace StrategicOperations.Patches
                 {
                     if (target is AbstractActor targetActor)
                     {
-                        if (__instance.Def.Id == ModInit.modSettings.ResupplyConfig.ResupplyAbilityID)
+                        if (__instance.Def.Id == Mod.modSettings.ResupplyConfig.ResupplyAbilityID)
                         {
-                            ModInit.modLog?.Trace?.Write($"[Ability.Activate] Activating resupply from unit {creator.DisplayName} and resupplier {targetActor.DisplayName}.");
+                            Mod.Log.Trace?.Log($"[Ability.Activate] Activating resupply from unit {creator.DisplayName} and resupplier {targetActor.DisplayName}.");
                             var phases = creator.ProcessResupplyUnit(targetActor);
                             creator.InitiateShutdownForPhases(phases);
                             targetActor.InitiateShutdownForPhases(phases);
@@ -47,10 +47,10 @@ namespace StrategicOperations.Patches
 
                         if (creator.HasSwarmingUnits() && creator.GUID == targetActor.GUID)
                         {
-                            ModInit.modLog?.Trace?.Write($"[Ability.Activate - Unit has sawemers].");
+                            Mod.Log.Trace?.Log($"[Ability.Activate - Unit has sawemers].");
                             var swarmingUnits = ModState.PositionLockSwarm.Where(x => x.Value == creator.GUID).ToList();
 
-                            if (__instance.Def.Id == ModInit.modSettings.BattleArmorDeSwarmRoll)
+                            if (__instance.Def.Id == Mod.modSettings.BattleArmorDeSwarmRoll)
                             {
                                 creator.ProcessDeswarmRoll(swarmingUnits);
                                 creator.FlagForKnockdown();
@@ -58,15 +58,15 @@ namespace StrategicOperations.Patches
                                 return;
                             }
 
-                            else if (__instance.Def.Id == ModInit.modSettings.BattleArmorDeSwarmSwat)
+                            else if (__instance.Def.Id == Mod.modSettings.BattleArmorDeSwarmSwat)
                             {
                                 creator.ProcessDeswarmSwat(swarmingUnits);
                                 return;
                             }
 
-                            else if (__instance.Def.Id == ModInit.modSettings.DeswarmMovementConfig.AbilityDefID)
+                            else if (__instance.Def.Id == Mod.modSettings.DeswarmMovementConfig.AbilityDefID)
                             {
-                                ModInit.modLog?.Trace?.Write($"[Ability.Activate - BattleArmorDeSwarm Movement].");
+                                Mod.Log.Trace?.Log($"[Ability.Activate - BattleArmorDeSwarm Movement].");
                                 creator.ProcessDeswarmMovement(
                                     swarmingUnits); // need to patch ActorMovementSequence complete AND JumpSequence complete AND DFASequencecomplete, and then do magic logic in there. or just do it on
                                 return; //return to avoid ending turn for player below. making AI use this properly is gonna suck hind tit.
@@ -86,7 +86,7 @@ namespace StrategicOperations.Patches
 
                             return;
                         }
-                        if (__instance.Def.Id == ModInit.modSettings.BattleArmorMountAndSwarmID)
+                        if (__instance.Def.Id == Mod.modSettings.BattleArmorMountAndSwarmID)
                         {
                             if (!creator.IsSwarmingUnit() && !creator.IsMountedUnit())
                             {
@@ -124,9 +124,9 @@ namespace StrategicOperations.Patches
 
                             }
                         }
-                        else if (__instance.Def.Id == ModInit.modSettings.AirliftAbilityID)
+                        else if (__instance.Def.Id == Mod.modSettings.AirliftAbilityID)
                         {
-                            ModInit.modLog?.Trace?.Write($"[Ability.Activate] - Creating airlift invocation for carrier {creator.DisplayName} and target {targetActor.DisplayName}.");
+                            Mod.Log.Trace?.Log($"[Ability.Activate] - Creating airlift invocation for carrier {creator.DisplayName} and target {targetActor.DisplayName}.");
                             if (target.team.IsFriendly(creator.team))
                             {
                                 //if dropoff, just drop dont do movement?
@@ -166,7 +166,7 @@ namespace StrategicOperations.Patches
                         }
                     }
                     if (target is BattleTech.Building building &&
-                        __instance.Def.Id == ModInit.modSettings.BattleArmorMountAndSwarmID && creator is TrooperSquad squad2)
+                        __instance.Def.Id == Mod.modSettings.BattleArmorMountAndSwarmID && creator is TrooperSquad squad2)
                     {
                         if (!building.HasGarrisonedUnits())
                         {
@@ -194,7 +194,7 @@ namespace StrategicOperations.Patches
             public static void Prefix(ref bool __runOriginal, Ability __instance, AbstractActor creator, Vector3 positionA, Vector3 positionB)
             {
                 if (!__runOriginal) return;
-                ModInit.modLog?.Info?.Write($"[Ability.Activate - 2pts] Running Ability.Activate; check if skirmish."); // need to add blocks for self-apply EffectData
+                Mod.Log.Info?.Log($"[Ability.Activate - 2pts] Running Ability.Activate; check if skirmish."); // need to add blocks for self-apply EffectData
                 if (__instance.Combat.ActiveContract.ContractTypeValue.IsSkirmish)
                 {
                     __runOriginal = true;
@@ -202,7 +202,7 @@ namespace StrategicOperations.Patches
                 }
                 if (!__instance.IsAvailable)
                 {
-                    ModInit.modLog?.Info?.Write(
+                    Mod.Log.Info?.Log(
                         $"[Ability.Activate - 2pts] Ability {__instance.Def.Description.Name} was unavailable, continuing to vanilla handling.");
                     __runOriginal = true;
                     return;
@@ -212,7 +212,7 @@ namespace StrategicOperations.Patches
 
 
                 var showPopup = false;
-                if (ModInit.modSettings.BeaconExclusionConfig.TryGetValue(creator.Combat.ActiveContract.ContractTypeValue.Name, out var configType))
+                if (Mod.modSettings.BeaconExclusionConfig.TryGetValue(creator.Combat.ActiveContract.ContractTypeValue.Name, out var configType))
                 {
                     if (creator.team.IsLocalPlayer)
                     {
@@ -221,7 +221,7 @@ namespace StrategicOperations.Patches
                     }
                 }
 
-                else if (ModInit.modSettings.BeaconExclusionConfig.TryGetValue(creator.Combat.ActiveContract.Override.ID, out var configID))
+                else if (Mod.modSettings.BeaconExclusionConfig.TryGetValue(creator.Combat.ActiveContract.Override.ID, out var configID))
                 {
                     if (creator.team.IsLocalPlayer)
                     {
@@ -236,7 +236,7 @@ namespace StrategicOperations.Patches
                     var popup = GenericPopupBuilder.Create(GenericPopupType.Info, $"Ability {__instance.Def.Description.Name} is unavailable during this contract!");
                     popup.AddButton("Confirm", null, true, null);
                     popup.IsNestedPopupWithBuiltInFader().CancelOnEscape().Render();
-                    ModInit.modLog?.Info?.Write($"[Ability.Activate - 2pts] Ability {__instance.Def.Description.Name} unavailable due to exclusion settings. Aborting.");
+                    Mod.Log.Info?.Log($"[Ability.Activate - 2pts] Ability {__instance.Def.Description.Name} unavailable due to exclusion settings. Aborting.");
                     __runOriginal = false;
                     return;
                 }
@@ -247,7 +247,7 @@ namespace StrategicOperations.Patches
                     //Utils._activateStrafeMethod.Invoke(__instance, new object[] { creator.team, positionA, positionB, __instance.Def.FloatParam1 });
                     //__instance.ActivateStrafe(creator.team, positionA, positionB, __instance.Def.FloatParam1);
                     __instance.ActivateStrafeFromActor(creator, creator.team, positionA, positionB, __instance.Def.FloatParam1);
-                    ModInit.modLog?.Info?.Write($"[Ability.Activate - 2pts] {creator.Description?.Name}: ActivateStrafe invoked from Ability.Activate. Distance was {Vector3.Distance(positionA, positionB)}");
+                    Mod.Log.Info?.Log($"[Ability.Activate - 2pts] {creator.Description?.Name}: ActivateStrafe invoked from Ability.Activate. Distance was {Vector3.Distance(positionA, positionB)}");
                     __instance.Combat.MessageCenter.PublishMessage(new AbilityActivatedMessage(creator.GUID,
                         creator.GUID, __instance.Def.Id, positionA, positionB));
                     __instance.ActivateCooldown();
@@ -261,7 +261,7 @@ namespace StrategicOperations.Patches
                     //Utils._activateSpawnTurretMethod.Invoke(__instance, new object[] { creator.team, positionA, positionB });
                     //__instance.ActivateSpawnTurret(creator.team, positionA, positionB);
                     __instance.ActivateSpawnTurretFromActor(creator, creator.team, positionA, positionB);
-                    ModInit.modLog?.Info?.Write($"[Ability.Activate - 2pts] {creator.Description?.Name}: ActivateSpawnTurret invoked from Ability.Activate. Distance was {Vector3.Distance(positionA, positionB)}");
+                    Mod.Log.Info?.Log($"[Ability.Activate - 2pts] {creator.Description?.Name}: ActivateSpawnTurret invoked from Ability.Activate. Distance was {Vector3.Distance(positionA, positionB)}");
                     __instance.Combat.MessageCenter.PublishMessage(new AbilityActivatedMessage(creator.GUID,
                         creator.GUID, __instance.Def.Id, positionA, positionB));
                     __instance.ActivateCooldown();
@@ -285,7 +285,7 @@ namespace StrategicOperations.Patches
                     __runOriginal = true;
                     return;
                 }
-                ModInit.modLog?.Info?.Write($"[Ability_ActivateSpawnTurret] Running Ability.ActivateSpawnTurret");
+                Mod.Log.Info?.Log($"[Ability_ActivateSpawnTurret] Running Ability.ActivateSpawnTurret");
                 var combat = UnityGameInstance.BattleTechGame.Combat;
                 var dm = combat.DataManager;
                 var sim = UnityGameInstance.BattleTechGame.Simulation;
@@ -296,20 +296,20 @@ namespace StrategicOperations.Patches
                 var quid = "";
                 if (__instance?.parentComponent?.parent?.GUID != null)
                 {
-                    ModInit.modLog?.Info?.Write($"[Ability_ActivateSpawnTurret] using {__instance.parentComponent.parent.GUID} from component parent");
+                    Mod.Log.Info?.Log($"[Ability_ActivateSpawnTurret] using {__instance.parentComponent.parent.GUID} from component parent");
                     quid = __instance.Generate2PtCMDQuasiGUID(__instance.parentComponent.parent.GUID, positionA, positionB);
 
                 }
                 else if (__instance?.parentComponent?.GUID != null)
                 {
                     var quidFromAbilifier = __instance.parentComponent.GUID.Substring(20);
-                    ModInit.modLog?.Info?.Write($"[Ability_ActivateSpawnTurret] using {__instance.parentComponent.GUID} from abilifier component guid; processed down to {quidFromAbilifier}");
+                    Mod.Log.Info?.Log($"[Ability_ActivateSpawnTurret] using {__instance.parentComponent.GUID} from abilifier component guid; processed down to {quidFromAbilifier}");
                     quid = __instance.Generate2PtCMDQuasiGUID(quidFromAbilifier, positionA, positionB);
                 }
-                ModInit.modLog?.Info?.Write($"[Ability_ActivateSpawnTurret] Trying to find params with key {quid}");
+                Mod.Log.Info?.Log($"[Ability_ActivateSpawnTurret] Trying to find params with key {quid}");
                 if (!ModState.StoredCmdParams.ContainsKey(quid))
                 {
-                    ModInit.modLog?.Info?.Write($"[Ability_ActivateSpawnTurret] No strafe params stored, wtf");
+                    Mod.Log.Info?.Log($"[Ability_ActivateSpawnTurret] No strafe params stored, wtf");
                     __runOriginal = true;
                     return;
                 }
@@ -321,7 +321,7 @@ namespace StrategicOperations.Patches
                 }
                 if (!ModState.StoredCmdParams.ContainsKey(quid))
                 {
-                    ModInit.modLog?.Info?.Write($"[Ability_ActivateSpawnTurret] No spawn params stored, wtf");
+                    Mod.Log.Info?.Log($"[Ability_ActivateSpawnTurret] No spawn params stored, wtf");
                     __runOriginal = true;
                     return;
                 }
@@ -343,7 +343,7 @@ namespace StrategicOperations.Patches
                                 StatCollection.StatOperation.Int_Subtract, 1);
                         }
                     }
-                    ModInit.modLog?.Info?.Write($"[Ability_ActivateSpawnTurret] Decrementing count of {actorResource} in deploymentAssetsDict");
+                    Mod.Log.Info?.Log($"[Ability_ActivateSpawnTurret] Decrementing count of {actorResource} in deploymentAssetsDict");
                 }
 
                 var instanceGUID =
@@ -351,14 +351,14 @@ namespace StrategicOperations.Patches
 
                 if (ModState.DeferredInvokeSpawns.All(x => x.Key != instanceGUID) && !ModState.DeferredSpawnerFromDelegate)
                 {
-                    ModInit.modLog?.Info?.Write(
+                    Mod.Log.Info?.Log(
                         $"[Ability_ActivateSpawnTurret] Deferred Spawner = null, creating delegate and returning false. Delegate should spawn {actorResource}");
 
                     void DeferredInvokeSpawn() => __instance.ActivateSpawnTurret(team, positionA, positionB);//Utils._activateSpawnTurretMethod.Invoke(__instance, new object[] { team, positionA, positionB });
 
                     var kvp = new KeyValuePair<string, Action>(instanceGUID, DeferredInvokeSpawn);
                     ModState.DeferredInvokeSpawns.Add(kvp);
-                    Utils.SpawnFlares(__instance, positionA, positionB, ModInit.modSettings.flareResourceID, 1, __instance.Def.ActivationETA, team.IsLocalPlayer);
+                    Utils.SpawnFlares(__instance, positionA, positionB, Mod.modSettings.flareResourceID, 1, __instance.Def.ActivationETA, team.IsLocalPlayer);
                     //                    var flares = Traverse.Create(__instance).Method("SpawnFlares",
                     //                        new object[] {positionA, positionA, __instance.Def., 1, 1});
                     //                    flares.GetValue();
@@ -369,7 +369,7 @@ namespace StrategicOperations.Patches
                 if (!string.IsNullOrEmpty(ModState.DeferredActorResource))
                 {
                     actorResource = ModState.DeferredActorResource;
-                    ModInit.modLog?.Info?.Write($"[Ability_ActivateSpawnTurret] {actorResource} restored from deferredActorResource");
+                    Mod.Log.Info?.Log($"[Ability_ActivateSpawnTurret] {actorResource} restored from deferredActorResource");
                 }
 
                 var pilotID = "pilot_sim_starter_dekker";
@@ -383,7 +383,7 @@ namespace StrategicOperations.Patches
                     pilotID = __instance.Def.getAbilityDefExtension().CMDPilotOverride;
                 }
 
-                ModInit.modLog?.Info?.Write($"[Ability_ActivateSpawnTurret] Pilot should be {pilotID}");
+                Mod.Log.Info?.Log($"[Ability_ActivateSpawnTurret] Pilot should be {pilotID}");
                 var cmdLance = new Lance();
                 if (playerControl)
                 {
@@ -391,7 +391,7 @@ namespace StrategicOperations.Patches
                     else
                     {
                         cmdLance = new Lance();
-                        ModInit.modLog?.Error?.Write($"[Ability_ActivateSpawnTurret] No lances found for team! This is fucked up!");
+                        Mod.Log.Error?.Log($"[Ability_ActivateSpawnTurret] No lances found for team! This is fucked up!");
                     }
                 }
                 else cmdLance = Utils.CreateOrFetchCMDLance(teamSelection);
@@ -400,7 +400,7 @@ namespace StrategicOperations.Patches
 
                 if (actorResource.StartsWith("mechdef_") || actorResource.StartsWith("vehicledef_"))
                 {
-                    ModInit.modLog?.Info?.Write($"[Ability_ActivateSpawnTurret] Attempting to spawn {actorResource} as mech."); 
+                    Mod.Log.Info?.Log($"[Ability_ActivateSpawnTurret] Attempting to spawn {actorResource} as mech."); 
                     var spawner = new Classes.CustomSpawner(team, __instance, combat, actorResource, cmdLance, teamSelection, positionA, quaternion, supportHeraldryDef, pilotID, playerControl);
                     spawner.SpawnBeaconUnitAtLocation();
                     __runOriginal = false;
@@ -617,7 +617,7 @@ namespace StrategicOperations.Patches
 #endif
                 else
                 {
-                    ModInit.modLog?.Info?.Write($"[Ability_ActivateSpawnTurret] Attempting to spawn {actorResource} as turret.");
+                    Mod.Log.Info?.Log($"[Ability_ActivateSpawnTurret] Attempting to spawn {actorResource} as turret.");
                     //var spawnTurretMethod = Traverse.Create(__instance).Method("SpawnTurret", new object[] { teamSelection, actorResource, positionA, quaternion });
                     var turretActor = __instance.SpawnTurret(teamSelection, actorResource, positionA, quaternion);//spawnTurretMethod.GetValue<AbstractActor>());
 
@@ -654,18 +654,18 @@ namespace StrategicOperations.Patches
                     dropSpawner.DropPodPosition = positionA;
                     dropSpawner.DropPodRotation = quaternion;
 
-                    ModInit.modLog?.Trace?.Write($"[Ability_ActivateSpawnTurret] DropPodAnim location {positionA} is also {dropSpawner.DropPodPosition}");
-                    ModInit.modLog?.Trace?.Write($"[Ability_ActivateSpawnTurret] Is dropAnim null fuckin somehow? {dropSpawner == null}");
+                    Mod.Log.Trace?.Log($"[Ability_ActivateSpawnTurret] DropPodAnim location {positionA} is also {dropSpawner.DropPodPosition}");
+                    Mod.Log.Trace?.Log($"[Ability_ActivateSpawnTurret] Is dropAnim null fuckin somehow? {dropSpawner == null}");
                     dropSpawner.DropPodVfxPrefab = dropSpawner.Parent.DropPodVfxPrefab;
                     dropSpawner.DropPodLandedPrefab = dropSpawner.Parent.dropPodLandedPrefab;
                     dropSpawner.LoadDropPodPrefabs(dropSpawner.DropPodVfxPrefab, dropSpawner.DropPodLandedPrefab);
-                    ModInit.modLog?.Trace?.Write($"[Ability_ActivateSpawnTurret] loaded prefabs success");
+                    Mod.Log.Trace?.Log($"[Ability_ActivateSpawnTurret] loaded prefabs success");
                     dropSpawner.StartCoroutine(dropSpawner.StartDropPodAnimation(0f));
-                    ModInit.modLog?.Trace?.Write($"[Ability_ActivateSpawnTurret] started drop pod anim");
+                    Mod.Log.Trace?.Log($"[Ability_ActivateSpawnTurret] started drop pod anim");
 
                     ///////////////
 
-                    if (team.IsLocalPlayer && (ModInit.modSettings.commandUseCostsMulti > 0 ||
+                    if (team.IsLocalPlayer && (Mod.modSettings.commandUseCostsMulti > 0 ||
                                                __instance.Def.getAbilityDefExtension().CBillCost > 0))
                     {
                         var unitName = "";
@@ -686,7 +686,7 @@ namespace StrategicOperations.Patches
                                     __instance.Def.getAbilityDefExtension().CBillCost);
 
                             ModState.CommandUses.Add(commandUse);
-                            ModInit.modLog?.Info?.Write(
+                            Mod.Log.Info?.Log(
                                 $"[Ability_ActivateSpawnTurret] Added usage cost for {commandUse.CommandName} - {commandUse.UnitName}. UnitUseCost (unadjusted): {unitCost}. Ability Use Cost: {__instance.Def.getAbilityDefExtension().CBillCost}");
                         }
                         else
@@ -694,12 +694,12 @@ namespace StrategicOperations.Patches
                             var cmdUse = ModState.CommandUses.FirstOrDefault(x => x.UnitID == actorResource);
                             if (cmdUse == null)
                             {
-                                ModInit.modLog?.Info?.Write($"ERROR: cmdUseInfo was null");
+                                Mod.Log.Info?.Log($"ERROR: cmdUseInfo was null");
                             }
                             else
                             {
                                 cmdUse.UseCount += 1;
-                                ModInit.modLog?.Info?.Write(
+                                Mod.Log.Info?.Log(
                                     $"[Ability_ActivateSpawnTurret] Added usage cost for {cmdUse.CommandName} - {cmdUse.UnitName}. UnitUseCost (unadjusted): {unitCost}. Ability Use Cost: {__instance.Def.getAbilityDefExtension().CBillCost}. Now used {cmdUse.UseCount} times.");
                             }
                         }
@@ -725,7 +725,7 @@ namespace StrategicOperations.Patches
                     __runOriginal = true;
                     return;
                 }
-                ModInit.modLog?.Info?.Write($"Running Ability.ActivateStrafe");
+                Mod.Log.Info?.Log($"Running Ability.ActivateStrafe");
                 var dm = __instance.Combat.DataManager;
                 var sim = UnityGameInstance.BattleTechGame.Simulation;
                 var pilotID = "pilot_sim_starter_dekker";
@@ -733,20 +733,20 @@ namespace StrategicOperations.Patches
                 var quid = "";
                 if (__instance?.parentComponent?.parent?.GUID != null)
                 {
-                    ModInit.modLog?.Info?.Write($"[Ability_ActivateStrafe] using {__instance.parentComponent.parent.GUID} from component parent");
+                    Mod.Log.Info?.Log($"[Ability_ActivateStrafe] using {__instance.parentComponent.parent.GUID} from component parent");
                     quid = __instance.Generate2PtCMDQuasiGUID(__instance.parentComponent.parent.GUID, positionA, positionB);
                     
                 }
                 else if (__instance?.parentComponent?.GUID != null)
                 {
                     var quidFromAbilifier = __instance.parentComponent.GUID.Substring(20);
-                    ModInit.modLog?.Info?.Write($"[Ability_ActivateStrafe] using {__instance.parentComponent.GUID} from abilifier component guid; processed down to {quidFromAbilifier}");
+                    Mod.Log.Info?.Log($"[Ability_ActivateStrafe] using {__instance.parentComponent.GUID} from abilifier component guid; processed down to {quidFromAbilifier}");
                     quid = __instance.Generate2PtCMDQuasiGUID(quidFromAbilifier, positionA, positionB);
                 }
-                ModInit.modLog?.Info?.Write($"[Ability_ActivateStrafe] Trying to find params with key {quid}");
+                Mod.Log.Info?.Log($"[Ability_ActivateStrafe] Trying to find params with key {quid}");
                 if (!ModState.StoredCmdParams.ContainsKey(quid))
                 {
-                    ModInit.modLog?.Info?.Write($"[Ability_ActivateStrafe] No strafe params stored, wtf");
+                    Mod.Log.Info?.Log($"[Ability_ActivateStrafe] No strafe params stored, wtf");
                     __runOriginal = true;
                     return;
                 }
@@ -782,10 +782,10 @@ namespace StrategicOperations.Patches
 
                 //var supportTeam = __instance.Combat.Teams.FirstOrDefault(x => x.GUID == "61612bb3-abf9-4586-952a-0559fa9dcd75");
 
-                ModInit.modLog?.Info?.Write($"Team neutralTeam = {supportTeam?.DisplayName}");
+                Mod.Log.Info?.Log($"Team neutralTeam = {supportTeam?.DisplayName}");
                 var cmdLance = Utils.CreateOrFetchCMDLance(supportTeam);
                 var actorResource = __instance.Def.ActorResource;
-                var strafeWaves = ModInit.modSettings.strafeWaves;
+                var strafeWaves = Mod.modSettings.strafeWaves;
                 if (strafeParams.StrafeWaves > 0)
                 {
                     //strafeWaves = ModState.StrafeWaves;
@@ -799,7 +799,7 @@ namespace StrategicOperations.Patches
                         //ModState.PopupActorResource = "";
                     }
 
-                    ModInit.modLog?.Info?.Write($"Pilot should be {pilotID}");
+                    Mod.Log.Info?.Log($"Pilot should be {pilotID}");
                     if (ModState.DeploymentAssetsStats.Any(x => x.ID == actorResource) && team.IsLocalPlayer)
                     {
                         var assetStatInfo = ModState.DeploymentAssetsStats.FirstOrDefault(x => x.ID == actorResource);
@@ -813,21 +813,21 @@ namespace StrategicOperations.Patches
                             }
                         }
 
-                        ModInit.modLog?.Info?.Write($"Decrementing count of {actorResource} in deploymentAssetsDict");
+                        Mod.Log.Info?.Log($"Decrementing count of {actorResource} in deploymentAssetsDict");
                     }
 
                     var parentSequenceID = Guid.NewGuid().ToString();
 
                     LoadRequest loadRequest = dm.CreateLoadRequest();
                     loadRequest.AddBlindLoadRequest(BattleTechResourceType.MechDef, actorResource);
-                    ModInit.modLog?.Info?.Write($"Added loadrequest for MechDef: {actorResource}");
+                    Mod.Log.Info?.Log($"Added loadrequest for MechDef: {actorResource}");
                     loadRequest.AddBlindLoadRequest(BattleTechResourceType.PilotDef, pilotID);
-                    ModInit.modLog?.Info?.Write($"Added loadrequest for PilotDef: {pilotID}");
+                    Mod.Log.Info?.Log($"Added loadrequest for PilotDef: {pilotID}");
                     loadRequest.ProcessRequests(1000U);
                     dm.PilotDefs.TryGet(pilotID, out var supportPilotDef);
                     if (supportPilotDef == null)
                     {
-                        ModInit.modLog?.Info?.Write($"[ERROR] Unable to fetch pilotdef from DataManager. Shits gon broke.");
+                        Mod.Log.Info?.Log($"[ERROR] Unable to fetch pilotdef from DataManager. Shits gon broke.");
                     }
 
                     var newWave = new PendingStrafeWave(strafeWaves - 1, __instance, team, positionA,
@@ -835,10 +835,10 @@ namespace StrategicOperations.Patches
                         dm);
                     ModState.PendingStrafeWaves.Add(parentSequenceID, newWave);
                     Utils.InitiateStrafe(parentSequenceID, newWave);
-                    ModInit.modLog?.Info?.Write($"First time initializing strafe with GUID {parentSequenceID}");
+                    Mod.Log.Info?.Log($"First time initializing strafe with GUID {parentSequenceID}");
                     if (__instance.Def.IntParam1 > 0)
                     {
-                        Utils.SpawnFlares(__instance, positionA, positionB, ModInit.modSettings.flareResourceID,
+                        Utils.SpawnFlares(__instance, positionA, positionB, Mod.modSettings.flareResourceID,
                             __instance.Def.IntParam1, Math.Max(__instance.Def.ActivationETA * strafeWaves, strafeWaves), team.IsLocalPlayer); // make smoke last for all strafe waves because babies
                     }
 
@@ -857,7 +857,7 @@ namespace StrategicOperations.Patches
                 if (UnityGameInstance.BattleTechGame.Combat.ActiveContract.ContractTypeValue.IsSkirmish) return;
                 if (!__result) return;
                 if (!__instance.TryFetchParentFromAbility(out var parent)) return;
-                if (ModInit.modSettings.BeaconExclusionConfig.TryGetValue(__instance.Combat.ActiveContract.ContractTypeValue.Name, out var configType))
+                if (Mod.modSettings.BeaconExclusionConfig.TryGetValue(__instance.Combat.ActiveContract.ContractTypeValue.Name, out var configType))
                 {
                     if (parent.team.IsLocalPlayer)
                     {
@@ -874,7 +874,7 @@ namespace StrategicOperations.Patches
                             __result = !configType.ExcludedAISpawn;
                     }
                 }
-                else if (ModInit.modSettings.BeaconExclusionConfig.TryGetValue(__instance.Combat.ActiveContract.Override.ID, out var configID))
+                else if (Mod.modSettings.BeaconExclusionConfig.TryGetValue(__instance.Combat.ActiveContract.Override.ID, out var configID))
                 {
                     if (parent.team.IsLocalPlayer)
                     {
@@ -976,25 +976,25 @@ namespace StrategicOperations.Patches
                 Ability ability = __instance.ComponentAbilities.Find((Ability x) => x.Def.Id == abilityName);
                 if (ability == null)
                 {
-                    ModInit.modLog?.Trace?.Write($"[AbstractActor_ActivateAbility] - could not find ability {abilityName} in ComponentAbilities.");
+                    Mod.Log.Trace?.Log($"[AbstractActor_ActivateAbility] - could not find ability {abilityName} in ComponentAbilities.");
                     ability = __instance.GetPilot().ActiveAbilities.Find((Ability x) => x.Def.Id == abilityName);
                 };
                 if (ability == null)
                 {
-                    ModInit.modLog?.Trace?.Write($"[AbstractActor_ActivateAbility] - could not find ability {abilityName} in ActiveAbilities.");
+                    Mod.Log.Trace?.Log($"[AbstractActor_ActivateAbility] - could not find ability {abilityName} in ActiveAbilities.");
                     __runOriginal = true;
                     return;
                 }
                 if (ability.Def.Targeting == AbilityDef.TargetingType.CommandSpawnPosition)
                 {
-                    ModInit.modLog?.Trace?.Write($"[AbstractActor_ActivateAbility] - activating turret spawny.");
+                    Mod.Log.Trace?.Log($"[AbstractActor_ActivateAbility] - activating turret spawny.");
                     ability.Activate(__instance, posA, posB); // added to try and unfuck strafe as regular ability
                     __runOriginal = false;
                     return;
                 }
                 if (ability.Def.Targeting == AbilityDef.TargetingType.CommandTargetTwoPoints)
                 {
-                    ModInit.modLog?.Trace?.Write($"[AbstractActor_ActivateAbility] - activating strafe.");
+                    Mod.Log.Trace?.Log($"[AbstractActor_ActivateAbility] - activating strafe.");
                     ability.Activate(__instance, posA, posB);
                     __runOriginal = false;
                     return;
@@ -1055,7 +1055,7 @@ namespace StrategicOperations.Patches
                 __instance.StatCollection.AddStatistic<bool>("UseAAAFactor", false);
                 __instance.StatCollection.AddStatistic<bool>(ResupplyUtils.ResupplyUnitStat, false);
                 
-                __instance.SwarmingDisabled = __instance.GetStaticUnitTags().Contains(ModInit.modSettings.DisableAISwarmTag);
+                __instance.SwarmingDisabled = __instance.GetStaticUnitTags().Contains(Mod.modSettings.DisableAISwarmTag);
             }
         }
 
@@ -1232,7 +1232,7 @@ namespace StrategicOperations.Patches
                 var theActor = HUD.SelectedActor;
                 if (theActor == null) return;
                 if (def.specialRules == AbilityDef.SpecialRules.Strafe &&
-                    ModInit.modSettings.strafeEndsActivation)
+                    Mod.modSettings.strafeEndsActivation)
                 {
                     if (theActor is Mech mech)
                     {
@@ -1246,7 +1246,7 @@ namespace StrategicOperations.Patches
                 }
 
                 if (def.specialRules == AbilityDef.SpecialRules.SpawnTurret &&
-                    ModInit.modSettings.spawnTurretEndsActivation)
+                    Mod.modSettings.spawnTurretEndsActivation)
                 {
                     if (theActor is Mech mech)
                     {
@@ -1309,7 +1309,7 @@ namespace StrategicOperations.Patches
                 var theActor = HUD.SelectedActor;
                 if (theActor == null) return;
                 if (def.specialRules == AbilityDef.SpecialRules.Strafe &&
-                    ModInit.modSettings.strafeEndsActivation)
+                    Mod.modSettings.strafeEndsActivation)
                 {
                     if (theActor is Mech mech)
                     {
@@ -1323,7 +1323,7 @@ namespace StrategicOperations.Patches
                 }
 
                 if (def.specialRules == AbilityDef.SpecialRules.SpawnTurret &&
-                    ModInit.modSettings.spawnTurretEndsActivation)
+                    Mod.modSettings.spawnTurretEndsActivation)
                 {
                     if (theActor is Mech mech)
                     {
@@ -1358,7 +1358,7 @@ namespace StrategicOperations.Patches
                     return;
                 }
 
-                if (ability.Def.Id != ModInit.modSettings.BattleArmorMountAndSwarmID)
+                if (ability.Def.Id != Mod.modSettings.BattleArmorMountAndSwarmID)
                 {
                     if (actor.IsMountedUnit())
                     {
@@ -1381,8 +1381,8 @@ namespace StrategicOperations.Patches
                     }
                 }
 
-                if (ability.Def.Id == ModInit.modSettings.BattleArmorDeSwarmRoll ||
-                    ability.Def.Id == ModInit.modSettings.BattleArmorDeSwarmSwat)
+                if (ability.Def.Id == Mod.modSettings.BattleArmorDeSwarmRoll ||
+                    ability.Def.Id == Mod.modSettings.BattleArmorDeSwarmSwat)
                 {
                     if (actor is Vehicle vehicle || actor.IsCustomUnitVehicle())
                     {
@@ -1395,7 +1395,7 @@ namespace StrategicOperations.Patches
                     }
                 }
 
-                if (ability.Def.Id == ModInit.modSettings.AirliftAbilityID && ModInit.modSettings.CanDropOffAfterMoving)// && actor.MovingToPosition == null) // maybe need to check IsAnyOrderActive (but that might screw me)
+                if (ability.Def.Id == Mod.modSettings.AirliftAbilityID && Mod.modSettings.CanDropOffAfterMoving)// && actor.MovingToPosition == null) // maybe need to check IsAnyOrderActive (but that might screw me)
                 {
                     if (actor.HasAirliftedUnits())
                     {
@@ -1414,7 +1414,7 @@ namespace StrategicOperations.Patches
 
 
 
-                if (ModInit.modSettings.BeaconExclusionConfig.TryGetValue(actor.Combat.ActiveContract.ContractTypeValue.Name, out var configType))
+                if (Mod.modSettings.BeaconExclusionConfig.TryGetValue(actor.Combat.ActiveContract.ContractTypeValue.Name, out var configType))
                 {
                     if (actor.team.IsLocalPlayer)
                     {
@@ -1425,7 +1425,7 @@ namespace StrategicOperations.Patches
                     }
                 }
 
-                else if (ModInit.modSettings.BeaconExclusionConfig.TryGetValue(actor.Combat.ActiveContract.Override.ID, out var configID))
+                else if (Mod.modSettings.BeaconExclusionConfig.TryGetValue(actor.Combat.ActiveContract.Override.ID, out var configID))
                 {
                     if (actor.team.IsLocalPlayer)
                     {
@@ -1470,7 +1470,7 @@ namespace StrategicOperations.Patches
                     return;
                 }
 
-                if (ability.Def.Id != ModInit.modSettings.BattleArmorMountAndSwarmID)
+                if (ability.Def.Id != Mod.modSettings.BattleArmorMountAndSwarmID)
                 {
                     if (actor.IsMountedUnit())
                     {
@@ -1493,8 +1493,8 @@ namespace StrategicOperations.Patches
                     }
                 }
 
-                if (ability.Def.Id == ModInit.modSettings.BattleArmorDeSwarmRoll ||
-                    ability.Def.Id == ModInit.modSettings.BattleArmorDeSwarmSwat)
+                if (ability.Def.Id == Mod.modSettings.BattleArmorDeSwarmRoll ||
+                    ability.Def.Id == Mod.modSettings.BattleArmorDeSwarmSwat)
                 {
                     if (actor is Vehicle vehicle || actor.IsCustomUnitVehicle())
                     {
@@ -1507,7 +1507,7 @@ namespace StrategicOperations.Patches
                     }
                 }
 
-                if (ability.Def.Id == ModInit.modSettings.AirliftAbilityID && ModInit.modSettings.CanDropOffAfterMoving)// && actor.MovingToPosition == null) // maybe need to check IsAnyOrderActive (but that might screw me)
+                if (ability.Def.Id == Mod.modSettings.AirliftAbilityID && Mod.modSettings.CanDropOffAfterMoving)// && actor.MovingToPosition == null) // maybe need to check IsAnyOrderActive (but that might screw me)
                 {
                     if (actor.HasAirliftedUnits())
                     {
@@ -1545,7 +1545,7 @@ namespace StrategicOperations.Patches
                     return;
                 }
 
-                if (ability.Def.Id != ModInit.modSettings.BattleArmorMountAndSwarmID)
+                if (ability.Def.Id != Mod.modSettings.BattleArmorMountAndSwarmID)
                 {
                     if (actor.IsMountedUnit())
                     {
@@ -1568,8 +1568,8 @@ namespace StrategicOperations.Patches
                     }
                 }
 
-                if (ability.Def.Id == ModInit.modSettings.BattleArmorDeSwarmRoll ||
-                    ability.Def.Id == ModInit.modSettings.BattleArmorDeSwarmSwat)
+                if (ability.Def.Id == Mod.modSettings.BattleArmorDeSwarmRoll ||
+                    ability.Def.Id == Mod.modSettings.BattleArmorDeSwarmSwat)
                 {
                     if (actor is Vehicle vehicle || actor.IsCustomUnitVehicle())
                     {
@@ -1582,7 +1582,7 @@ namespace StrategicOperations.Patches
                     }
                 }
 
-                if (ability.Def.Id == ModInit.modSettings.AirliftAbilityID && ModInit.modSettings.CanDropOffAfterMoving)// && actor.MovingToPosition == null) // maybe need to check IsAnyOrderActive (but that might screw me)
+                if (ability.Def.Id == Mod.modSettings.AirliftAbilityID && Mod.modSettings.CanDropOffAfterMoving)// && actor.MovingToPosition == null) // maybe need to check IsAnyOrderActive (but that might screw me)
                 {
                     if (actor.HasAirliftedUnits())
                     {
@@ -1634,7 +1634,7 @@ namespace StrategicOperations.Patches
                     {
  //                       if (Input.GetKey(KeyCode.LeftShift) || Input.GetKey(KeyCode.RightShift))
                         
-                        if (Input.GetKey(ModInit.modSettings.EquipmentButtonsHotkey))
+                        if (Input.GetKey(Mod.modSettings.EquipmentButtonsHotkey))
                         {
                             var hud = __instance.HUD;//IRBTModUtils.SharedState.CombatHUD;
                             if (hud.SelectedActor == __instance.SelectedActor)
@@ -1692,7 +1692,7 @@ namespace StrategicOperations.Patches
         {
             public static void Postfix(CombatSpawningReticle __instance)
             {
-                if (!string.IsNullOrEmpty(ModInit.modSettings.customSpawnReticleAsset))
+                if (!string.IsNullOrEmpty(Mod.modSettings.customSpawnReticleAsset))
                 {
                     var childComponents = __instance.gameObject.GetComponentsInChildren<Transform>(true);
 
@@ -1702,7 +1702,7 @@ namespace StrategicOperations.Patches
                         {
                             var decalFromCirle = childComponents[i].GetComponent<BTUIDecal>();
                             var dm = UnityGameInstance.BattleTechGame.DataManager;
-                            var newTexture = dm.GetObjectOfType<Texture2D>(ModInit.modSettings.customSpawnReticleAsset,
+                            var newTexture = dm.GetObjectOfType<Texture2D>(Mod.modSettings.customSpawnReticleAsset,
                                 BattleTechResourceType.Texture2D);
                             decalFromCirle.DecalMaterial.mainTexture = newTexture;
                         }
@@ -1714,11 +1714,11 @@ namespace StrategicOperations.Patches
 
                 foreach (var decal in decals)
                 {
-                    if (ModInit.modSettings.customSpawnReticleColor != null)
+                    if (Mod.modSettings.customSpawnReticleColor != null)
                     {
-                        var customColor = new Color(ModInit.modSettings.customSpawnReticleColor.Rf,
-                            ModInit.modSettings.customSpawnReticleColor.Gf,
-                            ModInit.modSettings.customSpawnReticleColor.Bf);
+                        var customColor = new Color(Mod.modSettings.customSpawnReticleColor.Rf,
+                            Mod.modSettings.customSpawnReticleColor.Gf,
+                            Mod.modSettings.customSpawnReticleColor.Bf);
                         decal.DecalMaterial.color = customColor;
                     }
                     else
@@ -1815,7 +1815,7 @@ namespace StrategicOperations.Patches
                             }
 
                             targetActor.MountedEvasion(__instance.parentActor);
-                            ModInit.modLog?.Debug?.Write(
+                            Mod.Log.Debug?.Log(
                                 $"[CustomMechRepresentation_GameRepresentation_Update] PositionLockMount- Setting airlifted unit {targetActor.DisplayName} position to same as carrier unit {__instance.parentActor.DisplayName}");
 
                             ModState.CachedUnitCoordinates[__instance.parentActor.GUID] = __instance.parentActor.CurrentPosition;
@@ -1843,7 +1843,7 @@ namespace StrategicOperations.Patches
                             }
 
                             targetActor.MountedEvasion(__instance.parentActor);
-                            ModInit.modLog?.Debug?.Write(
+                            Mod.Log.Debug?.Log(
                                 $"[CustomMechRepresentation_GameRepresentation_Update] PositionLockMount- Setting riding unit {targetActor.DisplayName} position to same as carrier unit {__instance.parentActor.DisplayName}");
 
                             ModState.CachedUnitCoordinates[__instance.parentActor.GUID] = __instance.parentActor.CurrentPosition;
@@ -1861,7 +1861,7 @@ namespace StrategicOperations.Patches
                             if (targetActor == null) continue;
                             targetActor.TeleportActorNoResetPathing(__instance.parentActor.CurrentPosition);
                             targetActor.MountedEvasion(__instance.parentActor);
-                            ModInit.modLog?.Debug?.Write(
+                            Mod.Log.Debug?.Log(
                                 $"[CustomMechRepresentation_GameRepresentation_Update] PositionLockMount- Setting riding unit {targetActor.DisplayName} position to same as carrier unit {__instance.parentActor.DisplayName}");
 
                             ModState.CachedUnitCoordinates[__instance.parentActor.GUID] = __instance.parentActor.CurrentPosition;
@@ -1968,7 +1968,7 @@ namespace StrategicOperations.Patches
         [HarmonyPatch(typeof(Mech), "RecalcEvasivePips")]
         public static class Mech_RecalcEvasivePips
         {
-            static bool Prepare() => ModInit.modSettings.ReworkedCarrierEvasion;
+            static bool Prepare() => Mod.modSettings.ReworkedCarrierEvasion;
             public static void Postfix(Mech __instance)
             {
                 if (__instance.IsMountedUnit())
@@ -2058,7 +2058,7 @@ namespace StrategicOperations.Patches
                         }
 
                         targetActor.MountedEvasion(__instance.OwningMech);
-                        ModInit.modLog?.Debug?.Write(
+                        Mod.Log.Debug?.Log(
                             $"[MechDisplacementSequence_OnComplete] PositionLockMount- Setting airlifted unit {targetActor.DisplayName} position to same as carrier unit {__instance.OwningMech.DisplayName}");
 
                         ModState.CachedUnitCoordinates[__instance.OwningMech.GUID] = __instance.OwningMech.CurrentPosition;
@@ -2086,7 +2086,7 @@ namespace StrategicOperations.Patches
                         }
 
                         targetActor.MountedEvasion(__instance.OwningMech);
-                        ModInit.modLog?.Debug?.Write(
+                        Mod.Log.Debug?.Log(
                             $"[MechDisplacementSequence_OnComplete] PositionLockMount- Setting riding unit {targetActor.DisplayName} position to same as carrier unit {__instance.OwningMech.DisplayName}");
 
                         ModState.CachedUnitCoordinates[__instance.OwningMech.GUID] = __instance.OwningMech.CurrentPosition;
@@ -2104,7 +2104,7 @@ namespace StrategicOperations.Patches
                         if (targetActor == null) continue;
                         targetActor.TeleportActorNoResetPathing(__instance.OwningMech.CurrentPosition);
                         targetActor.MountedEvasion(__instance.OwningMech);
-                        ModInit.modLog?.Debug?.Write(
+                        Mod.Log.Debug?.Log(
                             $"[MechDisplacementSequence_OnComplete] PositionLockMount- Setting riding unit {targetActor.DisplayName} position to same as carrier unit {__instance.OwningMech.DisplayName}");
 
                         ModState.CachedUnitCoordinates[__instance.OwningMech.GUID] = __instance.OwningMech.CurrentPosition;
@@ -2214,7 +2214,7 @@ namespace StrategicOperations.Patches
                         }
 
                         targetActor.MountedEvasion(__instance.owningActor);
-                        ModInit.modLog?.Debug?.Write(
+                        Mod.Log.Debug?.Log(
                             $"[OrderSequence_OnUpdate] PositionLockMount- Setting airlifted unit {targetActor.DisplayName} position to same as carrier unit {__instance.owningActor.DisplayName}");
 
                         ModState.CachedUnitCoordinates[__instance.owningActor.GUID] = __instance.owningActor.CurrentPosition;
@@ -2242,7 +2242,7 @@ namespace StrategicOperations.Patches
                         }
 
                         targetActor.MountedEvasion(__instance.owningActor);
-                        ModInit.modLog?.Debug?.Write(
+                        Mod.Log.Debug?.Log(
                             $"[OrderSequence_OnUpdate] PositionLockMount- Setting riding unit {targetActor.DisplayName} position to same as carrier unit {__instance.owningActor.DisplayName}");
 
                         ModState.CachedUnitCoordinates[__instance.owningActor.GUID] = __instance.owningActor.CurrentPosition;
@@ -2260,7 +2260,7 @@ namespace StrategicOperations.Patches
                         if (targetActor == null) continue;
                         targetActor.TeleportActorNoResetPathing(__instance.owningActor.CurrentPosition);
                         targetActor.MountedEvasion(__instance.owningActor);
-                        ModInit.modLog?.Debug?.Write(
+                        Mod.Log.Debug?.Log(
                             $"[OrderSequence_OnUpdate] PositionLockMount- Setting riding unit {targetActor.DisplayName} position to same as carrier unit {__instance.owningActor.DisplayName}");
 
                         ModState.CachedUnitCoordinates[__instance.owningActor.GUID] = __instance.owningActor.CurrentPosition;
@@ -2273,7 +2273,7 @@ namespace StrategicOperations.Patches
                     if (carrier == null) return;
                     __instance.owningActor.TeleportActorNoResetPathing(carrier.CurrentPosition);
                     __instance.owningActor.MountedEvasion(__instance.owningActor);
-                    ModInit.modLog?.Debug?.Write(
+                    Mod.Log.Debug?.Log(
                             $"[OrderSequence_OnUpdate] PositionLockMount- Setting riding unit {__instance.owningActor.DisplayName} position to same as carrier unit {carrier.DisplayName}");
                     ModState.CachedUnitCoordinates[__instance.owningActor.GUID] = carrier.CurrentPosition;
 
@@ -2368,7 +2368,7 @@ namespace StrategicOperations.Patches
                 if (__instance.numPositionsLocked < 1)
                 {
                     //ModState.PopupActorResource = actorResource;
-                    ModState.PendingPlayerCmdParams = new CmdInvocationParams(ModInit.modSettings.strafeWaves, actorResource, __instance.FromButton.Ability.Def.getAbilityDefExtension().CMDPilotOverride, __instance.FromButton.Ability.Def.specialRules);
+                    ModState.PendingPlayerCmdParams = new CmdInvocationParams(Mod.modSettings.strafeWaves, actorResource, __instance.FromButton.Ability.Def.getAbilityDefExtension().CMDPilotOverride, __instance.FromButton.Ability.Def.specialRules);
                 }
 
                 var HUD = __instance.HUD;//IRBTModUtils.SharedState.CombatHUD;//Traverse.Create(__instance).Property("HUD").GetValue<CombatHUD>();
@@ -2436,7 +2436,7 @@ namespace StrategicOperations.Patches
                     beacons.Sort((MechComponentRef x, MechComponentRef y) =>
                         string.CompareOrdinal(x.Def.Description.UIName, y.Def.Description.UIName));
 
-                    ModInit.modLog?.Info?.Write("sorted beacons at SSCT2Pts");
+                    Mod.Log.Info?.Log("sorted beacons at SSCT2Pts");
 
                     for (var index = 0; index < beacons.Count; index++)
                     {
@@ -2487,7 +2487,7 @@ namespace StrategicOperations.Patches
                             .PopupBackfill));
                     popup.AlwaysOnTop = true;
                     popup.AddButton("1.", () => { });
-                    ModInit.modLog?.Info?.Write(
+                    Mod.Log.Info?.Log(
                         $"Added button for 1.");
                     switch (beacons.Count)
                     {
@@ -2507,7 +2507,7 @@ namespace StrategicOperations.Patches
                                 int.TryParse(waveString?.Substring(11), out var waves);
                                 var playerControl =
                                     beacon.Def.ComponentTags.IsComponentPlayerControllable(out var forced);
-                                ModInit.modLog?.Info?.Write(
+                                Mod.Log.Info?.Log(
                                 $"beacon for button 2. will be {beacon.Def.Description.Name}, ID will be {id}, pilot will be {pilotID}");
                                 popup.AddButton("2.", (Action)(() =>
                                 {
@@ -2520,7 +2520,7 @@ namespace StrategicOperations.Patches
                                         beacon.IsAOEStrafe(
                                             __instance.FromButton.Ability.Def.specialRules ==
                                             AbilityDef.SpecialRules.Strafe), playerControl, forced);
-                                    ModInit.modLog?.Info?.Write(
+                                    Mod.Log.Info?.Log(
                                         $"Player pressed {id} with pilot {pilotID}. Now -{ModState.PendingPlayerCmdParams.ActorResource}- and pilot -{ModState.PendingPlayerCmdParams.PilotOverride}- should be the same.");
                                 }));
                                 goto RenderNow;
@@ -2537,7 +2537,7 @@ namespace StrategicOperations.Patches
                                 int.TryParse(waveString?.Substring(11), out var waves);
                                 var playerControl =
                                     beacon.Def.ComponentTags.IsComponentPlayerControllable(out var forced);
-                                ModInit.modLog?.Info?.Write(
+                                Mod.Log.Info?.Log(
                                 $"beacon for button 3. will be {beacon.Def.Description.Name}, ID will be {id}, pilot will be {pilotID}");
                                 var id1 = id;
                                 var pilotID1 = pilotID;
@@ -2555,7 +2555,7 @@ namespace StrategicOperations.Patches
                                         beacon1.IsAOEStrafe(
                                             __instance.FromButton.Ability.Def.specialRules ==
                                             AbilityDef.SpecialRules.Strafe), playerControl1, forced1);
-                                    ModInit.modLog?.Info?.Write(
+                                    Mod.Log.Info?.Log(
                                         $"Player pressed {id1} with pilot {pilotID1}. Now -{ModState.PendingPlayerCmdParams.ActorResource}- and pilot -{ModState.PendingPlayerCmdParams.PilotOverride}- should be the same.");
                                 }));
 
@@ -2569,7 +2569,7 @@ namespace StrategicOperations.Patches
                                 int.TryParse(waveString?.Substring(11), out waves);
                                 playerControl =
                                     beacon.Def.ComponentTags.IsComponentPlayerControllable(out forced);
-                                ModInit.modLog?.Info?.Write(
+                                Mod.Log.Info?.Log(
                                 $"beacon for button 2. will be {beacon.Def.Description.Name}, ID will be {id}, pilot will be {pilotID}");
                                 popup.AddButton("2.", (Action)(() =>
                                 {
@@ -2581,7 +2581,7 @@ namespace StrategicOperations.Patches
                                         beacon.IsAOEStrafe(
                                             __instance.FromButton.Ability.Def.specialRules ==
                                             AbilityDef.SpecialRules.Strafe), playerControl, forced);
-                                    ModInit.modLog?.Info?.Write(
+                                    Mod.Log.Info?.Log(
                                         $"Player pressed {id} with pilot {pilotID}. Now -{ModState.PendingPlayerCmdParams.ActorResource}- and pilot -{ModState.PendingPlayerCmdParams.PilotOverride}- should be the same.");
                                 }));
 
@@ -2601,7 +2601,7 @@ namespace StrategicOperations.Patches
                         int.TryParse(waveString?.Substring(11), out var waves);
                         var playerControl =
                             beacon.Def.ComponentTags.IsComponentPlayerControllable(out var forced);
-                        ModInit.modLog?.Info?.Write(
+                        Mod.Log.Info?.Log(
                             $"beacon for button 3. will be {beacon.Def.Description.Name}, ID will be {id}, pilot will be {pilotID}");
                         var id1 = id;
                         var pilotID1 = pilotID;
@@ -2619,7 +2619,7 @@ namespace StrategicOperations.Patches
                                 beacon1.IsAOEStrafe(
                                     __instance.FromButton.Ability.Def.specialRules ==
                                     AbilityDef.SpecialRules.Strafe), playerControl1, forced1);
-                            ModInit.modLog?.Info?.Write(
+                            Mod.Log.Info?.Log(
                                 $"Player pressed {id1} with pilot {pilotID1}. Now -{ModState.PendingPlayerCmdParams.ActorResource}- and pilot -{ModState.PendingPlayerCmdParams.PilotOverride}- should be the same.");
                         }));
 
@@ -2633,7 +2633,7 @@ namespace StrategicOperations.Patches
                         int.TryParse(waveString?.Substring(11), out waves);
                         playerControl =
                             beacon.Def.ComponentTags.IsComponentPlayerControllable(out forced);
-                        ModInit.modLog?.Info?.Write(
+                        Mod.Log.Info?.Log(
                             $"beacon for button 2. will be {beacon.Def.Description.Name}, ID will be {id}, pilot will be {pilotID}");
                         var id2 = id;
                         var pilotID2 = pilotID;
@@ -2651,7 +2651,7 @@ namespace StrategicOperations.Patches
                                 beacon2.IsAOEStrafe(
                                     __instance.FromButton.Ability.Def.specialRules ==
                                     AbilityDef.SpecialRules.Strafe), playerControl2, forced2);
-                            ModInit.modLog?.Info?.Write(
+                            Mod.Log.Info?.Log(
                                 $"Player pressed {id2} with pilot {pilotID2}. Now -{ModState.PendingPlayerCmdParams.ActorResource}- and pilot -{ModState.PendingPlayerCmdParams.PilotOverride}- should be the same.");
                         }));
 
@@ -2668,7 +2668,7 @@ namespace StrategicOperations.Patches
                             int.TryParse(waveString?.Substring(11), out waves);
                             playerControl =
                                 beacon.Def.ComponentTags.IsComponentPlayerControllable(out forced);
-                            ModInit.modLog?.Info?.Write(
+                            Mod.Log.Info?.Log(
                                 $"beacon for button {index + 2}. will be {beacon.Def.Description.Name}, ID will be {id}, pilot will be {pilotID}");
                             var buttonName = $"{index + 2}.";
                             if (string.IsNullOrEmpty(id)) continue;
@@ -2689,10 +2689,10 @@ namespace StrategicOperations.Patches
                                         beacon3.IsAOEStrafe(
                                             __instance.FromButton.Ability.Def.specialRules ==
                                             AbilityDef.SpecialRules.Strafe), playerControl3, forced3);
-                                    ModInit.modLog?.Info?.Write(
+                                    Mod.Log.Info?.Log(
                                         $"Player pressed {id3} with pilot {pilotID3}. Now -{ModState.PendingPlayerCmdParams.ActorResource}- and pilot -{ModState.PendingPlayerCmdParams.PilotOverride}- should be the same.");
                                 }));
-                            ModInit.modLog?.Info?.Write(
+                            Mod.Log.Info?.Log(
                                 $"Added button for {buttonName}");
                         }
                     }
@@ -2731,14 +2731,14 @@ namespace StrategicOperations.Patches
                             var chanceDisplay = (float)Math.Round(1 - ModState.CancelChanceForPlayerStrafe, 2) * 100;
                             cHUD.AttackModeSelector.FireButton.FireText.SetText($"{chanceDisplay}% - Confirm", Array.Empty<object>());
 
-                            ModInit.modLog?.Trace?.Write($"[SelectionStateCommandTargetTwoPoints.ProcessLeftClick] Creator {creator.DisplayName} initializing strafe vs target {opforUnit?.team.DisplayName}. Calculated cancelChance {ModState.CancelChanceForPlayerStrafe}, display success chance: {chanceDisplay}.");
+                            Mod.Log.Trace?.Log($"[SelectionStateCommandTargetTwoPoints.ProcessLeftClick] Creator {creator.DisplayName} initializing strafe vs target {opforUnit?.team.DisplayName}. Calculated cancelChance {ModState.CancelChanceForPlayerStrafe}, display success chance: {chanceDisplay}.");
 
                             return;
                         }
                     }
                     cHUD.AttackModeSelector.FireButton.FireText.SetText($"Confirm", Array.Empty<object>());
 
-                    ModInit.modLog?.Trace?.Write($"[SelectionStateCommandTargetTwoPoints.ProcessLeftClick] Creator {creator.DisplayName} initializing ability {abilityDef.Id} vs target {opforUnit?.team.DisplayName}.");
+                    Mod.Log.Trace?.Log($"[SelectionStateCommandTargetTwoPoints.ProcessLeftClick] Creator {creator.DisplayName} initializing ability {abilityDef.Id} vs target {opforUnit?.team.DisplayName}.");
                 }
             }
         }
@@ -2810,14 +2810,14 @@ namespace StrategicOperations.Patches
                         ModState.PendingPlayerCmdParams.QUID = quid;
                         if (ModState.StoredCmdParams.ContainsKey(quid))
                         {
-                            ModInit.modLog?.Trace?.Write(
+                            Mod.Log.Trace?.Log(
                                 $"[SelectionStateCommandTargetTwoPoints_ProcessPressedButton] unit quid {quid} already exists. thats fucked up.");
 
                             return;
                         }
                         ModState.StoredCmdParams.Add(quid, new CmdInvocationParams(ModState.PendingPlayerCmdParams));
                         ModState.PendingPlayerCmdParams = new CmdInvocationParams();
-                        ModInit.modLog?.Trace?.Write(
+                        Mod.Log.Trace?.Log(
                             $"[SelectionStateCommandTargetTwoPoints_ProcessPressedButton] Transferred pending strafe params to dictionary: {ModState.StoredCmdParams[quid].QUID}. Key: {quid}");
                     }
                 }
@@ -2855,13 +2855,13 @@ namespace StrategicOperations.Patches
                     if (teamAbility != null)
                     {
                         // UDS integration. TODO: Make this cleaner, this is the fastest hack to solve b/c tbone kept active CommandAbilities in ModState, not Team.
-                        ModInit.modLog?.Info?.Write($"UDS injected {msg.abilityID} into the Team, but we don't have it. Deffering to them.");
+                        Mod.Log.Info?.Log($"UDS injected {msg.abilityID} into the Team, but we don't have it. Deffering to them.");
                         __runOriginal = true;
                         return;
                     }
                     else
                     {
-                        ModInit.modLog?.Info?.Write($"Tried to use a CommandAbility: {msg.abilityID} but the Team doesn't have it.");
+                        Mod.Log.Info?.Log($"Tried to use a CommandAbility: {msg.abilityID} but the Team doesn't have it.");
                         __runOriginal = false;
                         return;
                     }
@@ -2877,7 +2877,7 @@ namespace StrategicOperations.Patches
                             ICombatant combatant = __instance.Combat.FindCombatantByGUID(msg.affectedObjectGuid, false);
                             if (combatant == null)
                             {
-                                ModInit.modLog?.Info?.Write(
+                                Mod.Log.Info?.Log(
                                     $"Team.ActivateAbility couldn't find target with guid {msg.affectedObjectGuid}");
                                 __runOriginal = false;
                                 return;
@@ -2915,7 +2915,7 @@ namespace StrategicOperations.Patches
                         throw new ArgumentOutOfRangeException();
                 }
 
-                ModInit.modLog?.Info?.Write(
+                Mod.Log.Info?.Log(
                     $"Team.ActivateAbility needs to add handling for targetingtype {ability.Def.Targeting}");
                 __runOriginal = false;
                 return;
@@ -2934,7 +2934,7 @@ namespace StrategicOperations.Patches
             public static void Postfix(Team __instance, AbstractActor unit)
             {
                 
-                if (unit.GetStaticUnitTags().Contains(ModInit.modSettings.ResupplyConfig.ResupplyUnitTag))
+                if (unit.GetStaticUnitTags().Contains(Mod.modSettings.ResupplyConfig.ResupplyUnitTag))
                 {
                     unit.statCollection.Set(ResupplyUtils.ResupplyUnitStat, true);
                     unit.IsResupplyUnit = true;
@@ -2951,17 +2951,17 @@ namespace StrategicOperations.Patches
                 {
                     if (unit is Mech && !(unit is TrooperSquad) && !unit.IsCustomUnitVehicle())
                     {
-                        if (!string.IsNullOrEmpty(ModInit.modSettings.BattleArmorDeSwarmSwat))
+                        if (!string.IsNullOrEmpty(Mod.modSettings.BattleArmorDeSwarmSwat))
                         {
                             if (unit.GetPilot().Abilities
-                                    .All(x => x.Def.Id != ModInit.modSettings.BattleArmorDeSwarmSwat) &&
+                                    .All(x => x.Def.Id != Mod.modSettings.BattleArmorDeSwarmSwat) &&
                                 unit.ComponentAbilities.All(y =>
-                                    y.Def.Id != ModInit.modSettings.BattleArmorDeSwarmSwat))
+                                    y.Def.Id != Mod.modSettings.BattleArmorDeSwarmSwat))
                             {
-                                unit.Combat.DataManager.AbilityDefs.TryGet(ModInit.modSettings.BattleArmorDeSwarmSwat,
+                                unit.Combat.DataManager.AbilityDefs.TryGet(Mod.modSettings.BattleArmorDeSwarmSwat,
                                     out var def);
                                 var ability = new Ability(def);
-                                ModInit.modLog?.Trace?.Write(
+                                Mod.Log.Trace?.Log(
                                     $"[Team.AddUnit] Adding {ability.Def?.Description?.Id} to {unit.Description?.Name}.");
                                 ability.Init(unit.Combat);
                                 unit.GetPilot().Abilities.Add(ability);
@@ -2969,17 +2969,17 @@ namespace StrategicOperations.Patches
                             }
                         }
 
-                        if (!string.IsNullOrEmpty(ModInit.modSettings.BattleArmorDeSwarmRoll))
+                        if (!string.IsNullOrEmpty(Mod.modSettings.BattleArmorDeSwarmRoll))
                         {
                             if (unit.GetPilot().Abilities
-                                    .All(x => x.Def.Id != ModInit.modSettings.BattleArmorDeSwarmRoll) &&
+                                    .All(x => x.Def.Id != Mod.modSettings.BattleArmorDeSwarmRoll) &&
                                 unit.ComponentAbilities.All(y =>
-                                    y.Def.Id != ModInit.modSettings.BattleArmorDeSwarmRoll))
+                                    y.Def.Id != Mod.modSettings.BattleArmorDeSwarmRoll))
                             {
-                                unit.Combat.DataManager.AbilityDefs.TryGet(ModInit.modSettings.BattleArmorDeSwarmRoll,
+                                unit.Combat.DataManager.AbilityDefs.TryGet(Mod.modSettings.BattleArmorDeSwarmRoll,
                                     out var def);
                                 var ability = new Ability(def);
-                                ModInit.modLog?.Trace?.Write(
+                                Mod.Log.Trace?.Log(
                                     $"[Team.AddUnit] Adding {ability.Def?.Description?.Id} to {unit.Description?.Name}.");
                                 ability.Init(unit.Combat);
                                 unit.GetPilot().Abilities.Add(ability);
@@ -2989,17 +2989,17 @@ namespace StrategicOperations.Patches
 
                     }
 
-                    if (!string.IsNullOrEmpty(ModInit.modSettings.DeswarmMovementConfig.AbilityDefID))
+                    if (!string.IsNullOrEmpty(Mod.modSettings.DeswarmMovementConfig.AbilityDefID))
                     {
                         if (unit.GetPilot().Abilities
-                                .All(x => x.Def.Id != ModInit.modSettings.DeswarmMovementConfig.AbilityDefID) &&
+                                .All(x => x.Def.Id != Mod.modSettings.DeswarmMovementConfig.AbilityDefID) &&
                             unit.ComponentAbilities.All(y =>
-                                y.Def.Id != ModInit.modSettings.DeswarmMovementConfig.AbilityDefID))
+                                y.Def.Id != Mod.modSettings.DeswarmMovementConfig.AbilityDefID))
                         {
-                            unit.Combat.DataManager.AbilityDefs.TryGet(ModInit.modSettings.DeswarmMovementConfig.AbilityDefID,
+                            unit.Combat.DataManager.AbilityDefs.TryGet(Mod.modSettings.DeswarmMovementConfig.AbilityDefID,
                                 out var def);
                             var ability = new Ability(def);
-                            ModInit.modLog?.Trace?.Write(
+                            Mod.Log.Trace?.Log(
                                 $"[Team.AddUnit] Adding {ability.Def?.Description?.Id} to {unit.Description?.Name}.");
                             ability.Init(unit.Combat);
                             unit.GetPilot().Abilities.Add(ability);
@@ -3010,41 +3010,42 @@ namespace StrategicOperations.Patches
                     //add a parent component to strafe/spawn pilot abilities. even though it wont be used.
 
                     //need to disentangle from abilifier though.
-                    if (false)
-                    {
-                        var list = unit.GetPilot().Abilities;
-                        for (var index = list.Count - 1; index >= 0; index--)
-                        {
-                            var pilotAbility = list[index];
-                            if (pilotAbility.Def.specialRules == AbilityDef.SpecialRules.Strafe ||
-                                pilotAbility.Def.specialRules == AbilityDef.SpecialRules.SpawnTurret)
-                            {
-                                var ability = new Ability(pilotAbility.Def);
-                                ModInit.modLog?.Trace?.Write(
-                                    $"[Team.AddUnit] moving {pilotAbility.Def?.Description?.Id} to {unit.Description?.Name} component abilities.");
+                    // UNREACHABLE CLEANUP
+                    //if (false)
+                    //{
+                    //    var list = unit.GetPilot().Abilities;
+                    //    for (var index = list.Count - 1; index >= 0; index--)
+                    //    {
+                    //        var pilotAbility = list[index];
+                    //        if (pilotAbility.Def.specialRules == AbilityDef.SpecialRules.Strafe ||
+                    //            pilotAbility.Def.specialRules == AbilityDef.SpecialRules.SpawnTurret)
+                    //        {
+                    //            var ability = new Ability(pilotAbility.Def);
+                    //            Mod.Log.Trace?.Log(
+                    //                $"[Team.AddUnit] moving {pilotAbility.Def?.Description?.Id} to {unit.Description?.Name} component abilities.");
 
-                                var abilityComponent = unit.allComponents.FirstOrDefault(z =>
-                                    ModInit.modSettings.crewOrCockpitCustomID.Any((string x) =>
-                                        z.componentDef.GetComponents<Category>()
-                                            .Any((Category c) => c.CategoryID == x)));
-                                if (abilityComponent == null)
-                                {
-                                    ModInit.modLog?.Info?.Write($"component was null; no CriticalComponents?");
-                                }
+                    //            var abilityComponent = unit.allComponents.FirstOrDefault(z =>
+                    //                Mod.modSettings.crewOrCockpitCustomID.Any((string x) =>
+                    //                    z.componentDef.GetComponents<Category>()
+                    //                        .Any((Category c) => c.CategoryID == x)));
+                    //            if (abilityComponent == null)
+                    //            {
+                    //                Mod.Log.Info?.Log($"component was null; no CriticalComponents?");
+                    //            }
 
-                                if (abilityComponent?.parent == null)
-                                {
-                                    ModInit.modLog?.Info?.Write($"component parent was null; no parent actor???");
-                                }
+                    //            if (abilityComponent?.parent == null)
+                    //            {
+                    //                Mod.Log.Info?.Log($"component parent was null; no parent actor???");
+                    //            }
 
-                                ability.Init(unit.Combat, abilityComponent);
-                                unit.GetPilot().Abilities.Remove(pilotAbility);
-                                unit.GetPilot().ActiveAbilities.Remove(pilotAbility);
-                                unit.GetPilot().Abilities.Add(ability);
-                                unit.GetPilot().ActiveAbilities.Add(ability);
-                            }
-                        }
-                    }
+                    //            ability.Init(unit.Combat, abilityComponent);
+                    //            unit.GetPilot().Abilities.Remove(pilotAbility);
+                    //            unit.GetPilot().ActiveAbilities.Remove(pilotAbility);
+                    //            unit.GetPilot().Abilities.Add(ability);
+                    //            unit.GetPilot().ActiveAbilities.Add(ability);
+                    //        }
+                    //    }
+                    //}
 
                     return;
                 }
@@ -3104,7 +3105,7 @@ namespace StrategicOperations.Patches
                         var spawn = ModState.DeferredInvokeSpawns[index].Value;
                         var resource = ModState.DeferredInvokeSpawns[index].Key.Split('@');
                         ModState.DeferredActorResource = resource[1];
-                        ModInit.modLog?.Info?.Write(
+                        Mod.Log.Info?.Log(
                             $"Found deferred spawner at index {index} of {ModState.DeferredInvokeSpawns.Count - 1}, invoking and trying to spawn {ModState.DeferredActorResource}.");
                         ModState.DeferredSpawnerFromDelegate = true;
                         spawn();
@@ -3125,16 +3126,16 @@ namespace StrategicOperations.Patches
                 LoadRequest loadRequest = dm.CreateLoadRequest();
 
                 loadRequest.AddBlindLoadRequest(BattleTechResourceType.PilotDef, "pilot_sim_starter_dekker");
-                ModInit.modLog?.Info?.Write($"Added loadrequest for PilotDef: pilot_sim_starter_dekker (hardcoded)");
-                if (!string.IsNullOrEmpty(ModInit.modSettings.customSpawnReticleAsset))
+                Mod.Log.Info?.Log($"Added loadrequest for PilotDef: pilot_sim_starter_dekker (hardcoded)");
+                if (!string.IsNullOrEmpty(Mod.modSettings.customSpawnReticleAsset))
                 {
-                    loadRequest.AddBlindLoadRequest(BattleTechResourceType.Texture2D, ModInit.modSettings.customSpawnReticleAsset);
-                    ModInit.modLog?.Info?.Write($"Added loadrequest for Texture2D: {ModInit.modSettings.customSpawnReticleAsset}");
+                    loadRequest.AddBlindLoadRequest(BattleTechResourceType.Texture2D, Mod.modSettings.customSpawnReticleAsset);
+                    Mod.Log.Info?.Log($"Added loadrequest for Texture2D: {Mod.modSettings.customSpawnReticleAsset}");
                 }
-                if (!string.IsNullOrEmpty(ModInit.modSettings.MountIndicatorAsset))
+                if (!string.IsNullOrEmpty(Mod.modSettings.MountIndicatorAsset))
                 {
-                    loadRequest.AddBlindLoadRequest(BattleTechResourceType.Texture2D, ModInit.modSettings.MountIndicatorAsset);
-                    ModInit.modLog?.Info?.Write($"Added loadrequest for Texture2D: {ModInit.modSettings.MountIndicatorAsset}");
+                    loadRequest.AddBlindLoadRequest(BattleTechResourceType.Texture2D, Mod.modSettings.MountIndicatorAsset);
+                    Mod.Log.Info?.Log($"Added loadrequest for Texture2D: {Mod.modSettings.MountIndicatorAsset}");
                 }
 
                 foreach (var abilityDef in dm.AbilityDefs.Where(x => x.Key.StartsWith("AbilityDefCMD_")))
@@ -3144,25 +3145,25 @@ namespace StrategicOperations.Patches
                     if (!string.IsNullOrEmpty(ability.Def.getAbilityDefExtension().CMDPilotOverride))
                     {
                         var pilotID = ability.Def.getAbilityDefExtension().CMDPilotOverride;
-                        ModInit.modLog?.Info?.Write($"Added loadrequest for PilotDef: {pilotID}");
+                        Mod.Log.Info?.Log($"Added loadrequest for PilotDef: {pilotID}");
                         loadRequest.AddBlindLoadRequest(BattleTechResourceType.PilotDef, pilotID);
                     }
 
                     if (ability.Def.ActorResource.StartsWith("mechdef_"))
                     {
-                        ModInit.modLog?.Info?.Write($"Added loadrequest for MechDef: {ability.Def.ActorResource}");
+                        Mod.Log.Info?.Log($"Added loadrequest for MechDef: {ability.Def.ActorResource}");
                         loadRequest.AddBlindLoadRequest(BattleTechResourceType.MechDef, ability.Def.ActorResource);
                     }
 
                     if (ability.Def.ActorResource.StartsWith("vehicledef_"))
                     {
-                        ModInit.modLog?.Info?.Write($"Added loadrequest for VehicleDef: {ability.Def.ActorResource}");
+                        Mod.Log.Info?.Log($"Added loadrequest for VehicleDef: {ability.Def.ActorResource}");
                         loadRequest.AddBlindLoadRequest(BattleTechResourceType.VehicleDef, ability.Def.ActorResource);
                     }
 
                     if (ability.Def.ActorResource.StartsWith("turretdef_"))
                     {
-                        ModInit.modLog?.Info?.Write($"Added loadrequest for TurretDef: {ability.Def.ActorResource}");
+                        Mod.Log.Info?.Log($"Added loadrequest for TurretDef: {ability.Def.ActorResource}");
                         loadRequest.AddBlindLoadRequest(BattleTechResourceType.TurretDef, ability.Def.ActorResource);
                     }
                 }
@@ -3174,7 +3175,7 @@ namespace StrategicOperations.Patches
                         ?.Remove(0, 14);
                     if (!string.IsNullOrEmpty(pilotID))
                     {
-                        ModInit.modLog?.Info?.Write($"Added loadrequest for PilotDef: {pilotID}");
+                        Mod.Log.Info?.Log($"Added loadrequest for PilotDef: {pilotID}");
                         loadRequest.AddBlindLoadRequest(BattleTechResourceType.PilotDef, pilotID);
                     }
 
@@ -3185,17 +3186,17 @@ namespace StrategicOperations.Patches
 
                     if (id.StartsWith("mechdef_"))
                     {
-                        ModInit.modLog?.Info?.Write($"Added loadrequest for MechDef: {id}");
+                        Mod.Log.Info?.Log($"Added loadrequest for MechDef: {id}");
                         loadRequest.AddBlindLoadRequest(BattleTechResourceType.MechDef, id);
                     }
                     else if (id.StartsWith("vehicledef_"))
                     {
-                        ModInit.modLog?.Info?.Write($"Added loadrequest for VehicleDef: {id}");
+                        Mod.Log.Info?.Log($"Added loadrequest for VehicleDef: {id}");
                         loadRequest.AddBlindLoadRequest(BattleTechResourceType.VehicleDef, id);
                     }
                     else if (id.StartsWith("turretdef_"))
                     {
-                        ModInit.modLog?.Info?.Write($"Added loadrequest for TurretDef: {id}");
+                        Mod.Log.Info?.Log($"Added loadrequest for TurretDef: {id}");
                         loadRequest.AddBlindLoadRequest(BattleTechResourceType.TurretDef, id);
                     }
 
@@ -3214,7 +3215,7 @@ namespace StrategicOperations.Patches
                     for (var index = 0; index < ModState.DeferredInvokeBattleArmor.Count; index++)
                     {
                         var spawn = ModState.DeferredInvokeBattleArmor[index].Value;
-                        ModInit.modLog?.Info?.Write(
+                        Mod.Log.Info?.Log(
                             $"[TurnDirector.StartFirstRound] Found deferred spawner at index {index} of {ModState.DeferredInvokeBattleArmor.Count - 1}, invoking and trying to spawn a battle armor of some kind.");
                         ModState.DeferredBattleArmorSpawnerFromDelegate = true;
                         spawn();
@@ -3244,7 +3245,7 @@ namespace StrategicOperations.Patches
                             ModState.CommandAbilities.Add(ability);
                         }
 
-                        ModInit.modLog?.Info?.Write($"[TurnDirector.StartFirstRound] Added {ability?.Def?.Id} to CommandAbilities");
+                        Mod.Log.Info?.Log($"[TurnDirector.StartFirstRound] Added {ability?.Def?.Id} to CommandAbilities");
 
                     }
                 }
@@ -3283,7 +3284,7 @@ namespace StrategicOperations.Patches
         [HarmonyPatch(typeof(Vehicle), "RecalcEvasivePips")]
         public static class Vehicle_RecalcEvasivePips
         {
-            static bool Prepare() => ModInit.modSettings.ReworkedCarrierEvasion;
+            static bool Prepare() => Mod.modSettings.ReworkedCarrierEvasion;
             public static void Postfix(Vehicle __instance)
             {
                 if (__instance.IsMountedUnit())
@@ -3319,7 +3320,7 @@ namespace StrategicOperations.Patches
             public static void Postfix(AbstractActor __instance)
             {
                 __instance.IsResupplyUnit = __instance.StatCollection.GetValue<bool>(ResupplyUtils.ResupplyUnitStat);
-                __instance.SwarmingDisabled = __instance.GetStaticUnitTags().Contains(ModInit.modSettings.DisableAISwarmTag);
+                __instance.SwarmingDisabled = __instance.GetStaticUnitTags().Contains(Mod.modSettings.DisableAISwarmTag);
 
             }
         }

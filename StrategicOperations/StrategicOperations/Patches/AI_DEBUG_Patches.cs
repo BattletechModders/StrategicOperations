@@ -18,13 +18,13 @@ namespace StrategicOperations.Patches
                     if (__instance is TrooperSquad squad)
                     {
                         var countJets = squad.workingJumpsLocations().Count;
-                        ModInit.modLog?.Trace?.Write(
+                        Mod.Log.Trace?.Log(
                             $"[Mech_JumpDistance PREFIX] value from mech {squad.DisplayName} - {squad.Description.Id} before calcs was {__result}, jets count: {countJets} ");
                     }
                 }
                 catch (Exception ex)
                 {
-                    ModInit.modLog?.Error?.Write(ex.ToString());
+                    Mod.Log.Error?.Log(ex.ToString());
                 }
             }
 
@@ -35,16 +35,16 @@ namespace StrategicOperations.Patches
                     try
                     {
                         var countJets = squad.workingJumpsLocations().Count;
-                        ModInit.modLog?.Trace?.Write(
+                        Mod.Log.Trace?.Log(
                             $"[Mech_JumpDistance POSTFIX] value from mech {squad.DisplayName} - {squad.Description.Id} before calcs was {__result}, jets count: {countJets} ");
                         if (float.IsPositiveInfinity(__result))
                         {
-                            ModInit.modLog?.Trace?.Write($"[Mech_JumpDistance POSTFIX] INFINITY STONES!");
+                            Mod.Log.Trace?.Log($"[Mech_JumpDistance POSTFIX] INFINITY STONES!");
                         }
                     }
                     catch (Exception ex)
                     {
-                        ModInit.modLog?.Error?.Write(ex.ToString());
+                        Mod.Log.Error?.Log(ex.ToString());
                     }
                 }
             }
@@ -53,11 +53,11 @@ namespace StrategicOperations.Patches
         [HarmonyPatch(typeof(MoveTowardsHighestPriorityMoveCandidateNode), "Tick")]
         public static class MoveTowardsHighestPriorityMoveCandidateNode_Tick
         {
-            static bool Prepare() => ModInit.modSettings.Debug;
+            static bool Prepare() => Mod.modSettings.Debug;
 
             public static void Postfix(MoveTowardsHighestPriorityMoveCandidateNode __instance, ref BehaviorTreeResults __result)
             {
-                ModInit.modLog?.Debug?.Write(
+                Mod.Log.Debug?.Log(
                     $"[MoveTowardsHighestPriorityMoveCandidateNode Tick] Moving towards highest eval'd position: Actor {__instance.unit.DisplayName} eval'd highest weighted position as {__instance.unit.BehaviorTree.influenceMapEvaluator.WorkspaceEvaluationEntries[0].Position} with weight {__instance.unit.BehaviorTree.influenceMapEvaluator.WorkspaceEvaluationEntries[0].GetHighestAccumulator()}");
             }
         }
@@ -65,11 +65,11 @@ namespace StrategicOperations.Patches
         [HarmonyPatch(typeof(SortMoveCandidatesByInfMapNode), "Tick")]
         public static class SortMoveCandidatesByInfMapNode_Tick
         {
-            static bool Prepare() => ModInit.modSettings.Debug;
+            static bool Prepare() => Mod.modSettings.Debug;
 
             public static void Postfix(SortMoveCandidatesByInfMapNode __instance, ref BehaviorTreeResults __result)
             {
-                ModInit.modLog?.Debug?.Write(
+                Mod.Log.Debug?.Log(
                     $"[SortMoveCandidatesByInfMapNode Tick] Sorting finished. Actor {__instance.unit.DisplayName} eval'd highest weighted position as {__instance.unit.BehaviorTree.influenceMapEvaluator.WorkspaceEvaluationEntries[0].Position} with weight {__instance.unit.BehaviorTree.influenceMapEvaluator.WorkspaceEvaluationEntries[0].GetHighestAccumulator()}");
             }
         }
