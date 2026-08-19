@@ -243,7 +243,7 @@ namespace StrategicOperations.Framework
         {
             try
             {
-                if (Mod.modSettings.UseOriginalBAMountInterface) { return; }
+                if (Mod.Settings.UseOriginalBAMountInterface) { return; }
                 LanceLoadoutSlotSourceHolder holder = __instance.gameObject.GetComponent<LanceLoadoutSlotSourceHolder>();
                 if (holder != null) { return; }
                 holder = __instance.gameObject.AddComponent<LanceLoadoutSlotSourceHolder>();
@@ -271,7 +271,7 @@ namespace StrategicOperations.Framework
         {
             try
             {
-                if (Mod.modSettings.UseOriginalBAMountInterface) { return; }
+                if (Mod.Settings.UseOriginalBAMountInterface) { return; }
                 var srcSlot = __instance.loadoutSlots[0].gameObject;
                 var holder = __instance.GetComponent<LanceLoadoutSlotSourceHolder>();
                 if (holder != null) { srcSlot = holder.source_LanceLoadoutSlot.gameObject; }
@@ -351,7 +351,7 @@ namespace StrategicOperations.Framework
     {
         public static void Prefix(ref bool __runOriginal, LanceLoadoutSlot __instance, IMechLabDraggableItem item, bool validate, bool __result)
         {
-            if (Mod.modSettings.UseOriginalBAMountInterface) { return; }
+            if (Mod.Settings.UseOriginalBAMountInterface) { return; }
             if (item.ItemType != MechLabDraggableItemType.Mech) { return; }
             LanceLoadoutSlotCargo cargoSlot = __instance.gameObject.GetComponent<LanceLoadoutSlotCargo>();
             if (cargoSlot == null) { return; }
@@ -425,7 +425,7 @@ namespace StrategicOperations.Framework
         {
             try
             {
-                if (Mod.modSettings.UseOriginalBAMountInterface) { return; }
+                if (Mod.Settings.UseOriginalBAMountInterface) { return; }
                 if (item.ItemType != MechLabDraggableItemType.Mech) { return; }
                 if (__result == false) { return; }
                 LanceLoadoutSlotCargoConfig cargoInfo = __instance.gameObject.GetComponent<LanceLoadoutSlotCargoConfig>();
@@ -486,7 +486,7 @@ namespace StrategicOperations.Framework
         {
             try
             {
-                if (Mod.modSettings.UseOriginalBAMountInterface) { return; }
+                if (Mod.Settings.UseOriginalBAMountInterface) { return; }
                 if (item.ItemType != MechLabDraggableItemType.Mech) { return; }
                 LanceLoadoutSlotCargoConfig cargoInfo = __instance.gameObject.GetComponent<LanceLoadoutSlotCargoConfig>();
                 if (cargoInfo != null)
@@ -513,7 +513,7 @@ namespace StrategicOperations.Framework
         {
             try
             {
-                if (Mod.modSettings.UseOriginalBAMountInterface) { return; }
+                if (Mod.Settings.UseOriginalBAMountInterface) { return; }
                 LanceLoadoutSlotCargoConfig cargoInfo = __instance.gameObject.GetComponent<LanceLoadoutSlotCargoConfig>();
                 if (cargoInfo != null)
                 {
@@ -538,7 +538,7 @@ namespace StrategicOperations.Framework
         {
             try
             {
-                if (Mod.modSettings.UseOriginalBAMountInterface) { return; }
+                if (Mod.Settings.UseOriginalBAMountInterface) { return; }
                 if (__result == false) { return; }
                 int errorCount = 0;
                 List<MechDef> mechs = new List<MechDef>();
@@ -605,7 +605,7 @@ namespace StrategicOperations.Framework
         {
             try
             {
-                if (Mod.modSettings.UseOriginalBAMountInterface) { return; }
+                if (Mod.Settings.UseOriginalBAMountInterface) { return; }
                 LanceConfiguratorPanel panel = __instance.gameObject.GetComponentInParent<LanceConfiguratorPanel>();
                 if (panel == null) {
                     Mod.Log.Info?.Log("LanceHeaderWidget.RefreshLanceInfo does not have LanceConfiguratorPanel parent");
@@ -629,12 +629,12 @@ namespace StrategicOperations.Framework
                             ++mountCounter;
                             if (mountCounter > cargoSpace)
                             {
-                                if (Mod.modSettings.ExternalBAAffectsOverallDropTonnage == false) { continue; }
+                                if (Mod.Settings.ExternalBAAffectsOverallDropTonnage == false) { continue; }
                                 Mod.Log.Error?.Log($" external:{cargoSlot.SelectedMech.MechDef.ChassisID}");
                             }
                             else
                             {
-                                if (Mod.modSettings.InternalBAAffectsOverallDropTonnage == false) { continue; }
+                                if (Mod.Settings.InternalBAAffectsOverallDropTonnage == false) { continue; }
                                 Mod.Log.Error?.Log($" internal:{cargoSlot.SelectedMech.MechDef.ChassisID}");
                             }
                             mechs.Add(cargoSlot.SelectedMech.MechDef);
@@ -676,7 +676,7 @@ namespace StrategicOperations.Framework
         {
             try
             {
-                if (Mod.modSettings.UseOriginalBAMountInterface) { return; }
+                if (Mod.Settings.UseOriginalBAMountInterface) { return; }
                 if (__result == false) { return; }
                 List<MechDef> mechs = new List<MechDef>();
                 Mod.Log.Error?.Log("LanceConfiguratorPanel.ValidateLanceTonnage");
@@ -701,20 +701,20 @@ namespace StrategicOperations.Framework
                         {
                             ++mountCounter;
                             if (mountCounter > cargoSpace) {
-                                if (Mod.modSettings.ExternalBAAffectsSlotDropTonnage) {
+                                if (Mod.Settings.ExternalBAAffectsSlotDropTonnage) {
                                     slotTonnage += cargoSlot.SelectedMech.MechDef.Chassis.Tonnage;
                                     Mod.Log.Error?.Log($"  external:{cargoSlot.SelectedMech.MechDef.ChassisID} curSlotTonnage:{slotTonnage}");
                                 }
-                                if (Mod.modSettings.ExternalBAAffectsOverallDropTonnage == false) { continue; }
+                                if (Mod.Settings.ExternalBAAffectsOverallDropTonnage == false) { continue; }
                             }
                             else
                             {
-                                if (Mod.modSettings.InternalBAAffectsSlotDropTonnage)
+                                if (Mod.Settings.InternalBAAffectsSlotDropTonnage)
                                 {
                                     slotTonnage += cargoSlot.SelectedMech.MechDef.Chassis.Tonnage;
                                     Mod.Log.Error?.Log($"  internal:{cargoSlot.SelectedMech.MechDef.ChassisID} curSlotTonnage:{slotTonnage}");
                                 }
-                                if (Mod.modSettings.InternalBAAffectsOverallDropTonnage == false) { continue; }
+                                if (Mod.Settings.InternalBAAffectsOverallDropTonnage == false) { continue; }
                             }
                             __instance.currentLanceValue += cargoSlot.SelectedMech.MechDef.Description.Cost;
                             mechs.Add(cargoSlot.SelectedMech.MechDef);                            
@@ -765,7 +765,7 @@ namespace StrategicOperations.Framework
     {
         static void Prefix(ref bool __runOriginal, LanceConfiguratorPanel __instance, string lanceId, ref LanceDef __result)
         {
-            if (Mod.modSettings.UseOriginalBAMountInterface) { return; }
+            if (Mod.Settings.UseOriginalBAMountInterface) { return; }
             Mod.Log.Info?.Log($"LanceConfiguratorPanel.CreateLanceDef {lanceId} slots:{__instance.loadoutSlots.Length}");
             if (!__runOriginal) { return; }
             try
@@ -843,7 +843,7 @@ namespace StrategicOperations.Framework
         static void Postfix(LanceConfiguratorPanel __instance, string lanceId, ref LanceDef __result)
         {
             //LanceLoadoutSlot[] loadoutSlots = __instance.loadoutSlots;
-            if (Mod.modSettings.UseOriginalBAMountInterface) { return; }
+            if (Mod.Settings.UseOriginalBAMountInterface) { return; }
             Mod.Log.Info?.Log($"LanceConfiguratorPanel.CreateLanceDef result:");
             Mod.Log.Info?.Log(__result.ToJSON());
         }
@@ -858,7 +858,7 @@ namespace StrategicOperations.Framework
         {
             try
             {
-                if (Mod.modSettings.UseOriginalBAMountInterface) { return; }
+                if (Mod.Settings.UseOriginalBAMountInterface) { return; }
                 if (__instance.Mounts != null)
                 {
                     __result.Mounts = Utilities.CopyUtils.CopyArray<LanceDef.Unit>(__instance.Mounts);
@@ -885,7 +885,7 @@ namespace StrategicOperations.Framework
         {
             try
             {
-                if (Mod.modSettings.UseOriginalBAMountInterface) { return; }
+                if (Mod.Settings.UseOriginalBAMountInterface) { return; }
                 if (!__runOriginal) { return; }
                 __instance.mechwarriorLoadNotification.SetActive(true);
                 __instance.pilotListWidget.Clear();
@@ -935,7 +935,7 @@ namespace StrategicOperations.Framework
         {
             try
             {
-                if (Mod.modSettings.UseOriginalBAMountInterface) { return; }
+                if (Mod.Settings.UseOriginalBAMountInterface) { return; }
                 foreach (var slot in __instance.loadoutSlots)
                 {
                     LanceLoadoutSlotCargoConfig cargoInfo = slot.gameObject.GetComponent<LanceLoadoutSlotCargoConfig>();
@@ -967,7 +967,7 @@ namespace StrategicOperations.Framework
         {
             try
             {
-                if (Mod.modSettings.UseOriginalBAMountInterface) { return; }
+                if (Mod.Settings.UseOriginalBAMountInterface) { return; }
                 for (int t = 0; t < __instance.curLanceDef.LanceUnits.Length; ++t)
                 {
                     LanceDef.Unit lanceUnit = __instance.curLanceDef.LanceUnits[t];
@@ -1025,7 +1025,7 @@ namespace StrategicOperations.Framework
         {
             try
             {
-                if (Mod.modSettings.UseOriginalBAMountInterface) { return; }
+                if (Mod.Settings.UseOriginalBAMountInterface) { return; }
                 foreach (var slot in __instance.loadoutSlots)
                 {
                     LanceLoadoutSlotCargoPreview cargoInfo = slot.gameObject.GetComponent<LanceLoadoutSlotCargoPreview>();
@@ -1046,7 +1046,7 @@ namespace StrategicOperations.Framework
     {
         static void Prefix(ref bool __runOriginal, LancePreviewPanel __instance, ref LanceConfiguration __result)
         {
-            if (Mod.modSettings.UseOriginalBAMountInterface) { return; }
+            if (Mod.Settings.UseOriginalBAMountInterface) { return; }
             if (__runOriginal == false) { return; }
             __runOriginal = false;
         }
@@ -1054,7 +1054,7 @@ namespace StrategicOperations.Framework
         {
             try
             {
-                if (Mod.modSettings.UseOriginalBAMountInterface) { return; }
+                if (Mod.Settings.UseOriginalBAMountInterface) { return; }
                 __result = new LanceConfiguration();
                 foreach (var slot in __instance.loadoutSlots)
                 {
@@ -1101,7 +1101,7 @@ namespace StrategicOperations.Framework
         {
             try
             {
-                if (Mod.modSettings.UseOriginalBAMountInterface) { return; }
+                if (Mod.Settings.UseOriginalBAMountInterface) { return; }
                 foreach (var slot in __instance.loadoutSlots)
                 {
                     if (slot.SelectedMech == null) { continue; }
@@ -1134,7 +1134,7 @@ namespace StrategicOperations.Framework
         {
             try
             {
-                if (Mod.modSettings.UseOriginalBAMountInterface) { return; }
+                if (Mod.Settings.UseOriginalBAMountInterface) { return; }
                 foreach (var slot in __instance.playerLancePreview.loadoutSlots)
                 {
                     if (slot.SelectedMech == null) { continue; }
@@ -1168,7 +1168,7 @@ namespace StrategicOperations.Framework
         {
             try
             {
-                if (Mod.modSettings.UseOriginalBAMountInterface) { return; }
+                if (Mod.Settings.UseOriginalBAMountInterface) { return; }
                 Mod.Log.Info?.Log("LanceConfiguratorPanel.LoadLanceConfiguration");
                 foreach (var lance in config.Lances)
                 {
@@ -1223,7 +1223,7 @@ namespace StrategicOperations.Framework
         {
             try
             {
-                if (Mod.modSettings.UseOriginalBAMountInterface) { return; }
+                if (Mod.Settings.UseOriginalBAMountInterface) { return; }
                 foreach (var slot in __instance.loadoutSlots)
                 {
                     LanceLoadoutSlotCargoConfig cargoInfo = slot.gameObject.GetComponent<LanceLoadoutSlotCargoConfig>();
@@ -1364,7 +1364,7 @@ namespace StrategicOperations.Framework
         {
             try
             {
-                if (Mod.modSettings.UseOriginalBAMountInterface) { return; }
+                if (Mod.Settings.UseOriginalBAMountInterface) { return; }
                 if (__instance.teamDefinitionGuid != __instance.Combat.LocalPlayerTeamGuid) { return; }
                 UnitSpawnPointGameLogic[] pointGameLogicList = __instance.unitSpawnPointGameLogicList;
                 List<CargoUnitSpawnInfo> units_to_spawn = new List<CargoUnitSpawnInfo>();
@@ -1428,7 +1428,7 @@ namespace StrategicOperations.Framework
         public static bool RefreshAlreadyCalled = false;
         public static void Postfix()
         {
-            if (Mod.modSettings.UseOriginalBAMountInterface) { return; }
+            if (Mod.Settings.UseOriginalBAMountInterface) { return; }
             RefreshAlreadyCalled = true;
         }
     }
@@ -1439,7 +1439,7 @@ namespace StrategicOperations.Framework
     {
         public static void Prefix()
         {
-            if (Mod.modSettings.UseOriginalBAMountInterface) { return; }
+            if (Mod.Settings.UseOriginalBAMountInterface) { return; }
             CombatHUDMechwarriorTray_RefreshTeam.RefreshAlreadyCalled = false;
         }
     }
@@ -1451,7 +1451,7 @@ namespace StrategicOperations.Framework
         public static bool RestoreVisiblityStateCalled = false;
         public static void Postfix()
         {
-            if (Mod.modSettings.UseOriginalBAMountInterface) { return; }
+            if (Mod.Settings.UseOriginalBAMountInterface) { return; }
             RestoreVisiblityStateCalled = true;
             Mod.Log.Info?.Log("DeployManualHelper.RestoreVisiblityState");
         }
@@ -1476,7 +1476,7 @@ namespace StrategicOperations.Framework
     {
         public static void Postfix(SimGameState __instance, LanceConfiguration config)
         {
-            if (Mod.modSettings.UseOriginalBAMountInterface) { return; }
+            if (Mod.Settings.UseOriginalBAMountInterface) { return; }
             Mod.Log.Info?.Log("SimGameState.SaveLastLance");
             ModState.LastMounts = new List<LastUsedMounts>();
             foreach (SpawnableUnit lanceUnit in config.GetLanceUnits("bf40fd39-ccf9-47c4-94a6-061809681140"))
@@ -1504,7 +1504,7 @@ namespace StrategicOperations.Framework
     {
         public static void Postfix(SimGameState __instance, ref LanceConfiguration __result)
         {
-            if (Mod.modSettings.UseOriginalBAMountInterface) { return; }
+            if (Mod.Settings.UseOriginalBAMountInterface) { return; }
             Mod.Log.Info?.Log("SimGameState.GetLastLance");
             foreach (var mounts in ModState.LastMounts)
             {

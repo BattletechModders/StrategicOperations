@@ -490,7 +490,7 @@ namespace StrategicOperations.Patches
             public static void Postfix(ActivatableComponent __instance, MechComponent component, bool autoActivate,
                 bool isInital)
             {
-                if (Mod.modSettings.BPodComponentIDs.Contains(component.defId))
+                if (Mod.Settings.BPodComponentIDs.Contains(component.defId))
                 {
                     ActivatableComponent activatableComponent =
                         component.componentDef.GetComponent<ActivatableComponent>();
@@ -547,7 +547,7 @@ namespace StrategicOperations.Patches
                     if (__instance.owningActor == null) return;
                     if (ModState.DeSwarmMovementInfo?.Carrier?.GUID == __instance.owningActor.GUID)
                     {
-                        var settings = Mod.modSettings.DeswarmMovementConfig;
+                        var settings = Mod.Settings.DeswarmMovementConfig;
 
                         var baseChance =
                             settings.BaseSuccessChance; //__instance.owningActor.getMovementDeSwarmMinChance();
@@ -587,7 +587,7 @@ namespace StrategicOperations.Patches
         [HarmonyPatch(typeof(AttackDirector.AttackSequence), "IsBreachingShot", MethodType.Getter)]
         public static class AttackDirector_AttackSequence_IsBreachingShot
         {
-            static bool Prepare() => !Mod.modSettings.UsingMechAffinityForSwarmBreach;
+            static bool Prepare() => !Mod.Settings.UsingMechAffinityForSwarmBreach;
 
             public static void Postfix(AttackDirector.AttackSequence __instance, ref bool __result)
             {
@@ -701,7 +701,7 @@ namespace StrategicOperations.Patches
                     .HUD; //IRBTModUtils.SharedState.CombatHUD;//Traverse.Create(__instance).Property("HUD").GetValue<CombatHUD>();
                 var actor = hud.SelectedActor;
                 if (actor == null) return;
-                if (Mod.modSettings.EnableQuickReserve)
+                if (Mod.Settings.EnableQuickReserve)
                 {
                     var hk = Input.GetKey(KeyCode.LeftShift) || Input.GetKey(KeyCode.RightShift);
                     if (hk && actor.CanDeferUnit)
@@ -741,7 +741,7 @@ namespace StrategicOperations.Patches
 
                 var loc = ModState.BADamageTrackers[actor.GUID].BA_MountedLocations.Values.GetRandomElement();
 
-                if (actor is Mech unitMech && Mod.modSettings.MeleeOnSwarmAttacks)
+                if (actor is Mech unitMech && Mod.Settings.MeleeOnSwarmAttacks)
                 {
                     if (!ModState.SwarmMeleeSequences.ContainsKey(actor.GUID))
                     {
@@ -785,7 +785,7 @@ namespace StrategicOperations.Patches
                 var theActor = HUD.SelectedActor;
                 if (theActor == null) return;
                 if (__instance.Ability == null ||
-                    __instance.Ability?.Def?.Id != Mod.modSettings.BattleArmorMountAndSwarmID) return;
+                    __instance.Ability?.Def?.Id != Mod.Settings.BattleArmorMountAndSwarmID) return;
                 if (theActor.IsGarrisoned())
                 {
                     __instance.Text.SetText("DISMOUNT GARRISON", Array.Empty<object>());
@@ -818,7 +818,7 @@ namespace StrategicOperations.Patches
                 SVGAsset Icon, string GUID, string Tooltip, AbstractActor actor)
             {
                 if (actor == null) return;
-                if (Ability == null || Ability.Def?.Id != Mod.modSettings.BattleArmorMountAndSwarmID) return;
+                if (Ability == null || Ability.Def?.Id != Mod.Settings.BattleArmorMountAndSwarmID) return;
                 if (actor.IsGarrisoned())
                 {
                     __instance.Text.SetText("DISMOUNT GARRISON", Array.Empty<object>());
@@ -949,7 +949,7 @@ namespace StrategicOperations.Patches
 
                         foreach (var abilityButton in abilityButtons)
                         {
-                            if (abilityButton?.Ability?.Def?.Id == Mod.modSettings.BattleArmorMountAndSwarmID)
+                            if (abilityButton?.Ability?.Def?.Id == Mod.Settings.BattleArmorMountAndSwarmID)
                                 abilityButton?.DisableButton();
                         }
                     }
@@ -970,7 +970,7 @@ namespace StrategicOperations.Patches
 
                     foreach (var abilityButton in abilityButtons)
                     {
-                        if (abilityButton?.Ability?.Def?.Id == Mod.modSettings.BattleArmorMountAndSwarmID)
+                        if (abilityButton?.Ability?.Def?.Id == Mod.Settings.BattleArmorMountAndSwarmID)
                             abilityButton?.DisableButton();
                     }
                 }
@@ -1254,7 +1254,7 @@ namespace StrategicOperations.Patches
 
             public static void Postfix(LanceConfiguratorPanel __instance, IMechLabDraggableItem item)
             {
-                if (Mod.modSettings.UseOriginalBAMountInterface == false) { return; }
+                if (Mod.Settings.UseOriginalBAMountInterface == false) { return; }
                 var proc = Input.GetKey(KeyCode.LeftShift) || Input.GetKey(KeyCode.RightShift);
 
                 if (proc)
@@ -1446,7 +1446,7 @@ namespace StrategicOperations.Patches
         [HarmonyPatch(typeof(LineOfSight), "GetLineOfFireUncached")]
         public static class LineOfSight_GetLineOfFireUncached
         {
-            static bool Prepare() => !Mod.modSettings.AllowIRBTUHandleVisibility;
+            static bool Prepare() => !Mod.Settings.AllowIRBTUHandleVisibility;
 
             public static void Prefix(ref bool __runOriginal, LineOfSight __instance, AbstractActor source,
                 Vector3 sourcePosition, ICombatant target, Vector3 targetPosition, Quaternion targetRotation,
@@ -1919,13 +1919,13 @@ namespace StrategicOperations.Patches
                     Mod.Log.Trace?.Log($"[MechBayMechInfoWidget_SetData] Found game object `StratOps_SquadCarrierTip` and using it.");
                 }
                 var localizableTextComponent = newlocTxtGO.GetOrAddComponent<LocalizableText>();
-                localizableTextComponent.SetText(Mod.modSettings.BAMountReminderText);
+                localizableTextComponent.SetText(Mod.Settings.BAMountReminderText);
                 localizableTextComponent.alignment = TextAlignmentOptions.BottomLeft;
                 localizableTextComponent.enableAutoSizing = true;
                 localizableTextComponent.enableWordWrapping = false;
                 if (mechBay == null)
                 {
-                    if (Mod.modSettings.UseOriginalBAMountInterface)
+                    if (Mod.Settings.UseOriginalBAMountInterface)
                     {
                         newlocTxtGO.SetActive(__instance?.selectedMech?.GetCustomInfo()?.SquadInfo?.Troopers > 0);
                     }
@@ -1945,7 +1945,7 @@ namespace StrategicOperations.Patches
             public static void Postfix(MechJumpSequence __instance)
             {
                 if (__instance.OwningMech == null) return;
-                var settings = Mod.modSettings.DeswarmMovementConfig;
+                var settings = Mod.Settings.DeswarmMovementConfig;
 
                 if (ModState.DeSwarmMovementInfo?.Carrier?.GUID == __instance.OwningMech.GUID)
                 {
@@ -2074,11 +2074,11 @@ namespace StrategicOperations.Patches
                 var cHUD = __instance
                     .HUD; //IRBTModUtils.SharedState.CombatHUD;//Traverse.Create(__instance).Property("HUD").GetValue<CombatHUD>();
                 var creator = cHUD.SelectedActor;
-                if (__instance.FromButton.Ability.Def.Id == Mod.modSettings.BattleArmorDeSwarmRoll)
+                if (__instance.FromButton.Ability.Def.Id == Mod.Settings.BattleArmorDeSwarmRoll)
                 {
                     var settings =
-                        Mod.modSettings.DeswarmConfigs.ContainsKey(Mod.modSettings.BattleArmorDeSwarmRoll)
-                            ? Mod.modSettings.DeswarmConfigs[Mod.modSettings.BattleArmorDeSwarmRoll]
+                        Mod.Settings.DeswarmConfigs.ContainsKey(Mod.Settings.BattleArmorDeSwarmRoll)
+                            ? Mod.Settings.DeswarmConfigs[Mod.Settings.BattleArmorDeSwarmRoll]
                             : new Classes.ConfigOptions.BA_DeswarmAbilityConfig();
                     //var parsed = float.TryParse(__instance.FromButton.Ability.Def.EffectData
                     //    .FirstOrDefault(x => x.statisticData.statName == "BattleArmorDeSwarmerRoll")
@@ -2095,11 +2095,11 @@ namespace StrategicOperations.Patches
                     cHUD.AttackModeSelector.FireButton.FireText.SetText($"{chanceDisplay}% - Confirm",
                         Array.Empty<object>());
                 }
-                else if (__instance.FromButton.Ability.Def.Id == Mod.modSettings.BattleArmorDeSwarmSwat)
+                else if (__instance.FromButton.Ability.Def.Id == Mod.Settings.BattleArmorDeSwarmSwat)
                 {
                     var settings =
-                        Mod.modSettings.DeswarmConfigs.ContainsKey(Mod.modSettings.BattleArmorDeSwarmSwat)
-                            ? Mod.modSettings.DeswarmConfigs[Mod.modSettings.BattleArmorDeSwarmSwat]
+                        Mod.Settings.DeswarmConfigs.ContainsKey(Mod.Settings.BattleArmorDeSwarmSwat)
+                            ? Mod.Settings.DeswarmConfigs[Mod.Settings.BattleArmorDeSwarmSwat]
                             : new Classes.ConfigOptions.BA_DeswarmAbilityConfig();
                     //var parsed = float.TryParse(__instance.FromButton.Ability.Def.EffectData
                     //    .FirstOrDefault(x => x.statisticData.statName == "BattleArmorDeSwarmerSwat")
@@ -2112,7 +2112,7 @@ namespace StrategicOperations.Patches
                     foreach (var armComponent in creator.allComponents.Where(x =>
                                  x.IsFunctional && (x.Location == 2 || x.Location == 32)))
                     {
-                        foreach (var CategoryID in Mod.modSettings.ArmActuatorCategoryIDs)
+                        foreach (var CategoryID in Mod.Settings.ArmActuatorCategoryIDs)
                         {
                             if (armComponent.mechComponentRef.IsCategory(CategoryID))
                             {
@@ -2166,7 +2166,7 @@ namespace StrategicOperations.Patches
                     .HUD; //IRBTModUtils.SharedState.CombatHUD;//Traverse.Create(__instance).Property("HUD").GetValue<CombatHUD>();
                 var creator = cHUD.SelectedActor;
                 if (creator == null) return;
-                if (__instance.FromButton.Ability.Def.Id == Mod.modSettings.BattleArmorMountAndSwarmID)
+                if (__instance.FromButton.Ability.Def.Id == Mod.Settings.BattleArmorMountAndSwarmID)
                 {
                     if (!creator.Pathing.ArePathGridsComplete)
                     {
@@ -2188,7 +2188,7 @@ namespace StrategicOperations.Patches
                             Array.Empty<object>());
                     }
                 }
-                else if (__instance.FromButton.Ability.Def.Id == Mod.modSettings.AirliftAbilityID)
+                else if (__instance.FromButton.Ability.Def.Id == Mod.Settings.AirliftAbilityID)
                 {
                     if (!creator.Pathing.ArePathGridsComplete)
                     {
@@ -2204,7 +2204,7 @@ namespace StrategicOperations.Patches
             new Type[] { })]
         public static class Team_DeferAllAvailableActors
         {
-            static bool Prepare() => Mod.modSettings.EnableQuickReserve;
+            static bool Prepare() => Mod.Settings.EnableQuickReserve;
 
             public static void Prefix(ref bool __runOriginal, Team __instance)
             {

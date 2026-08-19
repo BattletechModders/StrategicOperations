@@ -78,7 +78,7 @@ namespace StrategicOperations.Framework
         private void AttackNextTargets()
         {
             this._timeSinceLastAttack += Time.deltaTime;
-            if (this._timeSinceLastAttack > Mod.modSettings.timeBetweenAttacks)
+            if (this._timeSinceLastAttack > Mod.Settings.timeBetweenAttacks)
             {
                 if (!base.Combat.AttackDirector.IsAnyAttackSequenceActive)
                 {
@@ -216,9 +216,9 @@ namespace StrategicOperations.Framework
             {
                 this.MaxWeaponRange = this.Attacker.Weapons.First().MaxRange;
             }
-            Vector3 result = this.StartPos - this.Velocity * Mod.modSettings.strafePreDistanceMult;
-            this.HeightOffset = Mathf.Clamp(this.MaxWeaponRange/4, Mod.modSettings.strafeAltitudeMin,
-                Mod.modSettings.strafeAltitudeMax);
+            Vector3 result = this.StartPos - this.Velocity * Mod.Settings.strafePreDistanceMult;
+            this.HeightOffset = Mathf.Clamp(this.MaxWeaponRange/4, Mod.Settings.strafeAltitudeMin,
+                Mod.Settings.strafeAltitudeMax);
             result.y = base.Combat.MapMetaData.GetLerpedHeightAt(result, false) + this.HeightOffset;
             return result;
         }
@@ -252,7 +252,7 @@ namespace StrategicOperations.Framework
 
             var allCombatants = new List<ICombatant>(base.Combat.GetAllLivingCombatants());
 
-            if (Mod.modSettings.strafeTargetsFriendliesChance == 0 && Mod.modSettings.strafeNeutralBuildingsChance == 0)
+            if (Mod.Settings.strafeTargetsFriendliesChance == 0 && Mod.Settings.strafeNeutralBuildingsChance == 0)
             {
                 allCombatants = new List<ICombatant>(allCombatants.Where(x=>x.team.IsEnemy(this.StrafingTeam)));
             }
@@ -280,7 +280,7 @@ namespace StrategicOperations.Framework
                     var isObjective = building.isObjectiveTarget;//Traverse.Create(building).Field("isObjectiveTarget").GetValue<bool>();
                     if (isObjective)
                     {
-                        var chanceBuilding = Mod.modSettings.strafeObjectiveBuildingsChance;
+                        var chanceBuilding = Mod.Settings.strafeObjectiveBuildingsChance;
                         if (rollBuilding >= chanceBuilding)
                         {
                             Mod.Log.Info?.Log($"Roll {rollBuilding} >= strafeObjectiveBuildingsChance {chanceBuilding}, skipping.");
@@ -289,7 +289,7 @@ namespace StrategicOperations.Framework
                     }
                     else if (building.team.GUID == "421027ec-8480-4cc6-bf01-369f84a22012") //only need to check for "World" since friendly buildings will be covered below, and we're ok targeting enemy buildings
                     {
-                        var chanceBuilding = Mod.modSettings.strafeNeutralBuildingsChance;
+                        var chanceBuilding = Mod.Settings.strafeNeutralBuildingsChance;
                         if (rollBuilding >= chanceBuilding && allCombatants[i].team.IsNeutral(this.StrafingTeam))
                         {
                             Mod.Log.Info?.Log($"Roll {rollBuilding} >= strafeNeutralBuildingsChance {chanceBuilding}, skipping.");
@@ -299,7 +299,7 @@ namespace StrategicOperations.Framework
                 }
 
                 var roll = Mod.Random.NextDouble();
-                var chance = Mod.modSettings.strafeTargetsFriendliesChance;
+                var chance = Mod.Settings.strafeTargetsFriendliesChance;
                 if (roll >= chance && allCombatants[i].team.IsFriendly(this.StrafingTeam))
                 {
                     Mod.Log.Info?.Log($"Roll {roll} >= strafeTargetsFriendliesChance {chance}, skipping.");
@@ -447,7 +447,7 @@ namespace StrategicOperations.Framework
                     this.GetWeaponsForStrafe();
                     Vector3 vector = this._zeroEndPos - this._zeroStartPos;
                     vector.Normalize();
-                    var speed = Mod.modSettings.strafeVelocityDefault;;
+                    var speed = Mod.Settings.strafeVelocityDefault;;
                     if (Attacker.MaxSpeed > 0)
                     {
                         speed = Attacker.MaxSpeed;
@@ -458,7 +458,7 @@ namespace StrategicOperations.Framework
                     Quaternion rotation2 = Quaternion.LookRotation(Vector3.forward * 5f + Vector3.down * 1f);
                     this.SetPosition(position, rotation);
                     base.ClearCamera();
-                        if (Mod.modSettings.showStrafeCamera) base.SetCamera(CameraControl.Instance.ShowActorCam(this.Attacker, rotation2, 300f), base.MessageIndex);
+                        if (Mod.Settings.showStrafeCamera) base.SetCamera(CameraControl.Instance.ShowActorCam(this.Attacker, rotation2, 300f), base.MessageIndex);
                     return;
                 }
                 case TB_StrafeSequence.SequenceState.Strafing:
@@ -517,7 +517,7 @@ namespace StrategicOperations.Framework
                     //var endpoint = this.StartPos + (this.EndPos - this.StartPos).normalized * Vector3.Distance(this.StartPos, this.EndPos);
                     //var angle = Vector3.Angle(this.EndPos, this.Attacker.CurrentPosition);
                     Mod.Log.Debug?.Log($"Strafing unit {fromEnd}m in 2D space from endpoint!");// Angle to endPoint: {angle}");
-                    if (fromEnd < Mod.modSettings.strafeMinDistanceToEnd || (fromEnd <= fromStart && fromEnd > this.StrafeLength))
+                    if (fromEnd < Mod.Settings.strafeMinDistanceToEnd || (fromEnd <= fromStart && fromEnd > this.StrafeLength))
                     {
                         Mod.Log.Info?.Log($"Setting Strafe SequenceState to Finished!");
                         this.SetState(TB_StrafeSequence.SequenceState.Finished);
@@ -529,8 +529,8 @@ namespace StrategicOperations.Framework
                 case TB_StrafeSequence.SequenceState.Incoming:
                     var pos2 = this.Attacker.CurrentPosition + this.Velocity * Time.deltaTime;
                     var terrainHeight = this.Combat.MapMetaData.GetLerpedHeightAt(pos2, false);
-                    var pendingMin = terrainHeight + Mod.modSettings.strafeAltitudeMin;
-                    var pendingMax = terrainHeight + Mod.modSettings.strafeAltitudeMax;
+                    var pendingMin = terrainHeight + Mod.Settings.strafeAltitudeMin;
+                    var pendingMax = terrainHeight + Mod.Settings.strafeAltitudeMax;
                     Mod.Log.Info?.Log($"[Strafe Incoming] Processing altitude: terrain height {terrainHeight}. clamping y {pos2.y} between min {pendingMin} and max {pendingMax}");
                     pos2.y = Mathf.Clamp(pos2.y, pendingMin, pendingMax);
 
@@ -543,7 +543,7 @@ namespace StrategicOperations.Framework
                             vector.y = 0f;
                             Mod.Log.Debug?.Log(
                                 $"{enemy.Description.UIName} is {vector.magnitude} from strafing unit for. Unit has sensor range of {base.Combat.LOS.GetSensorRange(Attacker)}!");
-                            if (vector.magnitude < Mod.modSettings.strafeSensorFactor *
+                            if (vector.magnitude < Mod.Settings.strafeSensorFactor *
                                 base.Combat.LOS.GetSensorRange(Attacker))
                             {
                                 Mod.Log.Debug?.Log($"Should be showing enemy!");
@@ -564,8 +564,8 @@ namespace StrategicOperations.Framework
                     var pos3 = this.Attacker.CurrentPosition + this.Velocity * Time.deltaTime;
                     // maybe try to smooth out altitude changes here. but i dont really care.
                     var terrainHeight2 = this.Combat.MapMetaData.GetLerpedHeightAt(pos3, false);
-                    var pendingMin2 = terrainHeight2 + Mod.modSettings.strafeAltitudeMin;
-                    var pendingMax2 = terrainHeight2 + Mod.modSettings.strafeAltitudeMax;
+                    var pendingMin2 = terrainHeight2 + Mod.Settings.strafeAltitudeMin;
+                    var pendingMax2 = terrainHeight2 + Mod.Settings.strafeAltitudeMax;
                     Mod.Log.Info?.Log($"[Strafe Strafing] Processing altitude: terrain height {terrainHeight2}. clamping y {pos3.y} between min {pendingMin2} and max {pendingMax2}");
                     pos3.y = Mathf.Clamp(pos3.y, pendingMin2, pendingMax2);
                     this.SetPosition(pos3, this.Attacker.CurrentRotation);

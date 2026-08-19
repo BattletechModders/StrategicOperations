@@ -101,7 +101,7 @@ namespace StrategicOperations.Framework
 
                 var kvp = new KeyValuePair<string, Action>(instanceGUID, DeferredInvokeSpawn);
                 ModState.DeferredInvokeSpawns.Add(kvp);
-                Utils.SpawnFlares(__instance, positionA, positionB, Mod.modSettings.flareResourceID, 1, __instance.Def.ActivationETA, team.IsLocalPlayer);
+                Utils.SpawnFlares(__instance, positionA, positionB, Mod.Settings.flareResourceID, 1, __instance.Def.ActivationETA, team.IsLocalPlayer);
                 //                    var flares = Traverse.Create(__instance).Method("SpawnFlares",
                 //                        new object[] {positionA, positionA, __instance.Def., 1, 1});
                 //                    flares.GetValue();
@@ -406,7 +406,7 @@ namespace StrategicOperations.Framework
 
                 ///////////////
 
-                if (team.IsLocalPlayer && (Mod.modSettings.commandUseCostsMulti > 0 ||
+                if (team.IsLocalPlayer && (Mod.Settings.commandUseCostsMulti > 0 ||
                                            __instance.Def.getAbilityDefExtension().CBillCost > 0))
                 {
                     var unitName = "";
@@ -519,7 +519,7 @@ namespace StrategicOperations.Framework
             Mod.Log.Info?.Log($"[ActivateStrafeFromActor] Team neutralTeam = {supportTeam?.DisplayName}");
             var cmdLance = Utils.CreateOrFetchCMDLance(supportTeam);
             var actorResource = __instance.Def.ActorResource;
-            var strafeWaves = Mod.modSettings.strafeWaves;
+            var strafeWaves = Mod.Settings.strafeWaves;
             if (strafeParams.StrafeWaves > 0)
             {
                 //strafeWaves = ModState.StrafeWaves;
@@ -572,7 +572,7 @@ namespace StrategicOperations.Framework
                 Mod.Log.Info?.Log($"[ActivateStrafeFromActor] First time initializing strafe with GUID {parentSequenceID}");
                 if (__instance.Def.IntParam1 > 0)
                 {
-                    Utils.SpawnFlares(__instance, positionA, positionB, Mod.modSettings.flareResourceID,
+                    Utils.SpawnFlares(__instance, positionA, positionB, Mod.Settings.flareResourceID,
                         __instance.Def.IntParam1, Math.Max(__instance.Def.ActivationETA * strafeWaves, strafeWaves), team.IsLocalPlayer); // make smoke last for all strafe waves because babies
                 }
 
@@ -727,10 +727,10 @@ namespace StrategicOperations.Framework
                 return;
             }
 
-            if (Mod.modSettings.deployProtection > 0)
+            if (Mod.Settings.deployProtection > 0)
             {
-                Mod.Log.Info?.Log($"Adding {Mod.modSettings.deployProtection} evasion pips");
-                actor.EvasivePipsCurrent = Mod.modSettings.deployProtection;
+                Mod.Log.Info?.Log($"Adding {Mod.Settings.deployProtection} evasion pips");
+                actor.EvasivePipsCurrent = Mod.Settings.deployProtection;
                 //Traverse.Create(actor).Property("EvasivePipsTotal").SetValue(actor.EvasivePipsCurrent);
                 actor.EvasivePipsTotal = actor.EvasivePipsCurrent;
                 actor.Combat.MessageCenter.PublishMessage(new EvasiveChangedMessage(actor.GUID, actor.EvasivePipsCurrent));
@@ -908,7 +908,7 @@ namespace StrategicOperations.Framework
 
         public static float GetAvoidStrafeChanceForTeam(this ICombatant combatant, string attackingUnitId)
         {
-            if (Mod.modSettings.strafeUseAlternativeImplementation)
+            if (Mod.Settings.strafeUseAlternativeImplementation)
             {
                 Mod.Log.Debug?.Log("Using alternative implementation for strafes.");
                 return GetAvoidStrafeChanceForTeamAlternate(combatant, attackingUnitId);
@@ -947,23 +947,23 @@ namespace StrategicOperations.Framework
                 if (unit.team.IsFriendly(combatant.team))
                 {
                     var distance = (combatant.CurrentPosition - unit.CurrentPosition).magnitude;
-                    if (distance <= Mod.modSettings.strafeAAMaxCoverDistance)
+                    if (distance <= Mod.Settings.strafeAAMaxCoverDistance)
                     {
                         cumAA += unit.GetAAAFactor();
-                        Mod.Log.Trace?.Log($"unit {unit.DisplayName} is friendly of {combatant.DisplayName} at distance {distance} which is within maximum cover distance of {Mod.modSettings.strafeAAMaxCoverDistance}. " +
+                        Mod.Log.Trace?.Log($"unit {unit.DisplayName} is friendly of {combatant.DisplayName} at distance {distance} which is within maximum cover distance of {Mod.Settings.strafeAAMaxCoverDistance}. " +
                                                      $"Added AA factor {unit.GetAAAFactor()}; total is now {cumAA}");
                     }
                 }
             }
 
-            if (Mod.modSettings.strafeAttackerStrength.TryGetValue(attackingUnitId, out var strafeAttackerStrength))
+            if (Mod.Settings.strafeAttackerStrength.TryGetValue(attackingUnitId, out var strafeAttackerStrength))
             {
                 Mod.Log.Trace?.Log($"Strafe attack unit {attackingUnitId} has strength {strafeAttackerStrength}.");
             }
             else
             {
                 Mod.Log.Warning?.Log($"No strafe attacker strength found for {attackingUnitId}, using fallback.");
-                strafeAttackerStrength = Mod.modSettings.strafeFallbackStrengthValue;
+                strafeAttackerStrength = Mod.Settings.strafeFallbackStrengthValue;
             }
 
             var finalAA = cumAA / strafeAttackerStrength;
@@ -1037,7 +1037,7 @@ namespace StrategicOperations.Framework
         {
             var sgs = UnityGameInstance.BattleTechGame.Simulation;
             var beacons = new List<MechComponentRef>();
-            foreach (var stat in Mod.modSettings.deploymentBeaconEquipment)
+            foreach (var stat in Mod.Settings.deploymentBeaconEquipment)
             {
                 if (sgs.CompanyStats.GetValue<int>(stat) > 0)
                 {
@@ -1094,7 +1094,7 @@ namespace StrategicOperations.Framework
         {
             var sgs = UnityGameInstance.BattleTechGame.Simulation;
             var beacons = new List<MechComponentRef>();
-            foreach (var stat in Mod.modSettings.deploymentBeaconEquipment)
+            foreach (var stat in Mod.Settings.deploymentBeaconEquipment)
             {
                 if (sgs.CompanyStats.GetValue<int>(stat) > 0)
                 {
@@ -1357,7 +1357,7 @@ namespace StrategicOperations.Framework
                     wave.Ability.Def.ActivationETA, null, eventSequence, wave.Ability.Def, false);
                 wave.Ability.Combat.TurnDirector.AddTurnEvent(tEvent);
 
-                if (wave.Team.IsLocalPlayer && (Mod.modSettings.commandUseCostsMulti > 0 ||
+                if (wave.Team.IsLocalPlayer && (Mod.Settings.commandUseCostsMulti > 0 ||
                                                 wave.Ability.Def.getAbilityDefExtension().CBillCost > 0))
                 {
                     var unitName = "";
@@ -1435,7 +1435,7 @@ namespace StrategicOperations.Framework
 
         public static Vector3[] MakeCircle(Vector3 start, int numOfPoints, float radius)
         {
-            if (Mod.modSettings.debugFlares) Utils.SpawnDebugFlare(start, "vfxPrfPrtl_artillerySmokeSignal_loop",3);
+            if (Mod.Settings.debugFlares) Utils.SpawnDebugFlare(start, "vfxPrfPrtl_artillerySmokeSignal_loop",3);
             var vectors = new List<Vector3>();
             for (int i = 0; i < numOfPoints; i++)
             {
@@ -1446,7 +1446,7 @@ namespace StrategicOperations.Framework
 
                 var newPos = start + spawnDir * radius;
                 vectors.Add(newPos);
-                if (Mod.modSettings.debugFlares) Utils.SpawnDebugFlare(newPos, "vfxPrfPrtl_artillerySmokeSignal_loop", 3);
+                if (Mod.Settings.debugFlares) Utils.SpawnDebugFlare(newPos, "vfxPrfPrtl_artillerySmokeSignal_loop", 3);
                 Mod.Log.Debug?.Log($"Distance from possibleStart to ray endpoint is {Vector3.Distance(start, newPos)}.");
             }
 
@@ -1546,12 +1546,12 @@ namespace StrategicOperations.Framework
                 var currentHesitation = actor.StatCollection.GetValue<int>("SBI_STATE_HESITATION");
                 var actorHesitationPhaseMod = actor.StatCollection.GetValue<int>("SBI_MOD_HESITATION") * -1; // invert from SBI
                 var phasesMoved = Math.Abs(actor.Combat.TurnDirector.CurrentPhase - actor.Combat.TurnDirector.LastPhase);
-                var hesitationPenalty = (Mod.modSettings.SBI_HesitationMultiplier * phasesMoved) + actorHesitationPhaseMod;
+                var hesitationPenalty = (Mod.Settings.SBI_HesitationMultiplier * phasesMoved) + actorHesitationPhaseMod;
                 var roundedPenalty = Mathf.RoundToInt(hesitationPenalty);
                 var finalHesitation = currentHesitation + roundedPenalty;
                 actor.StatCollection.ModifyStat<int>(actor.GUID, -1, "SBI_STATE_HESITATION", StatCollection.StatOperation.Set, finalHesitation);
                 Mod.Log.Info?.Log(
-                    $"[ProcessHesitationSBI] Used quick-reserve with SBI. Final hesitation set to {finalHesitation} from: Multiplier setting {Mod.modSettings.SBI_HesitationMultiplier} x PhasesMoved {phasesMoved} + Actor Hesitation Mod {actorHesitationPhaseMod} + Current hesitation {currentHesitation} (rounded)");
+                    $"[ProcessHesitationSBI] Used quick-reserve with SBI. Final hesitation set to {finalHesitation} from: Multiplier setting {Mod.Settings.SBI_HesitationMultiplier} x PhasesMoved {phasesMoved} + Actor Hesitation Mod {actorHesitationPhaseMod} + Current hesitation {currentHesitation} (rounded)");
             }
         }
 
@@ -1572,7 +1572,7 @@ namespace StrategicOperations.Framework
             var sim = UnityGameInstance.BattleTechGame.Simulation;
             if (sim == null) return false;
             if (!team.IsLocalPlayer) return false;
-            if (Mod.modSettings.PlayerControlSpawns) return true;
+            if (Mod.Settings.PlayerControlSpawns) return true;
 
             if (ModState.StoredCmdParams.ContainsKey(quid))
             {
@@ -1582,8 +1582,8 @@ namespace StrategicOperations.Framework
                     ModState.StoredCmdParams[quid].PlayerControlOverridden) return false;
             }
 
-            if (Mod.modSettings.PlayerControlSpawnAbilities.Contains(ability.Def.Id)) return true;
-            if (Mod.modSettings.PlayerControlSpawnAbilitiesBlacklist.Contains(ability.Def.Id)) return false;
+            if (Mod.Settings.PlayerControlSpawnAbilities.Contains(ability.Def.Id)) return true;
+            if (Mod.Settings.PlayerControlSpawnAbilitiesBlacklist.Contains(ability.Def.Id)) return false;
 
             return sim.CompanyStats.GetValue<bool>("StratOps_ControlSpawns");
         }

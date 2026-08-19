@@ -97,7 +97,7 @@ namespace StrategicOperations.Framework
 
         public static int ProcessResupplyUnit(this AbstractActor actor, AbstractActor resupplyActor)
         {
-            var searchForSpammy = !string.IsNullOrEmpty(Mod.modSettings.ResupplyConfig.SPAMMYAmmoDefId);
+            var searchForSpammy = !string.IsNullOrEmpty(Mod.Settings.ResupplyConfig.SPAMMYAmmoDefId);
 
             var totalAmmoTonnage = 0f;
             var totalArmorPoints = 0f;
@@ -124,14 +124,14 @@ namespace StrategicOperations.Framework
                                 if (magicBox.CurrentAmmo <= 0) continue;
 
                                 var spammy = searchForSpammy && magicBox.ammoDef.Description.Id ==
-                                             Mod.modSettings.ResupplyConfig.SPAMMYAmmoDefId &&
-                                             !Mod.modSettings.ResupplyConfig.SPAMMYBlackList.Contains(weapon
+                                             Mod.Settings.ResupplyConfig.SPAMMYAmmoDefId &&
+                                             !Mod.Settings.ResupplyConfig.SPAMMYBlackList.Contains(weapon
                                                  .weaponDef
                                                  .Description.Id);
 
                                 var intSpammy = searchForSpammy && magicBox.ammoDef.Description.Id ==
-                                             Mod.modSettings.ResupplyConfig.InternalSPAMMYDefId &&
-                                             !Mod.modSettings.ResupplyConfig.InternalSPAMMYBlackList.Contains(weapon
+                                             Mod.Settings.ResupplyConfig.InternalSPAMMYDefId &&
+                                             !Mod.Settings.ResupplyConfig.InternalSPAMMYBlackList.Contains(weapon
                                                  .weaponDef
                                                  .Description.Id);
 
@@ -209,13 +209,13 @@ namespace StrategicOperations.Framework
                                 Mod.Log.Trace?.Log($"[ProcessResupplyUnit - Regular Ammo] - Partial Resupply complete for ammoBox {ammoBoxToFill.Description.UIName}. Ammobox now has {ammoBoxToFill.CurrentAmmo}/{ammoBoxToFill.AmmoCapacity} ammo, resupply box has {resupplyBox.CurrentAmmo}/{resupplyBox.AmmoCapacity} remaining");
                             }
                         }
-                        else if (searchForSpammy && resupplyBox.ammoDef.Description.Id == Mod.modSettings.ResupplyConfig.SPAMMYAmmoDefId)
+                        else if (searchForSpammy && resupplyBox.ammoDef.Description.Id == Mod.Settings.ResupplyConfig.SPAMMYAmmoDefId)
                         {
                             magicBoxes.Add(resupplyBox);
                         }
                     }
 
-                    if (Mod.modSettings.ResupplyConfig.SPAMMYBlackList.Contains(
+                    if (Mod.Settings.ResupplyConfig.SPAMMYBlackList.Contains(
                             ammoBoxToFill.ammoDef.Description.Id)) continue;
                     if (ammoBoxToFill.CurrentAmmo < ammoBoxToFill.AmmoCapacity && magicBoxes.Count > 0)
                     {
@@ -257,7 +257,7 @@ namespace StrategicOperations.Framework
                 }
             }
 
-            if (!string.IsNullOrEmpty(Mod.modSettings.ResupplyConfig.ArmorSupplyAmmoDefId))
+            if (!string.IsNullOrEmpty(Mod.Settings.ResupplyConfig.ArmorSupplyAmmoDefId))
             {
                 if (actor is Mech mech)
                 {
@@ -265,7 +265,7 @@ namespace StrategicOperations.Framework
                     {
                         if (mech.IsLocationDestroyed(MechStructureRules.GetChassisLocationFromArmorLocation(loc)))
                             continue;
-                        var initialCapped = HUDMechArmorReadout.GetInitialArmorForLocation(mech.MechDef, loc) * Mod.modSettings.ResupplyConfig.ArmorRepairMax;
+                        var initialCapped = HUDMechArmorReadout.GetInitialArmorForLocation(mech.MechDef, loc) * Mod.Settings.ResupplyConfig.ArmorRepairMax;
                         var current = mech.ArmorForLocation((int) loc);
                         foreach (var ammobox in resupplyActor.ammoBoxes)
                         {
@@ -276,7 +276,7 @@ namespace StrategicOperations.Framework
                                 //totalArmorPoints += missingArmor;
                             
                                 if (ammobox.ammunitionBoxDef.AmmoID ==
-                                    Mod.modSettings.ResupplyConfig.ArmorSupplyAmmoDefId)
+                                    Mod.Settings.ResupplyConfig.ArmorSupplyAmmoDefId)
                                 {
                                     if (ammobox.CurrentAmmo <= 0) continue;
                                     Mod.Log.Trace?.Log(
@@ -303,18 +303,18 @@ namespace StrategicOperations.Framework
                 }
             }
 
-            var phasesFromAmmo = totalAmmoTonnage * Mod.modSettings.ResupplyConfig.ResupplyPhasesPerAmmoTonnage;
-            var phasesFromArmor = totalArmorPoints * Mod.modSettings.ResupplyConfig.ResupplyPhasesPerArmorPoint;
+            var phasesFromAmmo = totalAmmoTonnage * Mod.Settings.ResupplyConfig.ResupplyPhasesPerAmmoTonnage;
+            var phasesFromArmor = totalArmorPoints * Mod.Settings.ResupplyConfig.ResupplyPhasesPerArmorPoint;
             var multiFromTags = 1f;
             foreach (var tag in actor.GetStaticUnitTags())
             {
-                if (Mod.modSettings.ResupplyConfig.UnitTagFactor.ContainsKey(tag))
+                if (Mod.Settings.ResupplyConfig.UnitTagFactor.ContainsKey(tag))
                 {
-                    multiFromTags *= Mod.modSettings.ResupplyConfig.UnitTagFactor[tag];
+                    multiFromTags *= Mod.Settings.ResupplyConfig.UnitTagFactor[tag];
                 }
             }
-            var finalPhases = Mathf.RoundToInt((Mod.modSettings.ResupplyConfig.BasePhasesToResupply + phasesFromAmmo + phasesFromArmor) * multiFromTags);
-            Mod.Log.Trace?.Log($"[ProcessResupplyUnit] - Calculated resupply should take {finalPhases} phases: {Mod.modSettings.ResupplyConfig.BasePhasesToResupply} from baseline, {phasesFromAmmo} from ammo, {phasesFromArmor} from armor, x {multiFromTags} total from tags.");
+            var finalPhases = Mathf.RoundToInt((Mod.Settings.ResupplyConfig.BasePhasesToResupply + phasesFromAmmo + phasesFromArmor) * multiFromTags);
+            Mod.Log.Trace?.Log($"[ProcessResupplyUnit] - Calculated resupply should take {finalPhases} phases: {Mod.Settings.ResupplyConfig.BasePhasesToResupply} from baseline, {phasesFromAmmo} from ammo, {phasesFromArmor} from armor, x {multiFromTags} total from tags.");
             return finalPhases;
         }
 
@@ -326,11 +326,11 @@ namespace StrategicOperations.Framework
                 if (!ModState.TeamsWithResupply.Contains(unit.team.GUID)) continue;
                 if (unit.IsResupplyUnit) continue;
                 if (unit.GetPilot().Abilities
-                        .All(x => x.Def.Id != Mod.modSettings.ResupplyConfig.ResupplyAbilityID) &&
+                        .All(x => x.Def.Id != Mod.Settings.ResupplyConfig.ResupplyAbilityID) &&
                     unit.ComponentAbilities.All(y =>
-                        y.Def.Id != Mod.modSettings.ResupplyConfig.ResupplyAbilityID))
+                        y.Def.Id != Mod.Settings.ResupplyConfig.ResupplyAbilityID))
                 {
-                    unit.Combat.DataManager.AbilityDefs.TryGet(Mod.modSettings.ResupplyConfig.ResupplyAbilityID,
+                    unit.Combat.DataManager.AbilityDefs.TryGet(Mod.Settings.ResupplyConfig.ResupplyAbilityID,
                         out var def);
                     var ability = new Ability(def);
                     Mod.Log.Trace?.Log(

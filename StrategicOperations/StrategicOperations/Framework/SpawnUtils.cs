@@ -100,7 +100,7 @@ namespace StrategicOperations.Framework
 
             usableNodes.Sort((x, y) => x.DistFromTarget.CompareTo(y.DistFromTarget));
 
-            if (Mod.modSettings.debugFlares && Mod.modSettings.enableTrace)
+            if (Mod.Settings.debugFlares && Mod.Settings.enableTrace)
             {
                 Mod.Log.Trace?.Log($"Doing a useless loop and printing 1st 10 locs");
                 {

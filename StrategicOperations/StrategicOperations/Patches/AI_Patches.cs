@@ -100,7 +100,7 @@ namespace StrategicOperations.Patches
                     }
 
                     var weps = unit.Weapons.Where(x => x.IsEnabled && x.HasAmmo).ToList();
-                    if (weps.Count <= 0 && !Mod.modSettings.MeleeOnSwarmAttacks)
+                    if (weps.Count <= 0 && !Mod.Settings.MeleeOnSwarmAttacks)
                     {
                         //dismount, no more weapons...should probably loop back up to try and resupply??
                         unit.DismountBA(target, Vector3.zero, false);
@@ -112,7 +112,7 @@ namespace StrategicOperations.Patches
                     //var attackStackSequence = new AttackStackSequence(unit, target, unit.CurrentPosition, unit.CurrentRotation, weps, MeleeAttackType.NotSet, loc, -1);
                     //unit.Combat.MessageCenter.PublishMessage(new AddSequenceToStackMessage(attackStackSequence));
                     
-                    if (unit is Mech unitMech && Mod.modSettings.MeleeOnSwarmAttacks)
+                    if (unit is Mech unitMech && Mod.Settings.MeleeOnSwarmAttacks)
                     {
                         if (!ModState.SwarmMeleeSequences.ContainsKey(unit.GUID))
                         {
@@ -237,7 +237,7 @@ namespace StrategicOperations.Patches
                 //ModState.StrafeWaves = waves;
                 var newParams = new CmdInvocationParams();
                 
-                if (Mod.modSettings.strafeUseAlternativeImplementation) {
+                if (Mod.Settings.strafeUseAlternativeImplementation) {
                     // The below values should have been randomized in the earlier AI_Utils.EvaluateStrafing call. They are being recalled here for ensuring same values are used as when AI made its choice to perform a strafe.
                     newParams.ActorResource = ModState.StrafeAttacker ?? ModState.AiCmds[unit.GUID].ability.Def.ActorResource; // Fallback is the ability default strafe attacker
                     newParams.StrafeWaves = ModState.StrafeSelectedWaves;
@@ -318,7 +318,7 @@ namespace StrategicOperations.Patches
                 if (__instance.unit.AreAnyWeaponsOutOfAmmo() || __instance.unit.SummaryArmorCurrent / __instance.unit.StartingArmor <= 0.6f) 
                 {
                     var resupplyAbility = __instance.unit.ComponentAbilities.FirstOrDefault(x =>
-                       x.Def.Id == Mod.modSettings.ResupplyConfig.ArmorSupplyAmmoDefId); 
+                       x.Def.Id == Mod.Settings.ResupplyConfig.ArmorSupplyAmmoDefId); 
                     if (resupplyAbility != null)
                     {
                         var closestResupply = __instance.unit.GetClosestDetectedResupply();
@@ -368,7 +368,7 @@ namespace StrategicOperations.Patches
 
                 var battleArmorAbility =
                     __instance.unit.ComponentAbilities.FirstOrDefault(x =>
-                        x.Def.Id == Mod.modSettings.BattleArmorMountAndSwarmID); 
+                        x.Def.Id == Mod.Settings.BattleArmorMountAndSwarmID); 
                 if (battleArmorAbility != null)// && __instance.unit.canSwarm())
                 {
                     if (battleArmorAbility.IsAvailable)
@@ -473,7 +473,7 @@ namespace StrategicOperations.Patches
                                 }
 
                                 var weps = __instance.unit.Weapons.Where(x => x.IsEnabled && x.HasAmmo).ToList();
-                                if (weps.Count <= 0 && !Mod.modSettings.MeleeOnSwarmAttacks)
+                                if (weps.Count <= 0 && !Mod.Settings.MeleeOnSwarmAttacks)
                                 {
                                     goto noswarm;
                                 }
@@ -568,9 +568,9 @@ namespace StrategicOperations.Patches
                             var skipStrafeChance = startUnit.GetAvoidStrafeChanceForTeam(ModState.StrafeAttacker); // StrafeAttacker will be set by AI_Utils.EvaluateStrafing above, only used for Alternative Strafing implementation
                             //ModState.startUnitFromInvocation = startUnit;
                             Mod.Log.Trace?.Log($"final AA value for {startUnit.team.DisplayName}: {skipStrafeChance}");
-                            if (skipStrafeChance < Mod.modSettings.strafeAAFailThreshold)
+                            if (skipStrafeChance < Mod.Settings.strafeAAFailThreshold)
                             {
-                                if (strafeVal >= Mod.modSettings.AI_InvokeStrafeThreshold)
+                                if (strafeVal >= Mod.Settings.AI_InvokeStrafeThreshold)
                                 {
                                     var info = new AI_CmdInvocation(abilityStrafe, vector1Strafe, vector2Strafe, true);
                                     ModState.AiCmds.Add(__instance.unit.GUID, info);
@@ -584,7 +584,7 @@ namespace StrategicOperations.Patches
                         {
                             var spawnVal = AI_Utils.EvaluateSpawn(__instance.unit, out var abilitySpawn, out var vector1Spawn,
                                 out var vector2Spawn);
-                            if (spawnVal >= Mod.modSettings.AI_InvokeSpawnThreshold)
+                            if (spawnVal >= Mod.Settings.AI_InvokeSpawnThreshold)
                             {
                                 var info = new AI_CmdInvocation(abilitySpawn, vector1Spawn, vector2Spawn, true);
                                 ModState.AiCmds.Add(__instance.unit.GUID, info);
@@ -618,9 +618,9 @@ namespace StrategicOperations.Patches
                         var skipStrafeChance = startUnit.GetAvoidStrafeChanceForTeam(ModState.StrafeAttacker); // StrafeAttacker will be set by AI_Utils.EvaluateStrafing above, only used for Alternative Strafing implementation
                         Mod.Log.Trace?.Log($"final AA value for {startUnit.team.DisplayName}: {skipStrafeChance}");
                         //                    ModState.startUnitFromInvocation = startUnit;
-                        if (skipStrafeChance < Mod.modSettings.strafeAAFailThreshold)
+                        if (skipStrafeChance < Mod.Settings.strafeAAFailThreshold)
                         {
-                            if (strafeVal > Mod.modSettings.AI_InvokeStrafeThreshold)
+                            if (strafeVal > Mod.Settings.AI_InvokeStrafeThreshold)
                             {
                                 var info = new AI_CmdInvocation(abilityStrafe, vector1Strafe, vector2Strafe, true);
                                 ModState.AiCmds[__instance.unit.GUID] = info;
@@ -636,7 +636,7 @@ namespace StrategicOperations.Patches
                         var spawnVal = AI_Utils.EvaluateSpawn(__instance.unit, out var abilitySpawn, out var vector1Spawn,
                             out var vector2Spawn);
 
-                        if (spawnVal >= Mod.modSettings.AI_InvokeSpawnThreshold)
+                        if (spawnVal >= Mod.Settings.AI_InvokeSpawnThreshold)
                         {
                             var info = new AI_CmdInvocation(abilitySpawn, vector1Spawn, vector2Spawn, true);
                             ModState.AiCmds[__instance.unit.GUID] = info;

@@ -3,6 +3,7 @@ using IRBTModUtils.CustomInfluenceMap;
 using ModTek.Public;
 using Newtonsoft.Json;
 using StrategicOperations.Framework;
+using System.IO;
 using System.Reflection;
 using static StrategicOperations.Framework.Classes;
 using Random = System.Random;
@@ -12,30 +13,25 @@ namespace StrategicOperations
     public static class Mod
     {
         public const string HarmonyPackage = "us.tbone.StrategicOperations";
-        private static string modDir;
         internal static NullableLogger Log = NullableLogger.GetLogger("StrategicOperations", NullableLogger.TraceLogLevel);
 
-        internal static ModSettings modSettings;
+        internal static ModSettings Settings;
         public static readonly Random Random = new Random();
 
-        public static void Init(string directory, string settings)
+        public static void Init(string modDirectory, string settingsJSON)
         {
 
-            modDir = directory;
-            Exception settingsException = null;
             try
             {
-                modSettings = JsonConvert.DeserializeObject<ModSettings>(settings);
+                string settingsFile = Path.Combine(modDirectory, "settings.json");
+                using StreamReader reader = new(settingsFile);
+                string settingsText = reader.ReadToEnd();
+                Mod.Settings = JsonConvert.DeserializeObject<ModSettings>(settingsText);
             }
-            catch (Exception ex)
+            catch (Exception e)
             {
-                settingsException = ex;
-                modSettings = new ModSettings();
-            }
-
-            if (settingsException != null)
-            {
-                Mod.Log.Error?.Log($"EXCEPTION while reading settings file! Error was: {settingsException}");
+                Mod.Settings = new ModSettings();
+                Mod.Log.Error?.Log($"EXCEPTION while reading settings file! Error was: {e}");
             }
 
             Mod.Log.Info?.Log($"Initializing StrategicOperations - Version {typeof(ModSettings).Assembly.GetName().Version}");
@@ -43,8 +39,7 @@ namespace StrategicOperations
             Harmony.CreateAndPatchAll(Assembly.GetExecutingAssembly(), HarmonyPackage);
             ModState.Initialize();
 
-            //dump settings
-            Mod.Log.Info?.Log($"Settings dump: {settings}");
+            Mod.Settings.LogConfig();
         }
 
         public static void FinishedLoading(List<string> loadOrder)

@@ -53,7 +53,7 @@ namespace StrategicOperations.Patches
         [HarmonyPatch(typeof(MoveTowardsHighestPriorityMoveCandidateNode), "Tick")]
         public static class MoveTowardsHighestPriorityMoveCandidateNode_Tick
         {
-            static bool Prepare() => Mod.modSettings.Debug;
+            static bool Prepare() => Mod.Settings.Debug;
 
             public static void Postfix(MoveTowardsHighestPriorityMoveCandidateNode __instance, ref BehaviorTreeResults __result)
             {
@@ -65,7 +65,7 @@ namespace StrategicOperations.Patches
         [HarmonyPatch(typeof(SortMoveCandidatesByInfMapNode), "Tick")]
         public static class SortMoveCandidatesByInfMapNode_Tick
         {
-            static bool Prepare() => Mod.modSettings.Debug;
+            static bool Prepare() => Mod.Settings.Debug;
 
             public static void Postfix(SortMoveCandidatesByInfMapNode __instance, ref BehaviorTreeResults __result)
             {

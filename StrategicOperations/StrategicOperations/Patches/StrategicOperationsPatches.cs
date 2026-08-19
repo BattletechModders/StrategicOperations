@@ -37,7 +37,7 @@ namespace StrategicOperations.Patches
                 {
                     if (target is AbstractActor targetActor)
                     {
-                        if (__instance.Def.Id == Mod.modSettings.ResupplyConfig.ResupplyAbilityID)
+                        if (__instance.Def.Id == Mod.Settings.ResupplyConfig.ResupplyAbilityID)
                         {
                             Mod.Log.Trace?.Log($"[Ability.Activate] Activating resupply from unit {creator.DisplayName} and resupplier {targetActor.DisplayName}.");
                             var phases = creator.ProcessResupplyUnit(targetActor);
@@ -50,7 +50,7 @@ namespace StrategicOperations.Patches
                             Mod.Log.Trace?.Log($"[Ability.Activate - Unit has sawemers].");
                             var swarmingUnits = ModState.PositionLockSwarm.Where(x => x.Value == creator.GUID).ToList();
 
-                            if (__instance.Def.Id == Mod.modSettings.BattleArmorDeSwarmRoll)
+                            if (__instance.Def.Id == Mod.Settings.BattleArmorDeSwarmRoll)
                             {
                                 creator.ProcessDeswarmRoll(swarmingUnits);
                                 creator.FlagForKnockdown();
@@ -58,13 +58,13 @@ namespace StrategicOperations.Patches
                                 return;
                             }
 
-                            else if (__instance.Def.Id == Mod.modSettings.BattleArmorDeSwarmSwat)
+                            else if (__instance.Def.Id == Mod.Settings.BattleArmorDeSwarmSwat)
                             {
                                 creator.ProcessDeswarmSwat(swarmingUnits);
                                 return;
                             }
 
-                            else if (__instance.Def.Id == Mod.modSettings.DeswarmMovementConfig.AbilityDefID)
+                            else if (__instance.Def.Id == Mod.Settings.DeswarmMovementConfig.AbilityDefID)
                             {
                                 Mod.Log.Trace?.Log($"[Ability.Activate - BattleArmorDeSwarm Movement].");
                                 creator.ProcessDeswarmMovement(
@@ -86,7 +86,7 @@ namespace StrategicOperations.Patches
 
                             return;
                         }
-                        if (__instance.Def.Id == Mod.modSettings.BattleArmorMountAndSwarmID)
+                        if (__instance.Def.Id == Mod.Settings.BattleArmorMountAndSwarmID)
                         {
                             if (!creator.IsSwarmingUnit() && !creator.IsMountedUnit())
                             {
@@ -124,7 +124,7 @@ namespace StrategicOperations.Patches
 
                             }
                         }
-                        else if (__instance.Def.Id == Mod.modSettings.AirliftAbilityID)
+                        else if (__instance.Def.Id == Mod.Settings.AirliftAbilityID)
                         {
                             Mod.Log.Trace?.Log($"[Ability.Activate] - Creating airlift invocation for carrier {creator.DisplayName} and target {targetActor.DisplayName}.");
                             if (target.team.IsFriendly(creator.team))
@@ -166,7 +166,7 @@ namespace StrategicOperations.Patches
                         }
                     }
                     if (target is BattleTech.Building building &&
-                        __instance.Def.Id == Mod.modSettings.BattleArmorMountAndSwarmID && creator is TrooperSquad squad2)
+                        __instance.Def.Id == Mod.Settings.BattleArmorMountAndSwarmID && creator is TrooperSquad squad2)
                     {
                         if (!building.HasGarrisonedUnits())
                         {
@@ -212,7 +212,7 @@ namespace StrategicOperations.Patches
 
 
                 var showPopup = false;
-                if (Mod.modSettings.BeaconExclusionConfig.TryGetValue(creator.Combat.ActiveContract.ContractTypeValue.Name, out var configType))
+                if (Mod.Settings.BeaconExclusionConfig.TryGetValue(creator.Combat.ActiveContract.ContractTypeValue.Name, out var configType))
                 {
                     if (creator.team.IsLocalPlayer)
                     {
@@ -221,7 +221,7 @@ namespace StrategicOperations.Patches
                     }
                 }
 
-                else if (Mod.modSettings.BeaconExclusionConfig.TryGetValue(creator.Combat.ActiveContract.Override.ID, out var configID))
+                else if (Mod.Settings.BeaconExclusionConfig.TryGetValue(creator.Combat.ActiveContract.Override.ID, out var configID))
                 {
                     if (creator.team.IsLocalPlayer)
                     {
@@ -358,7 +358,7 @@ namespace StrategicOperations.Patches
 
                     var kvp = new KeyValuePair<string, Action>(instanceGUID, DeferredInvokeSpawn);
                     ModState.DeferredInvokeSpawns.Add(kvp);
-                    Utils.SpawnFlares(__instance, positionA, positionB, Mod.modSettings.flareResourceID, 1, __instance.Def.ActivationETA, team.IsLocalPlayer);
+                    Utils.SpawnFlares(__instance, positionA, positionB, Mod.Settings.flareResourceID, 1, __instance.Def.ActivationETA, team.IsLocalPlayer);
                     //                    var flares = Traverse.Create(__instance).Method("SpawnFlares",
                     //                        new object[] {positionA, positionA, __instance.Def., 1, 1});
                     //                    flares.GetValue();
@@ -665,7 +665,7 @@ namespace StrategicOperations.Patches
 
                     ///////////////
 
-                    if (team.IsLocalPlayer && (Mod.modSettings.commandUseCostsMulti > 0 ||
+                    if (team.IsLocalPlayer && (Mod.Settings.commandUseCostsMulti > 0 ||
                                                __instance.Def.getAbilityDefExtension().CBillCost > 0))
                     {
                         var unitName = "";
@@ -785,7 +785,7 @@ namespace StrategicOperations.Patches
                 Mod.Log.Info?.Log($"Team neutralTeam = {supportTeam?.DisplayName}");
                 var cmdLance = Utils.CreateOrFetchCMDLance(supportTeam);
                 var actorResource = __instance.Def.ActorResource;
-                var strafeWaves = Mod.modSettings.strafeWaves;
+                var strafeWaves = Mod.Settings.strafeWaves;
                 if (strafeParams.StrafeWaves > 0)
                 {
                     //strafeWaves = ModState.StrafeWaves;
@@ -838,7 +838,7 @@ namespace StrategicOperations.Patches
                     Mod.Log.Info?.Log($"First time initializing strafe with GUID {parentSequenceID}");
                     if (__instance.Def.IntParam1 > 0)
                     {
-                        Utils.SpawnFlares(__instance, positionA, positionB, Mod.modSettings.flareResourceID,
+                        Utils.SpawnFlares(__instance, positionA, positionB, Mod.Settings.flareResourceID,
                             __instance.Def.IntParam1, Math.Max(__instance.Def.ActivationETA * strafeWaves, strafeWaves), team.IsLocalPlayer); // make smoke last for all strafe waves because babies
                     }
 
@@ -857,7 +857,7 @@ namespace StrategicOperations.Patches
                 if (UnityGameInstance.BattleTechGame.Combat.ActiveContract.ContractTypeValue.IsSkirmish) return;
                 if (!__result) return;
                 if (!__instance.TryFetchParentFromAbility(out var parent)) return;
-                if (Mod.modSettings.BeaconExclusionConfig.TryGetValue(__instance.Combat.ActiveContract.ContractTypeValue.Name, out var configType))
+                if (Mod.Settings.BeaconExclusionConfig.TryGetValue(__instance.Combat.ActiveContract.ContractTypeValue.Name, out var configType))
                 {
                     if (parent.team.IsLocalPlayer)
                     {
@@ -874,7 +874,7 @@ namespace StrategicOperations.Patches
                             __result = !configType.ExcludedAISpawn;
                     }
                 }
-                else if (Mod.modSettings.BeaconExclusionConfig.TryGetValue(__instance.Combat.ActiveContract.Override.ID, out var configID))
+                else if (Mod.Settings.BeaconExclusionConfig.TryGetValue(__instance.Combat.ActiveContract.Override.ID, out var configID))
                 {
                     if (parent.team.IsLocalPlayer)
                     {
@@ -1055,7 +1055,7 @@ namespace StrategicOperations.Patches
                 __instance.StatCollection.AddStatistic<bool>("UseAAAFactor", false);
                 __instance.StatCollection.AddStatistic<bool>(ResupplyUtils.ResupplyUnitStat, false);
                 
-                __instance.SwarmingDisabled = __instance.GetStaticUnitTags().Contains(Mod.modSettings.DisableAISwarmTag);
+                __instance.SwarmingDisabled = __instance.GetStaticUnitTags().Contains(Mod.Settings.DisableAISwarmTag);
             }
         }
 
@@ -1232,7 +1232,7 @@ namespace StrategicOperations.Patches
                 var theActor = HUD.SelectedActor;
                 if (theActor == null) return;
                 if (def.specialRules == AbilityDef.SpecialRules.Strafe &&
-                    Mod.modSettings.strafeEndsActivation)
+                    Mod.Settings.strafeEndsActivation)
                 {
                     if (theActor is Mech mech)
                     {
@@ -1246,7 +1246,7 @@ namespace StrategicOperations.Patches
                 }
 
                 if (def.specialRules == AbilityDef.SpecialRules.SpawnTurret &&
-                    Mod.modSettings.spawnTurretEndsActivation)
+                    Mod.Settings.spawnTurretEndsActivation)
                 {
                     if (theActor is Mech mech)
                     {
@@ -1309,7 +1309,7 @@ namespace StrategicOperations.Patches
                 var theActor = HUD.SelectedActor;
                 if (theActor == null) return;
                 if (def.specialRules == AbilityDef.SpecialRules.Strafe &&
-                    Mod.modSettings.strafeEndsActivation)
+                    Mod.Settings.strafeEndsActivation)
                 {
                     if (theActor is Mech mech)
                     {
@@ -1323,7 +1323,7 @@ namespace StrategicOperations.Patches
                 }
 
                 if (def.specialRules == AbilityDef.SpecialRules.SpawnTurret &&
-                    Mod.modSettings.spawnTurretEndsActivation)
+                    Mod.Settings.spawnTurretEndsActivation)
                 {
                     if (theActor is Mech mech)
                     {
@@ -1358,7 +1358,7 @@ namespace StrategicOperations.Patches
                     return;
                 }
 
-                if (ability.Def.Id != Mod.modSettings.BattleArmorMountAndSwarmID)
+                if (ability.Def.Id != Mod.Settings.BattleArmorMountAndSwarmID)
                 {
                     if (actor.IsMountedUnit())
                     {
@@ -1381,8 +1381,8 @@ namespace StrategicOperations.Patches
                     }
                 }
 
-                if (ability.Def.Id == Mod.modSettings.BattleArmorDeSwarmRoll ||
-                    ability.Def.Id == Mod.modSettings.BattleArmorDeSwarmSwat)
+                if (ability.Def.Id == Mod.Settings.BattleArmorDeSwarmRoll ||
+                    ability.Def.Id == Mod.Settings.BattleArmorDeSwarmSwat)
                 {
                     if (actor is Vehicle vehicle || actor.IsCustomUnitVehicle())
                     {
@@ -1395,7 +1395,7 @@ namespace StrategicOperations.Patches
                     }
                 }
 
-                if (ability.Def.Id == Mod.modSettings.AirliftAbilityID && Mod.modSettings.CanDropOffAfterMoving)// && actor.MovingToPosition == null) // maybe need to check IsAnyOrderActive (but that might screw me)
+                if (ability.Def.Id == Mod.Settings.AirliftAbilityID && Mod.Settings.CanDropOffAfterMoving)// && actor.MovingToPosition == null) // maybe need to check IsAnyOrderActive (but that might screw me)
                 {
                     if (actor.HasAirliftedUnits())
                     {
@@ -1414,7 +1414,7 @@ namespace StrategicOperations.Patches
 
 
 
-                if (Mod.modSettings.BeaconExclusionConfig.TryGetValue(actor.Combat.ActiveContract.ContractTypeValue.Name, out var configType))
+                if (Mod.Settings.BeaconExclusionConfig.TryGetValue(actor.Combat.ActiveContract.ContractTypeValue.Name, out var configType))
                 {
                     if (actor.team.IsLocalPlayer)
                     {
@@ -1425,7 +1425,7 @@ namespace StrategicOperations.Patches
                     }
                 }
 
-                else if (Mod.modSettings.BeaconExclusionConfig.TryGetValue(actor.Combat.ActiveContract.Override.ID, out var configID))
+                else if (Mod.Settings.BeaconExclusionConfig.TryGetValue(actor.Combat.ActiveContract.Override.ID, out var configID))
                 {
                     if (actor.team.IsLocalPlayer)
                     {
@@ -1470,7 +1470,7 @@ namespace StrategicOperations.Patches
                     return;
                 }
 
-                if (ability.Def.Id != Mod.modSettings.BattleArmorMountAndSwarmID)
+                if (ability.Def.Id != Mod.Settings.BattleArmorMountAndSwarmID)
                 {
                     if (actor.IsMountedUnit())
                     {
@@ -1493,8 +1493,8 @@ namespace StrategicOperations.Patches
                     }
                 }
 
-                if (ability.Def.Id == Mod.modSettings.BattleArmorDeSwarmRoll ||
-                    ability.Def.Id == Mod.modSettings.BattleArmorDeSwarmSwat)
+                if (ability.Def.Id == Mod.Settings.BattleArmorDeSwarmRoll ||
+                    ability.Def.Id == Mod.Settings.BattleArmorDeSwarmSwat)
                 {
                     if (actor is Vehicle vehicle || actor.IsCustomUnitVehicle())
                     {
@@ -1507,7 +1507,7 @@ namespace StrategicOperations.Patches
                     }
                 }
 
-                if (ability.Def.Id == Mod.modSettings.AirliftAbilityID && Mod.modSettings.CanDropOffAfterMoving)// && actor.MovingToPosition == null) // maybe need to check IsAnyOrderActive (but that might screw me)
+                if (ability.Def.Id == Mod.Settings.AirliftAbilityID && Mod.Settings.CanDropOffAfterMoving)// && actor.MovingToPosition == null) // maybe need to check IsAnyOrderActive (but that might screw me)
                 {
                     if (actor.HasAirliftedUnits())
                     {
@@ -1545,7 +1545,7 @@ namespace StrategicOperations.Patches
                     return;
                 }
 
-                if (ability.Def.Id != Mod.modSettings.BattleArmorMountAndSwarmID)
+                if (ability.Def.Id != Mod.Settings.BattleArmorMountAndSwarmID)
                 {
                     if (actor.IsMountedUnit())
                     {
@@ -1568,8 +1568,8 @@ namespace StrategicOperations.Patches
                     }
                 }
 
-                if (ability.Def.Id == Mod.modSettings.BattleArmorDeSwarmRoll ||
-                    ability.Def.Id == Mod.modSettings.BattleArmorDeSwarmSwat)
+                if (ability.Def.Id == Mod.Settings.BattleArmorDeSwarmRoll ||
+                    ability.Def.Id == Mod.Settings.BattleArmorDeSwarmSwat)
                 {
                     if (actor is Vehicle vehicle || actor.IsCustomUnitVehicle())
                     {
@@ -1582,7 +1582,7 @@ namespace StrategicOperations.Patches
                     }
                 }
 
-                if (ability.Def.Id == Mod.modSettings.AirliftAbilityID && Mod.modSettings.CanDropOffAfterMoving)// && actor.MovingToPosition == null) // maybe need to check IsAnyOrderActive (but that might screw me)
+                if (ability.Def.Id == Mod.Settings.AirliftAbilityID && Mod.Settings.CanDropOffAfterMoving)// && actor.MovingToPosition == null) // maybe need to check IsAnyOrderActive (but that might screw me)
                 {
                     if (actor.HasAirliftedUnits())
                     {
@@ -1634,7 +1634,7 @@ namespace StrategicOperations.Patches
                     {
  //                       if (Input.GetKey(KeyCode.LeftShift) || Input.GetKey(KeyCode.RightShift))
                         
-                        if (Input.GetKey(Mod.modSettings.EquipmentButtonsHotkey))
+                        if (Input.GetKey(Mod.Settings.EquipmentButtonsHotkey))
                         {
                             var hud = __instance.HUD;//IRBTModUtils.SharedState.CombatHUD;
                             if (hud.SelectedActor == __instance.SelectedActor)
@@ -1692,7 +1692,7 @@ namespace StrategicOperations.Patches
         {
             public static void Postfix(CombatSpawningReticle __instance)
             {
-                if (!string.IsNullOrEmpty(Mod.modSettings.customSpawnReticleAsset))
+                if (!string.IsNullOrEmpty(Mod.Settings.customSpawnReticleAsset))
                 {
                     var childComponents = __instance.gameObject.GetComponentsInChildren<Transform>(true);
 
@@ -1702,7 +1702,7 @@ namespace StrategicOperations.Patches
                         {
                             var decalFromCirle = childComponents[i].GetComponent<BTUIDecal>();
                             var dm = UnityGameInstance.BattleTechGame.DataManager;
-                            var newTexture = dm.GetObjectOfType<Texture2D>(Mod.modSettings.customSpawnReticleAsset,
+                            var newTexture = dm.GetObjectOfType<Texture2D>(Mod.Settings.customSpawnReticleAsset,
                                 BattleTechResourceType.Texture2D);
                             decalFromCirle.DecalMaterial.mainTexture = newTexture;
                         }
@@ -1714,11 +1714,11 @@ namespace StrategicOperations.Patches
 
                 foreach (var decal in decals)
                 {
-                    if (Mod.modSettings.customSpawnReticleColor != null)
+                    if (Mod.Settings.customSpawnReticleColor != null)
                     {
-                        var customColor = new Color(Mod.modSettings.customSpawnReticleColor.Rf,
-                            Mod.modSettings.customSpawnReticleColor.Gf,
-                            Mod.modSettings.customSpawnReticleColor.Bf);
+                        var customColor = new Color(Mod.Settings.customSpawnReticleColor.Rf,
+                            Mod.Settings.customSpawnReticleColor.Gf,
+                            Mod.Settings.customSpawnReticleColor.Bf);
                         decal.DecalMaterial.color = customColor;
                     }
                     else
@@ -1968,7 +1968,7 @@ namespace StrategicOperations.Patches
         [HarmonyPatch(typeof(Mech), "RecalcEvasivePips")]
         public static class Mech_RecalcEvasivePips
         {
-            static bool Prepare() => Mod.modSettings.ReworkedCarrierEvasion;
+            static bool Prepare() => Mod.Settings.ReworkedCarrierEvasion;
             public static void Postfix(Mech __instance)
             {
                 if (__instance.IsMountedUnit())
@@ -2368,7 +2368,7 @@ namespace StrategicOperations.Patches
                 if (__instance.numPositionsLocked < 1)
                 {
                     //ModState.PopupActorResource = actorResource;
-                    ModState.PendingPlayerCmdParams = new CmdInvocationParams(Mod.modSettings.strafeWaves, actorResource, __instance.FromButton.Ability.Def.getAbilityDefExtension().CMDPilotOverride, __instance.FromButton.Ability.Def.specialRules);
+                    ModState.PendingPlayerCmdParams = new CmdInvocationParams(Mod.Settings.strafeWaves, actorResource, __instance.FromButton.Ability.Def.getAbilityDefExtension().CMDPilotOverride, __instance.FromButton.Ability.Def.specialRules);
                 }
 
                 var HUD = __instance.HUD;//IRBTModUtils.SharedState.CombatHUD;//Traverse.Create(__instance).Property("HUD").GetValue<CombatHUD>();
@@ -2934,7 +2934,7 @@ namespace StrategicOperations.Patches
             public static void Postfix(Team __instance, AbstractActor unit)
             {
                 
-                if (unit.GetStaticUnitTags().Contains(Mod.modSettings.ResupplyConfig.ResupplyUnitTag))
+                if (unit.GetStaticUnitTags().Contains(Mod.Settings.ResupplyConfig.ResupplyUnitTag))
                 {
                     unit.statCollection.Set(ResupplyUtils.ResupplyUnitStat, true);
                     unit.IsResupplyUnit = true;
@@ -2951,14 +2951,14 @@ namespace StrategicOperations.Patches
                 {
                     if (unit is Mech && !(unit is TrooperSquad) && !unit.IsCustomUnitVehicle())
                     {
-                        if (!string.IsNullOrEmpty(Mod.modSettings.BattleArmorDeSwarmSwat))
+                        if (!string.IsNullOrEmpty(Mod.Settings.BattleArmorDeSwarmSwat))
                         {
                             if (unit.GetPilot().Abilities
-                                    .All(x => x.Def.Id != Mod.modSettings.BattleArmorDeSwarmSwat) &&
+                                    .All(x => x.Def.Id != Mod.Settings.BattleArmorDeSwarmSwat) &&
                                 unit.ComponentAbilities.All(y =>
-                                    y.Def.Id != Mod.modSettings.BattleArmorDeSwarmSwat))
+                                    y.Def.Id != Mod.Settings.BattleArmorDeSwarmSwat))
                             {
-                                unit.Combat.DataManager.AbilityDefs.TryGet(Mod.modSettings.BattleArmorDeSwarmSwat,
+                                unit.Combat.DataManager.AbilityDefs.TryGet(Mod.Settings.BattleArmorDeSwarmSwat,
                                     out var def);
                                 var ability = new Ability(def);
                                 Mod.Log.Trace?.Log(
@@ -2969,14 +2969,14 @@ namespace StrategicOperations.Patches
                             }
                         }
 
-                        if (!string.IsNullOrEmpty(Mod.modSettings.BattleArmorDeSwarmRoll))
+                        if (!string.IsNullOrEmpty(Mod.Settings.BattleArmorDeSwarmRoll))
                         {
                             if (unit.GetPilot().Abilities
-                                    .All(x => x.Def.Id != Mod.modSettings.BattleArmorDeSwarmRoll) &&
+                                    .All(x => x.Def.Id != Mod.Settings.BattleArmorDeSwarmRoll) &&
                                 unit.ComponentAbilities.All(y =>
-                                    y.Def.Id != Mod.modSettings.BattleArmorDeSwarmRoll))
+                                    y.Def.Id != Mod.Settings.BattleArmorDeSwarmRoll))
                             {
-                                unit.Combat.DataManager.AbilityDefs.TryGet(Mod.modSettings.BattleArmorDeSwarmRoll,
+                                unit.Combat.DataManager.AbilityDefs.TryGet(Mod.Settings.BattleArmorDeSwarmRoll,
                                     out var def);
                                 var ability = new Ability(def);
                                 Mod.Log.Trace?.Log(
@@ -2989,14 +2989,14 @@ namespace StrategicOperations.Patches
 
                     }
 
-                    if (!string.IsNullOrEmpty(Mod.modSettings.DeswarmMovementConfig.AbilityDefID))
+                    if (!string.IsNullOrEmpty(Mod.Settings.DeswarmMovementConfig.AbilityDefID))
                     {
                         if (unit.GetPilot().Abilities
-                                .All(x => x.Def.Id != Mod.modSettings.DeswarmMovementConfig.AbilityDefID) &&
+                                .All(x => x.Def.Id != Mod.Settings.DeswarmMovementConfig.AbilityDefID) &&
                             unit.ComponentAbilities.All(y =>
-                                y.Def.Id != Mod.modSettings.DeswarmMovementConfig.AbilityDefID))
+                                y.Def.Id != Mod.Settings.DeswarmMovementConfig.AbilityDefID))
                         {
-                            unit.Combat.DataManager.AbilityDefs.TryGet(Mod.modSettings.DeswarmMovementConfig.AbilityDefID,
+                            unit.Combat.DataManager.AbilityDefs.TryGet(Mod.Settings.DeswarmMovementConfig.AbilityDefID,
                                 out var def);
                             var ability = new Ability(def);
                             Mod.Log.Trace?.Log(
@@ -3127,15 +3127,15 @@ namespace StrategicOperations.Patches
 
                 loadRequest.AddBlindLoadRequest(BattleTechResourceType.PilotDef, "pilot_sim_starter_dekker");
                 Mod.Log.Info?.Log($"Added loadrequest for PilotDef: pilot_sim_starter_dekker (hardcoded)");
-                if (!string.IsNullOrEmpty(Mod.modSettings.customSpawnReticleAsset))
+                if (!string.IsNullOrEmpty(Mod.Settings.customSpawnReticleAsset))
                 {
-                    loadRequest.AddBlindLoadRequest(BattleTechResourceType.Texture2D, Mod.modSettings.customSpawnReticleAsset);
-                    Mod.Log.Info?.Log($"Added loadrequest for Texture2D: {Mod.modSettings.customSpawnReticleAsset}");
+                    loadRequest.AddBlindLoadRequest(BattleTechResourceType.Texture2D, Mod.Settings.customSpawnReticleAsset);
+                    Mod.Log.Info?.Log($"Added loadrequest for Texture2D: {Mod.Settings.customSpawnReticleAsset}");
                 }
-                if (!string.IsNullOrEmpty(Mod.modSettings.MountIndicatorAsset))
+                if (!string.IsNullOrEmpty(Mod.Settings.MountIndicatorAsset))
                 {
-                    loadRequest.AddBlindLoadRequest(BattleTechResourceType.Texture2D, Mod.modSettings.MountIndicatorAsset);
-                    Mod.Log.Info?.Log($"Added loadrequest for Texture2D: {Mod.modSettings.MountIndicatorAsset}");
+                    loadRequest.AddBlindLoadRequest(BattleTechResourceType.Texture2D, Mod.Settings.MountIndicatorAsset);
+                    Mod.Log.Info?.Log($"Added loadrequest for Texture2D: {Mod.Settings.MountIndicatorAsset}");
                 }
 
                 foreach (var abilityDef in dm.AbilityDefs.Where(x => x.Key.StartsWith("AbilityDefCMD_")))
@@ -3284,7 +3284,7 @@ namespace StrategicOperations.Patches
         [HarmonyPatch(typeof(Vehicle), "RecalcEvasivePips")]
         public static class Vehicle_RecalcEvasivePips
         {
-            static bool Prepare() => Mod.modSettings.ReworkedCarrierEvasion;
+            static bool Prepare() => Mod.Settings.ReworkedCarrierEvasion;
             public static void Postfix(Vehicle __instance)
             {
                 if (__instance.IsMountedUnit())
@@ -3320,7 +3320,7 @@ namespace StrategicOperations.Patches
             public static void Postfix(AbstractActor __instance)
             {
                 __instance.IsResupplyUnit = __instance.StatCollection.GetValue<bool>(ResupplyUtils.ResupplyUnitStat);
-                __instance.SwarmingDisabled = __instance.GetStaticUnitTags().Contains(Mod.modSettings.DisableAISwarmTag);
+                __instance.SwarmingDisabled = __instance.GetStaticUnitTags().Contains(Mod.Settings.DisableAISwarmTag);
 
             }
         }

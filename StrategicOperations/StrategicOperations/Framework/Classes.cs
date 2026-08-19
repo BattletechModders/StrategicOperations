@@ -519,7 +519,7 @@ namespace StrategicOperations.Framework
             public int UseCost;
             public int UseCount;
             public int TotalCost => UseCount * UseCostAdjusted;
-            public int UseCostAdjusted => Mathf.RoundToInt((UseCost * Mod.modSettings.commandUseCostsMulti) + AbilityUseCost);
+            public int UseCostAdjusted => Mathf.RoundToInt((UseCost * Mod.Settings.commandUseCostsMulti) + AbilityUseCost);
 
             public CmdUseInfo(string unitId, string commandName, string unitName, int useCost, int abilityUseCost)
             {
@@ -795,7 +795,7 @@ namespace StrategicOperations.Framework
                 {
                     CameraControl.Instance.HUD.MechWarriorTray.RefreshTeam(Combat.LocalPlayerTeam);
                 }
-                if (SourceTeam.IsLocalPlayer && (Mod.modSettings.commandUseCostsMulti > 0 ||
+                if (SourceTeam.IsLocalPlayer && (Mod.Settings.commandUseCostsMulti > 0 ||
                                                SourceAbility.Def.getAbilityDefExtension().CBillCost > 0))
                 {
                     var unitName = "";
@@ -858,7 +858,7 @@ namespace StrategicOperations.Framework
                 Combat.TurnDirector.AddTurnEvent(tEvent);
 
 
-                if (this.StrafeWave.Team.IsLocalPlayer && (Mod.modSettings.commandUseCostsMulti > 0 ||
+                if (this.StrafeWave.Team.IsLocalPlayer && (Mod.Settings.commandUseCostsMulti > 0 ||
                                                            this.StrafeWave.Ability.Def.getAbilityDefExtension().CBillCost > 0))
                 {
                     var unitName = "";
@@ -1329,7 +1329,7 @@ namespace StrategicOperations.Framework
                                 squad2.ProcessSwarmEnemy(targetActor);
                             }
 
-                            if (Mod.modSettings.AttackOnSwarmSuccess && squad2.IsSwarmingUnit())
+                            if (Mod.Settings.AttackOnSwarmSuccess && squad2.IsSwarmingUnit())
                             {
                                 if (squad2.GetAbilityUsedFiring())
                                 {
@@ -1355,7 +1355,7 @@ namespace StrategicOperations.Framework
                                 Mod.Log.Info?.Log(
                                     $"[StrategicMovementSequence - CompleteOrders] Creating attack sequence on successful swarm attack targeting location {loc}.");
 
-                                if (squad2 is Mech unitMech && Mod.modSettings.MeleeOnSwarmAttacks)
+                                if (squad2 is Mech unitMech && Mod.Settings.MeleeOnSwarmAttacks)
                                 {
                                     if (!ModState.SwarmMeleeSequences.ContainsKey(squad2.GUID))
                                     {

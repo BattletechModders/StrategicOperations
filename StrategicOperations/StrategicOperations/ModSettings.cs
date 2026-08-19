@@ -125,12 +125,38 @@ namespace StrategicOperations
 
         public float timeBetweenAttacks = 0.35f;
 
-        //public List<string> BeaconExcludedContractTypes = new List<string>();
-        //public List<string> BeaconExcludedContractIDs = new List<string>();
         public bool UsingMechAffinityForSwarmBreach = false;
         public bool ReworkedCarrierEvasion = true;
         public bool MeleeOnSwarmAttacks = true;
 
         public string SimBattleArmorMountError = "The selected squad cannot be transported by this unit.";
+
+        public void LogConfig()
+        {
+            Mod.Log.Info?.Log("=== MOD SETTINGS BEGIN ===");
+            Mod.Log.Info?.Log("  ---- GENERAL SETTINGS");
+            Mod.Log.Info?.Log($" deployProtection: {this.deployProtection}  commandUseCostsMulti: {this.commandUseCostsMulti}");
+
+            Mod.Log.Info?.Log("  ---- AI SETTINGS");
+            Mod.Log.Info?.Log($" DEVTEST_AIPOS: {this.DEVTEST_AIPOS}");
+
+            Mod.Log.Info?.Log("  ---- BATTLE_ARMOR SETTINGS");
+            Mod.Log.Info?.Log($" InternalBAAffectsOverallDropTonnage: {this.InternalBAAffectsOverallDropTonnage}  ExternalBAAffectsOverallDropTonnage: {this.ExternalBAAffectsOverallDropTonnage}  " +
+                $"InternalBAAffectsSlotDropTonnage: {this.InternalBAAffectsSlotDropTonnage}  ExternalBAAffectsSlotDropTonnage: {this.ExternalBAAffectsSlotDropTonnage}");
+            Mod.Log.Info?.Log($" UseOriginalBAMountInterface: {this.UseOriginalBAMountInterface}");
+
+            Mod.Log.Info?.Log("  ---- SPAWN SETTINGS");
+            Mod.Log.Info?.Log($" spawnTurretEndsActivation: {this.spawnTurretEndsActivation}  customSpawnReticleAsset: {this.customSpawnReticleAsset}");
+
+            Mod.Log.Info?.Log("  ---- STRAFE SETTINGS");
+            Mod.Log.Info?.Log($" showStrafeCamera: {this.showStrafeCamera}  strafeEndsActivation: {this.strafeEndsActivation}  " +
+                $"strafeTargetsFriendliesChance: {this.strafeTargetsFriendliesChance}  strafeNeutralBuildingsChance: {this.strafeNeutralBuildingsChance}");
+            Mod.Log.Info?.Log($" strafeSensorFactor: {this.strafeSensorFactor}  strafeVelocityDefault: {this.strafeVelocityDefault}  " +
+                $"strafeAltitudeMin: {this.strafeAltitudeMin}  strafeAltitudeMax: {this.strafeAltitudeMax}");
+            Mod.Log.Info?.Log($" strafePreDistanceMult: {this.strafePreDistanceMult}  strafeMinDistanceToEnd: {this.strafeMinDistanceToEnd}");
+            Mod.Log.Info?.Log($" flareResourceID: {this.flareResourceID}  timeBetweenAttacks: {this.timeBetweenAttacks}");
+        
+            Mod.Log.Info?.Log("=== MOD SETTINGS END ===");
+        }
     }
 }

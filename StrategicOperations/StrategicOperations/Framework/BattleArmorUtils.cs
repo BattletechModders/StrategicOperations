@@ -113,13 +113,13 @@ namespace StrategicOperations.Framework
 
         public static void CheckForBPodAndActivate(this AbstractActor actor)
         {
-            if (!actor.team.IsLocalPlayer || actor.team.IsLocalPlayer && Mod.modSettings.BPodsAutoActivate)
+            if (!actor.team.IsLocalPlayer || actor.team.IsLocalPlayer && Mod.Settings.BPodsAutoActivate)
             {
                 if (actor is Mech mech)
                 {
                     foreach (var component in mech.allComponents)
                     {
-                        if (Mod.modSettings.BPodComponentIDs.Contains(component.defId))
+                        if (Mod.Settings.BPodComponentIDs.Contains(component.defId))
                         {
                             if (ActivatableComponent.getChargesCount(component) > 0)
                             {
@@ -484,28 +484,28 @@ namespace StrategicOperations.Framework
 
             if (UseMovement)
             {
-                if (!string.IsNullOrEmpty(Mod.modSettings.DeswarmMovementConfig.AbilityDefID))
+                if (!string.IsNullOrEmpty(Mod.Settings.DeswarmMovementConfig.AbilityDefID))
                 {
                     var move = actor.GetPilot().Abilities
-                        .FirstOrDefault(x => x.Def.Id == Mod.modSettings.DeswarmMovementConfig.AbilityDefID) ?? actor.ComponentAbilities
-                        .FirstOrDefault(x => x.Def.Id == Mod.modSettings.DeswarmMovementConfig.AbilityDefID);
+                        .FirstOrDefault(x => x.Def.Id == Mod.Settings.DeswarmMovementConfig.AbilityDefID) ?? actor.ComponentAbilities
+                        .FirstOrDefault(x => x.Def.Id == Mod.Settings.DeswarmMovementConfig.AbilityDefID);
                     if (move != null) return move;
                 }
             }
 
-            if (!string.IsNullOrEmpty(Mod.modSettings.BattleArmorDeSwarmSwat))
+            if (!string.IsNullOrEmpty(Mod.Settings.BattleArmorDeSwarmSwat))
             {
                 var swat = actor.GetPilot().Abilities
-                    .FirstOrDefault(x => x.Def.Id == Mod.modSettings.BattleArmorDeSwarmSwat) ?? actor.ComponentAbilities
-                    .FirstOrDefault(x => x.Def.Id == Mod.modSettings.BattleArmorDeSwarmSwat);
+                    .FirstOrDefault(x => x.Def.Id == Mod.Settings.BattleArmorDeSwarmSwat) ?? actor.ComponentAbilities
+                    .FirstOrDefault(x => x.Def.Id == Mod.Settings.BattleArmorDeSwarmSwat);
                 if (swat != null) list.Add(swat);
             }
 
-            if (!string.IsNullOrEmpty(Mod.modSettings.BattleArmorDeSwarmRoll))
+            if (!string.IsNullOrEmpty(Mod.Settings.BattleArmorDeSwarmRoll))
             {
                 var roll = actor.GetPilot().Abilities
-                    .FirstOrDefault(x => x.Def.Id == Mod.modSettings.BattleArmorDeSwarmRoll) ?? actor.ComponentAbilities
-                    .FirstOrDefault(x => x.Def.Id == Mod.modSettings.BattleArmorDeSwarmRoll);
+                    .FirstOrDefault(x => x.Def.Id == Mod.Settings.BattleArmorDeSwarmRoll) ?? actor.ComponentAbilities
+                    .FirstOrDefault(x => x.Def.Id == Mod.Settings.BattleArmorDeSwarmRoll);
                 if (roll != null) list.Add(roll);
             }
 
@@ -813,7 +813,7 @@ namespace StrategicOperations.Framework
         }
         public static bool HasBattleArmorMounts(this MechDef mechDef, Contract contract)
         {
-            if(contract != null) if (Mod.modSettings.forbidCarrierContractTypes.Contains(contract.ContractTypeValue.Name)) { return false; }
+            if(contract != null) if (Mod.Settings.forbidCarrierContractTypes.Contains(contract.ContractTypeValue.Name)) { return false; }
             foreach (var item in mechDef.Inventory)
             {
                 foreach (var effectData in item.Def.statusEffects)
@@ -829,7 +829,7 @@ namespace StrategicOperations.Framework
         }
         public static int CargoCapacity(this MechDef mechDef, Contract contract)
         {
-            if (contract != null) if (Mod.modSettings.forbidCarrierContractTypes.Contains(contract.ContractTypeValue.Name)) { return 0; }
+            if (contract != null) if (Mod.Settings.forbidCarrierContractTypes.Contains(contract.ContractTypeValue.Name)) { return 0; }
             var capacity = 0;
             foreach (var item in mechDef.Inventory)
             {
@@ -846,7 +846,7 @@ namespace StrategicOperations.Framework
         }
         public static bool CanMountBAExternally(this MechDef mechDef, Contract contract)
         {
-            if (contract != null) if (Mod.modSettings.forbidCarrierContractTypes.Contains(contract.ContractTypeValue.Name)) { return false; }
+            if (contract != null) if (Mod.Settings.forbidCarrierContractTypes.Contains(contract.ContractTypeValue.Name)) { return false; }
             UnitCustomInfo info = mechDef.GetCustomInfo();
             if (info == null) { return true; }
             if (info.SquadInfo.Troopers > 1) { return false; }
@@ -854,7 +854,7 @@ namespace StrategicOperations.Framework
         }
         public static bool isBattleArmorInternalMountsOnly(this MechDef mechDef, Contract contract)
         {
-            if (contract != null) if (Mod.modSettings.forbidCarrierContractTypes.Contains(contract.ContractTypeValue.Name)) { return true; }
+            if (contract != null) if (Mod.Settings.forbidCarrierContractTypes.Contains(contract.ContractTypeValue.Name)) { return true; }
             bool internalOnly = false;
             foreach (var item in mechDef.Inventory)
             {
@@ -896,7 +896,7 @@ namespace StrategicOperations.Framework
                     if (effectData == null) { continue; }
                     if (effectData.effectType != EffectType.ActiveAbility) { continue; }
                     if (effectData.activeAbilityEffectData == null) { continue; }
-                    if (effectData.activeAbilityEffectData.abilityName == Mod.modSettings.BattleArmorMountAndSwarmID) { return true; }
+                    if (effectData.activeAbilityEffectData.abilityName == Mod.Settings.BattleArmorMountAndSwarmID) { return true; }
                 }
             }
             return false;
@@ -929,7 +929,7 @@ namespace StrategicOperations.Framework
                 error = "";
                 return true;
             }
-            error = Mod.modSettings.SimBattleArmorMountError;
+            error = Mod.Settings.SimBattleArmorMountError;
             return false;
         }
 
@@ -1221,7 +1221,7 @@ namespace StrategicOperations.Framework
                         }
                     }
                 }
-                if (Mod.modSettings.ReworkedCarrierEvasion) battleArmor.MountedEvasion(carrier);
+                if (Mod.Settings.ReworkedCarrierEvasion) battleArmor.MountedEvasion(carrier);
             }
         }
 
@@ -1318,8 +1318,8 @@ namespace StrategicOperations.Framework
         {
             var finalChance = 0f;
 
-            var settings = Mod.modSettings.DeswarmConfigs.ContainsKey(Mod.modSettings.BattleArmorDeSwarmRoll)
-                ? Mod.modSettings.DeswarmConfigs[Mod.modSettings.BattleArmorDeSwarmRoll]
+            var settings = Mod.Settings.DeswarmConfigs.ContainsKey(Mod.Settings.BattleArmorDeSwarmRoll)
+                ? Mod.Settings.DeswarmConfigs[Mod.Settings.BattleArmorDeSwarmRoll]
                 : new Classes.ConfigOptions.BA_DeswarmAbilityConfig();
             //var rollInitPenalty = creator.StatCollection.GetValue<int>("BattleArmorDeSwarmerRollInitPenalty");
             var rollInitPenalty = settings.InitPenalty;
@@ -1405,8 +1405,8 @@ namespace StrategicOperations.Framework
         {
             var finalChance = 0f;
             //var swatInitPenalty = creator.StatCollection.GetValue<int>("BattleArmorDeSwarmerSwatInitPenalty");
-            var settings = Mod.modSettings.DeswarmConfigs.ContainsKey(Mod.modSettings.BattleArmorDeSwarmRoll)
-                ? Mod.modSettings.DeswarmConfigs[Mod.modSettings.BattleArmorDeSwarmRoll]
+            var settings = Mod.Settings.DeswarmConfigs.ContainsKey(Mod.Settings.BattleArmorDeSwarmRoll)
+                ? Mod.Settings.DeswarmConfigs[Mod.Settings.BattleArmorDeSwarmRoll]
                 : new Classes.ConfigOptions.BA_DeswarmAbilityConfig();
             var swatInitPenalty = settings.InitPenalty;
             if (!creator.team.IsLocalPlayer)
@@ -1418,7 +1418,7 @@ namespace StrategicOperations.Framework
                 foreach (var armComponent in creator.allComponents.Where(x =>
                              x.IsFunctional && (x.Location == 2 || x.Location == 32)))
                 {
-                    foreach (var CategoryID in Mod.modSettings.ArmActuatorCategoryIDs)
+                    foreach (var CategoryID in Mod.Settings.ArmActuatorCategoryIDs)
                     {
                         if (armComponent.mechComponentRef.IsCategory(CategoryID))
                         {
@@ -1540,7 +1540,7 @@ namespace StrategicOperations.Framework
             creator.GameRep.ToggleHeadlights(false);
 
             var additionalBldgStructure = (creator.SummaryArmorCurrent + creator.SummaryStructureCurrent) *
-                                          Mod.modSettings.GarrisonBuildingArmorFactor;
+                                          Mod.Settings.GarrisonBuildingArmorFactor;
             targetBuilding.StatCollection.Set("Structure", targetBuilding.CurrentStructure + additionalBldgStructure);
 
             Mod.Log.Info?.Log(
@@ -1642,7 +1642,7 @@ namespace StrategicOperations.Framework
                 creatorMech.ResetPathing(false);
                 creatorMech.Pathing.UpdateCurrentPath(false);
 
-                if (Mod.modSettings.AttackOnSwarmSuccess && creatorMech.team.IsLocalPlayer && false)
+                if (Mod.Settings.AttackOnSwarmSuccess && creatorMech.team.IsLocalPlayer && false)
                 {
                     var weps = creatorMech.Weapons.Where(x => x.IsEnabled && x.HasAmmo).ToList();
                     var loc = ModState.BADamageTrackers[creatorMech.GUID].BA_MountedLocations.Values

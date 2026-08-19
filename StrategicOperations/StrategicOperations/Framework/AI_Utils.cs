@@ -50,12 +50,12 @@ namespace StrategicOperations.Framework
                     }
 
                     Mod.Log.Trace?.Log($"No setting in AI_FactionBeacons for {ability.Def.Id} and {factionName}, using only default {ability.Def.ActorResource}");
-                    waves = Mod.modSettings.strafeWaves;
+                    waves = Mod.Settings.strafeWaves;
                     return ability.Def.ActorResource;
                 }
 
                 Mod.Log.Trace?.Log($"No setting in AI_FactionBeacons for {ability.Def.Id} and {factionName}, using only default {ability.Def.ActorResource}");
-                waves = Mod.modSettings.strafeWaves;
+                waves = Mod.Settings.strafeWaves;
                 return ability.Def.ActorResource;
             }
             waves = 0;
@@ -171,7 +171,7 @@ namespace StrategicOperations.Framework
                 Classes.AI_SpawnBehavior spawnBehavior = new Classes.AI_SpawnBehavior();
                 if (asset is MechDef mech)
                 {
-                    foreach (var behavior in Mod.modSettings.AI_SpawnBehavior)
+                    foreach (var behavior in Mod.Settings.AI_SpawnBehavior)
                     {
                         if (mech.MechTags.Contains(behavior.Tag))
                         {
@@ -182,7 +182,7 @@ namespace StrategicOperations.Framework
                 }
                 else if (asset is VehicleDef vehicle)
                 {
-                    foreach (var behavior in Mod.modSettings.AI_SpawnBehavior)
+                    foreach (var behavior in Mod.Settings.AI_SpawnBehavior)
                     {
                         if (vehicle.VehicleTags.Contains(behavior.Tag))
                         {
@@ -193,7 +193,7 @@ namespace StrategicOperations.Framework
                 }
                 else if (asset is TurretDef turret)
                 {
-                    foreach (var behavior in Mod.modSettings.AI_SpawnBehavior)
+                    foreach (var behavior in Mod.Settings.AI_SpawnBehavior)
                     {
                         if (turret.TurretTags.Contains(behavior.Tag))
                         {
@@ -361,7 +361,7 @@ namespace StrategicOperations.Framework
             if (!CanStrafe(actor, out ability)) return 0;
             var assetID = AssignRandomSpawnAsset(ability, actor.team.FactionValue.Name, out var waves);
 
-            if (Mod.modSettings.strafeUseAlternativeImplementation)
+            if (Mod.Settings.strafeUseAlternativeImplementation)
             {
                 ModState.StrafeAttacker = assetID;
                 ModState.StrafeSelectedWaves = waves;
@@ -383,14 +383,14 @@ namespace StrategicOperations.Framework
             //check for BA equipment. if present, we're going to spawn BA and mount it to AI
             Mod.Log.Info?.Log($"Checking if unit {unit.DisplayName} {unit.GUID} should spawn Battle Armor.");
 
-            if (!Mod.modSettings.AI_BattleArmorExcludedContractIDs.Contains(unit.Combat.ActiveContract.Override
-                    .ID) && !Mod.modSettings.AI_BattleArmorExcludedContractTypes.Contains(unit.Combat.ActiveContract
+            if (!Mod.Settings.AI_BattleArmorExcludedContractIDs.Contains(unit.Combat.ActiveContract.Override
+                    .ID) && !Mod.Settings.AI_BattleArmorExcludedContractTypes.Contains(unit.Combat.ActiveContract
                     .ContractTypeValue.Name))
             {
                 if (!unit.GetIsUnMountable())
                 {
 
-                    if (Mod.modSettings.BattleArmorFactionAssociations.Any(x =>
+                    if (Mod.Settings.BattleArmorFactionAssociations.Any(x =>
                             x.FactionIDs.Contains(unit.team.FactionValue.Name)))
                     {
                         if (!ModState.CurrentBattleArmorSquads.ContainsKey(unit.team.FactionValue.Name))
@@ -399,7 +399,7 @@ namespace StrategicOperations.Framework
                         }
 
                         var baConfig =
-                            Mod.modSettings.BattleArmorFactionAssociations.FirstOrDefault(x =>
+                            Mod.Settings.BattleArmorFactionAssociations.FirstOrDefault(x =>
                                 x.FactionIDs.Contains(unit.team.FactionValue.Name));
                         if (baConfig == null)
                         {
@@ -573,14 +573,14 @@ namespace StrategicOperations.Framework
             //give AI mechs ability to swat or roll
             if (unit is Mech && !(unit is TrooperSquad) && !unit.IsCustomUnitVehicle())
             {
-                if (!string.IsNullOrEmpty(Mod.modSettings.BattleArmorDeSwarmSwat))
+                if (!string.IsNullOrEmpty(Mod.Settings.BattleArmorDeSwarmSwat))
                 {
                     if (unit.GetPilot().Abilities
-                            .All(x => x.Def.Id != Mod.modSettings.BattleArmorDeSwarmSwat) &&
+                            .All(x => x.Def.Id != Mod.Settings.BattleArmorDeSwarmSwat) &&
                         unit.ComponentAbilities.All(y =>
-                            y.Def.Id != Mod.modSettings.BattleArmorDeSwarmSwat))
+                            y.Def.Id != Mod.Settings.BattleArmorDeSwarmSwat))
                     {
-                        dm.AbilityDefs.TryGet(Mod.modSettings.BattleArmorDeSwarmSwat, out var def);
+                        dm.AbilityDefs.TryGet(Mod.Settings.BattleArmorDeSwarmSwat, out var def);
                         var ability = new Ability(def);
                         Mod.Log.Trace?.Log(
                             $"Adding {ability.Def?.Description?.Id} to {unit.Description?.Name}.");
@@ -590,14 +590,14 @@ namespace StrategicOperations.Framework
                     }
                 }
 
-                if (!string.IsNullOrEmpty(Mod.modSettings.BattleArmorDeSwarmRoll))
+                if (!string.IsNullOrEmpty(Mod.Settings.BattleArmorDeSwarmRoll))
                 {
                     if (unit.GetPilot().Abilities
-                            .All(x => x.Def.Id != Mod.modSettings.BattleArmorDeSwarmRoll) &&
+                            .All(x => x.Def.Id != Mod.Settings.BattleArmorDeSwarmRoll) &&
                         unit.ComponentAbilities.All(y =>
-                            y.Def.Id != Mod.modSettings.BattleArmorDeSwarmRoll))
+                            y.Def.Id != Mod.Settings.BattleArmorDeSwarmRoll))
                     {
-                        dm.AbilityDefs.TryGet(Mod.modSettings.BattleArmorDeSwarmRoll, out var def);
+                        dm.AbilityDefs.TryGet(Mod.Settings.BattleArmorDeSwarmRoll, out var def);
                         var ability = new Ability(def);
                         Mod.Log.Trace?.Log(
                             $"Adding {ability.Def?.Description?.Id} to {unit.Description?.Name}.");
@@ -608,14 +608,14 @@ namespace StrategicOperations.Framework
                 }
             }
 
-            if (!(unit is TrooperSquad) && !string.IsNullOrEmpty(Mod.modSettings.DeswarmMovementConfig.AbilityDefID))
+            if (!(unit is TrooperSquad) && !string.IsNullOrEmpty(Mod.Settings.DeswarmMovementConfig.AbilityDefID))
             {
                 if (unit.GetPilot().Abilities
-                        .All(x => x.Def.Id != Mod.modSettings.DeswarmMovementConfig.AbilityDefID) &&
+                        .All(x => x.Def.Id != Mod.Settings.DeswarmMovementConfig.AbilityDefID) &&
                     unit.ComponentAbilities.All(y =>
-                        y.Def.Id != Mod.modSettings.DeswarmMovementConfig.AbilityDefID))
+                        y.Def.Id != Mod.Settings.DeswarmMovementConfig.AbilityDefID))
                 {
-                    unit.Combat.DataManager.AbilityDefs.TryGet(Mod.modSettings.DeswarmMovementConfig.AbilityDefID,
+                    unit.Combat.DataManager.AbilityDefs.TryGet(Mod.Settings.DeswarmMovementConfig.AbilityDefID,
                         out var def);
                     var ability = new Ability(def);
                     Mod.Log.Trace?.Log(
@@ -637,14 +637,14 @@ namespace StrategicOperations.Framework
             if (unit.Combat.TurnDirector.CurrentRound > 1) return; // don't give abilities to reinforcements?
             if (unit.team.GUID != "be77cadd-e245-4240-a93e-b99cc98902a5") return; // TargetTeam is only team that gets cmdAbilities
                                                                                   // 
-            if (!Mod.modSettings.commandAbilities_AI.Any(x=>x.FactionIDs.Contains(unit.team.FactionValue.Name)))
+            if (!Mod.Settings.commandAbilities_AI.Any(x=>x.FactionIDs.Contains(unit.team.FactionValue.Name)))
             {
                 Mod.Log.Info?.Log($"No settings for command abilities for {unit.team.FactionValue.Name}, skipping.");
                 return;
             }
 
             ModState.CurrentFactionSettingsList = new List<Classes.ConfigOptions.AI_FactionCommandAbilitySetting>(new List<Classes.ConfigOptions.AI_FactionCommandAbilitySetting>(
-                Mod.modSettings.commandAbilities_AI.Where(x=>x.FactionIDs.Contains(unit.team.FactionValue.Name))).OrderBy(y=>y.AddChance));
+                Mod.Settings.commandAbilities_AI.Where(x=>x.FactionIDs.Contains(unit.team.FactionValue.Name))).OrderBy(y=>y.AddChance));
             Mod.Log.Debug?.Log($"Ordering setting dictionary.");
 
             ModState.CurrentFactionSettingsList.RemoveAll(x => x.ContractBlacklist.Contains(unit.Combat.ActiveContract
@@ -712,7 +712,7 @@ namespace StrategicOperations.Framework
                                 $"Adding {ability.Def?.Description?.Id} to {unit.Description?.Name}.");
                             ModState.CurrentCommandUnits[abilitySetting.AbilityDefID][unit.team.FactionValue.Name] ++;
                             
-                            var abilityComponent = unit.allComponents.FirstOrDefault(z => Mod.modSettings.crewOrCockpitCustomID.Any((string x) => z.componentDef.GetComponents<Category>().Any((Category c) => c.CategoryID == x)));
+                            var abilityComponent = unit.allComponents.FirstOrDefault(z => Mod.Settings.crewOrCockpitCustomID.Any((string x) => z.componentDef.GetComponents<Category>().Any((Category c) => c.CategoryID == x)));
 
                             if (abilityComponent == null)
                             {

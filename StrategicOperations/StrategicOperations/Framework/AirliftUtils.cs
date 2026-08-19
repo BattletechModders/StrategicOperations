@@ -57,7 +57,7 @@ namespace StrategicOperations.Framework
 
             public void OnLandAttach()
             {
-                if (Mod.modSettings.ReworkedCarrierEvasion) Carrier.DumpAllEvasivePips();
+                if (Mod.Settings.ReworkedCarrierEvasion) Carrier.DumpAllEvasivePips();
                 //HIDE SQUAD REPRESENTATION
                 //attachTarget.MountBattleArmorToChassis(squad, true);
                 Carrier.MountUnitToAirliftCarrier(Actor, true);
@@ -136,7 +136,7 @@ namespace StrategicOperations.Framework
 
             public void OnLandDetach()
             {
-                if (Mod.modSettings.ReworkedCarrierEvasion) Carrier.DumpAllEvasivePips();
+                if (Mod.Settings.ReworkedCarrierEvasion) Carrier.DumpAllEvasivePips();
                 Actor.GameRep.transform.localScale = new Vector3(1f, 1f, 1f);
                 Carrier.DropAirliftedUnit(Actor, Vector3.zero, false, false, false, true);
                 //Actor.GameRep.ToggleHeadlights(true); // maybe toggle headlights if internal?
@@ -185,7 +185,7 @@ namespace StrategicOperations.Framework
 
             if (ModState.AirliftTrackers[actor.GUID].IsCarriedInternal)
             {
-                if (Mod.modSettings.AirliftCapacityByTonnage && !carrier.GetOverrideCapacityMethod() || !Mod.modSettings.AirliftCapacityByTonnage && carrier.GetOverrideCapacityMethod())
+                if (Mod.Settings.AirliftCapacityByTonnage && !carrier.GetOverrideCapacityMethod() || !Mod.Settings.AirliftCapacityByTonnage && carrier.GetOverrideCapacityMethod())
                 {
                     var tonnage = 0;
                     if (actor is Mech mech) tonnage = Mathf.RoundToInt(mech.tonnage);
@@ -201,7 +201,7 @@ namespace StrategicOperations.Framework
             }
             else
             {
-                if (Mod.modSettings.AirliftCapacityByTonnage && !carrier.GetOverrideCapacityMethod() || !Mod.modSettings.AirliftCapacityByTonnage && carrier.GetOverrideCapacityMethod())
+                if (Mod.Settings.AirliftCapacityByTonnage && !carrier.GetOverrideCapacityMethod() || !Mod.Settings.AirliftCapacityByTonnage && carrier.GetOverrideCapacityMethod())
                 {
                     var tonnage = 0;
                     if (actor is Mech mech) tonnage = Mathf.RoundToInt(mech.tonnage);
@@ -335,7 +335,7 @@ namespace StrategicOperations.Framework
 
         public static bool GetHasAvailableExternalLiftCapacityForTarget(this AbstractActor actor, AbstractActor targetActor)
         {
-            if (Mod.modSettings.AirliftCapacityByTonnage && !actor.GetOverrideCapacityMethod() || !Mod.modSettings.AirliftCapacityByTonnage && actor.GetOverrideCapacityMethod())
+            if (Mod.Settings.AirliftCapacityByTonnage && !actor.GetOverrideCapacityMethod() || !Mod.Settings.AirliftCapacityByTonnage && actor.GetOverrideCapacityMethod())
             {
                 if (targetActor is Mech targetMech)
                 {
@@ -355,7 +355,7 @@ namespace StrategicOperations.Framework
 
         public static bool GetHasAvailableInternalLiftCapacityForTarget(this AbstractActor actor, AbstractActor targetActor)
         {
-            if (Mod.modSettings.AirliftCapacityByTonnage && !actor.GetOverrideCapacityMethod() || !Mod.modSettings.AirliftCapacityByTonnage && actor.GetOverrideCapacityMethod())
+            if (Mod.Settings.AirliftCapacityByTonnage && !actor.GetOverrideCapacityMethod() || !Mod.Settings.AirliftCapacityByTonnage && actor.GetOverrideCapacityMethod())
             {
                 if (targetActor is Mech targetMech)
                 {
@@ -496,7 +496,7 @@ namespace StrategicOperations.Framework
                 var offset = targetUnit.GetVerticalOffsetForExternalMount();
                 if (isFriendly)
                 {
-                    if (Mod.modSettings.AirliftCapacityByTonnage && !carrier.GetOverrideCapacityMethod() || !Mod.modSettings.AirliftCapacityByTonnage && carrier.GetOverrideCapacityMethod())
+                    if (Mod.Settings.AirliftCapacityByTonnage && !carrier.GetOverrideCapacityMethod() || !Mod.Settings.AirliftCapacityByTonnage && carrier.GetOverrideCapacityMethod())
                     {
                         if (availableInternalCapacity >= unitTonnage)
                         {
@@ -541,7 +541,7 @@ namespace StrategicOperations.Framework
                 }
                 else
                 {
-                    if (Mod.modSettings.AirliftCapacityByTonnage && !carrier.GetOverrideCapacityMethod() || !Mod.modSettings.AirliftCapacityByTonnage && carrier.GetOverrideCapacityMethod())
+                    if (Mod.Settings.AirliftCapacityByTonnage && !carrier.GetOverrideCapacityMethod() || !Mod.Settings.AirliftCapacityByTonnage && carrier.GetOverrideCapacityMethod())
                     {
                         if (availableExternalCapacity >= unitTonnage)
                         {
@@ -588,7 +588,7 @@ namespace StrategicOperations.Framework
                 var offset = targetUnit.GetVerticalOffsetForExternalMount();
                 if (isFriendly)
                 {
-                    if (Mod.modSettings.AirliftCapacityByTonnage && !carrier.GetOverrideCapacityMethod() || !Mod.modSettings.AirliftCapacityByTonnage && carrier.GetOverrideCapacityMethod())
+                    if (Mod.Settings.AirliftCapacityByTonnage && !carrier.GetOverrideCapacityMethod() || !Mod.Settings.AirliftCapacityByTonnage && carrier.GetOverrideCapacityMethod())
                     {
                         if (availableInternalCapacity >= unitTonnage)
                         {
@@ -631,7 +631,7 @@ namespace StrategicOperations.Framework
                 }
                 else
                 {
-                    if (Mod.modSettings.AirliftCapacityByTonnage && !carrier.GetOverrideCapacityMethod() || !Mod.modSettings.AirliftCapacityByTonnage && carrier.GetOverrideCapacityMethod())
+                    if (Mod.Settings.AirliftCapacityByTonnage && !carrier.GetOverrideCapacityMethod() || !Mod.Settings.AirliftCapacityByTonnage && carrier.GetOverrideCapacityMethod())
                     {
                         if (availableExternalCapacity >= unitTonnage)
                         {
@@ -653,7 +653,7 @@ namespace StrategicOperations.Framework
                     }
                 }
             }
-            if (Mod.modSettings.ReworkedCarrierEvasion) targetUnit.MountedEvasion(carrier);
+            if (Mod.Settings.ReworkedCarrierEvasion) targetUnit.MountedEvasion(carrier);
         }
     }
 }

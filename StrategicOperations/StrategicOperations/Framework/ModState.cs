@@ -139,7 +139,7 @@ namespace StrategicOperations.Framework
 
 
             BA_MountSwarmEffects = new List<BA_TargetEffect>();
-            foreach (var BA_Effect in Mod.modSettings.BATargetEffects)
+            foreach (var BA_Effect in Mod.Settings.BATargetEffects)
             {
                 Mod.Log.Trace?.Log($"[Initializing BATargetEffects] Adding effects for {BA_Effect.ID}!");
                 foreach (var jObject in BA_Effect.effectDataJO)
@@ -153,7 +153,7 @@ namespace StrategicOperations.Framework
             }
 
             OnGarrisonCollapseEffects = new List<BA_TargetEffect>();
-            foreach (var BA_Effect in Mod.modSettings.OnGarrisonCollapseEffects)
+            foreach (var BA_Effect in Mod.Settings.OnGarrisonCollapseEffects)
             {
                 Mod.Log.Trace?.Log($"[Initializing OnGarrisonCollapseEffects] Adding effects for {BA_Effect.ID}!");
                 foreach (var jObject in BA_Effect.effectDataJO)
@@ -167,7 +167,7 @@ namespace StrategicOperations.Framework
             }
 
             AirliftEffects = new List<AirliftTargetEffect>();
-            foreach (var airliftEffect in Mod.modSettings.AirliftTargetEffects)
+            foreach (var airliftEffect in Mod.Settings.AirliftTargetEffects)
             {
                 Mod.Log.Trace?.Log($"[Initializing AirliftTargetEffects] Adding effects for {airliftEffect.ID}!");
                 foreach (var jObject in airliftEffect.effectDataJO)
@@ -182,7 +182,7 @@ namespace StrategicOperations.Framework
 
             ProcessedOverlayColors = new List<Color>();
             Mod.Log.Trace?.Log($"[Initializing BAMountPairColors] Parsing colors for overlay!");
-            foreach (var colorSetting in Mod.modSettings.BAMountPairColors)
+            foreach (var colorSetting in Mod.Settings.BAMountPairColors)
             {
                 var processedColor = new Color(colorSetting.Rf, colorSetting.Gf, colorSetting.Bf, 0.5f);
                 ProcessedOverlayColors.Add(processedColor);

@@ -28,7 +28,7 @@ namespace StrategicOperations.Patches
                     return false;
                 }
 
-                if (FromButton.Ability.Def.Id == Mod.modSettings.AirliftAbilityID)
+                if (FromButton.Ability.Def.Id == Mod.Settings.AirliftAbilityID)
                 {
                     if (SelectedActor.GUID == potentialTarget.GUID && SelectedActor.HasAirliftedUnits())
                     {
@@ -39,7 +39,7 @@ namespace StrategicOperations.Patches
 
                 if (!base.CanTargetCombatant(potentialTarget)) return false;
 
-                if (FromButton.Ability.Def.Id == Mod.modSettings.ResupplyConfig.ResupplyAbilityID)
+                if (FromButton.Ability.Def.Id == Mod.Settings.ResupplyConfig.ResupplyAbilityID)
                 {
                     if (potentialTarget is AbstractActor targetActor && targetActor.IsResupplyUnit)
                     {
@@ -48,12 +48,12 @@ namespace StrategicOperations.Patches
                     return false;
                 }
 
-                if (FromButton.Ability.Def.Id == Mod.modSettings.BattleArmorMountAndSwarmID)
+                if (FromButton.Ability.Def.Id == Mod.Settings.BattleArmorMountAndSwarmID)
                 {
 
                     if (potentialTarget is BattleTech.Building building)
                     {
-                        if (Mod.modSettings.DisableGarrisons) return false;
+                        if (Mod.Settings.DisableGarrisons) return false;
                         if (!Combat.EncounterLayerData.IsInEncounterBounds(building.CurrentPosition)) return false;
                         if (SelectedActor.IsGarrisonedInTargetBuilding(building)) return true;
                         if (building.HasGarrisonedUnits()) return false;
@@ -106,7 +106,7 @@ namespace StrategicOperations.Patches
 
                             if (!SelectedActor.IsMountedUnit() && SelectedActor.CanRideInternalOnly() &&
                                 targetActor.GetAvailableInternalBASpace() <= 0 &&
-                                (!Mod.modSettings.BattleArmorHandsyOverridesInternalOnly ||
+                                (!Mod.Settings.BattleArmorHandsyOverridesInternalOnly ||
                                  !SelectedActor.GetIsBattleArmorHandsy()))
                             {
                                 return false;
@@ -164,11 +164,11 @@ namespace StrategicOperations.Patches
                         }
                     }
                 }
-                else if (FromButton.Ability.Def.Id == Mod.modSettings.AirliftAbilityID)
+                else if (FromButton.Ability.Def.Id == Mod.Settings.AirliftAbilityID)
                 {
                     if (potentialTarget is AbstractActor targetActor)
                     {
-                        if (targetActor.GetTags().Any(x => Mod.modSettings.AirliftImmuneTags.Contains(x)))
+                        if (targetActor.GetTags().Any(x => Mod.Settings.AirliftImmuneTags.Contains(x)))
                             return false;
                         if (SelectedActor.HasActivatedThisRound) return false;
                         if (SelectedActor.IsAirliftingTargetUnit(targetActor))
@@ -223,7 +223,7 @@ namespace StrategicOperations.Patches
                 };
                 var maxRange = ranges.Max();
 
-                if (this.FromButton.Ability.Def.Id == Mod.modSettings.BattleArmorMountAndSwarmID)
+                if (this.FromButton.Ability.Def.Id == Mod.Settings.BattleArmorMountAndSwarmID)
                 {
                     if (!SelectedActor.IsMountedUnit() && !SelectedActor.IsSwarmingUnit() &&
                         !SelectedActor.IsGarrisoned())
@@ -253,7 +253,7 @@ namespace StrategicOperations.Patches
                         StrategicTargetIndicatorsManager.ShowRoot();
                     }
                 }
-                else if (this.FromButton.Ability.Def.Id == Mod.modSettings.ResupplyConfig.ResupplyAbilityID)
+                else if (this.FromButton.Ability.Def.Id == Mod.Settings.ResupplyConfig.ResupplyAbilityID)
                 {
                     if (!SelectedActor.IsMountedUnit() && !SelectedActor.IsSwarmingUnit() &&
                         !SelectedActor.IsGarrisoned())
@@ -351,7 +351,7 @@ namespace StrategicOperations.Patches
 
             public override bool ProcessClickedCombatant(ICombatant combatant)
             {
-                if (FromButton.Ability.Def.Id == Mod.modSettings.ResupplyConfig.ResupplyAbilityID)
+                if (FromButton.Ability.Def.Id == Mod.Settings.ResupplyConfig.ResupplyAbilityID)
                 {
                     var resupplyDist = Mathf.RoundToInt(Vector3.Distance(this.HUD.SelectedActor.CurrentPosition, combatant.CurrentPosition));
                     if (resupplyDist > FromButton.Ability.Def.IntParam2)
@@ -359,7 +359,7 @@ namespace StrategicOperations.Patches
                         return false;
                     }
                 }
-                if (FromButton.Ability.Def.Id == Mod.modSettings.AirliftAbilityID)
+                if (FromButton.Ability.Def.Id == Mod.Settings.AirliftAbilityID)
                 {
                     if (SelectedActor.GUID == combatant.GUID)
                     {
@@ -528,7 +528,7 @@ namespace StrategicOperations.Patches
                     return false;
                 }
 
-                if (FromButton.Ability.Def.Id == Mod.modSettings.BattleArmorMountAndSwarmID)
+                if (FromButton.Ability.Def.Id == Mod.Settings.BattleArmorMountAndSwarmID)
                 {
                     if (base.ProcessClickedCombatant(combatant))
                     {
@@ -567,7 +567,7 @@ namespace StrategicOperations.Patches
                     if (!FromButton || FromButton.Ability == null) return;
                     if (__result is AbilityExtensions.SelectionStateMWTargetSingle selectState)
                     {
-                        if (FromButton.Ability.Def.Id == Mod.modSettings.BattleArmorMountAndSwarmID || FromButton.Ability.Def.Id == Mod.modSettings.AirliftAbilityID || FromButton.Ability.Def.Id == Mod.modSettings.ResupplyConfig.ResupplyAbilityID)
+                        if (FromButton.Ability.Def.Id == Mod.Settings.BattleArmorMountAndSwarmID || FromButton.Ability.Def.Id == Mod.Settings.AirliftAbilityID || FromButton.Ability.Def.Id == Mod.Settings.ResupplyConfig.ResupplyAbilityID)
                         {
                             __result = new SelectionStateMWTargetSingle_Stratops(Combat, HUD, FromButton);
                             return;
@@ -680,18 +680,18 @@ namespace StrategicOperations.Patches
                             {
                                 if (IsFriendly && !IsResupply)
                                 {
-                                    if (!string.IsNullOrEmpty(Mod.modSettings.MountIndicatorAsset))
+                                    if (!string.IsNullOrEmpty(Mod.Settings.MountIndicatorAsset))
                                     {
-                                        var newTexture = dm.GetObjectOfType<Texture2D>(Mod.modSettings.MountIndicatorAsset,
+                                        var newTexture = dm.GetObjectOfType<Texture2D>(Mod.Settings.MountIndicatorAsset,
                                             BattleTechResourceType.Texture2D);
                                         if (newTexture != null) decalsFromCircle[j].DecalPropertyBlock.SetTexture("_MainTex", newTexture);
                                     }
 
-                                    if (Mod.modSettings.MountIndicatorColor != null)
+                                    if (Mod.Settings.MountIndicatorColor != null)
                                     {
-                                        var customColor = new Color(Mod.modSettings.MountIndicatorColor.Rf,
-                                            Mod.modSettings.MountIndicatorColor.Gf,
-                                            Mod.modSettings.MountIndicatorColor.Bf);
+                                        var customColor = new Color(Mod.Settings.MountIndicatorColor.Rf,
+                                            Mod.Settings.MountIndicatorColor.Gf,
+                                            Mod.Settings.MountIndicatorColor.Bf);
                                         decalsFromCircle[j].DecalPropertyBlock.SetColor("_Color", customColor);
                                     }
                                     else
@@ -702,18 +702,18 @@ namespace StrategicOperations.Patches
 
                                 if (IsResupply && !IsResupplyInRange)
                                 {
-                                    if (!string.IsNullOrEmpty(Mod.modSettings.ResupplyConfig.ResupplyIndicatorAsset))
+                                    if (!string.IsNullOrEmpty(Mod.Settings.ResupplyConfig.ResupplyIndicatorAsset))
                                     {
-                                        var newTexture = dm.GetObjectOfType<Texture2D>(Mod.modSettings.ResupplyConfig.ResupplyIndicatorAsset,
+                                        var newTexture = dm.GetObjectOfType<Texture2D>(Mod.Settings.ResupplyConfig.ResupplyIndicatorAsset,
                                             BattleTechResourceType.Texture2D);
                                         if (newTexture != null) decalsFromCircle[j].DecalPropertyBlock.SetTexture("_MainTex", newTexture);
                                     }
 
-                                    if (Mod.modSettings.MountIndicatorColor != null)
+                                    if (Mod.Settings.MountIndicatorColor != null)
                                     {
-                                        var customColor = new Color(Mod.modSettings.ResupplyConfig.ResupplyIndicatorColor.Rf,
-                                            Mod.modSettings.ResupplyConfig.ResupplyIndicatorColor.Gf,
-                                            Mod.modSettings.ResupplyConfig.ResupplyIndicatorColor.Bf);
+                                        var customColor = new Color(Mod.Settings.ResupplyConfig.ResupplyIndicatorColor.Rf,
+                                            Mod.Settings.ResupplyConfig.ResupplyIndicatorColor.Gf,
+                                            Mod.Settings.ResupplyConfig.ResupplyIndicatorColor.Bf);
                                         decalsFromCircle[j].DecalPropertyBlock.SetColor("_Color", customColor);
 
                                     }
@@ -724,18 +724,18 @@ namespace StrategicOperations.Patches
                                 }
                                 else if (IsResupply)
                                 {
-                                    if (!string.IsNullOrEmpty(Mod.modSettings.ResupplyConfig.ResupplyIndicatorInRangeAsset))
+                                    if (!string.IsNullOrEmpty(Mod.Settings.ResupplyConfig.ResupplyIndicatorInRangeAsset))
                                     {
-                                        var newTexture = dm.GetObjectOfType<Texture2D>(Mod.modSettings.ResupplyConfig.ResupplyIndicatorInRangeAsset,
+                                        var newTexture = dm.GetObjectOfType<Texture2D>(Mod.Settings.ResupplyConfig.ResupplyIndicatorInRangeAsset,
                                             BattleTechResourceType.Texture2D);
                                         if (newTexture != null) decalsFromCircle[j].DecalPropertyBlock.SetTexture("_MainTex", newTexture);
                                     }
 
-                                    if (Mod.modSettings.MountIndicatorColor != null)
+                                    if (Mod.Settings.MountIndicatorColor != null)
                                     {
-                                        var customColor = new Color(Mod.modSettings.ResupplyConfig.ResupplyIndicatorInRangeColor.Rf,
-                                            Mod.modSettings.ResupplyConfig.ResupplyIndicatorInRangeColor.Gf,
-                                            Mod.modSettings.ResupplyConfig.ResupplyIndicatorInRangeColor.Bf);
+                                        var customColor = new Color(Mod.Settings.ResupplyConfig.ResupplyIndicatorInRangeColor.Rf,
+                                            Mod.Settings.ResupplyConfig.ResupplyIndicatorInRangeColor.Gf,
+                                            Mod.Settings.ResupplyConfig.ResupplyIndicatorInRangeColor.Bf);
                                         decalsFromCircle[j].DecalPropertyBlock.SetColor("_Color", customColor);
 
                                     }
