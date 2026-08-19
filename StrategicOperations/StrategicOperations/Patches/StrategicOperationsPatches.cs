@@ -2847,13 +2847,24 @@ namespace StrategicOperations.Patches
                     __runOriginal = true;
                     return;
                 }
+
                 Ability ability = ModState.CommandAbilities.Find((Ability x) => x.Def.Id == msg.abilityID);
                 if (ability == null)
                 {
-                    ModInit.modLog?.Info?.Write(
-                        $"Tried to use a CommandAbility the team doesnt have?");
-                    __runOriginal = false;
-                    return;
+                    Ability teamAbility = __instance.CommandAbilities.Find((Ability x) => x.Def.Id == msg.abilityID);
+                    if (teamAbility != null)
+                    {
+                        // UDS integration. TODO: Make this cleaner, this is the fastest hack to solve b/c tbone kept active CommandAbilities in ModState, not Team.
+                        ModInit.modLog?.Info?.Write($"UDS injected {msg.abilityID} into the Team, but we don't have it. Deffering to them.");
+                        __runOriginal = true;
+                        return;
+                    }
+                    else
+                    {
+                        ModInit.modLog?.Info?.Write($"Tried to use a CommandAbility: {msg.abilityID} but the Team doesn't have it.");
+                        __runOriginal = false;
+                        return;
+                    }
                 }
 
                 switch (ability.Def.Targeting)

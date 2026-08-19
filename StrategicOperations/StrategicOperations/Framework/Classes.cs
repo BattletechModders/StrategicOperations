@@ -14,7 +14,7 @@ using IRTweaks.Modules.Combat;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using UnityEngine;
-using static MonoMod.Cil.RuntimeILReferenceBag.FastDelegateInvokers;
+using static MonoMod.Cil.FastDelegateInvokers;
 
 namespace StrategicOperations.Framework
 {

@@ -1,23 +1,28 @@
-﻿<Project Sdk="Microsoft.NET.Sdk" InitialTargets="ValidateBattleTechGameDir">
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project Sdk="Microsoft.NET.Sdk" InitialTargets="ValidateBattleTechGameDir">
+
   <Target Name="ValidateBattleTechGameDir" Condition="'$(BattleTechGameDir)' == '' Or !Exists('$(BattleTechGameDir)')">
     <Error Text="BattleTechGameDir variable not set properly" />
   </Target>
-  <PropertyGroup Condition="'$(StrategicOperationsModPath)' == '' And Exists('$(BattleTechGameDir)\Mods\Core\StrategicOperations')">
+
+  <PropertyGroup Condition="'$(DeployedModPath)' == '' And Exists('$(BattleTechGameDir)\Mods\Core\StrategicOperations')">
     <!-- RogueTech -->
-    <StrategicOperationsModPath>$(BattleTechGameDir)\Mods\Core\StrategicOperations</StrategicOperationsModPath>
+    <DeployedModPath>$(BattleTechGameDir)\Mods\Core\StrategicOperations</DeployedModPath>
   </PropertyGroup>
-  <PropertyGroup Condition="'$(StrategicOperationsModPath)' == '' And Exists('$(BattleTechGameDir)\Mods\StrategicOperations')">
+  <PropertyGroup Condition="'$(DeployedModPath)' == '' And Exists('$(BattleTechGameDir)\Mods\StrategicOperations')">
     <!-- flat dir -->
-    <StrategicOperationsModPath>$(BattleTechGameDir)\Mods\StrategicOperations</StrategicOperationsModPath>
+    <DeployedModPath>$(BattleTechGameDir)\Mods\StrategicOperations</DeployedModPath>
   </PropertyGroup>
-  <PropertyGroup Condition="'$(StrategicOperationsModPath)' == ''">
+  <PropertyGroup Condition="'$(DeployedModPath)' == ''">
     <!-- sources dir -->
-    <StrategicOperationsModPath>$(MSBuildProjectDirectory)\..</StrategicOperationsModPath>
+    <DeployedModPath>$(MSBuildProjectDirectory)\..</DeployedModPath>
   </PropertyGroup>
+
   <PropertyGroup>
     <OutputType>Library</OutputType>
     <TargetFramework>net472</TargetFramework>
     <LangVersion>11</LangVersion>
+
     <AssemblySearchPaths>
       $(ReferencePath);
       {HintPathFromItem};
@@ -26,78 +31,88 @@
     <DisableImplicitFrameworkReferences>true</DisableImplicitFrameworkReferences>
     <DebugType>none</DebugType>
     <DebugSymbols>false</DebugSymbols>
+
+    <ProjectGuid>{143DA379-46DB-4474-B9B2-E8A43EEDDCE2}</ProjectGuid>    
+    <AssemblyTitle>StrategicOperations</AssemblyTitle>
+    <Product>StrategicOperations</Product>
+    <Copyright>Copyright © 2026</Copyright>
+
+    <AssemblyVersion>3.2.0</AssemblyVersion>
+    <FileVersion>3.2.0</FileVersion>
+
   </PropertyGroup>
+
   <Target Name="CopyFilesToGame" AfterTargets="CopyFilesToOutputDirectory">
-    <Copy SourceFiles="$(TargetPath)" DestinationFolder="$(StrategicOperationsModPath)" />
+    <Copy SourceFiles="$(TargetPath)" DestinationFolder="$(DeployedModPath)" />
   </Target>
+
+  <ItemGroup>
+    <PackageReference Include="Krafs.Publicizer" Version="2.3.2" />
+    <Publicize Include="Assembly-CSharp;CustomActivatableEquipment" />
+  </ItemGroup>
   <PropertyGroup>
     <!-- avoids IgnoresAccessChecksToAttribute warnings -->
     <PublicizerRuntimeStrategies>Unsafe</PublicizerRuntimeStrategies>
-    <AssemblyVersion>3.1.5.1</AssemblyVersion>
-    <FileVersion>3.1.5.1</FileVersion>
   </PropertyGroup>
+
   <ItemGroup>
-    <Compile Remove="Framework\Logger.cs" />
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="Framework\Logger.cs" />
-  </ItemGroup>
-  <ItemGroup>
-    <PackageReference Include="Krafs.Publicizer" Version="2.2.1" />
-    <Publicize Include="Assembly-CSharp" />
-    <Publicize Include="CustomActivatableEquipment" />
-  </ItemGroup>
-  <ItemGroup>
-    <PackageReference Include="HarmonyX" Version="2.10.1">
+    <PackageReference Include="HarmonyX" Version="2.16.1">
       <PrivateAssets>all</PrivateAssets>
       <ExcludeAssets>runtime</ExcludeAssets>
     </PackageReference>
   </ItemGroup>
+
   <ItemGroup>
-	<Reference Include="IRBTModUtils">
-      <HintPath>$(StrategicOperationsModPath)\..\IRBTModUtils\IRBTModUtils.dll</HintPath>
-      <Private>False</Private>
-    </Reference>
-	<Reference Include="CBTBehaviorsEnhanced">
-      <HintPath>$(StrategicOperationsModPath)\..\CBTBehaviorsEnhanced\CBTBehaviorsEnhanced.dll</HintPath>
-      <Private>False</Private>
-    </Reference>
-	<Reference Include="CustomComponents">
-      <HintPath>$(StrategicOperationsModPath)\..\CustomComponents\CustomComponents.dll</HintPath>
-      <Private>False</Private>
-    </Reference>
-	<Reference Include="CustomActivatableEquipment">
-      <HintPath>$(StrategicOperationsModPath)\..\CustomActivatableEquipment\CustomActivatableEquipment.dll</HintPath>
-      <Private>False</Private>
-    </Reference>
-	<Reference Include="CustomAmmoCategories">
-      <HintPath>$(StrategicOperationsModPath)\..\CustomAmmoCategories\CustomAmmoCategories.dll</HintPath>
-      <Private>False</Private>
-    </Reference>
-	<Reference Include="CustomUnits">
-      <HintPath>$(StrategicOperationsModPath)\..\CustomUnits\CustomUnits.dll</HintPath>
-      <Private>False</Private>
-    </Reference>
-	<Reference Include="IRTweaks">
-      <HintPath>$(StrategicOperationsModPath)\..\IRTweaks\IRTweaks.dll</HintPath>
-      <Private>False</Private>
-    </Reference>
-	 <Reference Include="Abilifier">
-      <HintPath>$(StrategicOperationsModPath)\..\Abilifier\Abilifier.dll</HintPath>
-      <Private>False</Private>
-    </Reference>
     <Reference Include="Assembly-CSharp">
-      <Private>False</Private>
-      <HintPath>$(BattleTechGameDir)\Mods\.modtek\AssembliesInjected\Assembly-CSharp.dll</HintPath>
-    </Reference>
-	<Reference Include="Assembly-CSharp-firstpass">
+      <HintPath>$(DeployedModPath)\..\..\.modtek\AssembliesInjected\Assembly-CSharp.dll</HintPath>
       <Private>False</Private>
     </Reference>
+    <Reference Include="Assembly-CSharp-firstpass">
+      <Private>False</Private>
+    </Reference>
+
+    <Reference Include="Abilifier">
+      <HintPath>$(DeployedModPath)\..\Abilifier\Abilifier.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="CBTBehaviorsEnhanced">
+      <HintPath>$(DeployedModPath)\..\CBTBehaviorsEnhanced\CBTBehaviorsEnhanced.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="CustomComponents">
+      <HintPath>$(DeployedModPath)\..\CustomComponents\CustomComponents.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="CustomActivatableEquipment">
+      <HintPath>$(DeployedModPath)\..\CustomActivatableEquipment\CustomActivatableEquipment.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="CustomAmmoCategories">
+      <HintPath>$(DeployedModPath)\..\CustomAmmoCategories\CustomAmmoCategories.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="CustomUnits">
+      <HintPath>$(DeployedModPath)\..\CustomUnits\CustomUnits.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="IRBTModUtils">
+      <HintPath>$(DeployedModPath)\..\IRBTModUtils\IRBTModUtils.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="IRTweaks">
+      <HintPath>$(DeployedModPath)\..\IRTweaks\IRTweaks.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="ModTek">
+      <HintPath>$(DeployedModPath)\..\..\ModTek\lib\ModTek.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+    
     <Reference Include="Newtonsoft.Json">
       <Private>False</Private>
     </Reference>
-	<Reference Include="InControl">
-	<Private>False</Private>
+    <Reference Include="InControl">
+      <Private>False</Private>
     </Reference>
     <Reference Include="System">
       <Private>False</Private>
@@ -108,19 +123,19 @@
     <Reference Include="UnityEngine">
       <Private>False</Private>
     </Reference>
-	<Reference Include="UnityEngine.UI">
+    <Reference Include="UnityEngine.UI">
       <Private>False</Private>
     </Reference>
     <Reference Include="UnityEngine.CoreModule">
       <Private>False</Private>
     </Reference>
-	<Reference Include="Unity.TextMeshPro">
+    <Reference Include="Unity.TextMeshPro">
       <Private>False</Private>
     </Reference>
-	<Reference Include="UnityEngine.ParticleSystemModule">
+    <Reference Include="UnityEngine.ParticleSystemModule">
       <Private>False</Private>
     </Reference>
-	<Reference Include="UnityEngine.PhysicsModule">
+    <Reference Include="UnityEngine.PhysicsModule">
       <Private>False</Private>
     </Reference>
   </ItemGroup>

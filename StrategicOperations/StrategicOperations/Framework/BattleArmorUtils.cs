@@ -12,7 +12,7 @@ using CustomUnits;
 using HBS.Math;
 using UnityEngine;
 using UnityEngine.UI;
-using static MonoMod.Cil.RuntimeILReferenceBag.FastDelegateInvokers;
+using static MonoMod.Cil.FastDelegateInvokers;
 using Random = UnityEngine.Random;
 using Text = Localize.Text;
 
