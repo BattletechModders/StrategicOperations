@@ -11,7 +11,10 @@
 		"Abilifier",
 		"MechEngineer",
 		"CustomActivatableEquipment",
-		"CustomUnits"
+		"CustomUnits",
+		"IRBTModUtils",
+		"CBTBehaviorsEnhanced",
+		"IRTweaks"
 	],
 	"CustomResourceTypes": [
 	],
@@ -35,6 +38,10 @@
 		{
 			"Type": "Texture2D",
 			"Path": "texture"
+		},
+        {
+			"Type": "AdvancedJSONMerge",
+			"Path": "advancedJsonMerges"
 		}
 	]
 }
