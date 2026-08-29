@@ -1,78 +1,13 @@
-﻿using CustomComponents;
-using IRBTModUtils.CustomInfluenceMap;
-using IRBTModUtils.Logging;
-using Newtonsoft.Json;
-using StrategicOperations.Framework;
-using System;
+﻿using System;
 using System.Collections.Generic;
-using System.Reflection;
-using UnityEngine;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
 using static StrategicOperations.Framework.Classes;
-using Random = System.Random;
 
 namespace StrategicOperations
 {
-    public static class ModInit
-    {
-        public const string HarmonyPackage = "us.tbone.StrategicOperations";
-        private static string modDir;
-        internal static DeferringLogger modLog;
-
-        internal static Settings modSettings;
-        public static readonly Random Random = new Random();
-
-        public static void FinishedLoading(List<string> loadOrder)
-        {
-            ModInit.modLog?.Info?.Write($"Invoking FinishedLoading");
-            var customPositionFactors = new List<CustomInfluenceMapPositionFactor>()
-            {
-                new StrategicInfluenceMapFactors.CustomPositionFactors.PreferAvoidStandingInAirstrikeAreaPosition(),
-                new StrategicInfluenceMapFactors.CustomPositionFactors.PreferCloserToResupply(),
-                new StrategicInfluenceMapFactors.CustomPositionFactors.PreferNearerToSwarmTargets()
-            };
-            CustomFactors.Register("StrategicOperations_PositionFactors", customPositionFactors);
-            var customHostileFactors = new List<CustomInfluenceMapHostileFactor>()
-            {
-                new StrategicInfluenceMapFactors.CustomHostileFactors.PreferAvoidStandingInAirstrikeAreaWithHostile(),
-                new StrategicInfluenceMapFactors.CustomHostileFactors.PreferCloserToResupplyWithHostile(),
-                new StrategicInfluenceMapFactors.CustomHostileFactors.PreferNearerToSwarmTargetsWithHostile()
-            };
-            CustomFactors.Register("StrategicOperations_HostileFactors", customHostileFactors);
-        }
-
-        public static void Init(string directory, string settings)
-        {
-            
-            modDir = directory;
-            Exception settingsException = null;
-            try
-            {
-                modSettings = JsonConvert.DeserializeObject<Settings>(settings);
-            }
-            catch (Exception ex)
-            {
-                settingsException = ex;
-                modSettings = new Settings();
-            }
-            //HarmonyInstance.DEBUG = true;
-            modLog = new DeferringLogger(modDir, "Strategery", modSettings.Debug, modSettings.enableTrace);
-            if (settingsException != null)
-            {
-                ModInit.modLog?.Error?.Write($"EXCEPTION while reading settings file! Error was: {settingsException}");
-            }
-            
-            ModInit.modLog?.Info?.Write($"Initializing StrategicOperations - Version {typeof(Settings).Assembly.GetName().Version}");
-            //var harmony = HarmonyInstance.Create(HarmonyPackage);
-            //harmony.PatchAll(Assembly.GetExecutingAssembly());
-            //FileLog.Log(HarmonyPackage);
-            Registry.RegisterSimpleCustomComponents(Assembly.GetExecutingAssembly());
-            Harmony.CreateAndPatchAll(Assembly.GetExecutingAssembly(), HarmonyPackage);
-            ModState.Initialize();
-            //dump settings
-            ModInit.modLog?.Info?.Write($"Settings dump: {settings}");
-        }
-    }
-    class Settings
+    internal class ModSettings
     {
         public List<string> AI_BattleArmorExcludedContractIDs = new List<string>();
         public List<string> AI_BattleArmorExcludedContractTypes = new List<string>();
@@ -190,12 +125,38 @@ namespace StrategicOperations
 
         public float timeBetweenAttacks = 0.35f;
 
-        //public List<string> BeaconExcludedContractTypes = new List<string>();
-        //public List<string> BeaconExcludedContractIDs = new List<string>();
         public bool UsingMechAffinityForSwarmBreach = false;
         public bool ReworkedCarrierEvasion = true;
         public bool MeleeOnSwarmAttacks = true;
 
         public string SimBattleArmorMountError = "The selected squad cannot be transported by this unit.";
+
+        public void LogConfig()
+        {
+            Mod.Log.Info?.Log("=== MOD SETTINGS BEGIN ===");
+            Mod.Log.Info?.Log("  ---- GENERAL SETTINGS");
+            Mod.Log.Info?.Log($" deployProtection: {this.deployProtection}  commandUseCostsMulti: {this.commandUseCostsMulti}");
+
+            Mod.Log.Info?.Log("  ---- AI SETTINGS");
+            Mod.Log.Info?.Log($" DEVTEST_AIPOS: {this.DEVTEST_AIPOS}");
+
+            Mod.Log.Info?.Log("  ---- BATTLE_ARMOR SETTINGS");
+            Mod.Log.Info?.Log($" InternalBAAffectsOverallDropTonnage: {this.InternalBAAffectsOverallDropTonnage}  ExternalBAAffectsOverallDropTonnage: {this.ExternalBAAffectsOverallDropTonnage}  " +
+                $"InternalBAAffectsSlotDropTonnage: {this.InternalBAAffectsSlotDropTonnage}  ExternalBAAffectsSlotDropTonnage: {this.ExternalBAAffectsSlotDropTonnage}");
+            Mod.Log.Info?.Log($" UseOriginalBAMountInterface: {this.UseOriginalBAMountInterface}");
+
+            Mod.Log.Info?.Log("  ---- SPAWN SETTINGS");
+            Mod.Log.Info?.Log($" spawnTurretEndsActivation: {this.spawnTurretEndsActivation}  customSpawnReticleAsset: {this.customSpawnReticleAsset}");
+
+            Mod.Log.Info?.Log("  ---- STRAFE SETTINGS");
+            Mod.Log.Info?.Log($" showStrafeCamera: {this.showStrafeCamera}  strafeEndsActivation: {this.strafeEndsActivation}  " +
+                $"strafeTargetsFriendliesChance: {this.strafeTargetsFriendliesChance}  strafeNeutralBuildingsChance: {this.strafeNeutralBuildingsChance}");
+            Mod.Log.Info?.Log($" strafeSensorFactor: {this.strafeSensorFactor}  strafeVelocityDefault: {this.strafeVelocityDefault}  " +
+                $"strafeAltitudeMin: {this.strafeAltitudeMin}  strafeAltitudeMax: {this.strafeAltitudeMax}");
+            Mod.Log.Info?.Log($" strafePreDistanceMult: {this.strafePreDistanceMult}  strafeMinDistanceToEnd: {this.strafeMinDistanceToEnd}");
+            Mod.Log.Info?.Log($" flareResourceID: {this.flareResourceID}  timeBetweenAttacks: {this.timeBetweenAttacks}");
+        
+            Mod.Log.Info?.Log("=== MOD SETTINGS END ===");
+        }
     }
 }

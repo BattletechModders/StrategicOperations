@@ -12,7 +12,7 @@ using CustomUnits;
 using HBS.Math;
 using UnityEngine;
 using UnityEngine.UI;
-using static MonoMod.Cil.RuntimeILReferenceBag.FastDelegateInvokers;
+using static MonoMod.Cil.FastDelegateInvokers;
 using Random = UnityEngine.Random;
 using Text = Localize.Text;
 
@@ -26,7 +26,7 @@ namespace StrategicOperations.Framework
         {
             if (isFriendly)
             {
-                ModInit.modLog?.Trace?.Write($"AttachToCarrier processing on friendly.");
+                Mod.Log.Trace?.Log($"AttachToCarrier processing on friendly.");
                 if (attachTarget is CustomMech custMech && custMech.FlyingHeight() > 1.5f)
                 {
                     //Check if actually flying unit
@@ -41,14 +41,14 @@ namespace StrategicOperations.Framework
                 }
                 else
                 {
-                    ModInit.modLog?.Trace?.Write($"AttachToCarrier call mount.");
+                    Mod.Log.Trace?.Log($"AttachToCarrier call mount.");
                     //CALL DEFAULT ATTACH CODE
                     attachTarget.MountBattleArmorToChassis(squad, true, true);
                 }
             }
             else
             {
-                ModInit.modLog?.Trace?.Write($"AttachToCarrier call mount.");
+                Mod.Log.Trace?.Log($"AttachToCarrier call mount.");
                 //CALL DEFAULT ATTACH CODE
                 attachTarget.MountBattleArmorToChassis(squad, true, false);
             }
@@ -86,7 +86,7 @@ namespace StrategicOperations.Framework
 
         public static float[] CalculateClusterDamages(float totalDamage, int clusters, List<int> possibleLocs, out int[] locs)
         {
-            ModInit.modLog?.Trace?.Write($"[CalculateClusterDamages] Generating {totalDamage} total damage in {clusters} clusters");
+            Mod.Log.Trace?.Log($"[CalculateClusterDamages] Generating {totalDamage} total damage in {clusters} clusters");
             var dmgClusters = new float[clusters];
             locs = new int[clusters];
             var dmgSplit = totalDamage / clusters;
@@ -94,7 +94,7 @@ namespace StrategicOperations.Framework
             {
                 dmgClusters[i] = dmgSplit;
                 locs[i] = possibleLocs.GetRandomElement();
-                ModInit.modLog?.Trace?.Write($"[CalculateClusterDamages] Assigning {dmgSplit} damage to location {locs[i]}");
+                Mod.Log.Trace?.Log($"[CalculateClusterDamages] Assigning {dmgSplit} damage to location {locs[i]}");
             }
             return dmgClusters;
         }
@@ -113,17 +113,17 @@ namespace StrategicOperations.Framework
 
         public static void CheckForBPodAndActivate(this AbstractActor actor)
         {
-            if (!actor.team.IsLocalPlayer || actor.team.IsLocalPlayer && ModInit.modSettings.BPodsAutoActivate)
+            if (!actor.team.IsLocalPlayer || actor.team.IsLocalPlayer && Mod.Settings.BPodsAutoActivate)
             {
                 if (actor is Mech mech)
                 {
                     foreach (var component in mech.allComponents)
                     {
-                        if (ModInit.modSettings.BPodComponentIDs.Contains(component.defId))
+                        if (Mod.Settings.BPodComponentIDs.Contains(component.defId))
                         {
                             if (ActivatableComponent.getChargesCount(component) > 0)
                             {
-                                ModInit.modLog?.Info?.Write($"[CheckForBPodAndActivate] Auto-activating BPod {component.Name} due incoming swarm attempt");
+                                Mod.Log.Info?.Log($"[CheckForBPodAndActivate] Auto-activating BPod {component.Name} due incoming swarm attempt");
                                 ActivatableComponent.activateComponent(component, true, false);
                                 break;
                             }
@@ -140,22 +140,22 @@ namespace StrategicOperations.Framework
             {
                 clusters.Add(0f);
             }
-            ModInit.modLog?.Trace?.Write($"[CreateBPodDmgClusters] Generating {locs.Count} clusters of dmg from {totalDmg}");
+            Mod.Log.Trace?.Log($"[CreateBPodDmgClusters] Generating {locs.Count} clusters of dmg from {totalDmg}");
             var unapportionedDmg = totalDmg;
             var idx = 0;
             while (unapportionedDmg > 0)
             {
                 var pendingDmg = Random.Range(0f, unapportionedDmg);
-                ModInit.modLog?.Trace?.Write($"[CreateBPodDmgClusters] Current damage for idx {idx} is {clusters[idx]}; {pendingDmg} to be added");
+                Mod.Log.Trace?.Log($"[CreateBPodDmgClusters] Current damage for idx {idx} is {clusters[idx]}; {pendingDmg} to be added");
                 clusters[idx] += pendingDmg;
                 unapportionedDmg -= pendingDmg;
-                ModInit.modLog?.Trace?.Write($"[CreateBPodDmgClusters] {unapportionedDmg} remains to be assigned");
+                Mod.Log.Trace?.Log($"[CreateBPodDmgClusters] {unapportionedDmg} remains to be assigned");
                 if (unapportionedDmg < 1f) unapportionedDmg = 0f;
                 idx++;
-                ModInit.modLog?.Trace?.Write($"[CreateBPodDmgClusters] Moving to idx {idx}");
+                Mod.Log.Trace?.Log($"[CreateBPodDmgClusters] Moving to idx {idx}");
                 if (idx >= clusters.Count)
                 {
-                    ModInit.modLog?.Trace?.Write($"[CreateBPodDmgClusters] idx {idx} out of range, resetting to 0");
+                    Mod.Log.Trace?.Log($"[CreateBPodDmgClusters] idx {idx} out of range, resetting to 0");
                     idx = 0;
                 }
             }
@@ -167,7 +167,7 @@ namespace StrategicOperations.Framework
             ModState.PositionLockMount.Remove(squad.GUID);
             if (isFriendly)
             {
-                ModInit.modLog?.Trace?.Write($"DetachFromCarrier processing on friendly.");
+                Mod.Log.Trace?.Log($"DetachFromCarrier processing on friendly.");
                 if (attachTarget is CustomMech custMech && custMech.FlyingHeight() > 1.5f)
                 {
                     //Check if actually flying unit
@@ -181,14 +181,14 @@ namespace StrategicOperations.Framework
                 }
                 else
                 {
-                    ModInit.modLog?.Trace?.Write($"DetachFromCarrier call dismount.");
+                    Mod.Log.Trace?.Log($"DetachFromCarrier call dismount.");
                     //CALL DEFAULT ATTACH CODE
                     squad.DismountBA(attachTarget, Vector3.zero, true, false, false);
                 }
             }
             else
             {
-                ModInit.modLog?.Trace?.Write($"DetachFromCarrier call dismount.");
+                Mod.Log.Trace?.Log($"DetachFromCarrier call dismount.");
                 //CALL DEFAULT ATTACH CODE
                 squad.DismountBA(attachTarget, Vector3.zero, false, false, false);
             }
@@ -240,7 +240,7 @@ namespace StrategicOperations.Framework
                         if (ModState.BADamageTrackers[actor.GUID].IsSquadInternal)
                         {
                             carrier.ModifyInternalBASquads(-1);
-                            ModInit.modLog?.Info?.Write(
+                            Mod.Log.Info?.Log(
                                 $"[DismountBA] Dismounted {actor.DisplayName} from internal capacity. Capacity is now {carrier.GetAvailableInternalBASpace()}.");
                             squad.FiringArc(90f); //reset to 90?
                         }
@@ -255,13 +255,13 @@ namespace StrategicOperations.Framework
                 {
                     foreach (var effectProper in BA_effect.effects)
                     {
-                        ModInit.modLog?.Trace?.Write(
+                        Mod.Log.Trace?.Log(
                             $"[DismountBA] DEBUGGINS Checking for {effectProper.Description.Name} with id {effectProper.Description.Id} on {actor.DisplayName}.");
                         var effects = em.GetAllEffectsTargetingWithBaseID(actor, effectProper.Description.Id);
 
                         for (int i = effects.Count - 1; i >= 0; i--)
                         {
-                            ModInit.modLog?.Info?.Write(
+                            Mod.Log.Info?.Log(
                                 $"[DismountBA] Cancelling effect on {actor.DisplayName}: {effects[i].EffectData.Description.Name}.");
                             em.CancelEffect(effects[i]);
                         }
@@ -288,13 +288,13 @@ namespace StrategicOperations.Framework
                 if (locationOverride != Vector3.zero)
                 {
                     point = locationOverride;
-                    ModInit.modLog?.Info?.Write($"[DismountBA] Using location override {locationOverride}.");
+                    Mod.Log.Info?.Log($"[DismountBA] Using location override {locationOverride}.");
                 }
                 
                 else if (calledFromDeswarm || calledFromHandleDeath)
                 {
                     point = carrier.FetchRandomAdjacentHex();
-;                    ModInit.modLog?.Info?.Write($"[DismountBA] Using adjacent hex {point} or fallback carrier loc {carrier.CurrentPosition}.");
+;                    Mod.Log.Info?.Log($"[DismountBA] Using adjacent hex {point} or fallback carrier loc {carrier.CurrentPosition}.");
                 }
                 point.y = actor.Combat.MapMetaData.GetLerpedHeightAt(point, false);
                 actor.TeleportActor(point);
@@ -306,10 +306,10 @@ namespace StrategicOperations.Framework
                 actor.CurrentRotation = carrier.CurrentRotation;
                 if (!calledFromHandleDeath && !calledFromDeswarm)
                 {
-                    ModInit.modLog?.Info?.Write($"[DismountBA] Not called from HandleDeath or Deswarm, resetting pathing.");
+                    Mod.Log.Info?.Log($"[DismountBA] Not called from HandleDeath or Deswarm, resetting pathing.");
                     if (actor.team.IsLocalPlayer)
                     {
-                        ModInit.modLog?.Info?.Write($"[DismountBA] Local player unit, resetting buttons.");
+                        Mod.Log.Info?.Log($"[DismountBA] Local player unit, resetting buttons.");
                         hud.MechWarriorTray.JumpButton.ResetButtonIfNotActive(actor);
                         hud.MechWarriorTray.SprintButton.ResetButtonIfNotActive(actor);
                         hud.MechWarriorTray.MoveButton.ResetButtonIfNotActive(actor);
@@ -317,25 +317,26 @@ namespace StrategicOperations.Framework
                         hud.SelectionHandler.AddSprintState(actor);
                         hud.SelectionHandler.AddMoveState(actor);
                     }
-                    ModInit.modLog?.Info?.Write(
+                    Mod.Log.Info?.Log(
                         $"[DismountBA] Local player unit, Not called from HandleDeath or Deswarm, resetting buttons and pathing.");
                     actor.ResetPathing(false);
                     actor.Pathing.UpdateCurrentPath(false);
                 }
-                
-                if (false) //(actor.HasBegunActivation)
-                {
-                    ModInit.modLog?.Info?.Write(
-                        $"[DismountBA] Called from handledeath? {calledFromHandleDeath} or Deswarm? {calledFromDeswarm}, forcing end of activation."); // was i trying to end carrier activation maybe?
 
-                    var sequence = actor.DoneWithActor();
-                    actor.Combat.MessageCenter.PublishMessage(new AddSequenceToStackMessage(sequence));
-                    //actor.OnActivationEnd(actor.GUID, -1);
-                }
+                // UNREACHABLE-CLEANUP
+                //if (false) //(actor.HasBegunActivation)
+                //{
+                //    Mod.Log.Info?.Log(
+                //        $"[DismountBA] Called from handledeath? {calledFromHandleDeath} or Deswarm? {calledFromDeswarm}, forcing end of activation."); // was i trying to end carrier activation maybe?
+
+                //    var sequence = actor.DoneWithActor();
+                //    actor.Combat.MessageCenter.PublishMessage(new AddSequenceToStackMessage(sequence));
+                //    //actor.OnActivationEnd(actor.GUID, -1);
+                //}
 
                 //actor.VisibilityCache.UpdateCacheReciprocal(actor.Combat.GetAllLivingCombatants());
 
-                ModInit.modLog?.Info?.Write(
+                Mod.Log.Info?.Log(
                     $"[DismountBA] Removing PositionLock with rider  {actor.DisplayName} {actor.GUID} and carrier {carrier.DisplayName} {carrier.GUID} and rebuilding visibility cache.");
             }
         }
@@ -354,7 +355,7 @@ namespace StrategicOperations.Framework
                     var effects = em.GetAllEffectsTargetingWithBaseID(squad, effectProper.Description.Id);
                     for (int i = effects.Count - 1; i >= 0; i--)
                     {
-                        ModInit.modLog?.Info?.Write(
+                        Mod.Log.Info?.Log(
                             $"[DismountGarrison] Cancelling effect on {squad.DisplayName}: {effects[i].EffectData.Description.Name}.");
                         em.CancelEffect(effects[i]);
                     }
@@ -390,7 +391,7 @@ namespace StrategicOperations.Framework
                 if (locationOverride != Vector3.zero)
                 {
                     point = locationOverride;
-                    ModInit.modLog?.Info?.Write($"[DismountGarrison] Using location override {locationOverride}.");
+                    Mod.Log.Info?.Log($"[DismountGarrison] Using location override {locationOverride}.");
                 }
             }
 
@@ -399,10 +400,10 @@ namespace StrategicOperations.Framework
 
             if (!calledFromHandleDeath)
             {
-                ModInit.modLog?.Info?.Write($"[DismountGarrison] Not called from HandleDeath or Deswarm, resetting pathing.");
+                Mod.Log.Info?.Log($"[DismountGarrison] Not called from HandleDeath or Deswarm, resetting pathing.");
                 if (squad.team.IsLocalPlayer)
                 {
-                    ModInit.modLog?.Info?.Write($"[DismountGarrison] Local player unit, resetting buttons.");
+                    Mod.Log.Info?.Log($"[DismountGarrison] Local player unit, resetting buttons.");
                     hud.MechWarriorTray.JumpButton.ResetButtonIfNotActive(squad);
                     hud.MechWarriorTray.SprintButton.ResetButtonIfNotActive(squad);
                     hud.MechWarriorTray.MoveButton.ResetButtonIfNotActive(squad);
@@ -416,7 +417,7 @@ namespace StrategicOperations.Framework
 
             //squad.VisibilityCache.UpdateCacheReciprocal(squad.Combat.GetAllLivingCombatants());
 
-            ModInit.modLog?.Info?.Write(
+            Mod.Log.Info?.Log(
                 $"[DismountGarrison] Removing PositionLock with rider  {squad.DisplayName} {squad.GUID} and carrier {building.DisplayName} {building.GUID} and rebuilding visibility cache.");
             
         }
@@ -448,16 +449,16 @@ namespace StrategicOperations.Framework
                 point.y = actor.Combat.MapMetaData.GetLerpedHeightAt(point, false);
                 if (Mathf.Approximately(point.x, actor.CurrentPosition.x) && Mathf.Approximately(point.z, actor.CurrentPosition.z))
                 {
-                    ModInit.modLog?.Warn?.Write($"[FetchRandomAdjacentHex] Picked same position {point} as current position {actor.CurrentPosition}");
+                    Mod.Log.Warning?.Log($"[FetchRandomAdjacentHex] Picked same position {point} as current position {actor.CurrentPosition}");
                 }
             }
             else
             {
-                ModInit.modLog?.Warn?.Write("[FetchRandomAdjacentHex] No valid nearby position found, will plonk on same hex causing a stacked unit.");
-                ModInit.modLog?.Warn?.Write($"  Current position is {point}. Adjacent points were: ");
+                Mod.Log.Warning?.Log("[FetchRandomAdjacentHex] No valid nearby position found, will plonk on same hex causing a stacked unit.");
+                Mod.Log.Warning?.Log($"  Current position is {point}. Adjacent points were: ");
                 foreach (Vector3 vector3 in points)
                 {
-                    ModInit.modLog?.Warn?.Write($"    {vector3}");
+                    Mod.Log.Warning?.Log($"    {vector3}");
                 }
             }
             return point;
@@ -483,28 +484,28 @@ namespace StrategicOperations.Framework
 
             if (UseMovement)
             {
-                if (!string.IsNullOrEmpty(ModInit.modSettings.DeswarmMovementConfig.AbilityDefID))
+                if (!string.IsNullOrEmpty(Mod.Settings.DeswarmMovementConfig.AbilityDefID))
                 {
                     var move = actor.GetPilot().Abilities
-                        .FirstOrDefault(x => x.Def.Id == ModInit.modSettings.DeswarmMovementConfig.AbilityDefID) ?? actor.ComponentAbilities
-                        .FirstOrDefault(x => x.Def.Id == ModInit.modSettings.DeswarmMovementConfig.AbilityDefID);
+                        .FirstOrDefault(x => x.Def.Id == Mod.Settings.DeswarmMovementConfig.AbilityDefID) ?? actor.ComponentAbilities
+                        .FirstOrDefault(x => x.Def.Id == Mod.Settings.DeswarmMovementConfig.AbilityDefID);
                     if (move != null) return move;
                 }
             }
 
-            if (!string.IsNullOrEmpty(ModInit.modSettings.BattleArmorDeSwarmSwat))
+            if (!string.IsNullOrEmpty(Mod.Settings.BattleArmorDeSwarmSwat))
             {
                 var swat = actor.GetPilot().Abilities
-                    .FirstOrDefault(x => x.Def.Id == ModInit.modSettings.BattleArmorDeSwarmSwat) ?? actor.ComponentAbilities
-                    .FirstOrDefault(x => x.Def.Id == ModInit.modSettings.BattleArmorDeSwarmSwat);
+                    .FirstOrDefault(x => x.Def.Id == Mod.Settings.BattleArmorDeSwarmSwat) ?? actor.ComponentAbilities
+                    .FirstOrDefault(x => x.Def.Id == Mod.Settings.BattleArmorDeSwarmSwat);
                 if (swat != null) list.Add(swat);
             }
 
-            if (!string.IsNullOrEmpty(ModInit.modSettings.BattleArmorDeSwarmRoll))
+            if (!string.IsNullOrEmpty(Mod.Settings.BattleArmorDeSwarmRoll))
             {
                 var roll = actor.GetPilot().Abilities
-                    .FirstOrDefault(x => x.Def.Id == ModInit.modSettings.BattleArmorDeSwarmRoll) ?? actor.ComponentAbilities
-                    .FirstOrDefault(x => x.Def.Id == ModInit.modSettings.BattleArmorDeSwarmRoll);
+                    .FirstOrDefault(x => x.Def.Id == Mod.Settings.BattleArmorDeSwarmRoll) ?? actor.ComponentAbilities
+                    .FirstOrDefault(x => x.Def.Id == Mod.Settings.BattleArmorDeSwarmRoll);
                 if (roll != null) list.Add(roll);
             }
 
@@ -525,7 +526,7 @@ namespace StrategicOperations.Framework
             var evacLoc = squad.team.OffScreenPosition;
             foreach (var pos in posToCheck)
             {
-                ModInit.modLog?.Trace?.Write($"[GetEvacBuildingLocation] Checking position {pos}, is {Vector3.Distance(pos, building.CurrentPosition)} from building source {building.CurrentPosition}.");
+                Mod.Log.Trace?.Log($"[GetEvacBuildingLocation] Checking position {pos}, is {Vector3.Distance(pos, building.CurrentPosition)} from building source {building.CurrentPosition}.");
                 var encounterLayerDataCell =
                     squad.Combat.EncounterLayerData.GetCellAt(pos);
                 if (encounterLayerDataCell == null) continue;
@@ -537,14 +538,14 @@ namespace StrategicOperations.Framework
                     if (bldg.obstructionGameLogic.IsRealBuilding)
                     {
                         foundBuilding = true;
-                        ModInit.modLog?.Trace?.Write($"[GetEvacBuildingLocation] Found building {bldg.obstructionGameLogic.buildingDefId}.");
+                        Mod.Log.Trace?.Log($"[GetEvacBuildingLocation] Found building {bldg.obstructionGameLogic.buildingDefId}.");
                         break;
                     }
                 }
 
                 if (foundBuilding)
                 {
-                    ModInit.modLog?.Trace?.Write($"[GetEvacBuildingLocation] Found building, continuing.");
+                    Mod.Log.Trace?.Log($"[GetEvacBuildingLocation] Found building, continuing.");
                     continue;
                 }
                 
@@ -557,7 +558,7 @@ namespace StrategicOperations.Framework
 
             if (evacLoc == squad.team.OffScreenPosition)
             {
-                ModInit.modLog?.Trace?.Write($"[GetEvacBuildingLocation] No location found, lerping to roof.");
+                Mod.Log.Trace?.Log($"[GetEvacBuildingLocation] No location found, lerping to roof.");
                 evacLoc = building.CurrentPosition;
                 evacLoc.y = squad.Combat.MapMetaData.GetLerpedHeightAt(evacLoc);
             }
@@ -812,7 +813,7 @@ namespace StrategicOperations.Framework
         }
         public static bool HasBattleArmorMounts(this MechDef mechDef, Contract contract)
         {
-            if(contract != null) if (ModInit.modSettings.forbidCarrierContractTypes.Contains(contract.ContractTypeValue.Name)) { return false; }
+            if(contract != null) if (Mod.Settings.forbidCarrierContractTypes.Contains(contract.ContractTypeValue.Name)) { return false; }
             foreach (var item in mechDef.Inventory)
             {
                 foreach (var effectData in item.Def.statusEffects)
@@ -828,7 +829,7 @@ namespace StrategicOperations.Framework
         }
         public static int CargoCapacity(this MechDef mechDef, Contract contract)
         {
-            if (contract != null) if (ModInit.modSettings.forbidCarrierContractTypes.Contains(contract.ContractTypeValue.Name)) { return 0; }
+            if (contract != null) if (Mod.Settings.forbidCarrierContractTypes.Contains(contract.ContractTypeValue.Name)) { return 0; }
             var capacity = 0;
             foreach (var item in mechDef.Inventory)
             {
@@ -845,7 +846,7 @@ namespace StrategicOperations.Framework
         }
         public static bool CanMountBAExternally(this MechDef mechDef, Contract contract)
         {
-            if (contract != null) if (ModInit.modSettings.forbidCarrierContractTypes.Contains(contract.ContractTypeValue.Name)) { return false; }
+            if (contract != null) if (Mod.Settings.forbidCarrierContractTypes.Contains(contract.ContractTypeValue.Name)) { return false; }
             UnitCustomInfo info = mechDef.GetCustomInfo();
             if (info == null) { return true; }
             if (info.SquadInfo.Troopers > 1) { return false; }
@@ -853,15 +854,17 @@ namespace StrategicOperations.Framework
         }
         public static bool isBattleArmorInternalMountsOnly(this MechDef mechDef, Contract contract)
         {
-            if (contract != null) if (ModInit.modSettings.forbidCarrierContractTypes.Contains(contract.ContractTypeValue.Name)) { return true; }
-            var internalOnly = false;
+            if (contract != null) if (Mod.Settings.forbidCarrierContractTypes.Contains(contract.ContractTypeValue.Name)) { return true; }
+            bool internalOnly = false;
             foreach (var item in mechDef.Inventory)
             {
                 foreach (var effectData in item.Def.statusEffects)
                 {
-                    if (effectData?.statisticData?.statName == "BattleArmorInternalMountsOnly")
+                    // Deliberately not ignoring case
+                    if (String.Equals(effectData?.statisticData?.statName, "BattleArmorInternalMountsOnly", StringComparison.InvariantCulture))
                     {
-                        if (bool.TryParse(effectData.statisticData?.modValue, out internalOnly)) ;
+                        string statValueS = effectData.statisticData.modValue;
+                        bool.TryParse(statValueS, out internalOnly);
                     }
                 }
             }
@@ -875,9 +878,10 @@ namespace StrategicOperations.Framework
             {
                 foreach (var effectData in item.Def.statusEffects) 
                 {
-                    if (effectData?.statisticData?.statName == "IsBattleArmorHandsy")
+                    if (String.Equals(effectData?.statisticData?.statName, "IsBattleArmorHandsy", StringComparison.InvariantCulture))
                     {
-                        if (bool.TryParse(effectData.statisticData?.modValue, out canMount)) ;
+                        string statValueS = effectData.statisticData.modValue;
+                        bool.TryParse(statValueS, out canMount);
                     }
                 }
             }
@@ -892,7 +896,7 @@ namespace StrategicOperations.Framework
                     if (effectData == null) { continue; }
                     if (effectData.effectType != EffectType.ActiveAbility) { continue; }
                     if (effectData.activeAbilityEffectData == null) { continue; }
-                    if (effectData.activeAbilityEffectData.abilityName == ModInit.modSettings.BattleArmorMountAndSwarmID) { return true; }
+                    if (effectData.activeAbilityEffectData.abilityName == Mod.Settings.BattleArmorMountAndSwarmID) { return true; }
                 }
             }
             return false;
@@ -925,7 +929,7 @@ namespace StrategicOperations.Framework
                 error = "";
                 return true;
             }
-            error = ModInit.modSettings.SimBattleArmorMountError;
+            error = Mod.Settings.SimBattleArmorMountError;
             return false;
         }
 
@@ -972,14 +976,14 @@ namespace StrategicOperations.Framework
             if (ability.parentComponent != null)
             {
                 flag = ability.parentComponent.IsFunctional;
-                ModInit.modLog?.Trace?.Write($"[IsAvailableBAAbility] - {ability.parentComponent.parent.DisplayName} has parentComponent for ability {ability.Def.Description.Name}. Component functional? {flag}.");
+                Mod.Log.Trace?.Log($"[IsAvailableBAAbility] - {ability.parentComponent.parent.DisplayName} has parentComponent for ability {ability.Def.Description.Name}. Component functional? {flag}.");
                 if (!flag)
                 {
                     if (ability.parentComponent.parent.ComponentAbilities.Any(x =>
                         x.parentComponent.IsFunctional && x.Def.Id == ability.Def.Id))
                     {
                         flag = true;
-                        ModInit.modLog?.Trace?.Write($"[IsAvailableBAAbility] - {ability.parentComponent.parent.DisplayName} has other component with same ability {ability.Def.Description.Name}. Component functional? {flag}.");
+                        Mod.Log.Trace?.Log($"[IsAvailableBAAbility] - {ability.parentComponent.parent.DisplayName} has other component with same ability {ability.Def.Description.Name}. Component functional? {flag}.");
                     }
                 }
             }
@@ -1069,7 +1073,7 @@ namespace StrategicOperations.Framework
                     var hud = CameraControl.Instance.HUD;
                     if (currentInternalSquads < internalCap)
                     {
-                        ModInit.modLog?.Info?.Write($"[MountBattleArmorToChassis] - target unit {carrier.DisplayName} has internal BA capacity of {internalCap}. Currently used: {currentInternalSquads}, mounting squad internally.");
+                        Mod.Log.Info?.Log($"[MountBattleArmorToChassis] - target unit {carrier.DisplayName} has internal BA capacity of {internalCap}. Currently used: {currentInternalSquads}, mounting squad internally.");
                         carrier.ModifyInternalBASquads(1);
                         tracker.IsSquadInternal = true;
                         // try and set firing arc to 360?
@@ -1152,7 +1156,7 @@ namespace StrategicOperations.Framework
                                     if (mech.GetLocationDamageLevel(chassisLocSwarm) > LocationDamageLevel.Penalized) continue;
                                     if (!tracker.BA_MountedLocations.ContainsKey((int)battleArmorChassisLoc))
                                     {
-                                        ModInit.modLog?.Info?.Write($"[MountBattleArmorToChassis] - mounting BA {battleArmorChassisLoc} to enemy mech location {tgtMechLoc}.");
+                                        Mod.Log.Info?.Log($"[MountBattleArmorToChassis] - mounting BA {battleArmorChassisLoc} to enemy mech location {tgtMechLoc}.");
                                         tracker.BA_MountedLocations.Add((int)battleArmorChassisLoc, (int)tgtMechLoc);
                                         break;
                                     }
@@ -1175,7 +1179,7 @@ namespace StrategicOperations.Framework
                                     if (mech.GetLocationDamageLevel(chassisLocSwarm) > LocationDamageLevel.Penalized) continue;
                                     if (!tracker.BA_MountedLocations.ContainsKey((int)battleArmorChassisLoc))
                                     {
-                                        ModInit.modLog?.Info?.Write($"[MountBattleArmorToChassis] - mounting BA {battleArmorChassisLoc} to friendly mech location {tgtMechLoc}.");
+                                        Mod.Log.Info?.Log($"[MountBattleArmorToChassis] - mounting BA {battleArmorChassisLoc} to friendly mech location {tgtMechLoc}.");
                                         tracker.BA_MountedLocations.Add((int)battleArmorChassisLoc, (int)tgtMechLoc);
                                         break;
                                     }
@@ -1198,7 +1202,7 @@ namespace StrategicOperations.Framework
                                 if (vehicle.GetLocationDamageLevel(tgtVicLoc) > LocationDamageLevel.Penalized) continue;
                                 if (!tracker.BA_MountedLocations.ContainsKey((int)battleArmorChassisLoc))
                                 {
-                                    ModInit.modLog?.Info?.Write($"[MountBattleArmorToChassis] - mounting BA {battleArmorChassisLoc} to vehicle location {tgtVicLoc}.");
+                                    Mod.Log.Info?.Log($"[MountBattleArmorToChassis] - mounting BA {battleArmorChassisLoc} to vehicle location {tgtVicLoc}.");
                                     tracker.BA_MountedLocations.Add((int)battleArmorChassisLoc, (int)tgtVicLoc);
                                     break;
                                 }
@@ -1208,7 +1212,7 @@ namespace StrategicOperations.Framework
                         }
                         else if (carrier is Turret turret)
                         {
-                            ModInit.modLog?.Info?.Write($"[MountBattleArmorToChassis] - mounting BA {battleArmorChassisLoc} to turret location {BuildingLocation.Structure}.");
+                            Mod.Log.Info?.Log($"[MountBattleArmorToChassis] - mounting BA {battleArmorChassisLoc} to turret location {BuildingLocation.Structure}.");
                             tracker.BA_MountedLocations.Add((int)battleArmorChassisLoc, (int)BuildingLocation.Structure);
                         }
                         else
@@ -1217,7 +1221,7 @@ namespace StrategicOperations.Framework
                         }
                     }
                 }
-                if (ModInit.modSettings.ReworkedCarrierEvasion) battleArmor.MountedEvasion(carrier);
+                if (Mod.Settings.ReworkedCarrierEvasion) battleArmor.MountedEvasion(carrier);
             }
         }
 
@@ -1243,13 +1247,13 @@ namespace StrategicOperations.Framework
                     {
                         if (dm.Exists(BattleTechResourceType.MechDef, BaTypeInternal.Key) || BaTypeInternal.Key == "BA_EMPTY")
                         {
-                            ModInit.modLog?.Trace?.Write(
+                            Mod.Log.Trace?.Log(
                                 $"[ProcessBattleArmorSpawnWeights - InternalBattleArmorWeight] Processing spawn weights for {BaTypeInternal.Key} and weight {BaTypeInternal.Value}");
                             for (int i = 0; i < BaTypeInternal.Value; i++)
                             {
                                 ModState.CachedFactionAssociations[faction]["InternalBattleArmorWeight"]
                                     .Add(BaTypeInternal.Key);
-                                ModInit.modLog?.Trace?.Write(
+                                Mod.Log.Trace?.Log(
                                     $"[ProcessBattleArmorSpawnWeights - InternalBattleArmorWeight] spawn list has {ModState.CachedFactionAssociations[faction]["InternalBattleArmorWeight"].Count} entries");
                             }
                         }
@@ -1258,13 +1262,13 @@ namespace StrategicOperations.Framework
                     {
                         if (dm.Exists(BattleTechResourceType.MechDef, BaTypeMount.Key) || BaTypeMount.Key == "BA_EMPTY")
                         {
-                            ModInit.modLog?.Trace?.Write(
+                            Mod.Log.Trace?.Log(
                                 $"[ProcessBattleArmorSpawnWeights - MountedBattleArmorWeight] Processing spawn weights for {BaTypeMount.Key} and weight {BaTypeMount.Value}");
                             for (int i = 0; i < BaTypeMount.Value; i++)
                             {
                                 ModState.CachedFactionAssociations[faction]["MountedBattleArmorWeight"]
                                     .Add(BaTypeMount.Key);
-                                ModInit.modLog?.Trace?.Write(
+                                Mod.Log.Trace?.Log(
                                     $"[ProcessBattleArmorSpawnWeights - MountedBattleArmorWeight] spawn list has {ModState.CachedFactionAssociations[faction]["MountedBattleArmorWeight"].Count} entries");
                             }
                         }
@@ -1274,13 +1278,13 @@ namespace StrategicOperations.Framework
                     {
                         if (dm.Exists(BattleTechResourceType.MechDef, BaTypeHandsy.Key) || BaTypeHandsy.Key == "BA_EMPTY")
                         {
-                            ModInit.modLog?.Trace?.Write(
+                            Mod.Log.Trace?.Log(
                                 $"[ProcessBattleArmorSpawnWeights - HandsyBattleArmorWeight] Processing spawn weights for {BaTypeHandsy.Key} and weight {BaTypeHandsy.Value}");
                             for (int i = 0; i < BaTypeHandsy.Value; i++)
                             {
                                 ModState.CachedFactionAssociations[faction]["HandsyBattleArmorWeight"]
                                     .Add(BaTypeHandsy.Key);
-                                ModInit.modLog?.Trace?.Write(
+                                Mod.Log.Trace?.Log(
                                     $"[ProcessBattleArmorSpawnWeights - HandsyBattleArmorWeight] spawn list has {ModState.CachedFactionAssociations[faction]["HandsyBattleArmorWeight"].Count} entries");
                             }
                         }
@@ -1292,30 +1296,30 @@ namespace StrategicOperations.Framework
                 }
                 
             }
-            ModInit.modLog?.Error?.Write($"[ProcessBattleArmorSpawnWeights] no applicable config for this unit, returning empty list.");
+            Mod.Log.Error?.Log($"[ProcessBattleArmorSpawnWeights] no applicable config for this unit, returning empty list.");
             return "";
         }
 
         public static void ProcessDeswarmMovement(this AbstractActor creator, List<KeyValuePair<string, string>> swarmingUnits)
         {
             var DeswarmMovementInfo = new Classes.BA_DeswarmMovementInfo(creator);
-            ModInit.modLog?.Trace?.Write($"[ProcessDeswarmMovement] - {DeswarmMovementInfo.Carrier.DisplayName} set to {creator.DisplayName}.");
+            Mod.Log.Trace?.Log($"[ProcessDeswarmMovement] - {DeswarmMovementInfo.Carrier.DisplayName} set to {creator.DisplayName}.");
             foreach (var swarmingUnit in swarmingUnits)
             {
                 var swarmingUnitActor = creator.Combat.FindActorByGUID(swarmingUnit.Key);
                 DeswarmMovementInfo.SwarmingUnits.Add(swarmingUnitActor);
-                ModInit.modLog?.Trace?.Write($"[ProcessDeswarmMovement] - Added {swarmingUnitActor.DisplayName} to list of swarming.");
+                Mod.Log.Trace?.Log($"[ProcessDeswarmMovement] - Added {swarmingUnitActor.DisplayName} to list of swarming.");
             }
             ModState.DeSwarmMovementInfo = DeswarmMovementInfo;
-            ModInit.modLog?.Trace?.Write($"[ProcessDeswarmMovement] - Set modstate.");
+            Mod.Log.Trace?.Log($"[ProcessDeswarmMovement] - Set modstate.");
         }
 
         public static void ProcessDeswarmRoll(this AbstractActor creator, List<KeyValuePair<string, string>> swarmingUnits)
         {
             var finalChance = 0f;
 
-            var settings = ModInit.modSettings.DeswarmConfigs.ContainsKey(ModInit.modSettings.BattleArmorDeSwarmRoll)
-                ? ModInit.modSettings.DeswarmConfigs[ModInit.modSettings.BattleArmorDeSwarmRoll]
+            var settings = Mod.Settings.DeswarmConfigs.ContainsKey(Mod.Settings.BattleArmorDeSwarmRoll)
+                ? Mod.Settings.DeswarmConfigs[Mod.Settings.BattleArmorDeSwarmRoll]
                 : new Classes.ConfigOptions.BA_DeswarmAbilityConfig();
             //var rollInitPenalty = creator.StatCollection.GetValue<int>("BattleArmorDeSwarmerRollInitPenalty");
             var rollInitPenalty = settings.InitPenalty;
@@ -1325,14 +1329,14 @@ namespace StrategicOperations.Framework
                 var baseChance = settings.BaseSuccessChance;
                 var pilotSkill = creator.GetPilot().Piloting;
                 finalChance = Mathf.Min(baseChance + (0.05f * pilotSkill), settings.MaxSuccessChance);
-                ModInit.modLog?.Info?.Write($"[Ability.Activate - BattleArmorDeSwarm] Deswarm chance: {finalChance} from baseChance {baseChance} + pilotSkill x 0.05 {0.05f * pilotSkill}, max 0.95.");
+                Mod.Log.Info?.Log($"[Ability.Activate - BattleArmorDeSwarm] Deswarm chance: {finalChance} from baseChance {baseChance} + pilotSkill x 0.05 {0.05f * pilotSkill}, max 0.95.");
             }
             else
             {
                 finalChance = ModState.DeSwarmSuccessChance;
-                ModInit.modLog?.Info?.Write($"[Ability.Activate - BattleArmorDeSwarm] restored deswarm roll chance from state: {ModState.DeSwarmSuccessChance}");
+                Mod.Log.Info?.Log($"[Ability.Activate - BattleArmorDeSwarm] restored deswarm roll chance from state: {ModState.DeSwarmSuccessChance}");
             }
-            var roll = ModInit.Random.NextDouble();
+            var roll = Mod.Random.NextDouble();
             foreach (var swarmingUnit in swarmingUnits)
             {
                 var swarmingUnitActor = creator.Combat.FindActorByGUID(swarmingUnit.Key);
@@ -1340,7 +1344,7 @@ namespace StrategicOperations.Framework
                 {
                     if (roll <= finalChance)
                     {
-                        ModInit.modLog?.Info?.Write(
+                        Mod.Log.Info?.Log(
                             $"[Ability.Activate - BattleArmorDeSwarm] Deswarm SUCCESS: {roll} <= {finalChance}.");
                         var txt = new Text("Remove Swarming Battle Armor: SUCCESS");
                         creator.Combat.MessageCenter.PublishMessage(new AddSequenceToStackMessage(
@@ -1351,11 +1355,11 @@ namespace StrategicOperations.Framework
                             swarmingUnitActor.ForceUnitOnePhaseDown(creator.GUID, -1, false);
                         }
 
-                        var destroyBARoll = ModInit.Random.NextDouble();
+                        var destroyBARoll = Mod.Random.NextDouble();
                         if (destroyBARoll <= .3f)
                         {
                             swarmingUnitActor.DismountBA(creator, Vector3.zero, false, true);
-                            ModInit.modLog?.Info?.Write(
+                            Mod.Log.Info?.Log(
                                 $"[Ability.Activate - DestroyBA on Roll] SUCCESS: {destroyBARoll} <= {finalChance}.");
                             var trooperLocs = swarmingUnitActor.GetPossibleHitLocations(creator);
                             var damages = BattleArmorUtils.CalculateClusterDamages(settings.TotalDamage,
@@ -1378,7 +1382,7 @@ namespace StrategicOperations.Framework
                         }
                         else
                         {
-                            ModInit.modLog?.Info?.Write(
+                            Mod.Log.Info?.Log(
                                 $"[Ability.Activate - DestroyBA on Roll] FAILURE: {destroyBARoll} > {finalChance}.");
                             swarmingUnitActor.DismountBA(creator, Vector3.zero, false, true);
                         }
@@ -1390,7 +1394,7 @@ namespace StrategicOperations.Framework
                     creator.Combat.MessageCenter.PublishMessage(new AddSequenceToStackMessage(
                         new ShowActorInfoSequence(creator, txt, FloatieMessage.MessageNature.Buff,
                             false)));
-                    ModInit.modLog?.Info?.Write(
+                    Mod.Log.Info?.Log(
                             $"[Ability.Activate - BattleArmorDeSwarm] Deswarm FAILURE: {roll} > {finalChance}.");
                 }
             }
@@ -1401,8 +1405,8 @@ namespace StrategicOperations.Framework
         {
             var finalChance = 0f;
             //var swatInitPenalty = creator.StatCollection.GetValue<int>("BattleArmorDeSwarmerSwatInitPenalty");
-            var settings = ModInit.modSettings.DeswarmConfigs.ContainsKey(ModInit.modSettings.BattleArmorDeSwarmRoll)
-                ? ModInit.modSettings.DeswarmConfigs[ModInit.modSettings.BattleArmorDeSwarmRoll]
+            var settings = Mod.Settings.DeswarmConfigs.ContainsKey(Mod.Settings.BattleArmorDeSwarmRoll)
+                ? Mod.Settings.DeswarmConfigs[Mod.Settings.BattleArmorDeSwarmRoll]
                 : new Classes.ConfigOptions.BA_DeswarmAbilityConfig();
             var swatInitPenalty = settings.InitPenalty;
             if (!creator.team.IsLocalPlayer)
@@ -1414,7 +1418,7 @@ namespace StrategicOperations.Framework
                 foreach (var armComponent in creator.allComponents.Where(x =>
                              x.IsFunctional && (x.Location == 2 || x.Location == 32)))
                 {
-                    foreach (var CategoryID in ModInit.modSettings.ArmActuatorCategoryIDs)
+                    foreach (var CategoryID in Mod.Settings.ArmActuatorCategoryIDs)
                     {
                         if (armComponent.mechComponentRef.IsCategory(CategoryID))
                         {
@@ -1425,15 +1429,15 @@ namespace StrategicOperations.Framework
                 }
 
                 finalChance = Mathf.Min(baseChance + (0.05f * pilotSkill) - (0.05f * missingActuatorCount), settings.MaxSuccessChance);
-                ModInit.modLog?.Info?.Write(
+                Mod.Log.Info?.Log(
                     $"[Ability.Activate - BattleArmorDeSwarm] Deswarm chance: {finalChance} from baseChance {baseChance} + pilotSkill x 0.05 {0.05f * pilotSkill} - missingActuators x 0.05 {0.05f * missingActuatorCount}.");
             }
             else
             {
                 finalChance = ModState.DeSwarmSuccessChance;
-                ModInit.modLog?.Info?.Write($"[Ability.Activate - BattleArmorDeSwarm] restored deswarm swat chance from state: {ModState.DeSwarmSuccessChance}");
+                Mod.Log.Info?.Log($"[Ability.Activate - BattleArmorDeSwarm] restored deswarm swat chance from state: {ModState.DeSwarmSuccessChance}");
             }
-            var roll = ModInit.Random.NextDouble();
+            var roll = Mod.Random.NextDouble();
             foreach (var swarmingUnit in swarmingUnits)
             {
                 var swarmingUnitActor = creator.Combat.FindActorByGUID(swarmingUnit.Key);
@@ -1443,13 +1447,13 @@ namespace StrategicOperations.Framework
                     creator.Combat.MessageCenter.PublishMessage(new AddSequenceToStackMessage(
                         new ShowActorInfoSequence(creator, txt, FloatieMessage.MessageNature.Buff,
                             false)));
-                    ModInit.modLog?.Info?.Write($"[Ability.Activate - BattleArmorDeSwarm] Deswarm SUCCESS: {roll} <= {finalChance}.");
+                    Mod.Log.Info?.Log($"[Ability.Activate - BattleArmorDeSwarm] Deswarm SUCCESS: {roll} <= {finalChance}.");
                     for (int i = 0; i < swatInitPenalty; i++)
                     {
                         swarmingUnitActor.ForceUnitOnePhaseDown(creator.GUID, -1, false);
                     }
                     swarmingUnitActor.DismountBA(creator, Vector3.zero, false, true);
-                    var dmgRoll = ModInit.Random.NextDouble();
+                    var dmgRoll = Mod.Random.NextDouble();
                     if (dmgRoll <= finalChance)
                     {
                         if (swarmingUnitActor is TrooperSquad swarmingUnitAsSquad)
@@ -1461,7 +1465,7 @@ namespace StrategicOperations.Framework
                             //var baLoc = swarmingUnitAsSquad.GetPossibleHitLocations(creator).GetRandomElement();
                             for (int i = 0; i < damages.Length; i++)
                             {
-                                ModInit.modLog?.Info?.Write(
+                                Mod.Log.Info?.Log(
                                     $"[Ability.Activate - BattleArmorDeSwarm] BA Armor Damage Location {locs[i]}: {swarmingUnitAsSquad.GetStringForArmorLocation((ArmorLocation) locs[i])}");
                                 //var swatDmg = creator.StatCollection.GetValue<float>("BattleArmorDeSwarmerSwatDamage");
 
@@ -1482,7 +1486,7 @@ namespace StrategicOperations.Framework
                     creator.Combat.MessageCenter.PublishMessage(new AddSequenceToStackMessage(
                         new ShowActorInfoSequence(creator, txt, FloatieMessage.MessageNature.Buff,
                             false)));
-                    ModInit.modLog?.Info?.Write(
+                    Mod.Log.Info?.Log(
                         $"[Ability.Activate - BattleArmorDeSwarm] Deswarm FAILURE: {roll} > {finalChance}. Doing nothing and ending turn!");
                 }
             }
@@ -1536,10 +1540,10 @@ namespace StrategicOperations.Framework
             creator.GameRep.ToggleHeadlights(false);
 
             var additionalBldgStructure = (creator.SummaryArmorCurrent + creator.SummaryStructureCurrent) *
-                                          ModInit.modSettings.GarrisonBuildingArmorFactor;
+                                          Mod.Settings.GarrisonBuildingArmorFactor;
             targetBuilding.StatCollection.Set("Structure", targetBuilding.CurrentStructure + additionalBldgStructure);
 
-            ModInit.modLog?.Info?.Write(
+            Mod.Log.Info?.Log(
                 $"[ProcessGarrisonBuilding] Added garrision info with unit {creator.DisplayName} {creator.GUID} and building {targetBuilding.DisplayName} {targetBuilding.GUID} at position {targetBuilding.CurrentPosition}. Target building gained {additionalBldgStructure} structure due to garrison");
 
             if (creator.team.IsLocalPlayer)
@@ -1554,9 +1558,9 @@ namespace StrategicOperations.Framework
             if (creator is TrooperSquad squad)
             {
                 squad.AttachToCarrier(targetActor, true);
-                ModInit.modLog?.Trace?.Write($"[Ability.Activate - BattleArmorMountID] Called AttachToCarrier.");
+                Mod.Log.Trace?.Log($"[Ability.Activate - BattleArmorMountID] Called AttachToCarrier.");
             }
-            ModInit.modLog?.Info?.Write(
+            Mod.Log.Info?.Log(
                 $"[Ability.Activate - BattleArmorMountID] Added PositionLockMount with rider  {creator.DisplayName} {creator.GUID} and carrier {targetActor.DisplayName} {targetActor.GUID}.");
 
             if (creator.team.IsLocalPlayer && false)
@@ -1586,8 +1590,8 @@ namespace StrategicOperations.Framework
 
             var meleeChance = creatorMech.team.IsLocalPlayer ? ModState.SwarmSuccessChance : creatorMech.Combat.ToHit.GetToHitChance(creatorMech, creatorMech.MeleeWeapon, targetActor, creatorMech.CurrentPosition, targetActor.CurrentPosition, 1, MeleeAttackType.Charge, false);
 
-            var roll = ModInit.Random.NextDouble();
-            ModInit.modLog?.Info?.Write($"[Ability.Activate - BattleArmorSwarmID] Rolling simplified melee: roll {roll} vs hitChance {meleeChance}; chance in Modstate was {ModState.SwarmSuccessChance}.");
+            var roll = Mod.Random.NextDouble();
+            Mod.Log.Info?.Log($"[Ability.Activate - BattleArmorSwarmID] Rolling simplified melee: roll {roll} vs hitChance {meleeChance}; chance in Modstate was {ModState.SwarmSuccessChance}.");
             if (roll <= meleeChance)
             {
                 foreach (var BA_Effect in ModState.BA_MountSwarmEffects)
@@ -1615,7 +1619,7 @@ namespace StrategicOperations.Framework
                     new ShowActorInfoSequence(creatorMech, txt, FloatieMessage.MessageNature.Buff,
                         false)));
 
-                ModInit.modLog?.Info?.Write(
+                Mod.Log.Info?.Log(
                     $"[Ability.Activate - BattleArmorSwarmID] Cleaning up dummy attacksequence.");
 
                 //creator.GameRep.IsTargetable = false;
@@ -1631,14 +1635,14 @@ namespace StrategicOperations.Framework
                 if (creatorMech is TrooperSquad squad)
                 {
                     squad.AttachToCarrier(targetActor, false);
-                    ModInit.modLog?.Trace?.Write($"[Ability.Activate - BattleArmorMountID] Called AttachToCarrier.");
+                    Mod.Log.Trace?.Log($"[Ability.Activate - BattleArmorMountID] Called AttachToCarrier.");
                 }
-                ModInit.modLog?.Info?.Write(
+                Mod.Log.Info?.Log(
                     $"[Ability.Activate - BattleArmorSwarmID] Added PositionLockSwarm with rider  {creatorMech.DisplayName} {creatorMech.GUID} and carrier {targetActor.DisplayName} {targetActor.GUID}.");
                 creatorMech.ResetPathing(false);
                 creatorMech.Pathing.UpdateCurrentPath(false);
 
-                if (ModInit.modSettings.AttackOnSwarmSuccess && creatorMech.team.IsLocalPlayer && false)
+                if (Mod.Settings.AttackOnSwarmSuccess && creatorMech.team.IsLocalPlayer && false)
                 {
                     var weps = creatorMech.Weapons.Where(x => x.IsEnabled && x.HasAmmo).ToList();
                     var loc = ModState.BADamageTrackers[creatorMech.GUID].BA_MountedLocations.Values
@@ -1650,7 +1654,7 @@ namespace StrategicOperations.Framework
                             creatorMech.CurrentRotation, weps, MeleeAttackType.NotSet, loc, -1);
                         creatorMech.Combat.MessageCenter.PublishMessage(
                             new AddSequenceToStackMessage(attackStackSequence));
-                        ModInit.modLog?.Info?.Write(
+                        Mod.Log.Info?.Log(
                             $"[Ability.Activate - BattleArmorSwarmID] Creating attack sequence on successful swarm attack targeting location {loc}.");
                     }
                 }
@@ -1667,12 +1671,12 @@ namespace StrategicOperations.Framework
                 creatorMech.Combat.MessageCenter.PublishMessage(new AddSequenceToStackMessage(
                     new ShowActorInfoSequence(creatorMech, txt, FloatieMessage.MessageNature.Buff,
                         false)));
-                ModInit.modLog?.Info?.Write(
+                Mod.Log.Info?.Log(
                     $"[Ability.Activate - BattleArmorSwarmID] Cleaning up dummy attacksequence.");
-                ModInit.modLog?.Info?.Write(
+                Mod.Log.Info?.Log(
                     $"[Ability.Activate - BattleArmorSwarmID] No hits in HitInfo, plonking unit at adjacent hex.");
                 Vector3 fetchRandomAdjacentHex = targetActor.FetchRandomAdjacentHex();
-                ModInit.modLog?.Debug?.Write($"[Ability.Activate - BattleArmorSwarmID]   Swarming Position: {targetActor.CurrentPosition}  Selected Random Adjacent Hex: {fetchRandomAdjacentHex}");
+                Mod.Log.Debug?.Log($"[Ability.Activate - BattleArmorSwarmID]   Swarming Position: {targetActor.CurrentPosition}  Selected Random Adjacent Hex: {fetchRandomAdjacentHex}");
                 creatorMech.TeleportActor(fetchRandomAdjacentHex);
                 creatorMech.ResetPathing(false);
                 creatorMech.Pathing.UpdateCurrentPath(false);
@@ -1714,7 +1718,7 @@ namespace StrategicOperations.Framework
                     {
                         var overlayChildImage = overlayChild.GetComponentInChildren<Image>();
                         ModState.DefaultOverlay = new Color(overlayChildImage.color.r, overlayChildImage.color.g, overlayChildImage.color.b, overlayChildImage.color.a);
-                        ModInit.modLog?.Trace?.Write(
+                        Mod.Log.Trace?.Log(
                             $"[SetPairingOverlay] - set default overlay color to {ModState.DefaultOverlay} {ModState.DefaultOverlay.r} {ModState.DefaultOverlay.b} {ModState.DefaultOverlay.g} {ModState.DefaultOverlay.a}");
                     }
                 }
@@ -1768,11 +1772,11 @@ namespace StrategicOperations.Framework
                                 lanceConfiguratorPanel.ToggleOverlayPotentialCarriers(baLanceLoadoutSlot, false, carrierLanceLoadoutSlot);
                                 carrierLanceLoadoutSlot.SelectedMech.UnavailableOverlay.SetActive(true);
                                 carrierOverlayChildImage.color = potentialColor;
-                                ModInit.modLog?.Trace?.Write($"[SetPairingOverlay] - carrier overlay color set to {carrierOverlayChildImage.color.r} {carrierOverlayChildImage.color.g} {carrierOverlayChildImage.color.b}");
+                                Mod.Log.Trace?.Log($"[SetPairingOverlay] - carrier overlay color set to {carrierOverlayChildImage.color.r} {carrierOverlayChildImage.color.g} {carrierOverlayChildImage.color.b}");
                                 if (BAOverlayChildImage != null)
                                 {
                                     BAOverlayChildImage.color = potentialColor;
-                                    ModInit.modLog?.Trace?.Write($"[SetPairingOverlay] - BA overlay color set to {BAOverlayChildImage.color.r} {BAOverlayChildImage.color.g} {BAOverlayChildImage.color.b}");
+                                    Mod.Log.Trace?.Log($"[SetPairingOverlay] - BA overlay color set to {BAOverlayChildImage.color.r} {BAOverlayChildImage.color.g} {BAOverlayChildImage.color.b}");
                                 }
                                 foundUnused = true;
                                 break;
@@ -1786,11 +1790,11 @@ namespace StrategicOperations.Framework
                             lanceConfiguratorPanel.ToggleOverlayPotentialCarriers(baLanceLoadoutSlot, false, carrierLanceLoadoutSlot);
                             carrierLanceLoadoutSlot.SelectedMech.UnavailableOverlay.SetActive(true);
                             carrierOverlayChildImage.color = chosenColor;
-                            ModInit.modLog?.Trace?.Write($"[SetPairingOverlay] - no unused colors, chose one at random to duplicate. carrier overlay color set to {carrierOverlayChildImage.color.r} {carrierOverlayChildImage.color.g} {carrierOverlayChildImage.color.b}");
+                            Mod.Log.Trace?.Log($"[SetPairingOverlay] - no unused colors, chose one at random to duplicate. carrier overlay color set to {carrierOverlayChildImage.color.r} {carrierOverlayChildImage.color.g} {carrierOverlayChildImage.color.b}");
                             if (BAOverlayChildImage != null)
                             {
                                 BAOverlayChildImage.color = chosenColor;
-                                ModInit.modLog?.Trace?.Write($"[SetPairingOverlay] - no unused colors, chose one at random to duplicate. BA overlay color set to {BAOverlayChildImage.color.r} {BAOverlayChildImage.color.g} {BAOverlayChildImage.color.b}");
+                                Mod.Log.Trace?.Log($"[SetPairingOverlay] - no unused colors, chose one at random to duplicate. BA overlay color set to {BAOverlayChildImage.color.r} {BAOverlayChildImage.color.g} {BAOverlayChildImage.color.b}");
                             }
                         }
                     }
@@ -1802,7 +1806,7 @@ namespace StrategicOperations.Framework
                             carrierOverlayChildImage.color = ModState.UsedOverlayColorsByCarrier[carrierPilotID];
                             carrierLanceLoadoutSlot.SelectedMech.UnavailableOverlay.SetActive(true);
                             BAOverlayChildImage.color = ModState.UsedOverlayColorsByCarrier[carrierPilotID];
-                            ModInit.modLog?.Trace?.Write(
+                            Mod.Log.Trace?.Log(
                                 $"[SetPairingOverlay] - Carrier already has non-default color. Setting BA color to match: {BAOverlayChildImage.color.r}, {BAOverlayChildImage.color.g}, {BAOverlayChildImage.color.b}");
                         }
                     }
@@ -1839,7 +1843,7 @@ namespace StrategicOperations.Framework
                     if (loadOutSlot.SelectedMech != baLanceLoadoutSlot.SelectedMech)
                     {
                         var hasSpace = false;
-                        var hasPx = false;
+                        //var hasPx = false;
                         var pilotID = loadOutSlot.SelectedPilot.Pilot.Description.Id;
                         
                         if (!ModState.PairingInfos.ContainsKey(pilotID))
@@ -1852,7 +1856,10 @@ namespace StrategicOperations.Framework
                             if (pairInfo.PairedBattleArmor.Count < pairInfo.CapacityInitial)
                             {
                                 hasSpace = true;
-                                if (pairInfo.PairedBattleArmor.Count > 0) hasPx = true;
+                                //if (pairInfo.PairedBattleArmor.Count > 0)
+                                //{
+                                //    hasPx = true;
+                                //}
                             }
                         }
 

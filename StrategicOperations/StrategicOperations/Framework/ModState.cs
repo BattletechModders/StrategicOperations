@@ -139,50 +139,50 @@ namespace StrategicOperations.Framework
 
 
             BA_MountSwarmEffects = new List<BA_TargetEffect>();
-            foreach (var BA_Effect in ModInit.modSettings.BATargetEffects)
+            foreach (var BA_Effect in Mod.Settings.BATargetEffects)
             {
-                ModInit.modLog?.Trace?.Write($"[Initializing BATargetEffects] Adding effects for {BA_Effect.ID}!");
+                Mod.Log.Trace?.Log($"[Initializing BATargetEffects] Adding effects for {BA_Effect.ID}!");
                 foreach (var jObject in BA_Effect.effectDataJO)
                 {
                     var effectData = new EffectData();
                     effectData.FromJSON(jObject.ToString());
                     BA_Effect.effects.Add(effectData);
-                    ModInit.modLog?.Trace?.Write($"EffectData statname: {effectData.statisticData?.statName}");
+                    Mod.Log.Trace?.Log($"EffectData statname: {effectData.statisticData?.statName}");
                 }
                 BA_MountSwarmEffects.Add(BA_Effect);
             }
 
             OnGarrisonCollapseEffects = new List<BA_TargetEffect>();
-            foreach (var BA_Effect in ModInit.modSettings.OnGarrisonCollapseEffects)
+            foreach (var BA_Effect in Mod.Settings.OnGarrisonCollapseEffects)
             {
-                ModInit.modLog?.Trace?.Write($"[Initializing OnGarrisonCollapseEffects] Adding effects for {BA_Effect.ID}!");
+                Mod.Log.Trace?.Log($"[Initializing OnGarrisonCollapseEffects] Adding effects for {BA_Effect.ID}!");
                 foreach (var jObject in BA_Effect.effectDataJO)
                 {
                     var effectData = new EffectData();
                     effectData.FromJSON(jObject.ToString());
                     BA_Effect.effects.Add(effectData);
-                    ModInit.modLog?.Trace?.Write($"EffectData statname: {effectData.statisticData?.statName}");
+                    Mod.Log.Trace?.Log($"EffectData statname: {effectData.statisticData?.statName}");
                 }
                 OnGarrisonCollapseEffects.Add(BA_Effect);
             }
 
             AirliftEffects = new List<AirliftTargetEffect>();
-            foreach (var airliftEffect in ModInit.modSettings.AirliftTargetEffects)
+            foreach (var airliftEffect in Mod.Settings.AirliftTargetEffects)
             {
-                ModInit.modLog?.Trace?.Write($"[Initializing AirliftTargetEffects] Adding effects for {airliftEffect.ID}!");
+                Mod.Log.Trace?.Log($"[Initializing AirliftTargetEffects] Adding effects for {airliftEffect.ID}!");
                 foreach (var jObject in airliftEffect.effectDataJO)
                 {
                     var effectData = new EffectData();
                     effectData.FromJSON(jObject.ToString());
                     airliftEffect.effects.Add(effectData);
-                    ModInit.modLog?.Trace?.Write($"EffectData statname: {effectData.statisticData?.statName}");
+                    Mod.Log.Trace?.Log($"EffectData statname: {effectData.statisticData?.statName}");
                 }
                 AirliftEffects.Add(airliftEffect);
             }
 
             ProcessedOverlayColors = new List<Color>();
-            ModInit.modLog?.Trace?.Write($"[Initializing BAMountPairColors] Parsing colors for overlay!");
-            foreach (var colorSetting in ModInit.modSettings.BAMountPairColors)
+            Mod.Log.Trace?.Log($"[Initializing BAMountPairColors] Parsing colors for overlay!");
+            foreach (var colorSetting in Mod.Settings.BAMountPairColors)
             {
                 var processedColor = new Color(colorSetting.Rf, colorSetting.Gf, colorSetting.Bf, 0.5f);
                 ProcessedOverlayColors.Add(processedColor);

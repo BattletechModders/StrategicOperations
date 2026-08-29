@@ -31,7 +31,7 @@ namespace StrategicOperations.Patches
                         ModState.AiDealWithBattleArmorCmds[unit.GUID].ability.Activate(unit, unit);
                         //     ModState.AiDealWithBattleArmorCmds[unit.GUID].targetActor);
 
-                        ModInit.modLog?.Info?.Write(
+                        Mod.Log.Info?.Log(
                             $"activated {ModState.AiDealWithBattleArmorCmds[unit.GUID].ability.Def.Description.Id} on actor {unit.DisplayName} {unit.GUID}");
 
                         if (!unit.HasMovedThisRound)
@@ -52,7 +52,7 @@ namespace StrategicOperations.Patches
                         if (ability.IsAvailable && !ability.IsActive)
                         {
                             ability.Activate(unit, unit);
-                            ModInit.modLog?.Info?.Write($"{unit.DisplayName} {unit.GUID} is vehicle being swarmed. Found movement order, activating erratic maneuvers ability.");
+                            Mod.Log.Info?.Log($"{unit.DisplayName} {unit.GUID} is vehicle being swarmed. Found movement order, activating erratic maneuvers ability.");
                             __runOriginal = true;
                             return;
                         }
@@ -82,7 +82,7 @@ namespace StrategicOperations.Patches
                         return;
                     }
 
-                    ModInit.modLog?.Info?.Write(
+                    Mod.Log.Info?.Log(
                         $"[AITeam.makeInvocationFromOrders] Actor {unit.DisplayName} has active swarm attack on {target.DisplayName}");
                     if (unit.GetAbilityUsedFiring())
                     {
@@ -100,7 +100,7 @@ namespace StrategicOperations.Patches
                     }
 
                     var weps = unit.Weapons.Where(x => x.IsEnabled && x.HasAmmo).ToList();
-                    if (weps.Count <= 0 && !ModInit.modSettings.MeleeOnSwarmAttacks)
+                    if (weps.Count <= 0 && !Mod.Settings.MeleeOnSwarmAttacks)
                     {
                         //dismount, no more weapons...should probably loop back up to try and resupply??
                         unit.DismountBA(target, Vector3.zero, false);
@@ -112,7 +112,7 @@ namespace StrategicOperations.Patches
                     //var attackStackSequence = new AttackStackSequence(unit, target, unit.CurrentPosition, unit.CurrentRotation, weps, MeleeAttackType.NotSet, loc, -1);
                     //unit.Combat.MessageCenter.PublishMessage(new AddSequenceToStackMessage(attackStackSequence));
                     
-                    if (unit is Mech unitMech && ModInit.modSettings.MeleeOnSwarmAttacks)
+                    if (unit is Mech unitMech && Mod.Settings.MeleeOnSwarmAttacks)
                     {
                         if (!ModState.SwarmMeleeSequences.ContainsKey(unit.GUID))
                         {
@@ -148,9 +148,9 @@ namespace StrategicOperations.Patches
                 {
                     if (ModState.StrategicActorTargetInvocationCmds[unit.GUID].active)
                     {
-                        ModInit.modLog?.Debug?.Write(
+                        Mod.Log.Debug?.Log(
                             $"BA AI Swarm/Mount Ability DUMP: {ModState.StrategicActorTargetInvocationCmds[unit.GUID].active}, {ModState.StrategicActorTargetInvocationCmds[unit.GUID].targetActor.DisplayName}.");
-                        ModInit.modLog?.Debug?.Write(
+                        Mod.Log.Debug?.Log(
                             $"BA AI Swarm/Mount Ability DUMP: {ModState.StrategicActorTargetInvocationCmds[unit.GUID].ability} {ModState.StrategicActorTargetInvocationCmds[unit.GUID].ability.Def.Id}, Combat is not null? {ModState.StrategicActorTargetInvocationCmds[unit.GUID].ability.Combat != null}");
 
                         if (unit.IsMountedUnit())
@@ -160,51 +160,53 @@ namespace StrategicOperations.Patches
                                     carrier);
                         }
 
-                        ModInit.modLog?.Info?.Write(
+                        Mod.Log.Info?.Log(
                             $"[makeInvocationFromOrders] activated {ModState.StrategicActorTargetInvocationCmds[unit.GUID].ability.Def.Description.Id} on actor {ModState.StrategicActorTargetInvocationCmds[unit.GUID].targetActor.DisplayName} {ModState.StrategicActorTargetInvocationCmds[unit.GUID].targetActor.GUID}");
-                        ModInit.modLog?.Trace?.Write(
+                        Mod.Log.Trace?.Log(
                             $"[makeInvocationFromOrders] checking if swarm success {unit.IsSwarmingUnit()}, and has fired this round {unit.HasFiredThisRound}");
 
 
                         __result = new StrategicMovementInvocation(unit, true, ModState.StrategicActorTargetInvocationCmds[unit.GUID].targetActor, false, true);
 
-                        if (false)
-                        {
-                            if (unit.IsSwarmingUnit() && ModInit.modSettings.AttackOnSwarmSuccess &&
-                                !unit.HasFiredThisRound) // maybe move this whole shit do the Strategic Move invocation, check for success, and make the first attack invocation there, at OnComplete?
-                            {
-                                ModInit.modLog?.Trace?.Write(
-                                    $"[makeInvocationFromOrders] - found freshly swarmed unit; trying to make attack invocation for same round. Fingies crossed!");
-                                var target = unit.Combat.FindActorByGUID(ModState.PositionLockSwarm[unit.GUID]);
-                                foreach (var weapon in unit.Weapons)
-                                {
-                                    weapon.EnableWeapon();
-                                }
 
-                                var weps = unit.Weapons.Where(x => x.IsEnabled && x.HasAmmo).ToList();
+                        // UNREACHABLE CLEANUP
+                        //if (false)
+                        //{
+                        //    if (unit.IsSwarmingUnit() && Mod.modSettings.AttackOnSwarmSuccess &&
+                        //        !unit.HasFiredThisRound) // maybe move this whole shit do the Strategic Move invocation, check for success, and make the first attack invocation there, at OnComplete?
+                        //    {
+                        //        Mod.Log.Trace?.Log(
+                        //            $"[makeInvocationFromOrders] - found freshly swarmed unit; trying to make attack invocation for same round. Fingies crossed!");
+                        //        var target = unit.Combat.FindActorByGUID(ModState.PositionLockSwarm[unit.GUID]);
+                        //        foreach (var weapon in unit.Weapons)
+                        //        {
+                        //            weapon.EnableWeapon();
+                        //        }
 
-                                var loc = ModState.BADamageTrackers[unit.GUID].BA_MountedLocations.Values
-                                    .GetRandomElement();
-                                //var attackStackSequence = new AttackStackSequence(unit, target, unit.CurrentPosition, unit.CurrentRotation, weps, MeleeAttackType.NotSet, loc, -1);
-                                //unit.Combat.MessageCenter.PublishMessage(new AddSequenceToStackMessage(attackStackSequence));
-                                var vent = unit.HasVentCoolantAbility && unit.CanVentCoolant;
-                                __result = new AttackInvocation(unit, target, weps, MeleeAttackType.NotSet, loc)
-                                {
-                                    ventHeatBeforeAttack = vent
-                                }; // making a regular attack invocation here, instead of stacksequence + reserve
-                            }
+                        //        var weps = unit.Weapons.Where(x => x.IsEnabled && x.HasAmmo).ToList();
 
-                            else
-                            {
-                                if (!unit.HasMovedThisRound)
-                                {
-                                    unit.BehaviorTree.IncreaseSprintHysteresisLevel();
-                                }
+                        //        var loc = ModState.BADamageTrackers[unit.GUID].BA_MountedLocations.Values
+                        //            .GetRandomElement();
+                        //        //var attackStackSequence = new AttackStackSequence(unit, target, unit.CurrentPosition, unit.CurrentRotation, weps, MeleeAttackType.NotSet, loc, -1);
+                        //        //unit.Combat.MessageCenter.PublishMessage(new AddSequenceToStackMessage(attackStackSequence));
+                        //        var vent = unit.HasVentCoolantAbility && unit.CanVentCoolant;
+                        //        __result = new AttackInvocation(unit, target, weps, MeleeAttackType.NotSet, loc)
+                        //        {
+                        //            ventHeatBeforeAttack = vent
+                        //        }; // making a regular attack invocation here, instead of stacksequence + reserve
+                        //    }
 
-                                __result = new ReserveActorInvocation(unit, ReserveActorAction.DONE,
-                                    unit.Combat.TurnDirector.CurrentRound);
-                            }
-                        }
+                        //    else
+                        //    {
+                        //        if (!unit.HasMovedThisRound)
+                        //        {
+                        //            unit.BehaviorTree.IncreaseSprintHysteresisLevel();
+                        //        }
+
+                        //        __result = new ReserveActorInvocation(unit, ReserveActorAction.DONE,
+                        //            unit.Combat.TurnDirector.CurrentRound);
+                        //    }
+                        //}
 
                         ModState.StrategicActorTargetInvocationCmds.Remove(unit.GUID);
                         __runOriginal = false;
@@ -235,7 +237,7 @@ namespace StrategicOperations.Patches
                 //ModState.StrafeWaves = waves;
                 var newParams = new CmdInvocationParams();
                 
-                if (ModInit.modSettings.strafeUseAlternativeImplementation) {
+                if (Mod.Settings.strafeUseAlternativeImplementation) {
                     // The below values should have been randomized in the earlier AI_Utils.EvaluateStrafing call. They are being recalled here for ensuring same values are used as when AI made its choice to perform a strafe.
                     newParams.ActorResource = ModState.StrafeAttacker ?? ModState.AiCmds[unit.GUID].ability.Def.ActorResource; // Fallback is the ability default strafe attacker
                     newParams.StrafeWaves = ModState.StrafeSelectedWaves;
@@ -259,14 +261,14 @@ namespace StrategicOperations.Patches
 
                 ModState.StoredCmdParams.Add(quid, newParams);
                 //assign waves here if needed
-                ModInit.modLog?.Debug?.Write(
+                Mod.Log.Debug?.Log(
                     $"AICMD DUMP: {ModState.AiCmds[unit.GUID].active}, {ModState.AiCmds[unit.GUID].vectorOne}, {ModState.AiCmds[unit.GUID].vectorTwo}.");
-                ModInit.modLog?.Debug?.Write(
+                Mod.Log.Debug?.Log(
                     $"CMD Ability DUMP: {ModState.AiCmds[unit.GUID].ability} {ModState.AiCmds[unit.GUID].ability.Def.Id}, Combat is not null? {ModState.AiCmds[unit.GUID].ability.Combat != null}");
 
                 ModState.AiCmds[unit.GUID].ability.Activate(unit, ModState.AiCmds[unit.GUID].vectorOne,
                     ModState.AiCmds[unit.GUID].vectorTwo);
-                ModInit.modLog?.Info?.Write(
+                Mod.Log.Info?.Log(
                     $"activated {ModState.AiCmds[unit.GUID].ability.Def.Description.Id} at pos {ModState.AiCmds[unit.GUID].vectorOne.x}, {ModState.AiCmds[unit.GUID].vectorOne.y}, {ModState.AiCmds[unit.GUID].vectorOne.z} and {ModState.AiCmds[unit.GUID].vectorTwo.x}, {ModState.AiCmds[unit.GUID].vectorTwo.y}, {ModState.AiCmds[unit.GUID].vectorTwo.z}, dist = {ModState.AiCmds[unit.GUID].dist}");
 
                 if (!unit.HasMovedThisRound)
@@ -294,7 +296,7 @@ namespace StrategicOperations.Patches
                 {
                     if (actor.IsSwarmingUnit() || actor.IsMountedUnit()) // i could force visibility to zero for BA? unsure what i want to do here since i dont think the AI is smart enough to directly target the building. have to see how it plays/maybe give garrisoned BA some DR or something.
                     {
-                        ModInit.modLog?.Debug?.Write(
+                        Mod.Log.Debug?.Log(
                             $"[AIUtil.UnitHasVisibilityToTargetFromCurrentPosition] DUMP: Target {target.DisplayName} is either mounted or swarming, forcing AI visibility to zero for this node.");
                         __result = false;
                     }
@@ -316,7 +318,7 @@ namespace StrategicOperations.Patches
                 if (__instance.unit.AreAnyWeaponsOutOfAmmo() || __instance.unit.SummaryArmorCurrent / __instance.unit.StartingArmor <= 0.6f) 
                 {
                     var resupplyAbility = __instance.unit.ComponentAbilities.FirstOrDefault(x =>
-                       x.Def.Id == ModInit.modSettings.ResupplyConfig.ArmorSupplyAmmoDefId); 
+                       x.Def.Id == Mod.Settings.ResupplyConfig.ArmorSupplyAmmoDefId); 
                     if (resupplyAbility != null)
                     {
                         var closestResupply = __instance.unit.GetClosestDetectedResupply();
@@ -357,7 +359,7 @@ namespace StrategicOperations.Patches
                 } 
                 if (__instance.unit.IsAirlifted()) 
                 {
-                    ModInit.modLog?.Trace?.Write(
+                    Mod.Log.Trace?.Log(
                        $"[CanMoveAndShootWithoutOverheatingNode] Actor {__instance.unit.DisplayName} is currently being airlifted. Doing nothing."); 
                     __result = new BehaviorTreeResults(BehaviorNodeState.Failure); 
                     __runOriginal = false; 
@@ -366,14 +368,14 @@ namespace StrategicOperations.Patches
 
                 var battleArmorAbility =
                     __instance.unit.ComponentAbilities.FirstOrDefault(x =>
-                        x.Def.Id == ModInit.modSettings.BattleArmorMountAndSwarmID); 
+                        x.Def.Id == Mod.Settings.BattleArmorMountAndSwarmID); 
                 if (battleArmorAbility != null)// && __instance.unit.canSwarm())
                 {
                     if (battleArmorAbility.IsAvailable)
                     {
                         if (__instance.unit.IsSwarmingUnit())
                         {
-                            ModInit.modLog?.Trace?.Write(
+                            Mod.Log.Trace?.Log(
                                 $"[CanMoveAndShootWithoutOverheatingNode] Actor {__instance.unit.DisplayName} is currently swarming. Doing nothing.");
                             //if currently swarming, dont do anything else.
                             __result = new BehaviorTreeResults(BehaviorNodeState.Failure);
@@ -406,17 +408,17 @@ namespace StrategicOperations.Patches
                                 battleArmorAbility.Def.IntParam2
                             }.Max();
 
-                            ModInit.modLog?.Trace?.Write(
+                            Mod.Log.Trace?.Log(
                                 $"[CanMoveAndShootWithoutOverheatingNode] Actor {__instance.unit.DisplayName} maxRange to be used is {maxRange}, largest of: MaxWalkDistance - {__instance.unit.MaxWalkDistance}, MaxSprintDistance - {__instance.unit.MaxSprintDistance}, JumpDistance - {jumpdist}, and Ability Override {battleArmorAbility.Def.IntParam2}");
 
                             if (__instance.unit.IsMountedUnit())
                             {
-                                ModInit.modLog?.Trace?.Write(
+                                Mod.Log.Trace?.Log(
                                     $"[CanMoveAndShootWithoutOverheatingNode] Actor {__instance.unit.DisplayName} is currently mounted. Evaluating range to nearest enemy.");
                                 if (distance <= 1.25 * maxRange ||
                                     (!__instance.unit.CanSwarm() && distance <= AIUtil.GetMaxWeaponRange(__instance.unit)))
                                 {
-                                    ModInit.modLog?.Trace?.Write(
+                                    Mod.Log.Trace?.Log(
                                         $"[CanMoveAndShootWithoutOverheatingNode] Actor {__instance.unit.DisplayName} is {distance} from nearest enemy, maxrange was {maxRange} * 1.25.");
                                     var carrier =
                                         __instance.unit.Combat.FindActorByGUID(ModState.PositionLockMount[__instance.unit.GUID]);
@@ -471,7 +473,7 @@ namespace StrategicOperations.Patches
                                 }
 
                                 var weps = __instance.unit.Weapons.Where(x => x.IsEnabled && x.HasAmmo).ToList();
-                                if (weps.Count <= 0 && !ModInit.modSettings.MeleeOnSwarmAttacks)
+                                if (weps.Count <= 0 && !Mod.Settings.MeleeOnSwarmAttacks)
                                 {
                                     goto noswarm;
                                 }
@@ -480,7 +482,7 @@ namespace StrategicOperations.Patches
                             //if it isnt mounted, its on the ground and should try to swarm if it can.
                             if (distance <= maxRange && !(closestEnemy is TrooperSquad) && __instance.unit.CanSwarm())
                             {
-                                ModInit.modLog?.Trace?.Write(
+                                Mod.Log.Trace?.Log(
                                     $"[CanMoveAndShootWithoutOverheatingNode] Actor {__instance.unit.DisplayName} is on the ground, trying to swarm at {distance} from nearest enemy, maxrange was {maxRange} * 1.25.");
                                 if (ModState.StrategicActorTargetInvocationCmds.ContainsKey(__instance.unit.GUID))
                                 {
@@ -510,7 +512,7 @@ namespace StrategicOperations.Patches
                             }
                         }
                         noswarm:
-                        ModInit.modLog?.Trace?.Write($"[CanMoveAndShootWithoutOverheatingNode] Some nerd running all LAMS or VTOLs or we're out of ammo, can't swarm anything; should just use vanilla tree.");
+                        Mod.Log.Trace?.Log($"[CanMoveAndShootWithoutOverheatingNode] Some nerd running all LAMS or VTOLs or we're out of ammo, can't swarm anything; should just use vanilla tree.");
                     }
                 }
 
@@ -519,7 +521,7 @@ namespace StrategicOperations.Patches
                     var deswarm = __instance.unit.GetDeswarmerAbilityForAI();
                     if (deswarm != null && deswarm?.Def?.Description?.Id != null)
                     {
-                        ModInit.modLog?.Trace?.Write($"[CanMoveAndShootWithoutOverheatingNode] unit {__instance.unit.DisplayName} is being swarmed, found deswarm ability {deswarm.Def.Description.Name}.");
+                        Mod.Log.Trace?.Log($"[CanMoveAndShootWithoutOverheatingNode] unit {__instance.unit.DisplayName} is being swarmed, found deswarm ability {deswarm.Def.Description.Name}.");
                         if (ModState.AiDealWithBattleArmorCmds.ContainsKey(__instance.unit.GUID))
                         {
                             if (ModState.AiDealWithBattleArmorCmds[__instance.unit.GUID].active)
@@ -565,10 +567,10 @@ namespace StrategicOperations.Patches
 
                             var skipStrafeChance = startUnit.GetAvoidStrafeChanceForTeam(ModState.StrafeAttacker); // StrafeAttacker will be set by AI_Utils.EvaluateStrafing above, only used for Alternative Strafing implementation
                             //ModState.startUnitFromInvocation = startUnit;
-                            ModInit.modLog?.Trace?.Write($"final AA value for {startUnit.team.DisplayName}: {skipStrafeChance}");
-                            if (skipStrafeChance < ModInit.modSettings.strafeAAFailThreshold)
+                            Mod.Log.Trace?.Log($"final AA value for {startUnit.team.DisplayName}: {skipStrafeChance}");
+                            if (skipStrafeChance < Mod.Settings.strafeAAFailThreshold)
                             {
-                                if (strafeVal >= ModInit.modSettings.AI_InvokeStrafeThreshold)
+                                if (strafeVal >= Mod.Settings.AI_InvokeStrafeThreshold)
                                 {
                                     var info = new AI_CmdInvocation(abilityStrafe, vector1Strafe, vector2Strafe, true);
                                     ModState.AiCmds.Add(__instance.unit.GUID, info);
@@ -582,7 +584,7 @@ namespace StrategicOperations.Patches
                         {
                             var spawnVal = AI_Utils.EvaluateSpawn(__instance.unit, out var abilitySpawn, out var vector1Spawn,
                                 out var vector2Spawn);
-                            if (spawnVal >= ModInit.modSettings.AI_InvokeSpawnThreshold)
+                            if (spawnVal >= Mod.Settings.AI_InvokeSpawnThreshold)
                             {
                                 var info = new AI_CmdInvocation(abilitySpawn, vector1Spawn, vector2Spawn, true);
                                 ModState.AiCmds.Add(__instance.unit.GUID, info);
@@ -614,11 +616,11 @@ namespace StrategicOperations.Patches
                             return;
                         }
                         var skipStrafeChance = startUnit.GetAvoidStrafeChanceForTeam(ModState.StrafeAttacker); // StrafeAttacker will be set by AI_Utils.EvaluateStrafing above, only used for Alternative Strafing implementation
-                        ModInit.modLog?.Trace?.Write($"final AA value for {startUnit.team.DisplayName}: {skipStrafeChance}");
+                        Mod.Log.Trace?.Log($"final AA value for {startUnit.team.DisplayName}: {skipStrafeChance}");
                         //                    ModState.startUnitFromInvocation = startUnit;
-                        if (skipStrafeChance < ModInit.modSettings.strafeAAFailThreshold)
+                        if (skipStrafeChance < Mod.Settings.strafeAAFailThreshold)
                         {
-                            if (strafeVal > ModInit.modSettings.AI_InvokeStrafeThreshold)
+                            if (strafeVal > Mod.Settings.AI_InvokeStrafeThreshold)
                             {
                                 var info = new AI_CmdInvocation(abilityStrafe, vector1Strafe, vector2Strafe, true);
                                 ModState.AiCmds[__instance.unit.GUID] = info;
@@ -634,7 +636,7 @@ namespace StrategicOperations.Patches
                         var spawnVal = AI_Utils.EvaluateSpawn(__instance.unit, out var abilitySpawn, out var vector1Spawn,
                             out var vector2Spawn);
 
-                        if (spawnVal >= ModInit.modSettings.AI_InvokeSpawnThreshold)
+                        if (spawnVal >= Mod.Settings.AI_InvokeSpawnThreshold)
                         {
                             var info = new AI_CmdInvocation(abilitySpawn, vector1Spawn, vector2Spawn, true);
                             ModState.AiCmds[__instance.unit.GUID] = info;

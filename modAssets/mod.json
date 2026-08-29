@@ -1,0 +1,47 @@
+{
+	"Name": "StrategicOperations",
+	"DLL": "StrategicOperations.dll",
+	"Hidden": true,
+	"Version": "3.2.0",
+	"Description": "Adds BattleArmor, Airstrikes, Unit Lifting, and more.",
+	"Author": "T-Bone",
+	"Website": "https://github.com/battletechmodders/StrategicOperations",
+	"ConflictsWith": [],
+	"DependsOn": [
+		"Abilifier",
+		"MechEngineer",
+		"CustomActivatableEquipment",
+		"CustomUnits",
+		"IRBTModUtils",
+		"CBTBehaviorsEnhanced",
+		"IRTweaks"
+	],
+	"CustomResourceTypes": [
+	],
+	"Manifest": [
+		{
+			"Type": "AbilityDef",
+			"Path": "abilities"
+		},
+		{
+			"Type": "UpgradeDef",
+			"Path": "upgrade"
+		},
+		{
+			"Type": "UpgradeDef",
+			"Path": "contracts"
+		},
+		{
+			"Type": "PilotDef",
+			"Path": "pilot"
+		},
+		{
+			"Type": "Texture2D",
+			"Path": "texture"
+		},
+        {
+			"Type": "AdvancedJSONMerge",
+			"Path": "advancedJsonMerges"
+		}
+	]
+}

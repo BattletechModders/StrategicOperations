@@ -1,0 +1,16 @@
+{
+	"Description": {
+		"Id": "AbilityDefAirliftActivate",
+		"Name": "Airlift",
+		"Details": "ACTION: This unit will airlift the targeted unit, hoisting it into the air and carrying it around. The airlifted unit can still shoot, but can take no movement actions as long as it is held.",
+		"Icon": "cargo-crate"
+	},
+	"DisplayParams": "ShowInMWTRay",
+	"ActivationTime": "NotSet",
+	"ActivationCooldown": -1,
+	"Targeting": "ActorTarget",
+	"ResolveCost": 0,
+	"TargetFriendlyUnit": "BOTH",
+	"IgnoresUniversalCooldown": true,
+	"EffectData": []
+}

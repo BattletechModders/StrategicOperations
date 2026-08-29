@@ -44,7 +44,7 @@ namespace StrategicOperations.Patches
                 foreach (var cmdUse in ModState.CommandUses)
                 {
                     finalCommandCosts += cmdUse.TotalCost;
-                    ModInit.modLog?.Info?.Write($"{cmdUse.TotalCost} in command costs for {cmdUse.CommandName}: {cmdUse.UnitName}. Current Total Command Cost: {finalCommandCosts}");
+                    Mod.Log.Info?.Log($"{cmdUse.TotalCost} in command costs for {cmdUse.CommandName}: {cmdUse.UnitName}. Current Total Command Cost: {finalCommandCosts}");
                 }
 
                 var moneyResults = __instance.MoneyResults - finalCommandCosts;
@@ -61,7 +61,7 @@ namespace StrategicOperations.Patches
         {
             Statistic statisic = StatisticHelper.GetOrCreateStatisic<string>(__instance.CompanyStats, LastUsedMounts.LAST_MOUNTS_STATISTIC_NAME, "[]");
             ModState.LastMounts = JsonConvert.DeserializeObject<List<LastUsedMounts>>(statisic.Value<string>());
-            ModInit.modLog?.Info?.Write($"Last mount stat: {statisic.Value<string>()}");
+            Mod.Log.Info?.Log($"Last mount stat: {statisic.Value<string>()}");
         }
     }
     
@@ -70,10 +70,10 @@ namespace StrategicOperations.Patches
     {
         public static void Prefix()
         {
-            ModInit.modLog?.Info?.Write("Saving LastMounts to company stats");
+            Mod.Log.Info?.Log("Saving LastMounts to company stats");
             Statistic statisic = StatisticHelper.GetOrCreateStatisic<string>(UnityGameInstance.BattleTechGame.Simulation.CompanyStats, LastUsedMounts.LAST_MOUNTS_STATISTIC_NAME, "[]");
             statisic.SetValue<string>(JsonConvert.SerializeObject((object) ModState.LastMounts, Formatting.Indented));
-            ModInit.modLog?.Info?.Write($"Last mount stat: {statisic.Value<string>()}");
+            Mod.Log.Info?.Log($"Last mount stat: {statisic.Value<string>()}");
         }
     }
     
@@ -83,7 +83,7 @@ namespace StrategicOperations.Patches
         [HarmonyPostfix]
         public static void RemoveLastMounts()
         {
-            ModInit.modLog?.Info?.Write("Clearing LastMounts from company stats");
+            Mod.Log.Info?.Log("Clearing LastMounts from company stats");
             UnityGameInstance.BattleTechGame.Simulation.CompanyStats.RemoveStatistic(LastUsedMounts.LAST_MOUNTS_STATISTIC_NAME);
         }
     }

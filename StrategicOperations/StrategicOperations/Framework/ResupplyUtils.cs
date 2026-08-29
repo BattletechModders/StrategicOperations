@@ -97,7 +97,7 @@ namespace StrategicOperations.Framework
 
         public static int ProcessResupplyUnit(this AbstractActor actor, AbstractActor resupplyActor)
         {
-            var searchForSpammy = !string.IsNullOrEmpty(ModInit.modSettings.ResupplyConfig.SPAMMYAmmoDefId);
+            var searchForSpammy = !string.IsNullOrEmpty(Mod.Settings.ResupplyConfig.SPAMMYAmmoDefId);
 
             var totalAmmoTonnage = 0f;
             var totalArmorPoints = 0f;
@@ -112,7 +112,7 @@ namespace StrategicOperations.Framework
                         if (weapon.weaponDef.Is<InternalAmmoTonnage>(out var internalTonnage))
                         {
                             var missingAmmoForMagicBox = startingCapacity - weapon.InternalAmmo;
-                            ModInit.modLog?.Trace?.Write(
+                            Mod.Log.Trace?.Log(
                                 $"[ProcessResupplyUnit - Internal SPAMMY] - Found weapon {weapon.Description.UIName} needs {missingAmmoForMagicBox} shots added (starting capacity was {startingCapacity}.");
                             var sourceTonnagePerShot =
                                 internalTonnage.InternalAmmoTons / startingCapacity;
@@ -124,14 +124,14 @@ namespace StrategicOperations.Framework
                                 if (magicBox.CurrentAmmo <= 0) continue;
 
                                 var spammy = searchForSpammy && magicBox.ammoDef.Description.Id ==
-                                             ModInit.modSettings.ResupplyConfig.SPAMMYAmmoDefId &&
-                                             !ModInit.modSettings.ResupplyConfig.SPAMMYBlackList.Contains(weapon
+                                             Mod.Settings.ResupplyConfig.SPAMMYAmmoDefId &&
+                                             !Mod.Settings.ResupplyConfig.SPAMMYBlackList.Contains(weapon
                                                  .weaponDef
                                                  .Description.Id);
 
                                 var intSpammy = searchForSpammy && magicBox.ammoDef.Description.Id ==
-                                             ModInit.modSettings.ResupplyConfig.InternalSPAMMYDefId &&
-                                             !ModInit.modSettings.ResupplyConfig.InternalSPAMMYBlackList.Contains(weapon
+                                             Mod.Settings.ResupplyConfig.InternalSPAMMYDefId &&
+                                             !Mod.Settings.ResupplyConfig.InternalSPAMMYBlackList.Contains(weapon
                                                  .weaponDef
                                                  .Description.Id);
 
@@ -151,7 +151,7 @@ namespace StrategicOperations.Framework
                                         weapon.DecInternalAmmo(-1,-missingAmmoForMagicBox);
                                         weapon.tInternalAmmo(weapon.InternalAmmo);
                                         magicBox.ModifyAmmoCount(-totalMagicShotsConsumed);
-                                        ModInit.modLog?.Trace?.Write(
+                                        Mod.Log.Trace?.Log(
                                             $"[ProcessResupplyUnit - Internal Ammo!] - Full Resupply complete for weapon {weapon.Description.UIName}. Ammobox now has {weapon.InternalAmmo}/{weapon.weaponDef.StartingAmmoCapacity} {startingCapacity} ammo, SPAMMY box has {magicBox.CurrentAmmo}/{magicBox.AmmoCapacity} remaining. \n\nMathDumps: Replacement of ammo needs to use {sourceTonnageNeeded} tons of SPAMMY. SPAMMY has {magicTonnageAvailable} tons available at {magicTonnagePerShot} per shot for total SPAMMY shots needed of {totalMagicShotsConsumed}");
                                         break;
                                     }
@@ -161,13 +161,13 @@ namespace StrategicOperations.Framework
                                         weapon.DecInternalAmmo(-1, -replacementSourceShotsAvailable);
                                         weapon.tInternalAmmo(weapon.InternalAmmo);
                                         magicBox.ZeroAmmoCount();
-                                        ModInit.modLog?.Trace?.Write(
+                                        Mod.Log.Trace?.Log(
                                             $"[ProcessResupplyUnit - Internal Ammo!] - Partial Resupply complete for weapon {weapon.Description.UIName}. Ammobox now has {weapon.InternalAmmo}/{weapon.weaponDef.StartingAmmoCapacity} {startingCapacity} ammo, SPAMMY box has {magicBox.CurrentAmmo}/{magicBox.AmmoCapacity} remaining. \n\nMathDumps: Replacement of ammo needs to use {sourceTonnageNeeded} tons of SPAMMY. SPAMMY has {magicTonnageAvailable} tons available at {magicTonnagePerShot} per shot for total SPAMMY shots needed of {totalMagicShotsConsumed}");
 
                                         //update missing ammo amounts here
                                         missingAmmoForMagicBox = startingCapacity - weapon.InternalAmmo;
                                         sourceTonnageNeeded = missingAmmoForMagicBox * sourceTonnagePerShot;
-                                        ModInit.modLog?.Trace?.Write(
+                                        Mod.Log.Trace?.Log(
                                             $"[ProcessResupplyUnit - Internal Ammo!] - Updating ammo needed after partial resupply. missingAmmoForMagicBox: {missingAmmoForMagicBox}, sourceTonnageNeeded: {sourceTonnageNeeded}");
                                     }
                                 }
@@ -182,7 +182,7 @@ namespace StrategicOperations.Framework
                 if (ammoBoxToFill.CurrentAmmo < ammoBoxToFill.AmmoCapacity)
                 {
                     var initialMissingAmmoCount = ammoBoxToFill.AmmoCapacity - ammoBoxToFill.CurrentAmmo;
-                    ModInit.modLog?.Trace?.Write($"[ProcessResupplyUnit - Ammo] - Found box {ammoBoxToFill.Description.UIName} needs {initialMissingAmmoCount} shots added.");
+                    Mod.Log.Trace?.Log($"[ProcessResupplyUnit - Ammo] - Found box {ammoBoxToFill.Description.UIName} needs {initialMissingAmmoCount} shots added.");
                     var missingAmmoTonnage = initialMissingAmmoCount * (ammoBoxToFill.tonnage / ammoBoxToFill.AmmoCapacity);
                     totalAmmoTonnage += missingAmmoTonnage;
                     var magicBoxes = new List<AmmunitionBox>();
@@ -194,33 +194,33 @@ namespace StrategicOperations.Framework
                             if (resupplyBox.CurrentAmmo <= 0) continue;
                             var currentMissingAmmoCount =
                                 ammoBoxToFill.AmmoCapacity - ammoBoxToFill.CurrentAmmo;
-                            ModInit.modLog?.Trace?.Write($"[ProcessResupplyUnit - Regular Ammo] - Found resupply box, has {resupplyBox.CurrentAmmo} available.");
+                            Mod.Log.Trace?.Log($"[ProcessResupplyUnit - Regular Ammo] - Found resupply box, has {resupplyBox.CurrentAmmo} available.");
                             if (resupplyBox.CurrentAmmo >= currentMissingAmmoCount)
                             {
                                 ammoBoxToFill.ModifyAmmoCount(currentMissingAmmoCount);
                                 resupplyBox.ModifyAmmoCount(-currentMissingAmmoCount);
-                                ModInit.modLog?.Trace?.Write($"[ProcessResupplyUnit - Regular Ammo] - Full Resupply complete for ammoBox {ammoBoxToFill.Description.UIName}. Ammobox now has {ammoBoxToFill.CurrentAmmo}/{ammoBoxToFill.AmmoCapacity} ammo, resupply box has {resupplyBox.CurrentAmmo}/{resupplyBox.AmmoCapacity} remaining");
+                                Mod.Log.Trace?.Log($"[ProcessResupplyUnit - Regular Ammo] - Full Resupply complete for ammoBox {ammoBoxToFill.Description.UIName}. Ammobox now has {ammoBoxToFill.CurrentAmmo}/{ammoBoxToFill.AmmoCapacity} ammo, resupply box has {resupplyBox.CurrentAmmo}/{resupplyBox.AmmoCapacity} remaining");
                                 break;
                             }
                             else
                             {
                                 ammoBoxToFill.ModifyAmmoCount(resupplyBox.CurrentAmmo);
                                 resupplyBox.ModifyAmmoCount(-resupplyBox.CurrentAmmo);
-                                ModInit.modLog?.Trace?.Write($"[ProcessResupplyUnit - Regular Ammo] - Partial Resupply complete for ammoBox {ammoBoxToFill.Description.UIName}. Ammobox now has {ammoBoxToFill.CurrentAmmo}/{ammoBoxToFill.AmmoCapacity} ammo, resupply box has {resupplyBox.CurrentAmmo}/{resupplyBox.AmmoCapacity} remaining");
+                                Mod.Log.Trace?.Log($"[ProcessResupplyUnit - Regular Ammo] - Partial Resupply complete for ammoBox {ammoBoxToFill.Description.UIName}. Ammobox now has {ammoBoxToFill.CurrentAmmo}/{ammoBoxToFill.AmmoCapacity} ammo, resupply box has {resupplyBox.CurrentAmmo}/{resupplyBox.AmmoCapacity} remaining");
                             }
                         }
-                        else if (searchForSpammy && resupplyBox.ammoDef.Description.Id == ModInit.modSettings.ResupplyConfig.SPAMMYAmmoDefId)
+                        else if (searchForSpammy && resupplyBox.ammoDef.Description.Id == Mod.Settings.ResupplyConfig.SPAMMYAmmoDefId)
                         {
                             magicBoxes.Add(resupplyBox);
                         }
                     }
 
-                    if (ModInit.modSettings.ResupplyConfig.SPAMMYBlackList.Contains(
+                    if (Mod.Settings.ResupplyConfig.SPAMMYBlackList.Contains(
                             ammoBoxToFill.ammoDef.Description.Id)) continue;
                     if (ammoBoxToFill.CurrentAmmo < ammoBoxToFill.AmmoCapacity && magicBoxes.Count > 0)
                     {
                         var missingAmmoForMagicBox = ammoBoxToFill.AmmoCapacity - ammoBoxToFill.CurrentAmmo;
-                        ModInit.modLog?.Trace?.Write(
+                        Mod.Log.Trace?.Log(
                             $"[ProcessResupplyUnit - SPAMMY] - Found box {ammoBoxToFill.Description.UIName} needs {missingAmmoForMagicBox} shots added.");
                         var sourceTonnagePerShot = ammoBoxToFill.tonnage / ammoBoxToFill.AmmoCapacity;
                         var sourceTonnageNeeded = missingAmmoForMagicBox * sourceTonnagePerShot;
@@ -237,7 +237,7 @@ namespace StrategicOperations.Framework
                             {
                                 ammoBoxToFill.ModifyAmmoCount(missingAmmoForMagicBox);
                                 magicBox.ModifyAmmoCount(-totalMagicShotsConsumed);
-                                ModInit.modLog?.Trace?.Write(
+                                Mod.Log.Trace?.Log(
                                     $"[ProcessResupplyUnit - Use SpAce Magic Modular (by Yang) Ammo!] - Full Resupply complete for ammoBox {ammoBoxToFill.Description.UIName}. Ammobox now has {ammoBoxToFill.CurrentAmmo}/{ammoBoxToFill.AmmoCapacity} ammo, SPAMMY box has {magicBox.CurrentAmmo}/{magicBox.AmmoCapacity} remaining. \n\nMathDumps: Replacement of ammo needs to use {sourceTonnageNeeded} tons of SPAMMY. SPAMMY has {magicTonnageAvailable} tons available at {magicTonnagePerShot} per shot for total SPAMMY shots needed of {totalMagicShotsConsumed}");
                                 break;
                             }
@@ -245,11 +245,11 @@ namespace StrategicOperations.Framework
                             {
                                 ammoBoxToFill.ModifyAmmoCount(replacementSourceShotsAvailable);
                                 magicBox.ZeroAmmoCount();
-                                ModInit.modLog?.Trace?.Write(
+                                Mod.Log.Trace?.Log(
                                     $"[ProcessResupplyUnit - Use SpAce Magic Modular (by Yang) Ammo!] - Partial Resupply complete for ammoBox {ammoBoxToFill.Description.UIName}. Ammobox now has {ammoBoxToFill.CurrentAmmo}/{ammoBoxToFill.AmmoCapacity} ammo, SPAMMY box has {magicBox.CurrentAmmo}/{magicBox.AmmoCapacity} remaining. \n\nMathDumps: Replacement of ammo needs to use {sourceTonnageNeeded} tons of SPAMMY. SPAMMY has {magicTonnageAvailable} tons available at {magicTonnagePerShot} per shot for total SPAMMY shots needed of {totalMagicShotsConsumed}");
                                 missingAmmoForMagicBox = ammoBoxToFill.AmmoCapacity - ammoBoxToFill.CurrentAmmo;
                                 sourceTonnageNeeded = missingAmmoForMagicBox * sourceTonnagePerShot;
-                                ModInit.modLog?.Trace?.Write(
+                                Mod.Log.Trace?.Log(
                                     $"[ProcessResupplyUnit - Use SpAce Magic Modular (by Yang) Ammo!] - Updating ammo needed after partial resupply. missingAmmoForMagicBox: {missingAmmoForMagicBox}, sourceTonnageNeeded: {sourceTonnageNeeded}");
                             }
                         }
@@ -257,7 +257,7 @@ namespace StrategicOperations.Framework
                 }
             }
 
-            if (!string.IsNullOrEmpty(ModInit.modSettings.ResupplyConfig.ArmorSupplyAmmoDefId))
+            if (!string.IsNullOrEmpty(Mod.Settings.ResupplyConfig.ArmorSupplyAmmoDefId))
             {
                 if (actor is Mech mech)
                 {
@@ -265,7 +265,7 @@ namespace StrategicOperations.Framework
                     {
                         if (mech.IsLocationDestroyed(MechStructureRules.GetChassisLocationFromArmorLocation(loc)))
                             continue;
-                        var initialCapped = HUDMechArmorReadout.GetInitialArmorForLocation(mech.MechDef, loc) * ModInit.modSettings.ResupplyConfig.ArmorRepairMax;
+                        var initialCapped = HUDMechArmorReadout.GetInitialArmorForLocation(mech.MechDef, loc) * Mod.Settings.ResupplyConfig.ArmorRepairMax;
                         var current = mech.ArmorForLocation((int) loc);
                         foreach (var ammobox in resupplyActor.ammoBoxes)
                         {
@@ -276,10 +276,10 @@ namespace StrategicOperations.Framework
                                 //totalArmorPoints += missingArmor;
                             
                                 if (ammobox.ammunitionBoxDef.AmmoID ==
-                                    ModInit.modSettings.ResupplyConfig.ArmorSupplyAmmoDefId)
+                                    Mod.Settings.ResupplyConfig.ArmorSupplyAmmoDefId)
                                 {
                                     if (ammobox.CurrentAmmo <= 0) continue;
-                                    ModInit.modLog?.Trace?.Write(
+                                    Mod.Log.Trace?.Log(
                                         $"[ProcessResupplyUnit - ARMOR] - Location {loc} can replace {missingArmor} points of armor. Armor Ammo has {ammobox.CurrentAmmo} available.");
                                     var armorAmmoNeeded = Mathf.CeilToInt(missingArmor);
                                     if (ammobox.CurrentAmmo >= armorAmmoNeeded)
@@ -287,14 +287,14 @@ namespace StrategicOperations.Framework
                                         totalArmorPoints += armorAmmoNeeded;
                                         mech.ModifyMechArmorValue(loc, missingArmor);
                                         ammobox.ModifyAmmoCount(-armorAmmoNeeded);
-                                        ModInit.modLog?.Trace?.Write($"[ProcessResupplyUnit - ARMOR] - Location {loc} replaced {missingArmor} points of armor, using {armorAmmoNeeded} armorAmmo. {ammobox.CurrentAmmo} remains.");
+                                        Mod.Log.Trace?.Log($"[ProcessResupplyUnit - ARMOR] - Location {loc} replaced {missingArmor} points of armor, using {armorAmmoNeeded} armorAmmo. {ammobox.CurrentAmmo} remains.");
                                     }
                                     else
                                     {
                                         totalArmorPoints += ammobox.CurrentAmmo;
                                         mech.ModifyMechArmorValue(loc, ammobox.CurrentAmmo);
                                         ammobox.ZeroAmmoCount();
-                                        ModInit.modLog?.Trace?.Write($"[ProcessResupplyUnit - ARMOR] - Location {loc} replaced {ammobox.CurrentAmmo} points of armor, using {armorAmmoNeeded} armorAmmo. {ammobox.CurrentAmmo} remains.");
+                                        Mod.Log.Trace?.Log($"[ProcessResupplyUnit - ARMOR] - Location {loc} replaced {ammobox.CurrentAmmo} points of armor, using {armorAmmoNeeded} armorAmmo. {ammobox.CurrentAmmo} remains.");
                                     }
                                 }
                             }
@@ -303,18 +303,18 @@ namespace StrategicOperations.Framework
                 }
             }
 
-            var phasesFromAmmo = totalAmmoTonnage * ModInit.modSettings.ResupplyConfig.ResupplyPhasesPerAmmoTonnage;
-            var phasesFromArmor = totalArmorPoints * ModInit.modSettings.ResupplyConfig.ResupplyPhasesPerArmorPoint;
+            var phasesFromAmmo = totalAmmoTonnage * Mod.Settings.ResupplyConfig.ResupplyPhasesPerAmmoTonnage;
+            var phasesFromArmor = totalArmorPoints * Mod.Settings.ResupplyConfig.ResupplyPhasesPerArmorPoint;
             var multiFromTags = 1f;
             foreach (var tag in actor.GetStaticUnitTags())
             {
-                if (ModInit.modSettings.ResupplyConfig.UnitTagFactor.ContainsKey(tag))
+                if (Mod.Settings.ResupplyConfig.UnitTagFactor.ContainsKey(tag))
                 {
-                    multiFromTags *= ModInit.modSettings.ResupplyConfig.UnitTagFactor[tag];
+                    multiFromTags *= Mod.Settings.ResupplyConfig.UnitTagFactor[tag];
                 }
             }
-            var finalPhases = Mathf.RoundToInt((ModInit.modSettings.ResupplyConfig.BasePhasesToResupply + phasesFromAmmo + phasesFromArmor) * multiFromTags);
-            ModInit.modLog?.Trace?.Write($"[ProcessResupplyUnit] - Calculated resupply should take {finalPhases} phases: {ModInit.modSettings.ResupplyConfig.BasePhasesToResupply} from baseline, {phasesFromAmmo} from ammo, {phasesFromArmor} from armor, x {multiFromTags} total from tags.");
+            var finalPhases = Mathf.RoundToInt((Mod.Settings.ResupplyConfig.BasePhasesToResupply + phasesFromAmmo + phasesFromArmor) * multiFromTags);
+            Mod.Log.Trace?.Log($"[ProcessResupplyUnit] - Calculated resupply should take {finalPhases} phases: {Mod.Settings.ResupplyConfig.BasePhasesToResupply} from baseline, {phasesFromAmmo} from ammo, {phasesFromArmor} from armor, x {multiFromTags} total from tags.");
             return finalPhases;
         }
 
@@ -326,14 +326,14 @@ namespace StrategicOperations.Framework
                 if (!ModState.TeamsWithResupply.Contains(unit.team.GUID)) continue;
                 if (unit.IsResupplyUnit) continue;
                 if (unit.GetPilot().Abilities
-                        .All(x => x.Def.Id != ModInit.modSettings.ResupplyConfig.ResupplyAbilityID) &&
+                        .All(x => x.Def.Id != Mod.Settings.ResupplyConfig.ResupplyAbilityID) &&
                     unit.ComponentAbilities.All(y =>
-                        y.Def.Id != ModInit.modSettings.ResupplyConfig.ResupplyAbilityID))
+                        y.Def.Id != Mod.Settings.ResupplyConfig.ResupplyAbilityID))
                 {
-                    unit.Combat.DataManager.AbilityDefs.TryGet(ModInit.modSettings.ResupplyConfig.ResupplyAbilityID,
+                    unit.Combat.DataManager.AbilityDefs.TryGet(Mod.Settings.ResupplyConfig.ResupplyAbilityID,
                         out var def);
                     var ability = new Ability(def);
-                    ModInit.modLog?.Trace?.Write(
+                    Mod.Log.Trace?.Log(
                         $"[UpdateResupplyAbilitiesGetAllLivingActors] Adding {ability.Def?.Description?.Id} to {unit.DisplayName}.");
                     ability.Init(unit.Combat);
                     unit.GetPilot().Abilities.Add(ability);

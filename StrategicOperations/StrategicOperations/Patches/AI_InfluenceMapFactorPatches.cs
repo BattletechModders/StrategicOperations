@@ -21,7 +21,7 @@ namespace StrategicOperations.Patches
                 if (unit.HasMountedUnits() || (unit.CanSwarm() && unit is TrooperSquad))
                 {
                     var result = 9001 * (1 / unit.DistanceToClosestDetectedEnemy(position));
-                    ModInit.modLog?.Debug?.Write(
+                    Mod.Log.Debug?.Log(
                         $"[PreferFarthestAwayFromClosestHostilePositionFactor] Actor {unit.DisplayName} evaluating position {position}, should return {result}");
                     __result = result;
                     __runOriginal = false;
@@ -58,7 +58,7 @@ namespace StrategicOperations.Patches
                 if (unit.HasMountedUnits() || (unit.CanSwarm() && unit is TrooperSquad))
                 {
                     var result = 9001 * (1 / unit.DistanceToClosestDetectedEnemy(position));
-                    ModInit.modLog?.Debug?.Write(
+                    Mod.Log.Debug?.Log(
                         $"[PreferFarthestAwayFromClosestHostilePositionFactor] Actor {unit.DisplayName} evaluating position {position}, should return {result}");
                     __result = result;
                     __runOriginal = false;
@@ -93,7 +93,7 @@ namespace StrategicOperations.Patches
                 if (unit.HasMountedUnits() || (unit.CanSwarm() && unit is TrooperSquad))
                 {
                     var result = 9001 * (1 / unit.DistanceToClosestDetectedEnemy(position));
-                    ModInit.modLog?.Debug?.Write(
+                    Mod.Log.Debug?.Log(
                         $"[PreferLowerMovementFactor] Actor {unit.DisplayName} evaluating position {position}, should return {result}");
                     __result = result;
                     __runOriginal = false;
@@ -129,7 +129,7 @@ namespace StrategicOperations.Patches
                 if (unit.HasMountedUnits() || (unit.CanSwarm() && unit is TrooperSquad))
                 {
                     var result = 9001 * (1 / unit.DistanceToClosestDetectedEnemy(position));
-                    ModInit.modLog?.Debug?.Write(
+                    Mod.Log.Debug?.Log(
                         $"[PreferNoCloserThanMinDistToHostileFactor] Actor {unit.DisplayName} evaluating position {position}, should return {result}");
                     __result = result;
                     __runOriginal = false;
@@ -164,7 +164,7 @@ namespace StrategicOperations.Patches
                 if (unit.HasMountedUnits() || (unit.CanSwarm() && unit is TrooperSquad))
                 {
                     var result = 9001 * (1 / unit.DistanceToClosestDetectedEnemy(position));
-                    ModInit.modLog?.Debug?.Write(
+                    Mod.Log.Debug?.Log(
                         $"[PreferOptimalDistanceToAllyFactor] Actor {unit.DisplayName} evaluating position {position}, should return {result}");
                     __result = result;
                     __runOriginal = false;
@@ -200,7 +200,7 @@ namespace StrategicOperations.Patches
                 {
                     var result = 9001 * (1 / unit.DistanceToClosestDetectedEnemy(position));
                     __result = result;
-                    ModInit.modLog?.Debug?.Write(
+                    Mod.Log.Debug?.Log(
                         $"[PreferOptimalDistanceToHostileFactor] Actor {unit.DisplayName} evaluating position {position}, should return {result}");
                     __runOriginal = false;
                     return;
