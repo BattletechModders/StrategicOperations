@@ -20,7 +20,7 @@ namespace StrategicOperations.Framework
 
         public override bool IsComplete => this.state == SequenceState.Finished;
 
-        private bool IsOffMap => (this.actor.CurrentPosition.x < this.minMapCoord || this.actor.CurrentPosition.x > this.maxMapCoord) && (this.actor.CurrentPosition.z < this.minMapCoord || this.actor.CurrentPosition.z > this.maxMapCoord);
+        private bool IsOffMap => (this.actor.CurrentPosition.x < this.minMapCoord || this.actor.CurrentPosition.x > this.maxMapCoord) || (this.actor.CurrentPosition.z < this.minMapCoord || this.actor.CurrentPosition.z > this.maxMapCoord);
         public override bool IsParallelInterruptable => false;
         public override bool IsValidMultiSequenceChild => false;
         private float minWeaponRange { get; set; }
