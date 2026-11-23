@@ -422,9 +422,16 @@ namespace StrategicOperations.Framework
 
         private void SetPosition(Vector3 position, Quaternion rotation)
         {
-            this.Attacker.GameRep.thisTransform.position = position;
-            this.Attacker.GameRep.thisTransform.rotation = rotation;
-            this.Attacker.OnPositionUpdate(position, rotation, base.SequenceGUID, false, null, true);
+            Attacker.GameRep.thisTransform.position = position;
+            Attacker.GameRep.thisTransform.rotation = rotation;
+            if (!Combat.MapMetaData.IsWithinBounds(position))
+            {
+                Attacker.CurrentPosition = position;
+                Attacker.CurrentRotation = rotation;
+                (Attacker.GameRep as PilotableActorRepresentation)?.SetBlipPositionRotation(position, rotation);
+                return;
+            }
+            Attacker.OnPositionUpdate(position, rotation, SequenceGUID, false, null, true);
         }
 
         private void SetState(TB_StrafeSequence.SequenceState newState)
