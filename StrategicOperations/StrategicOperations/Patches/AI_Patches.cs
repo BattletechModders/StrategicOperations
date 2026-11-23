@@ -237,7 +237,7 @@ namespace StrategicOperations.Patches
                 //ModState.StrafeWaves = waves;
                 var newParams = new CmdInvocationParams();
                 
-                if (Mod.Settings.strafeUseAlternativeImplementation) {
+                if (Mod.Settings.strafeUseAlternativeImplementation && ModState.AiCmds[unit.GUID].ability.Def.specialRules == AbilityDef.SpecialRules.Strafe) {
                     // The below values should have been randomized in the earlier AI_Utils.EvaluateStrafing call. They are being recalled here for ensuring same values are used as when AI made its choice to perform a strafe.
                     newParams.ActorResource = ModState.StrafeAttacker ?? ModState.AiCmds[unit.GUID].ability.Def.ActorResource; // Fallback is the ability default strafe attacker
                     newParams.StrafeWaves = ModState.StrafeSelectedWaves;
