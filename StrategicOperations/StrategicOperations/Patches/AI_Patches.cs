@@ -1,6 +1,5 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
-using System.Reflection;
 using System.Threading;
 using Abilifier.Patches;
 using BattleTech;
@@ -237,7 +236,7 @@ namespace StrategicOperations.Patches
                 //ModState.StrafeWaves = waves;
                 var newParams = new CmdInvocationParams();
                 
-                if (Mod.Settings.strafeUseAlternativeImplementation) {
+                if (Mod.Settings.strafeUseAlternativeImplementation && ModState.AiCmds[unit.GUID].ability.Def.specialRules == AbilityDef.SpecialRules.Strafe) {
                     // The below values should have been randomized in the earlier AI_Utils.EvaluateStrafing call. They are being recalled here for ensuring same values are used as when AI made its choice to perform a strafe.
                     newParams.ActorResource = ModState.StrafeAttacker ?? ModState.AiCmds[unit.GUID].ability.Def.ActorResource; // Fallback is the ability default strafe attacker
                     newParams.StrafeWaves = ModState.StrafeSelectedWaves;
@@ -651,27 +650,9 @@ namespace StrategicOperations.Patches
             }
         }
 
-        [HarmonyPatch()]
+        [HarmonyPatch(typeof(Mech), nameof(Mech.CanEngageTarget), new[] { typeof(ICombatant), typeof(string) }, new[] { ArgumentType.Normal, ArgumentType.Out })]
         public static class Mech_CanEngageTarget
         {
-            public static MethodBase TargetMethod()
-            {
-                var methods = AccessTools.GetDeclaredMethods(typeof(Mech));
-                foreach (MethodInfo info in methods)
-                {
-                    if (info.Name == "CanEngageTarget")
-                    {
-                        var paramInfo = info.GetParameters();
-                        
-                        if (paramInfo.Length == 2)
-                        {
-                            return info;
-                        }
-                    }
-                }
-                return null;
-            }
-
             public static void Postfix(Mech __instance, ICombatant target, ref string debugMsg, ref bool __result)
             {
                 //debugMsg = default(string);
@@ -681,6 +662,18 @@ namespace StrategicOperations.Patches
                     {
                         __result = false;
                     }
+                }
+            }
+        }
+
+        [HarmonyPatch(typeof(Mech), nameof(Mech.CanDFATargetFromPosition))]
+        public static class Mech_CanDFATargetFromPosition
+        {
+            public static void Postfix(ICombatant target, ref bool __result)
+            {
+                if (__result && target is AbstractActor actor && (actor.IsSwarmingUnit() || actor.IsMountedUnit() || actor.HasSwarmingUnits()))
+                {
+                    __result = false;
                 }
             }
         }
