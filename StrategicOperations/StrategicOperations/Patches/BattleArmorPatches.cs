@@ -974,6 +974,24 @@ namespace StrategicOperations.Patches
                             abilityButton?.DisableButton();
                     }
                 }
+
+                if (actor.HasMountedUnits())
+                {
+                    __instance.JumpButton.DisableButton();
+                }
+            }
+        }
+
+        [HarmonyPatch(typeof(Mech), nameof(Mech.JumpDistance), MethodType.Getter)]
+        public static class Mech_JumpDistance
+        {
+            [HarmonyPriority(Priority.Last)]
+            public static void Postfix(Mech __instance, ref float __result)
+            {
+                if (__result > 0f && __instance.HasMountedUnits())
+                {
+                    __result = 0f;
+                }
             }
         }
 
