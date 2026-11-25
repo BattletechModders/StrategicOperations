@@ -975,7 +975,7 @@ namespace StrategicOperations.Patches
                     }
                 }
 
-                if (actor.HasMountedUnits())
+                if (actor.HasMountedUnits() && actor.IsCustomUnitVehicle())
                 {
                     __instance.JumpButton.DisableButton();
                 }
@@ -988,7 +988,7 @@ namespace StrategicOperations.Patches
             [HarmonyPriority(Priority.Last)]
             public static void Postfix(Mech __instance, ref float __result)
             {
-                if (__result > 0f && __instance.HasMountedUnits())
+                if (__result > 0f && __instance.HasMountedUnits() && __instance.IsCustomUnitVehicle())
                 {
                     __result = 0f;
                 }
